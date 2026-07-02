@@ -31,6 +31,9 @@
     // always find their own. `dir` drives <html dir> ('ltr' | 'rtl').
     const SUPPORTED_LOCALES = [
         { code: 'en', name: 'English', dir: 'ltr' },
+        { code: 'de', name: 'Deutsch', dir: 'ltr' },
+        { code: 'ar', name: 'العربية', dir: 'rtl' },
+        { code: 'ja', name: '日本語', dir: 'ltr' },
     ];
 
     const api = (global.AquaI18n = global.AquaI18n || {});
