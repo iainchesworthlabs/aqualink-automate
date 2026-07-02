@@ -650,9 +650,48 @@ int main(int argc, char* argv[])
 
 		auto web_settings_result = settings.Get<Options::Web::WebSettings>();
 
+		// Identity-system ownership handles.  These MUST share http_server's
+		// (application) lifetime: the auth routes registered on the server below
+		// capture RAW references into these objects (SessionService&, UserStore&,
+		// AuditLog&, OffloadPool&, ...), and the server keeps serving requests from
+		// the frame loop far below.  They are only POPULATED inside the
+		// `if (web_settings_result)` block; declaring them there too would free the
+		// whole stack at that block's close while the routes still point at it -> a
+		// use-after-free crash on the first login/setup POST.  Declared BEFORE
+		// http_server so they are torn down AFTER it (the server stops serving
+		// first).  Fully-qualified: the `Auth` short alias is not introduced until
+		// inside the block below.
+		std::shared_ptr<AqualinkAutomate::Preferences::UserPreferencesStore> user_preferences_store{};
+		std::shared_ptr<AqualinkAutomate::Auth::UserStore> auth_users{};
+		std::shared_ptr<AqualinkAutomate::Auth::GroupStore> auth_group_store{};
+		std::shared_ptr<AqualinkAutomate::Auth::SessionStore> auth_sessions{};
+		std::shared_ptr<AqualinkAutomate::Auth::ApiKeyStore> auth_api_keys{};
+		std::shared_ptr<AqualinkAutomate::Auth::JwtCodec> auth_codec{};
+		std::shared_ptr<AqualinkAutomate::Auth::AuditLog> auth_audit{};
+		std::shared_ptr<AqualinkAutomate::Utility::OffloadPool> auth_offload{};
+		std::shared_ptr<AqualinkAutomate::Auth::SessionService> auth_session_service{};
+
 		std::unique_ptr<HTTP::HttpServer> http_server;
 		std::unique_ptr<HTTP::HttpServer> https_server;
 		boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls_server);
+
+		// The identity-system stack MUST be declared at this (server) scope, NOT
+		// inside the web-settings block below: the web routes registered there
+		// hold these by REFERENCE (SessionService&, OffloadPool&, the stores),
+		// and they have to outlive the frame loop that services requests.  A
+		// tighter scope would free them at the block's end, leaving the routes
+		// with dangling references (a use-after-free the moment a login/setup
+		// request is served).  Fully-qualified to sidestep the block-scope
+		// `Auth`/`Preferences` aliases used further down.
+		std::shared_ptr<AqualinkAutomate::Preferences::UserPreferencesStore> user_preferences_store{};
+		std::shared_ptr<AqualinkAutomate::Auth::UserStore> auth_users{};
+		std::shared_ptr<AqualinkAutomate::Auth::GroupStore> auth_group_store{};
+		std::shared_ptr<AqualinkAutomate::Auth::SessionStore> auth_sessions{};
+		std::shared_ptr<AqualinkAutomate::Auth::ApiKeyStore> auth_api_keys{};
+		std::shared_ptr<AqualinkAutomate::Auth::JwtCodec> auth_codec{};
+		std::shared_ptr<AqualinkAutomate::Auth::AuditLog> auth_audit{};
+		std::shared_ptr<AqualinkAutomate::Utility::OffloadPool> auth_offload{};
+		std::shared_ptr<AqualinkAutomate::Auth::SessionService> auth_session_service{};
 
 		if (web_settings_result)
 		{
@@ -687,20 +726,9 @@ int main(int argc, char* argv[])
 			// (same collision, and same fix, as `Alerting` further down).
 			namespace Auth = AqualinkAutomate::Auth;
 
-			// Per-user preferences overrides (docs/auth-redesign.md §8); shares
-			// the auth state dir and is injected into the preferences route so a
-			// logged-in caller reads/writes their own units/theme/accent/bands.
-			std::shared_ptr<Preferences::UserPreferencesStore> user_preferences_store{};
-
-			std::shared_ptr<Auth::UserStore> auth_users{};
-			std::shared_ptr<Auth::GroupStore> auth_group_store{};
-			std::shared_ptr<Auth::SessionStore> auth_sessions{};
-			std::shared_ptr<Auth::ApiKeyStore> auth_api_keys{};
-			std::shared_ptr<Auth::JwtCodec> auth_codec{};
-			std::shared_ptr<Auth::AuditLog> auth_audit{};
-			std::shared_ptr<Utility::OffloadPool> auth_offload{};
-			std::shared_ptr<Auth::SessionService> auth_session_service{};
-
+			// The identity-system stack (user_preferences_store + auth_*) is
+			// declared at the SERVER scope above so it outlives the frame loop;
+			// here we only assign into it.  See the note at its declaration.
 			if (auto auth_settings_result = settings.Get<Options::Auth::AuthSettings>(); auth_settings_result)
 			{
 				const auto& auth_settings = auth_settings_result.value().get();
