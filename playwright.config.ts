@@ -104,12 +104,24 @@ if (!existsSync(APP_EXE)) {
 
 export default defineConfig({
   testDir: './e2e',
-  // The auth spec needs an identity-enabled server; everything else needs an
-  // unauthenticated one. Select by AQUALINK_AUTH_MODE / AQUALINK_AUTH_TOKEN.
+  // The identity specs (auth + admin) need an identity-enabled server;
+  // everything else needs an unauthenticated one. Select by
+  // AQUALINK_AUTH_MODE / AQUALINK_AUTH_TOKEN.
+  //
+  // IMPORTANT: the two identity specs have INCOMPATIBLE store preconditions and
+  // share one webServer + auth-state dir per run — auth.spec's first test needs
+  // an EMPTY store to exercise the first-run setup wizard, while admin.spec
+  // self-seeds an admin (setup-if-empty, else login). Run them in SEPARATE
+  // invocations so each gets its own fresh state dir:
+  //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/auth.spec.ts
+  //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/admin.spec.ts
+  // (the positional filter narrows the match to one file). A bare auth-mode run
+  // would run admin.spec first (alphabetical), seeding the store and breaking
+  // auth.spec's wizard assertion.
   testMatch: (AUTH_MODE || AUTH_TOKEN)
-    ? ['**/auth.spec.ts']
+    ? ['**/auth.spec.ts', '**/admin.spec.ts']
     : (HISTORY_DB ? ['**/trends.spec.ts'] : (SCHEDULES_FILE ? ['**/schedules.spec.ts'] : undefined)),
-  testIgnore: (AUTH_MODE || AUTH_TOKEN || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts'],
+  testIgnore: (AUTH_MODE || AUTH_TOKEN || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts'],
   // Replay is deterministic but the UI is global mutable state behind one backend;
   // run serially so command-button tests don't race each other's optimistic updates.
   fullyParallel: false,

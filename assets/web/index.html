@@ -226,6 +226,541 @@
         </div>
     </div>
 
+    <!-- ====== ADMINISTRATION OVERLAY (Slice 2 Wave B) ====== -->
+    <div class="admin-overlay" x-data="adminView()" x-show="open" x-cloak
+         @admin:open.window="show()" @keydown.escape.window="hide()">
+        <div class="admin-card" role="dialog" aria-modal="true" aria-label="Administration">
+            <div class="admin-head">
+                <h2 class="admin-title">Administration</h2>
+                <button class="account-close" @click="hide()" aria-label="Close">&times;</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="admin-tabs" role="tablist" aria-label="Administration sections">
+                <template x-for="t in tabs" :key="t.id">
+                    <button class="admin-tab" :class="{ active: tab === t.id }"
+                            role="tab" :aria-selected="tab === t.id"
+                            @click="selectTab(t.id)" x-text="t.label"></button>
+                </template>
+            </div>
+
+            <div class="admin-body">
+
+                <!-- ===== USERS TAB ===== -->
+                <section role="tabpanel" x-show="tab === 'users'" x-data="adminUsersView()"
+                         x-effect="if (open && tab === 'users') ensureLoaded()">
+                    <div class="admin-section-head">
+                        <h3 class="admin-subhead">Users</h3>
+                        <div class="admin-section-actions">
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
+                            <button class="account-btn admin-btn-inline" @click="openCreate()">New user</button>
+                        </div>
+                    </div>
+                    <p class="login-error" x-show="listError" x-cloak x-text="listError" role="alert"></p>
+                    <p class="account-muted" x-show="loading" x-cloak>Loading…</p>
+
+                    <!-- Create panel (x-if so the nested editor only inits when opened) -->
+                    <template x-if="panel === 'create'">
+                    <div class="admin-panel" x-data="entitlementEditor()" x-init="init([])">
+                        <h4 class="admin-panel-title">New user</h4>
+                        <div class="admin-form-grid">
+                            <label class="admin-field"><span>Username</span>
+                                <input class="login-input" type="text" x-model="cForm.username" autocomplete="off" aria-label="Username">
+                            </label>
+                            <label class="admin-field"><span>Password (min 12)</span>
+                                <input class="login-input" type="password" x-model="cForm.password" autocomplete="new-password" aria-label="Password">
+                            </label>
+                            <label class="admin-field"><span>Confirm password</span>
+                                <input class="login-input" type="password" x-model="cForm.confirm" autocomplete="new-password" aria-label="Confirm password">
+                            </label>
+                        </div>
+                        <div class="admin-groups-pick">
+                            <div class="admin-group-label">Groups</div>
+                            <div class="admin-chip-set">
+                                <template x-for="g in groups" :key="g.name">
+                                    <label class="admin-check-chip" :class="{ on: cForm.groups[g.name] }">
+                                        <input type="checkbox" x-model="cForm.groups[g.name]"> <span x-text="g.name"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="admin-group-label">Direct entitlements</div>
+                        <div class="ent-editor">
+                            <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
+                            <label class="admin-check-chip ent-admin" :class="{ on: admin }">
+                                <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                            </label>
+                            <div class="ent-actions" x-show="!admin">
+                                <div class="admin-chip-set">
+                                    <template x-for="a in plainActions()" :key="a">
+                                        <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                            <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                                <template x-if="hasAuxAction()">
+                                    <div class="ent-aux">
+                                        <div class="admin-group-label">equipment.control.aux</div>
+                                        <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                        </div>
+                                        <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
+                                            <template x-for="d in auxDevices" :key="d.id">
+                                                <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                    <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
+                                                </label>
+                                            </template>
+                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <p class="login-error" x-show="cError" x-cloak x-text="cError" role="alert"></p>
+                        <div class="admin-panel-actions">
+                            <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                            <button class="account-btn" :disabled="cBusy" @click="submitCreate(compose())">
+                                <span x-show="!cBusy">Create user</span><span x-show="cBusy" x-cloak>Creating…</span>
+                            </button>
+                        </div>
+                    </div>
+                    </template>
+
+                    <!-- User list -->
+                    <ul class="admin-list" x-show="!loading">
+                        <template x-for="u in users" :key="u.id">
+                            <li class="admin-row">
+                                <div class="admin-row-main">
+                                    <div class="admin-row-title">
+                                        <span x-text="u.username"></span>
+                                        <span class="admin-badge admin-badge-off" x-show="u.disabled" x-cloak>Disabled</span>
+                                    </div>
+                                    <div class="admin-row-meta">
+                                        <template x-for="g in (u.groups || [])" :key="g">
+                                            <span class="account-group-chip" x-text="g"></span>
+                                        </template>
+                                        <template x-for="e in (u.direct_entitlements || [])" :key="e">
+                                            <span class="account-group-chip ent-chip" x-text="describeEnt(e)"></span>
+                                        </template>
+                                        <span class="admin-tokver">tokver <span x-text="u.tokver"></span></span>
+                                    </div>
+                                </div>
+                                <div class="admin-row-actions">
+                                    <button class="admin-mini-btn" @click="openEdit(u)">Edit</button>
+                                    <button class="admin-mini-btn" @click="openPassword(u)">Password</button>
+                                    <button class="admin-mini-btn admin-mini-danger" @click="openDelete(u)">Delete</button>
+                                </div>
+
+                                <!-- Edit panel -->
+                                <template x-if="isEditing(u.id)">
+                                <div class="admin-panel admin-panel-inline"
+                                     x-data="entitlementEditor()" x-init="init(u.direct_entitlements || [])">
+                                    <h4 class="admin-panel-title">Edit <span x-text="u.username"></span></h4>
+                                    <label class="settings-toggle-row admin-toggle">
+                                        <div class="settings-toggle-text">
+                                            <div class="settings-toggle-title">Account disabled</div>
+                                            <div class="settings-toggle-sub">A disabled user cannot sign in; all their sessions end.</div>
+                                        </div>
+                                        <input type="checkbox" class="settings-switch" x-model="eForm.disabled" aria-label="Account disabled">
+                                    </label>
+                                    <div class="admin-group-label">Groups</div>
+                                    <div class="admin-chip-set">
+                                        <template x-for="g in groups" :key="g.name">
+                                            <label class="admin-check-chip" :class="{ on: eForm.groups[g.name] }">
+                                                <input type="checkbox" x-model="eForm.groups[g.name]"> <span x-text="g.name"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                    <div class="admin-group-label">Direct entitlements</div>
+                                    <div class="ent-editor">
+                                        <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
+                                        <label class="admin-check-chip ent-admin" :class="{ on: admin }">
+                                            <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                                        </label>
+                                        <div class="ent-actions" x-show="!admin">
+                                            <div class="admin-chip-set">
+                                                <template x-for="a in plainActions()" :key="a">
+                                                    <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                                        <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                            <template x-if="hasAuxAction()">
+                                                <div class="ent-aux">
+                                                    <div class="admin-group-label">equipment.control.aux</div>
+                                                    <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                                    </div>
+                                                    <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
+                                                        <template x-for="d in auxDevices" :key="d.id">
+                                                            <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                                <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
+                                                            </label>
+                                                        </template>
+                                                        <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <p class="login-error" x-show="eError" x-cloak x-text="eError" role="alert"></p>
+                                    <div class="admin-panel-actions">
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn" :disabled="eBusy" @click="submitEdit(compose())">
+                                            <span x-show="!eBusy">Save changes</span><span x-show="eBusy" x-cloak>Saving…</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                </template>
+
+                                <!-- Reset password panel -->
+                                <div class="admin-panel admin-panel-inline" x-show="isResetting(u.id)" x-cloak>
+                                    <h4 class="admin-panel-title">Reset password — <span x-text="u.username"></span></h4>
+                                    <div class="admin-form-grid">
+                                        <label class="admin-field"><span>New password (min 12)</span>
+                                            <input class="login-input" type="password" x-model="pForm.password" autocomplete="new-password" aria-label="New password">
+                                        </label>
+                                        <label class="admin-field"><span>Confirm password</span>
+                                            <input class="login-input" type="password" x-model="pForm.confirm" autocomplete="new-password" aria-label="Confirm password">
+                                        </label>
+                                    </div>
+                                    <p class="login-error" x-show="pError" x-cloak x-text="pError" role="alert"></p>
+                                    <p class="account-ok" x-show="pSaved" x-cloak role="status">Password updated.</p>
+                                    <div class="admin-panel-actions">
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn" :disabled="pBusy" @click="submitPassword()">
+                                            <span x-show="!pBusy">Set password</span><span x-show="pBusy" x-cloak>Setting…</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Delete confirm -->
+                                <div class="admin-panel admin-panel-inline admin-panel-danger" x-show="isDeleting(u.id)" x-cloak>
+                                    <p class="admin-confirm-text">Delete user <strong x-text="u.username"></strong>? This cannot be undone.</p>
+                                    <p class="login-error" x-show="dError" x-cloak x-text="dError" role="alert"></p>
+                                    <div class="admin-panel-actions">
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-danger" :disabled="dBusy" @click="confirmDelete()">
+                                            <span x-show="!dBusy">Delete user</span><span x-show="dBusy" x-cloak>Deleting…</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+                        </template>
+                        <li class="account-muted admin-empty" x-show="!loading && users.length === 0" x-cloak>No users.</li>
+                    </ul>
+                </section>
+
+                <!-- ===== GROUPS TAB ===== -->
+                <section role="tabpanel" x-show="tab === 'groups'" x-data="adminGroupsView()"
+                         x-effect="if (open && tab === 'groups') ensureLoaded()">
+                    <div class="admin-section-head">
+                        <h3 class="admin-subhead">Groups</h3>
+                        <div class="admin-section-actions">
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
+                            <button class="account-btn admin-btn-inline" @click="openCreate()">New group</button>
+                        </div>
+                    </div>
+                    <p class="login-error" x-show="listError" x-cloak x-text="listError" role="alert"></p>
+                    <p class="account-muted" x-show="loading" x-cloak>Loading…</p>
+
+                    <!-- Create panel (x-if so the nested editor only inits when opened) -->
+                    <template x-if="panel === 'create'">
+                    <div class="admin-panel" x-data="entitlementEditor()" x-init="init([])">
+                        <h4 class="admin-panel-title">New group</h4>
+                        <label class="admin-field"><span>Group name</span>
+                            <input class="login-input" type="text" x-model="cName" autocomplete="off" aria-label="Group name">
+                        </label>
+                        <div class="admin-group-label">Entitlements</div>
+                        <div class="ent-editor">
+                            <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
+                            <label class="admin-check-chip ent-admin" :class="{ on: admin }">
+                                <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                            </label>
+                            <div class="ent-actions" x-show="!admin">
+                                <div class="admin-chip-set">
+                                    <template x-for="a in plainActions()" :key="a">
+                                        <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                            <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                                <template x-if="hasAuxAction()">
+                                    <div class="ent-aux">
+                                        <div class="admin-group-label">equipment.control.aux</div>
+                                        <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                        </div>
+                                        <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
+                                            <template x-for="d in auxDevices" :key="d.id">
+                                                <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                    <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
+                                                </label>
+                                            </template>
+                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <p class="login-error" x-show="cError" x-cloak x-text="cError" role="alert"></p>
+                        <div class="admin-panel-actions">
+                            <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                            <button class="account-btn" :disabled="cBusy" @click="submitCreate(compose())">
+                                <span x-show="!cBusy">Create group</span><span x-show="cBusy" x-cloak>Creating…</span>
+                            </button>
+                        </div>
+                    </div>
+                    </template>
+
+                    <!-- Group list -->
+                    <ul class="admin-list" x-show="!loading">
+                        <template x-for="grp in groups" :key="grp.name">
+                            <li class="admin-row">
+                                <div class="admin-row-main">
+                                    <div class="admin-row-title">
+                                        <span x-text="grp.name"></span>
+                                        <span class="admin-badge admin-badge-builtin" x-show="grp.built_in" x-cloak>Built-in</span>
+                                        <span class="admin-badge admin-badge-guest" x-show="isGuest(grp.name)" x-cloak>Guest scope</span>
+                                    </div>
+                                    <div class="admin-row-meta">
+                                        <span class="account-muted" x-text="(grp.entitlements || []).length + ' entitlement' + ((grp.entitlements || []).length === 1 ? '' : 's')"></span>
+                                        <template x-for="e in (grp.entitlements || [])" :key="e">
+                                            <span class="account-group-chip ent-chip" x-text="describeEnt(e)"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="admin-row-actions">
+                                    <button class="admin-mini-btn" @click="openEdit(grp)">Edit</button>
+                                    <button class="admin-mini-btn admin-mini-danger" x-show="!grp.built_in" @click="openDelete(grp)">Delete</button>
+                                    <span class="admin-mini-note" x-show="grp.built_in" x-cloak title="Built-in groups cannot be deleted">Undeletable</span>
+                                </div>
+
+                                <!-- Edit entitlements panel -->
+                                <template x-if="isEditing(grp.name)">
+                                <div class="admin-panel admin-panel-inline"
+                                     x-data="entitlementEditor()" x-init="init(grp.entitlements || [])">
+                                    <h4 class="admin-panel-title">Entitlements — <span x-text="grp.name"></span></h4>
+                                    <p class="admin-guest-note" x-show="isGuest(grp.name)" x-cloak>
+                                        The <strong>Guest</strong> group is applied to visitors who are <strong>not signed in</strong>.
+                                        Access is denied by default — anything you grant here is what an anonymous guest may do.
+                                    </p>
+                                    <div class="ent-editor">
+                                        <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
+                                        <label class="admin-check-chip ent-admin" :class="{ on: admin }">
+                                            <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                                        </label>
+                                        <div class="ent-actions" x-show="!admin">
+                                            <div class="admin-chip-set">
+                                                <template x-for="a in plainActions()" :key="a">
+                                                    <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                                        <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                            <template x-if="hasAuxAction()">
+                                                <div class="ent-aux">
+                                                    <div class="admin-group-label">equipment.control.aux</div>
+                                                    <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                                    </div>
+                                                    <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
+                                                        <template x-for="d in auxDevices" :key="d.id">
+                                                            <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                                <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
+                                                            </label>
+                                                        </template>
+                                                        <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <p class="login-error" x-show="eError" x-cloak x-text="eError" role="alert"></p>
+                                    <div class="admin-panel-actions">
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn" :disabled="eBusy" @click="submitEdit(compose())">
+                                            <span x-show="!eBusy">Save entitlements</span><span x-show="eBusy" x-cloak>Saving…</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                </template>
+
+                                <!-- Delete confirm -->
+                                <div class="admin-panel admin-panel-inline admin-panel-danger" x-show="isDeleting(grp.name)" x-cloak>
+                                    <p class="admin-confirm-text">Delete group <strong x-text="grp.name"></strong>? Members lose its entitlements.</p>
+                                    <p class="login-error" x-show="dError" x-cloak x-text="dError" role="alert"></p>
+                                    <div class="admin-panel-actions">
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-danger" :disabled="dBusy" @click="confirmDelete()">
+                                            <span x-show="!dBusy">Delete group</span><span x-show="dBusy" x-cloak>Deleting…</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+                        </template>
+                        <li class="account-muted admin-empty" x-show="!loading && groups.length === 0" x-cloak>No groups.</li>
+                    </ul>
+                </section>
+
+                <!-- ===== ENTITLEMENTS TAB (reference) ===== -->
+                <section role="tabpanel" x-show="tab === 'entitlements'">
+                    <h3 class="admin-subhead">Entitlement vocabulary</h3>
+                    <p class="settings-card-desc">The assignable actions the server recognises. Grant these to users (directly) or to groups. Only <code>equipment.control.aux</code> takes a per-device selector.</p>
+                    <p class="login-error" x-show="vocabError" x-cloak x-text="vocabError" role="alert"></p>
+                    <template x-for="grp in vocabularyGroups()" :key="grp.name">
+                        <div class="admin-vocab-group">
+                            <div class="admin-group-label" x-text="grp.name"></div>
+                            <ul class="admin-vocab-list">
+                                <template x-for="a in grp.actions" :key="a">
+                                    <li class="admin-vocab-item">
+                                        <code x-text="a"></code>
+                                        <span class="account-muted" x-text="actionHint(a)"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                </section>
+
+                <!-- ===== API KEYS TAB ===== -->
+                <section role="tabpanel" x-show="tab === 'apikeys'" x-data="adminApikeysView()"
+                         x-effect="if (open && tab === 'apikeys') ensureLoaded()">
+                    <div class="admin-section-head">
+                        <h3 class="admin-subhead">API keys</h3>
+                        <div class="admin-section-actions">
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
+                            <button class="account-btn admin-btn-inline" @click="openCreate()">New key</button>
+                        </div>
+                    </div>
+                    <p class="login-error" x-show="listError" x-cloak x-text="listError" role="alert"></p>
+                    <p class="account-muted" x-show="loading" x-cloak>Loading…</p>
+
+                    <!-- Create panel (x-if so the nested editor only inits when opened) -->
+                    <template x-if="panel === 'create'">
+                    <div class="admin-panel" x-data="entitlementEditor()" x-init="init([])">
+                        <h4 class="admin-panel-title">New API key</h4>
+                        <div class="admin-form-grid">
+                            <label class="admin-field"><span>Label</span>
+                                <input class="login-input" type="text" x-model="cLabel" autocomplete="off" aria-label="Label">
+                            </label>
+                            <label class="admin-field"><span>Expiry <span class="settings-unit">optional</span></span>
+                                <input class="login-input" type="date" x-model="cExpiry" aria-label="Expiry date">
+                            </label>
+                        </div>
+                        <div class="admin-group-label">Entitlements</div>
+                        <div class="ent-editor">
+                            <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
+                            <label class="admin-check-chip ent-admin" :class="{ on: admin }">
+                                <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                            </label>
+                            <div class="ent-actions" x-show="!admin">
+                                <div class="admin-chip-set">
+                                    <template x-for="a in plainActions()" :key="a">
+                                        <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                            <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                                <template x-if="hasAuxAction()">
+                                    <div class="ent-aux">
+                                        <div class="admin-group-label">equipment.control.aux</div>
+                                        <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                        </div>
+                                        <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
+                                            <template x-for="d in auxDevices" :key="d.id">
+                                                <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                    <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
+                                                </label>
+                                            </template>
+                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <p class="login-error" x-show="cError" x-cloak x-text="cError" role="alert"></p>
+                        <div class="admin-panel-actions">
+                            <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                            <button class="account-btn" :disabled="cBusy" @click="submitCreate(compose())">
+                                <span x-show="!cBusy">Create key</span><span x-show="cBusy" x-cloak>Creating…</span>
+                            </button>
+                        </div>
+                    </div>
+                    </template>
+
+                    <!-- Key list -->
+                    <ul class="admin-list" x-show="!loading">
+                        <template x-for="k in keys" :key="k.id">
+                            <li class="admin-row">
+                                <div class="admin-row-main">
+                                    <div class="admin-row-title">
+                                        <span x-text="k.label"></span>
+                                        <span class="admin-badge admin-badge-off" x-show="k.revoked" x-cloak>Revoked</span>
+                                    </div>
+                                    <div class="admin-row-meta">
+                                        <template x-for="e in (k.entitlements || [])" :key="e">
+                                            <span class="account-group-chip ent-chip" x-text="describeEnt(e)"></span>
+                                        </template>
+                                        <span class="account-muted">Expires: <span x-text="expiryLabel(k.expiry_unix)"></span></span>
+                                        <span class="account-muted">Last used: <span x-text="lastUsedLabel(k.last_used_unix)"></span></span>
+                                    </div>
+                                </div>
+                                <div class="admin-row-actions">
+                                    <button class="admin-mini-btn admin-mini-danger" x-show="!k.revoked" @click="openRevoke(k)">Revoke</button>
+                                </div>
+
+                                <!-- Revoke confirm -->
+                                <div class="admin-panel admin-panel-inline admin-panel-danger" x-show="isRevoking(k.id)" x-cloak>
+                                    <p class="admin-confirm-text">Revoke key <strong x-text="k.label"></strong>? Any client using it will stop working.</p>
+                                    <p class="login-error" x-show="dError" x-cloak x-text="dError" role="alert"></p>
+                                    <div class="admin-panel-actions">
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-danger" :disabled="dBusy" @click="confirmRevoke()">
+                                            <span x-show="!dBusy">Revoke key</span><span x-show="dBusy" x-cloak>Revoking…</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+                        </template>
+                        <li class="account-muted admin-empty" x-show="!loading && keys.length === 0" x-cloak>No API keys.</li>
+                    </ul>
+
+                    <!-- One-time secret modal -->
+                    <div class="admin-secret-overlay" x-show="secret" x-cloak
+                         @keydown.escape.window="dismissSecret()">
+                        <div class="admin-secret-card" role="dialog" aria-modal="true" aria-label="New API key secret">
+                            <h3 class="admin-panel-title">API key created</h3>
+                            <p class="admin-secret-warn" role="alert" x-text="secret && secret.warning"></p>
+                            <div class="admin-secret-row">
+                                <code class="admin-secret-value" x-text="secret && secret.secret"></code>
+                                <button class="account-btn admin-btn-inline" @click="copySecret()">
+                                    <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied ✓</span>
+                                </button>
+                            </div>
+                            <p class="account-muted admin-secret-label">Label: <span x-text="secret && secret.label"></span></p>
+                            <div class="admin-panel-actions">
+                                <button class="account-btn" @click="dismissSecret()">I've stored it — dismiss</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
     <!-- ====== NAV ====== -->
     <nav class="app-nav" aria-label="Main navigation">
         <div class="nav-inner">
@@ -304,6 +839,12 @@
                 <button class="theme-toggle" @click="$store.theme.toggle()" :title="$store.theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'">
                     <svg x-show="$store.theme.isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
                     <svg x-show="!$store.theme.isDark" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <!-- Administration (system.admin only) -->
+                <button class="theme-toggle" x-show="$store.auth.can('system.admin')" x-cloak
+                        @click="window.dispatchEvent(new CustomEvent('admin:open'))"
+                        title="Administration" aria-label="Administration">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
                 <!-- Account menu (authenticated) -->
                 <button class="theme-toggle" x-show="$store.auth.authenticated" x-cloak
@@ -2009,6 +2550,7 @@
     <script src="/scripts/components/chlorinator-control.js"></script>
     <script src="/scripts/components/equipment-button.js"></script>
     <script src="/scripts/components/device-card.js"></script>
+    <script src="/scripts/components/entitlement-editor.js"></script>
     <!-- View scripts -->
     <script src="/scripts/views/dashboard-view.js"></script>
     <script src="/scripts/views/diagnostics-view.js"></script>
@@ -2017,6 +2559,10 @@
     <script src="/scripts/views/about-view.js"></script>
     <script src="/scripts/views/settings-view.js"></script>
     <script src="/scripts/views/account-view.js"></script>
+    <script src="/scripts/views/admin-view.js"></script>
+    <script src="/scripts/views/admin-users-view.js"></script>
+    <script src="/scripts/views/admin-groups-view.js"></script>
+    <script src="/scripts/views/admin-apikeys-view.js"></script>
     <!-- App init -->
     <script src="/scripts/app.js"></script>
     <!-- Progressive Web App: register the service worker -->
