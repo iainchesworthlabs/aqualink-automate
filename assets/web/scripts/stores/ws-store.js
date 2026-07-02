@@ -112,7 +112,7 @@ document.addEventListener('alpine:init', () => {
                 ws.onclose = () => {
                     onDown();
                     if (name === 'equipment') {
-                        Alpine.store('toast').show('Connection lost — retrying...', 'warn');
+                        Alpine.store('toast').show(window.AquaI18n.t('toast.conn_lost_retrying'), 'warn');
                     }
                     this._scheduleReconnect(name);
                 };

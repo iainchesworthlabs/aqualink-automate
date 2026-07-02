@@ -19,10 +19,12 @@ const GAUGE_ARC = 0.75 * GAUGE_CIRCUMFERENCE;             // 270deg visible dial
 
 function chemistryGauge(type) {
     // Display-only configuration (not user-editable; kept local to the gauge).
+    // Labels resolve through the catalog at access time (see cfg.label getter
+    // below) so a locale switch re-renders them.
     const display = {
-        ph:   { label: 'pH',   min: 6.5, max: 8.5,  unit: '',     decimals: 1 },
-        orp:  { label: 'ORP',  min: 400, max: 900,  unit: ' mV',  decimals: 0 },
-        salt: { label: 'Salt', min: 0,   max: 6000, unit: ' ppm', decimals: 0 }
+        ph:   { labelKey: 'chem.ph',   min: 6.5, max: 8.5,  unit: '',     decimals: 1 },
+        orp:  { labelKey: 'chem.orp',  min: 400, max: 900,  unit: ' mV',  decimals: 0 },
+        salt: { labelKey: 'chem.salt', min: 0,   max: 6000, unit: ' ppm', decimals: 0 }
     };
 
     // Band defaults from the shared config (fall back to a local copy so the
@@ -42,6 +44,10 @@ function chemistryGauge(type) {
     const stored = JSON.parse(localStorage.getItem(bandsKey) || '{}');
     const overrides = stored[type] || {};
     const cfg = { ...displayCfg, ...bandCfg, ...overrides };
+    Object.defineProperty(cfg, 'label', {
+        get() { return window.AquaI18n.t(this.labelKey); },
+        enumerable: true,
+    });
 
     return {
         cfg,
@@ -106,9 +112,9 @@ function chemistryGauge(type) {
 
         get statusLabel() {
             switch (this.band) {
-                case 'good': return 'Good';
-                case 'okay': return 'Okay';
-                case 'bad':  return 'Bad';
+                case 'good': return window.AquaI18n.t('tier.good');
+                case 'okay': return window.AquaI18n.t('tier.okay');
+                case 'bad':  return window.AquaI18n.t('tier.bad');
                 default:     return '';
             }
         }

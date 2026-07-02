@@ -17,6 +17,19 @@ function equipmentButton() {
         return s === 'on' || s === 'running' || s === 'heating' || s === 'enabled';
     });
 
+    // Catalog keys for the known backend status enum names; an unknown value
+    // falls back to the raw name so new enum values still display.
+    const STATUS_LABEL_KEYS = {
+        On: 'common.on',
+        Off: 'common.off',
+        Enabled: 'common.enabled',
+        Pending: 'status.pending',
+        Unknown: 'common.unknown',
+        Running: 'common.running',
+        Heating: 'status.heating',
+        NotInstalled: 'status.not_installed',
+    };
+
     const TYPE_ICON = {
         light: 'light',
         pump: 'pump',
@@ -33,7 +46,9 @@ function equipmentButton() {
         },
 
         statusLabel(button) {
-            return String(button.status || 'Unknown');
+            const raw = String(button.status || 'Unknown');
+            const key = STATUS_LABEL_KEYS[raw];
+            return key ? window.AquaI18n.t(key) : raw;
         },
 
         cmdState(button) {

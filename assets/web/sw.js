@@ -41,6 +41,7 @@ const PRECACHE_URLS = [
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
+  '/i18n/en.js',
   '/styles/app.css',
   '/styles/components.css',
   '/vendor/fonts/fonts.css',

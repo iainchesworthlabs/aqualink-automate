@@ -44,15 +44,20 @@ function _handlePollFailure(key, resp, err) {
 function diagnosticsView() {
     return {
         windowSeconds: 60,
-        windowOptions: [
-            { label: '1s', value: 1 },
-            { label: '5s', value: 5 },
-            { label: '10s', value: 10 },
-            { label: '30s', value: 30 },
-            { label: '1m', value: 60 },
-            { label: '5m', value: 300 },
-            { label: 'All', value: 0 }
-        ],
+        // Getter so the labels re-resolve on a locale switch (duration
+        // abbreviations differ per language: "1m" vs "١ د" vs "1分").
+        get windowOptions() {
+            const t = window.AquaI18n.t;
+            return [
+                { label: t('time.abbr_seconds', { n: 1 }), value: 1 },
+                { label: t('time.abbr_seconds', { n: 5 }), value: 5 },
+                { label: t('time.abbr_seconds', { n: 10 }), value: 10 },
+                { label: t('time.abbr_seconds', { n: 30 }), value: 30 },
+                { label: t('time.abbr_minutes', { n: 1 }), value: 60 },
+                { label: t('time.abbr_minutes', { n: 5 }), value: 300 },
+                { label: t('common.all'), value: 0 }
+            ];
+        },
 
         get chartReady() { return _diag.chart != null; },
 
@@ -165,10 +170,11 @@ function diagnosticsView() {
         },
         _fmtUptime(s) {
             s = Math.max(0, Math.floor(s || 0));
+            const t = window.AquaI18n.t;
             const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
-            if (d) return `${d}d ${h}h`;
-            if (h) return `${h}h ${m}m`;
-            return `${m}m`;
+            if (d) return t('time.days_hours', { d, h });
+            if (h) return t('time.hours_minutes', { h, m });
+            return t('time.minutes', { m });
         },
 
         initChart() {
@@ -455,12 +461,12 @@ function diagnosticsView() {
                 const data = await resp.json().catch(() => ({}));
                 if (resp.ok) {
                     this._applySpasideData(data);
-                    Alpine.store('toast').show('Spa-side button ' + button + ' pressed', 'info');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_pressed', { n: button }), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || 'Failed to press spa-side button', 'error');
+                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.spaside_press_failed'), 'error');
                 }
             } catch (e) {
-                Alpine.store('toast').show('Failed to press spa-side button', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_press_failed'), 'error');
             } finally {
                 this.spasideBusy = false;
             }
@@ -484,7 +490,7 @@ function diagnosticsView() {
             btn = parseInt(btn, 10);
             fn = (fn || '').trim();
             if (!Number.isInteger(sw) || sw < 1 || !Number.isInteger(btn) || btn < 1 || fn === '') {
-                Alpine.store('toast').show('Pick a function to assign', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_pick_function'), 'error');
                 return;
             }
             this.spasideBusy = true;
@@ -498,12 +504,12 @@ function diagnosticsView() {
                 if (resp.ok) {
                     this._applySpasideData(data);
                     this.spasideEditKey = null;
-                    Alpine.store('toast').show('Programming switch ' + sw + ' button ' + btn + ' → ' + fn + '…', 'info');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_programming', { sw, btn, fn }), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || 'Failed to program spa-switch assignment', 'error');
+                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.spaside_program_failed'), 'error');
                 }
             } catch (e) {
-                Alpine.store('toast').show('Failed to program spa-switch assignment', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_program_failed'), 'error');
             } finally {
                 this.spasideBusy = false;
             }
@@ -527,7 +533,7 @@ function diagnosticsView() {
             const groups = [];
             const bySwitch = new Map();
             for (const b of buttons) {
-                const key = b.assignable ? ('Switch ' + b.switch) : '';
+                const key = b.assignable ? window.AquaI18n.t('diag.switch_n', { n: b.switch }) : '';
                 if (!bySwitch.has(key)) {
                     const g = { label: key, buttons: [] };
                     bySwitch.set(key, g);
@@ -595,12 +601,12 @@ function diagnosticsView() {
                 const data = await resp.json().catch(() => ({}));
                 if (resp.ok) {
                     this.recording = data;
-                    Alpine.store('toast').show('Serial recording started', 'info');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.recording_started'), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || 'Failed to start recording', 'error');
+                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.recording_start_failed'), 'error');
                 }
             } catch (e) {
-                Alpine.store('toast').show('Failed to start recording', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.recording_start_failed'), 'error');
             } finally {
                 this.recordingBusy = false;
             }
@@ -618,12 +624,12 @@ function diagnosticsView() {
                 const data = await resp.json().catch(() => ({}));
                 if (resp.ok) {
                     this.recording = data;
-                    Alpine.store('toast').show('Serial recording stopped', 'info');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.recording_stopped'), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || 'Failed to stop recording', 'error');
+                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.recording_stop_failed'), 'error');
                 }
             } catch (e) {
-                Alpine.store('toast').show('Failed to stop recording', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.recording_stop_failed'), 'error');
             } finally {
                 this.recordingBusy = false;
             }
@@ -653,16 +659,16 @@ function diagnosticsView() {
         },
 
         async startProfiling() {
-            await this._postProfiling({ action: 'start' }, 'Profiling resumed', 'Failed to resume profiling');
+            await this._postProfiling({ action: 'start' }, window.AquaI18n.t('toast.profiling_resumed'), window.AquaI18n.t('toast.profiling_resume_failed'));
         },
 
         async stopProfiling() {
-            await this._postProfiling({ action: 'stop' }, 'Profiling paused', 'Failed to pause profiling');
+            await this._postProfiling({ action: 'stop' }, window.AquaI18n.t('toast.profiling_paused'), window.AquaI18n.t('toast.profiling_pause_failed'));
         },
 
         async selectProfilingBackend(backend) {
             if (!backend) return;
-            await this._postProfiling({ action: 'select', backend }, `Profiling backend set to ${backend}`, 'Failed to select backend');
+            await this._postProfiling({ action: 'select', backend }, window.AquaI18n.t('toast.profiling_backend_set', { backend }), window.AquaI18n.t('toast.profiling_backend_failed'));
         },
 
         formatBytes(bytes) {
@@ -713,18 +719,20 @@ function diagnosticsView() {
         // truth for the card markup, differing only by the bound device list. `openKey`
         // names the existing collapse flag on this view so each section's toggle persists.
         deviceGroups() {
+            const t = window.AquaI18n.t;
             return [
-                { key: 'emulated', title: 'Emulated Devices', openKey: 'showEmulatedDevices', empty: 'No emulated devices active', devices: this.emulatedDevices },
-                { key: 'actual', title: 'Actual Devices', openKey: 'showActualDevices', empty: 'No actual devices detected', devices: this.actualDevices }
+                { key: 'emulated', title: t('diag.emulated_devices'), openKey: 'showEmulatedDevices', empty: t('diag.no_emulated_devices'), devices: this.emulatedDevices },
+                { key: 'actual', title: t('diag.actual_devices'), openKey: 'showActualDevices', empty: t('diag.no_actual_devices'), devices: this.actualDevices }
             ];
         },
 
         formatUptime(secs) {
             if (secs == null) return '--';
+            const t = window.AquaI18n.t;
             const h = Math.floor(secs / 3600);
             const m = Math.floor((secs % 3600) / 60);
-            if (h > 0) return h + 'h ' + m + 'm';
-            return m + 'm';
+            if (h > 0) return t('time.hours_minutes', { h, m });
+            return t('time.minutes', { m });
         },
 
         async _fetchLogLevels() {
@@ -772,7 +780,7 @@ function diagnosticsView() {
                 }
                 this.globalLevel = this._computeGlobalLevel();
                 console.error(`[diagnostics] failed to set log level for ${channel}:`, e);
-                Alpine.store('toast').show(`Failed to set log level for ${channel}`, 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.log_level_failed', { channel }), 'error');
             }
         },
 
@@ -797,7 +805,7 @@ function diagnosticsView() {
                 this.logChannels = previous;
                 this.globalLevel = previousGlobal;
                 console.error('[diagnostics] failed to set global log level:', e);
-                Alpine.store('toast').show('Failed to set global log level', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.log_global_failed'), 'error');
             }
         },
 
@@ -839,8 +847,8 @@ function diagnosticsView() {
             if (!q) return rows;
             return rows.filter(m => (m.name || ('ID ' + m.id)).toLowerCase().includes(q));
         },
-        msgLabel(m) { return m.name || ('ID ' + m.id); },
-        msgRate(m) { return (m.frequency || 0).toFixed(2) + '/s'; },
+        msgLabel(m) { return m.name || window.AquaI18n.t('diag.msg_id', { id: m.id }); },
+        msgRate(m) { return window.AquaI18n.t('diag.rate_per_s', { value: (m.frequency || 0).toFixed(2) }); },
         msgLastSeen(m) { return m.lastSeen ? new Date(m.lastSeen).toLocaleTimeString() : '--'; },
 
         // ---- Log-levels modal -----------------------------------------------------
@@ -866,7 +874,7 @@ function diagnosticsView() {
             for (const [lvl, c] of Object.entries(counts)) { if (c > n) { n = c; best = lvl; } }
             return best;
         },
-        get logGlobalLabel() { return this.globalLevel || 'Mixed'; },
+        get logGlobalLabel() { return this.globalLevel || window.AquaI18n.t('diag.mixed'); },
         // A channel is "overridden" if it differs from the baseline level.
         logIsOverride(ch) {
             const base = this.globalLevel || this._majorityLevel();

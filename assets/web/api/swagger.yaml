@@ -538,7 +538,7 @@ paths:
                 history: { retention_days: 90 }
                 label_overrides: { "Aux1": "Pool Light", "Aux2": "Waterfall" }
                 show_aux_id_in_label: false
-                ui: { chemistryBands: {} }
+                ui: { chemistryBands: {}, locale: "en" }
         '401':
           $ref: '#/components/responses/Unauthorized'
     put:
@@ -553,8 +553,11 @@ paths:
         label_overrides an object of canonical-label -> friendly-name strings,
         show_aux_id_in_label a boolean (when true the display name is suffixed with
         the protocol aux id, e.g. "Pool Light (Aux5)"; affects display only, not the
-        canonical label used for dispatch/MQTT/Home Assistant). A single invalid
-        field rejects the whole request (nothing is applied).
+        canonical label used for dispatch/MQTT/Home Assistant). The opaque `ui`
+        object merges shallowly at its top level: a PUT of `{ui: {locale: "fr"}}`
+        updates only `ui.locale` and leaves other `ui.*` keys (e.g.
+        `ui.chemistryBands`) intact; a top-level `ui.*` value of null deletes that
+        key. A single invalid field rejects the whole request (nothing is applied).
       operationId: updatePreferences
       requestBody:
         required: true

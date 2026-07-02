@@ -6,13 +6,13 @@
  *   AlertTransition -> { condition, state: "raised"|"cleared", ts, detail }
  */
 
-// Friendly labels for the known condition keys (falls back to the raw key).
-const ALERT_LABELS = {
-    chlorinator_fault: 'Chlorinator fault',
-    chlorinator_warning: 'Chlorinator warning',
-    salt_low: 'Salt low',
-    service_mode: 'Service mode',
-    serial_comms_loss: 'Serial comms lost',
+// Catalog keys for the known condition keys (falls back to the raw key).
+const ALERT_LABEL_KEYS = {
+    chlorinator_fault: 'alert.chlorinator_fault',
+    chlorinator_warning: 'alert.chlorinator_warning',
+    salt_low: 'alert.salt_low',
+    service_mode: 'alert.service_mode',
+    serial_comms_loss: 'alert.serial_comms_loss',
 };
 
 document.addEventListener('alpine:init', () => {
@@ -21,7 +21,8 @@ document.addEventListener('alpine:init', () => {
         active: {},
 
         label(condition) {
-            return ALERT_LABELS[condition] || condition;
+            const key = ALERT_LABEL_KEYS[condition];
+            return key ? window.AquaI18n.t(key) : condition;
         },
 
         get count() {
@@ -49,12 +50,12 @@ document.addEventListener('alpine:init', () => {
             if (p.state === 'raised') {
                 // Reassign the object so Alpine's reactivity sees the change.
                 this.active = { ...this.active, [condition]: { detail: p.detail || '', ts: p.ts || 0 } };
-                Alpine.store('toast').show(`${this.label(condition)}: ${p.detail || 'fault detected'}`, 'error', 8000);
+                Alpine.store('toast').show(window.AquaI18n.t('alert.raised', { label: this.label(condition), detail: p.detail || window.AquaI18n.t('alert.fault_detected') }), 'error', 8000);
             } else {
                 const next = { ...this.active };
                 delete next[condition];
                 this.active = next;
-                Alpine.store('toast').show(`${this.label(condition)} cleared`, 'info', 4000);
+                Alpine.store('toast').show(window.AquaI18n.t('alert.cleared', { label: this.label(condition) }), 'info', 4000);
             }
         },
     });

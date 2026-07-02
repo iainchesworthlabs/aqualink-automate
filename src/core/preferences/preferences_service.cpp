@@ -197,7 +197,24 @@ namespace AqualinkAutomate::Preferences
 				error = "ui must be an object";
 				return false;
 			}
-			ui = json["ui"];
+			// Shallow-merge at the top level so independent UI features (e.g.
+			// ui.chemistryBands and ui.locale) can each PUT their own key
+			// without clobbering the others; a null value deletes the key.
+			if (!ui.is_object())
+			{
+				ui = nlohmann::json::object();
+			}
+			for (const auto& [key, value] : json["ui"].items())
+			{
+				if (value.is_null())
+				{
+					ui.erase(key);
+				}
+				else
+				{
+					ui[key] = value;
+				}
+			}
 		}
 
 		if (json.contains("spa_switch_buttons"))
