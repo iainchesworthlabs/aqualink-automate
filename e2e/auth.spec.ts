@@ -156,20 +156,24 @@ test.describe.serial('UI authentication (identity system)', () => {
 
     await page.locator('button[title="Account"]').click();
     const card = page.locator('.account-card');
-    const newPw = card.locator('input[aria-label="New password"]');
-    const confirmPw = card.locator('input[aria-label="Confirm new password"]');
+    // Scope to the change-password section: the account card has other
+    // .login-error spans (e.g. the sessions section), so an unscoped locator
+    // would match more than one element under Playwright strict mode.
+    const pwSection = card.locator('.account-section', { hasText: 'Change password' });
+    const newPw = pwSection.locator('input[aria-label="New password"]');
+    const confirmPw = pwSection.locator('input[aria-label="Confirm new password"]');
 
     // Too short -> client-side error, no request.
     await newPw.fill('short');
     await confirmPw.fill('short');
-    await card.getByRole('button', { name: /Update password/ }).click();
-    await expect(card.locator('.login-error')).toBeVisible();
+    await pwSection.getByRole('button', { name: /Update password/ }).click();
+    await expect(pwSection.locator('.login-error')).toBeVisible();
 
     // Mismatch -> error.
     await newPw.fill(NEW_PASS);
     await confirmPw.fill(NEW_PASS + 'x');
-    await card.getByRole('button', { name: /Update password/ }).click();
-    await expect(card.locator('.login-error')).toBeVisible();
+    await pwSection.getByRole('button', { name: /Update password/ }).click();
+    await expect(pwSection.locator('.login-error')).toBeVisible();
 
     // Valid + matching -> success; the "other sessions signed out" note appears.
     await newPw.fill(NEW_PASS);
