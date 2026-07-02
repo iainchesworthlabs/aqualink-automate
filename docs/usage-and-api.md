@@ -73,10 +73,10 @@ To require authentication, set a bearer token via `--api-auth-token <token>` (co
 - **`GET /api/health` is intentionally served without authentication.** The liveness probe must be reachable by a container/orchestrator health check without baking in the operator's token. It returns only `{"status":"ok","uptime_seconds":N}` — no sensitive data. The richer `GET /api/health/detailed` is **not** exempt: it exposes internal subsystem state and is gated by the bearer-token policy like every other route.
 - **WebSocket upgrades are gated by the same policy.** Browsers cannot set an `Authorization` header on a WebSocket upgrade, so the token rides in the `Sec-WebSocket-Protocol` header as a `bearer.<token>` entry alongside the `aqualink` marker (for example `Sec-WebSocket-Protocol: aqualink, bearer.<token>`). On success the handshake echoes back the `aqualink` subprotocol.
 
-Two further hardening layers are built into the routing layer but are **not currently exposed by any CLI flag or config key** — only `--api-auth-token` (the bearer token above) is wired today, so these are reachable only programmatically (and in tests). If they were enabled, they would behave as follows:
+Two further hardening layers are built into the routing layer and are exposed via CLI flags / config keys (see the [Configuration reference](configuration.md)):
 
-- **Origin allow-list.** A request whose `Origin` header is not on the list is rejected with `403 Forbidden`.
-- **CSRF header.** State-changing methods (`POST`, `PUT`, `DELETE`, …) must send an `X-Requested-With` header or they are rejected with `403 Forbidden`. This check does not apply to the WebSocket upgrade, which is always a `GET`.
+- **Origin allow-list.** Set one or more allowed origins with the repeatable `--api-allowed-origin` flag (config key `api-allowed-origin`). When at least one origin is configured, a request or WebSocket upgrade whose `Origin` header is not on the list is rejected with `403 Forbidden`.
+- **CSRF header.** Enable `--api-require-csrf-header` (config key `api-require-csrf-header`) so that state-changing methods (`POST`, `PUT`, `DELETE`, …) must send an `X-Requested-With` header or they are rejected with `403 Forbidden`. This check does not apply to the WebSocket upgrade, which is always a `GET`.
 
 **Security:** A token over plain HTTP travels in cleartext. Pair `--api-auth-token` with HTTPS (see the TLS options in the [Configuration reference](configuration.md)) whenever the server is reachable beyond `localhost`.
 
