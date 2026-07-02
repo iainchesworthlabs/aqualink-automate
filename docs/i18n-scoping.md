@@ -3,6 +3,14 @@
 > **Status: scoping snapshot, 2026-07-02.** This is a point-in-time analysis and roadmap, not
 > current-truth documentation. Symbols and behaviours cited below were verified against the code
 > on this date; re-verify before relying on them later.
+>
+> **Reconciliation 2026-07-02 (same day): Phase 0 is implemented** on `feat/i18n` — see
+> [docs/i18n.md](i18n.md) for the as-built documentation. Two deviations from the plan below:
+> catalogs are per-locale **JS registration files** (`assets/web/i18n/<code>.js`), not fetched
+> JSON — English loads synchronously as a classic script so the fallback needs no fetch and the
+> first paint never flashes raw keys; and locale persistence needed a small backend change
+> (`/api/preferences` now shallow-merges top-level `ui.*` keys instead of replacing the blob).
+> The key-completeness checker exists at `scripts/check-i18n-keys.ps1`.
 
 ## Goal
 
