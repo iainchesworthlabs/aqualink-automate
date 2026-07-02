@@ -2,11 +2,27 @@
 
 #include <string_view>
 
+#include <boost/beast/http/verb.hpp>
+
 #include "concepts/is_c_array.h"
 #include "http/server/server_types.h"
 
 namespace AqualinkAutomate::Interfaces
-{	
+{
+    // The (action, resource-kind) pair a route requires for a given HTTP method,
+    // consumed by the routing layer's policy decision point (Auth::PolicyEngine)
+    // when the identity system (--auth-mode) is enabled.  An empty Action means
+    // "no entitlement gate" — correct only for the explicitly-open endpoints
+    // (health probe, auth check, version); everything else must declare access
+    // or the full-surface enforcement test fails the build.
+    struct AccessRequirement
+    {
+        std::string_view Action{};
+        std::string_view ResourceKind{};
+
+        [[nodiscard]] bool IsSpecified() const noexcept { return !Action.empty(); }
+    };
+
 	class IWebRouteBase
     {
     public:
@@ -29,6 +45,15 @@ namespace AqualinkAutomate::Interfaces
         // a container/orchestrator health check can reach it without baking in the
         // operator's secret token. Defaults to true — every other route stays gated.
         virtual bool RequiresAuthentication() const { return true; }
+
+        // The entitlement this route requires per HTTP method (typically a *.view
+        // action for GET/HEAD and a control/edit action for mutating verbs).  The
+        // routing layer calls the PolicyEngine with the resolved request Subject
+        // when --auth-mode is enabled; with auth-mode disabled the posture rule
+        // makes every decision Permit, preserving historical behaviour.  Routes
+        // with per-resource grain (e.g. a specific aux) additionally refine the
+        // decision in their handler where the resource id is parsed.
+        virtual AccessRequirement RequiredAccess([[maybe_unused]] boost::beast::http::verb method) const { return {}; }
     };
 
 	template<const auto& ROUTE_URL>

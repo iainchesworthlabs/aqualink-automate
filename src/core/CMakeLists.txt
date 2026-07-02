@@ -13,6 +13,14 @@ target_sources(
 	alerting/alert_monitor.cpp
 	alerting/webhook_sink.cpp
 	application/application_defaults.cpp
+	auth/audit_log.cpp
+	auth/entitlement.cpp
+	auth/entitlement_vocabulary.cpp
+	auth/group.cpp
+	auth/jwt_codec.cpp
+	auth/jwt_key_store.cpp
+	auth/policy_engine.cpp
+	auth/subject_resolver.cpp
 	certificates/certificate_management.cpp
 	concepts/is_option_processor.cpp
 	devices/capabilities/command_history.cpp
@@ -56,6 +64,7 @@ target_sources(
 	formatters/units_electric_potential_formatter.cpp 
 	formatters/url_segments_encoded_view_formatter.cpp 
 	http/webroute_auth_check.cpp
+	http/webroute_auth_me.cpp
 	http/webroute_diagnostics_actualdevices.cpp
 	http/webroute_diagnostics_devices.cpp
 	http/webroute_diagnostics_logging.cpp
@@ -193,6 +202,7 @@ target_sources(
 	options/options_matter_options.cpp
 	options/options_mqtt_options.cpp
 	options/options_option_type.cpp
+	options/options_auth_options.cpp
 	options/options_preferences_options.cpp
 	options/options_registry.cpp
 	options/options_scheduling_options.cpp
@@ -382,10 +392,12 @@ target_link_libraries(
 	Boost::program_options
 	Boost::system
 	Boost::url
+	jwt-cpp::jwt-cpp
 	magic_enum::magic_enum
 	nlohmann_json::nlohmann_json
-	OpenSSL::SSL 
+	OpenSSL::SSL
 	OpenSSL::Crypto
+	unofficial-sodium::sodium
 	unofficial::sqlite3::sqlite3
 	ZLIB::ZLIB
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${UProf_FOUND}>>:${UProf_LIBRARIES}>

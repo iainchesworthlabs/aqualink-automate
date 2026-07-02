@@ -8,6 +8,9 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/ip/network_v4.hpp>
+#include <boost/asio/ip/network_v6.hpp>
 #include <boost/beast/core/string.hpp>
 #include <boost/beast/http/field.hpp>
 #include <boost/beast/http/verb.hpp>
@@ -16,6 +19,8 @@
 #include <boost/url/url.hpp>
 #include <magic_enum/magic_enum.hpp>
 
+#include "auth/policy_engine.h"
+#include "auth/subject.h"
 #include "exceptions/exception_http_duplicateroute.h"
 #include "formatters/beast_stringview_formatter.h"
 #include "formatters/url_segments_encoded_view_formatter.h"
@@ -51,6 +56,24 @@ namespace AqualinkAutomate::HTTP::Routing
 		std::optional<StaticFileHandler> sf_route;
 
 		SecurityConfig security_config{};
+
+		// The active credential resolver (empty => everything is anonymous) and
+		// the Subject of the request currently being dispatched.  The io_context
+		// runs on a single thread and route handlers execute synchronously inside
+		// HTTP_OnRequest, so one file-scope current subject is safe (and mirrors
+		// how the rest of this translation unit already manages per-request state).
+		SubjectResolver subject_resolver{};
+		Auth::Subject current_subject{ Auth::Subject::Anonymous() };
+
+		Auth::Subject ResolveSubject(const HTTP::Request& req, bool is_websocket_upgrade)
+		{
+			if (!security_config.AuthModeEnabled || !subject_resolver)
+			{
+				return Auth::Subject::Anonymous();
+			}
+
+			return subject_resolver(req, is_websocket_upgrade);
+		}
 
 		// Per-source-IP throttle for FAILED bearer-token attempts. The token compare
 		// is already constant-time, but nothing slowed online guessing of a weak
@@ -270,8 +293,11 @@ namespace AqualinkAutomate::HTTP::Routing
 				}
 			}
 
-			// --- Bearer token authentication ---
-			if (cfg.AuthToken.has_value())
+			// --- Bearer token authentication (legacy shared token) ---
+			// Superseded when the identity system is active: bearer credentials are
+			// then interpreted by the subject resolver (JWT session / API key) and
+			// enforcement happens in EvaluateAccess via the PolicyEngine instead.
+			if (cfg.AuthToken.has_value() && !cfg.AuthModeEnabled)
 			{
 				// Brute-force throttle: a source that has failed auth too many times
 				// recently is refused with 429 before the token is even examined.
@@ -328,6 +354,56 @@ namespace AqualinkAutomate::HTTP::Routing
 			return std::nullopt;
 		}
 
+		// True when `address` falls inside the "prefix/len" CIDR block.  A parse
+		// failure of either side answers false (fail closed: no trust extended).
+		[[nodiscard]] bool AddressInCidr(const boost::asio::ip::address& address, const std::string& cidr)
+		{
+			try
+			{
+				if (address.is_v4())
+				{
+					const auto network = boost::asio::ip::make_network_v4(cidr);
+					return boost::asio::ip::network_v4(address.to_v4(), network.prefix_length()).canonical() == network.canonical();
+				}
+
+				const auto network = boost::asio::ip::make_network_v6(cidr);
+				return boost::asio::ip::network_v6(address.to_v6(), network.prefix_length()).canonical() == network.canonical();
+			}
+			catch (const std::exception&)
+			{
+				return false;
+			}
+		}
+
+		// PDP gate for a declared access requirement.  Deny maps to 401 for an
+		// anonymous subject (a login could elevate) and 403 for an authenticated
+		// one (logged in, not entitled).  Auth-mode disabled => posture makes the
+		// decision Permit, so this stays a no-op for historical deployments.
+		[[nodiscard]] std::optional<HTTP::Response> EvaluateAccess(const HTTP::Request& req, const Interfaces::AccessRequirement& requirement, std::string_view resource_id = {})
+		{
+			if (!security_config.AuthModeEnabled || !requirement.IsSpecified())
+			{
+				return std::nullopt;
+			}
+
+			const Auth::ResourceRef resource{ .Kind = std::string{ requirement.ResourceKind }, .Id = std::string{ resource_id } };
+			const Auth::Environment environment{ .AuthEnabled = true };
+
+			if (Auth::Decision::Permit == Auth::PolicyEngine::Decide(current_subject, requirement.Action, resource, environment))
+			{
+				return std::nullopt;
+			}
+
+			LogWarning(Channel::Web, [&] { return std::format("Denied {} {} for subject '{}' (missing entitlement '{}')", magic_enum::enum_name(req.method()), std::string_view(req.target()), current_subject.Id, requirement.Action); });
+
+			if (!current_subject.Authenticated)
+			{
+				return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
+			}
+
+			return MakeSecurityResponse(req, HTTP::Status::forbidden, "Forbidden: not entitled.");
+		}
+
 	}
 	// unnamed namespace
 
@@ -340,6 +416,58 @@ namespace AqualinkAutomate::HTTP::Routing
 		sf_route.reset();
 		security_config = SecurityConfig{};
 		auth_rate_limiter.Reset();
+		subject_resolver = SubjectResolver{};
+		current_subject = Auth::Subject::Anonymous();
+	}
+
+	void SetSubjectResolver(SubjectResolver resolver)
+	{
+		subject_resolver = std::move(resolver);
+	}
+
+	std::string EffectiveClientIp(const HTTP::Request& req, std::string_view peer_ip)
+	{
+		const auto& cidrs = security_config.TrustedProxyCidrs;
+
+		if (cidrs.empty() || peer_ip.empty())
+		{
+			return std::string{ peer_ip };
+		}
+
+		boost::system::error_code parse_ec;
+		const auto peer = boost::asio::ip::make_address(std::string{ peer_ip }, parse_ec);
+
+		if (parse_ec)
+		{
+			return std::string{ peer_ip };
+		}
+
+		const bool trusted = std::any_of(cidrs.begin(), cidrs.end(), [&](const auto& cidr) { return AddressInCidr(peer, cidr); });
+
+		if (!trusted)
+		{
+			// XFF from an untrusted source is attacker-controlled: ignore it.
+			return std::string{ peer_ip };
+		}
+
+		const std::string_view xff = HeaderValue(req, boost::beast::string_view{ "X-Forwarded-For" });
+
+		if (xff.empty())
+		{
+			return std::string{ peer_ip };
+		}
+
+		// First entry == the original client (each proxy appends).
+		auto first = xff.substr(0, xff.find(','));
+		while (!first.empty() && ((' ' == first.front()) || ('\t' == first.front()))) { first.remove_prefix(1); }
+		while (!first.empty() && ((' ' == first.back()) || ('\t' == first.back()))) { first.remove_suffix(1); }
+
+		return first.empty() ? std::string{ peer_ip } : std::string{ first };
+	}
+
+	const Auth::Subject& CurrentSubject()
+	{
+		return current_subject;
 	}
 
 	void SetSecurityConfig(SecurityConfig config)
@@ -388,10 +516,16 @@ namespace AqualinkAutomate::HTTP::Routing
 		sf_route = std::move(sf);
 	}
 
-	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view peer_ip)
+	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view raw_peer_ip)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("Routing::RouteRequest", std::source_location::current());
 		DeferredZoneText(zone, [&] { return std::format("{} {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
+
+		// Trusted-proxy aware client identity: behind a reverse proxy every
+		// client shares the proxy's peer address, which would let one guest's
+		// auth failures rate-limit everyone (and an attacker hide in the crowd).
+		const std::string effective_ip = EffectiveClientIp(req, raw_peer_ip);
+		const std::string_view peer_ip{ effective_ip };
 
 		try
 		{
@@ -435,6 +569,25 @@ namespace AqualinkAutomate::HTTP::Routing
 					}
 				}
 
+				// Resolve the request's subject (anonymous when auth-mode is off or
+				// no credentials are presented) and gate the route's declared access
+				// through the PolicyEngine.
+				current_subject = ResolveSubject(req, false);
+
+				const auto requirement = p->RequiredAccess(req.method());
+
+				// When the route declares per-resource grain (ResourceKind set), its
+				// sole path parameter IS the resource id (e.g. /api/equipment/
+				// buttons/{button_id}); the router matched it into m, so selector-
+				// scoped entitlements (equipment.control.aux:<id>) are enforced HERE,
+				// not left to the handler.
+				const std::string_view access_resource_id = (!requirement.ResourceKind.empty()) ? *m.matches() : std::string_view{};
+
+				if (auto denial = EvaluateAccess(req, requirement, access_resource_id); denial.has_value())
+				{
+					return std::move(*denial);
+				}
+
 				LogTrace(Channel::Web, [&] { return std::format("Handling HTTP {} request for {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
 
 				// Dynamic route responses (API equipment state, diagnostics, etc.)
@@ -461,6 +614,19 @@ namespace AqualinkAutomate::HTTP::Routing
 				if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
 				{
 					return std::move(*rejection);
+				}
+
+				// Same non-leak rule under the identity system: an unauthenticated
+				// subject probing an unknown /api/* path gets 401 (not 404) so the
+				// route surface is not enumerable without credentials.
+				if (security_config.AuthModeEnabled)
+				{
+					current_subject = ResolveSubject(req, false);
+
+					if (!current_subject.Authenticated && ToStringView(req.target()).starts_with("/api/"))
+					{
+						return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
+					}
 				}
 
 				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 404 Not Found");
@@ -518,9 +684,32 @@ namespace AqualinkAutomate::HTTP::Routing
 		return nullptr;
 	}
 
-	std::optional<HTTP::Response> AuthorizeWebSocketUpgrade(const HTTP::Request& req, std::string_view peer_ip)
+	std::optional<HTTP::Response> AuthorizeWebSocketUpgrade(const HTTP::Request& req, std::string_view raw_peer_ip)
 	{
-		return EvaluateSecurity(req, true, peer_ip);
+		const std::string effective_ip = EffectiveClientIp(req, raw_peer_ip);
+		const std::string_view peer_ip{ effective_ip };
+
+		if (auto rejection = EvaluateSecurity(req, true, peer_ip); rejection.has_value())
+		{
+			return rejection;
+		}
+
+		// Under the identity system the upgrade is additionally gated by the
+		// socket's declared entitlement (equipment.view for the live-data feeds).
+		if (security_config.AuthModeEnabled)
+		{
+			current_subject = ResolveSubject(req, true);
+
+			if (auto* ws = WS_OnAccept(ToStringView(req.target())); nullptr != ws)
+			{
+				if (auto denial = EvaluateAccess(req, ws->RequiredAccess()); denial.has_value())
+				{
+					return denial;
+				}
+			}
+		}
+
+		return std::nullopt;
 	}
 
 }

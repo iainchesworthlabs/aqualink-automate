@@ -39,11 +39,19 @@
 #include "developer/mock_serial_port_impl.h"
 #include "developer/recording_serial_port_impl.h"
 
+// Core — authentication / authorization substrate
+#include "application/secure_runtime_paths.h"
+#include "auth/group.h"
+#include "auth/jwt_codec.h"
+#include "auth/jwt_key_store.h"
+#include "auth/subject_resolver.h"
+
 // Core — HTTP server and routes
 #include "http/server/http_server.h"
 #include "http/server/static_file_handler.h"
 #include "http/server/routing/routing.h"
 #include "http/webroute_auth_check.h"
+#include "http/webroute_auth_me.h"
 #include "http/webroute_diagnostics_actualdevices.h"
 #include "http/webroute_diagnostics_devices.h"
 #include "http/webroute_diagnostics_matter.h"
@@ -172,6 +180,7 @@ int main(int argc, char* argv[])
 			auto processed_options = Options::Initialise()
 				| Add(Options::Alerting::OptionsProcessor{})
 				| Add(Options::App::OptionsProcessor{})
+				| Add(Options::Auth::OptionsProcessor{})
 				| Add(Options::Developer::OptionsProcessor{})
 				| Add(Options::Equipment::OptionsProcessor{})
 				| Add(Options::History::OptionsProcessor{})
@@ -194,6 +203,7 @@ int main(int argc, char* argv[])
 				| Process(
 					Options::Alerting::OptionsProcessor{},
 					Options::App::OptionsProcessor{},
+					Options::Auth::OptionsProcessor{},
 					Options::Developer::OptionsProcessor{},
 					Options::Equipment::OptionsProcessor{},
 					Options::History::OptionsProcessor{},
@@ -636,6 +646,66 @@ int main(int argc, char* argv[])
 				.RequireCsrfHeader = web_settings.ApiRequireCsrfHeader
 			};
 
+			// Identity system (--auth-mode) — docs/auth-redesign.md.  Disabled (the
+			// default) preserves historical behaviour exactly: no subject resolution,
+			// every policy decision is Permit by posture.  Enabled: requests resolve
+			// to a Subject (anonymous == the Guest group, deny-by-default) and routes
+			// are gated by the PolicyEngine; the legacy --api-auth-token check is then
+			// superseded (see SecurityConfig::AuthModeEnabled).
+			{
+				auto auth_groups = std::make_shared<Auth::GroupRegistry>(Auth::GroupRegistry::WithBuiltIns());
+				std::shared_ptr<Auth::JwtCodec> auth_codec{};
+
+				if (auto auth_settings_result = settings.Get<Options::Auth::AuthSettings>(); auth_settings_result)
+				{
+					const auto& auth_settings = auth_settings_result.value().get();
+
+					if (auth_settings.auth_mode_enabled)
+					{
+						security_config.AuthModeEnabled = true;
+
+						// Resolve (and harden) the auth state directory: an explicit
+						// --auth-state-dir wins, otherwise the platform's secure state
+						// directory candidates (same posture as the TLS private key).
+						std::filesystem::path auth_state_dir;
+
+						if (!auth_settings.auth_state_dir.empty())
+						{
+							auth_state_dir = auth_settings.auth_state_dir;
+							Application::PrepareSecureDirectory(auth_state_dir);
+						}
+						else
+						{
+							for (const auto& candidate : Application::SecureRuntimeStateDirectories())
+							{
+								if (Application::PrepareSecureDirectory(candidate / "auth"))
+								{
+									auth_state_dir = candidate / "auth";
+									break;
+								}
+							}
+						}
+
+						if (auth_state_dir.empty())
+						{
+							LogFatal(Channel::Main, "No usable secure state directory for authentication state (--auth-state-dir)");
+							return EXIT_FAILURE;
+						}
+
+						auto key_store = std::make_shared<Auth::JwtKeyStore>(Auth::JwtKeyStore::LoadOrCreate(auth_state_dir / "jwt-signing.key"));
+
+						Auth::JwtCodec::Config codec_config;
+						codec_config.AccessTokenTtl = std::chrono::minutes{ auth_settings.jwt_access_ttl_minutes };
+
+						auth_codec = std::make_shared<Auth::JwtCodec>(std::move(key_store), std::move(codec_config));
+
+						HTTP::Routing::SetSubjectResolver(Auth::MakeSubjectResolver(auth_groups, auth_codec));
+
+						LogInfo(Channel::Main, [&] { return std::format("Identity system enabled (auth-mode=enabled); auth state in '{}'", auth_state_dir.string()); });
+					}
+				}
+			}
+
 			// Open-control-plane guard: the equipment-control API actuates pumps,
 			// heaters and chlorinators. Binding a non-loopback interface with NO auth
 			// token exposes that to anyone on the network. We do not change behaviour
@@ -676,6 +746,7 @@ int main(int argc, char* argv[])
 			}
 
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthCheck>());
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>());
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Devices>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Mqtt>(hub_locator));
 			{

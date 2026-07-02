@@ -13,6 +13,13 @@ target_sources(
 	unit/test_main.cpp
 	unit/application/test_application_defaults.cpp
 	unit/application/test_secure_runtime_paths.cpp
+	unit/auth/test_audit_log.cpp
+	unit/http/test_http_diagnostics_options_redaction.cpp
+	unit/http/test_routing_authz.cpp
+	unit/auth/test_entitlement.cpp
+	unit/auth/test_jwt.cpp
+	unit/auth/test_policy_engine.cpp
+	unit/utility/test_offload_pool.cpp
 	unit/auxillaries/test_jandy_auxillary_id.cpp
 	unit/concepts/test_concept_is_c_array.cpp
 	unit/certificates/test_certificate_generation.cpp
@@ -63,6 +70,7 @@ target_sources(
 	unit/history/test_history_service.cpp
 	unit/options/test_option_metadata.cpp
 	unit/options/test_options_alerting.cpp
+	unit/options/test_options_auth.cpp
 	unit/options/test_options_config_file.cpp
 	unit/options/test_options_developer.cpp
 	unit/options/test_options_equipment.cpp

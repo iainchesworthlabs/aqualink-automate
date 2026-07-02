@@ -4,6 +4,7 @@ namespace AqualinkAutomate::Logging
 {
 	enum class Channel
 	{
+		Audit,
 		Certificates,
 		Coroutines,
 		Developer,
