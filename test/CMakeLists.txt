@@ -16,6 +16,7 @@ target_sources(
 	unit/auth/test_audit_log.cpp
 	unit/auth/test_auth_stores.cpp
 	unit/http/test_access_enforcement.cpp
+	unit/http/test_http_auth_routes.cpp
 	unit/http/test_http_diagnostics_options_redaction.cpp
 	unit/http/test_routing_authz.cpp
 	unit/auth/test_entitlement.cpp
@@ -23,6 +24,8 @@ target_sources(
 	unit/auth/test_mock_idp.cpp
 	unit/auth/test_password_hasher.cpp
 	unit/auth/test_policy_engine.cpp
+	unit/auth/test_session.cpp
+	unit/auth/test_subject_resolver.cpp
 	unit/utility/test_offload_pool.cpp
 	unit/auxillaries/test_jandy_auxillary_id.cpp
 	unit/concepts/test_concept_is_c_array.cpp

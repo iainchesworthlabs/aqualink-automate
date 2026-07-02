@@ -25,6 +25,8 @@ target_sources(
 	auth/jwt_codec.cpp
 	auth/jwt_key_store.cpp
 	auth/policy_engine.cpp
+	auth/session_service.cpp
+	auth/session_store.cpp
 	auth/subject_resolver.cpp
 	certificates/certificate_management.cpp
 	concepts/is_option_processor.cpp
@@ -69,7 +71,10 @@ target_sources(
 	formatters/units_electric_potential_formatter.cpp 
 	formatters/url_segments_encoded_view_formatter.cpp 
 	http/webroute_auth_check.cpp
+	http/webroute_auth_login.cpp
+	http/webroute_auth_logout.cpp
 	http/webroute_auth_me.cpp
+	http/webroute_auth_refresh.cpp
 	http/webroute_diagnostics_actualdevices.cpp
 	http/webroute_diagnostics_devices.cpp
 	http/webroute_diagnostics_logging.cpp

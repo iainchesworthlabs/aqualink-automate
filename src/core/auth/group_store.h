@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -24,7 +25,12 @@ namespace AqualinkAutomate::Auth
 		static GroupStore Load(const std::filesystem::path& file);
 
 	public:
-		const GroupRegistry& Registry() const noexcept { return m_Registry; }
+		const GroupRegistry& Registry() const noexcept { return *m_Registry; }
+
+		// The LIVE registry as a shareable handle: the subject resolver holds
+		// this so admin edits (e.g. guest scoping) apply to the very next
+		// request without any re-wiring.
+		std::shared_ptr<GroupRegistry> SharedRegistry() const noexcept { return m_Registry; }
 
 		// Create or update a group.  Built-ins keep their BuiltIn flag no
 		// matter what the caller passes.  Persists on success.
@@ -41,7 +47,7 @@ namespace AqualinkAutomate::Auth
 
 	private:
 		std::filesystem::path m_File{};
-		GroupRegistry m_Registry{};
+		std::shared_ptr<GroupRegistry> m_Registry{ std::make_shared<GroupRegistry>() };
 	};
 
 }

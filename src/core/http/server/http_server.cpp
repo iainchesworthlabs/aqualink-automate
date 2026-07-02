@@ -244,9 +244,16 @@ namespace AqualinkAutomate::HTTP
 		zone->Text(std::string(req.target().data(), req.target().size()));
 #endif
 
-		auto msg = Routing::HTTP_OnRequest(req, m_PeerIp);
-
-		DoWrite(std::move(msg));
+		// Completion-based dispatch: every stock route completes inline (same
+		// behaviour as the old synchronous call), while deferred-response
+		// routes (login's off-thread argon2 verify) invoke the completion
+		// later on this same io_context.  The session is kept alive by the
+		// captured shared_ptr; DoWrite ignores completions after MarkDone.
+		Routing::HTTP_OnRequestDispatch(std::move(req), m_PeerIp,
+			[self = shared_from_this()](Message&& msg)
+			{
+				self->DoWrite(std::move(msg));
+			});
 	}
 
 	//--- HTTP Write -------------------------------------------------------

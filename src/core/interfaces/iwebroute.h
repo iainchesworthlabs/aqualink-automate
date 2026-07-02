@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <string_view>
 
 #include <boost/beast/http/verb.hpp>
@@ -54,6 +55,24 @@ namespace AqualinkAutomate::Interfaces
         // with per-resource grain (e.g. a specific aux) additionally refine the
         // decision in their handler where the resource id is parsed.
         virtual AccessRequirement RequiredAccess([[maybe_unused]] boost::beast::http::verb method) const { return {}; }
+
+        // DEFERRED-RESPONSE routes (docs/auth-redesign.md §6): a handler whose
+        // work must leave the kernel thread (argon2 password verification on
+        // the OffloadPool) returns true here and implements OnRequestAsync;
+        // the router then dispatches through the completion instead of
+        // OnRequest.  RULES for async handlers: capture everything needed from
+        // the request and Routing::CurrentSubject() BEFORE the first
+        // suspension (both are only valid during the synchronous prefix), and
+        // invoke `complete` exactly once, on the same executor the request
+        // arrived on.  The default keeps every existing route synchronous.
+        using AsyncCompletion = std::function<void(HTTP::Response&&)>;
+
+        virtual bool IsAsyncRoute() const { return false; }
+
+        virtual void OnRequestAsync(const HTTP::Request& req, AsyncCompletion complete)
+        {
+            complete(OnRequest(req));
+        }
     };
 
 	template<const auto& ROUTE_URL>

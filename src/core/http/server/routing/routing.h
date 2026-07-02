@@ -83,7 +83,15 @@ namespace AqualinkAutomate::HTTP::Routing
 	/// only during HTTP_OnRequest/AuthorizeWebSocketUpgrade (single-threaded
 	/// cooperative model); route handlers use it for per-resource authorization
 	/// refinement and subject-aware responses (/api/auth/me, preferences).
+	/// ASYNC ROUTES: read it (and CurrentPeerIp) in the synchronous prefix of
+	/// OnRequestAsync, BEFORE any suspension — another request may be
+	/// dispatched in between.
 	const Auth::Subject& CurrentSubject();
+
+	/// The trusted-proxy-aware client address of the request currently being
+	/// dispatched (see EffectiveClientIp); same validity rules as
+	/// CurrentSubject.  Used for audit identity on auth flows.
+	std::string_view CurrentPeerIp();
 
 	void Clear();
 
@@ -100,6 +108,15 @@ namespace AqualinkAutomate::HTTP::Routing
 	/// peer_ip (the connecting client's address, empty when unknown) feeds the
 	/// per-source failed-auth rate limiter; pass it from the HTTP session.
 	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view peer_ip = {});
+
+	/// Completion-based dispatch (the HTTP session uses this).  Synchronous
+	/// routes — every route by default — invoke `complete` inline, so the
+	/// behaviour is identical to HTTP_OnRequest; a route declaring
+	/// IsAsyncRoute() (deferred-response handlers such as login's off-thread
+	/// argon2 verify) invokes it later on the same executor.  `complete` is
+	/// called exactly once.
+	using DispatchCompletion = std::function<void(HTTP::Message&&)>;
+	void HTTP_OnRequestDispatch(HTTP::Request req, std::string_view peer_ip, DispatchCompletion complete);
 	Interfaces::IWebSocketBase* WS_OnAccept(const std::string_view target);
 
 	/// Evaluate the security policy against a WebSocket upgrade request.

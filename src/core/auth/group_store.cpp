@@ -20,7 +20,7 @@ namespace AqualinkAutomate::Auth
 	{
 		GroupStore store;
 		store.m_File = file;
-		store.m_Registry = GroupRegistry::WithBuiltIns();
+		*store.m_Registry = GroupRegistry::WithBuiltIns();
 
 		if (const auto document = LoadAuthStoreFile(file); document.has_value())
 		{
@@ -35,7 +35,7 @@ namespace AqualinkAutomate::Auth
 				{
 					// Built-ins were pre-seeded; the file's entry overrides their
 					// ENTITLEMENTS (the admin-scoped part) but never removes them.
-					store.m_Registry.Upsert(std::move(group));
+					store.m_Registry->Upsert(std::move(group));
 				}
 			}
 		}
@@ -57,7 +57,7 @@ namespace AqualinkAutomate::Auth
 
 		group.BuiltIn = IsBuiltInName(group.Name);
 
-		m_Registry.Upsert(std::move(group));
+		m_Registry->Upsert(std::move(group));
 		Save();
 
 		return true;
@@ -71,17 +71,19 @@ namespace AqualinkAutomate::Auth
 			return false;
 		}
 
-		if (!m_Registry.Find(name).has_value())
+		if (!m_Registry->Find(name).has_value())
 		{
 			error = "Group not found";
 			return false;
 		}
 
 		// Rebuild without the removed group (the registry has no erase; the
-		// collection is tiny and this stays obviously-correct).
+		// collection is tiny and this stays obviously-correct).  Assign INTO
+		// the shared object — the subject resolver holds the same handle and
+		// must see the change immediately.
 		GroupRegistry rebuilt;
 
-		for (const auto& group : m_Registry.All())
+		for (const auto& group : m_Registry->All())
 		{
 			if (group.Name != name)
 			{
@@ -89,7 +91,7 @@ namespace AqualinkAutomate::Auth
 			}
 		}
 
-		m_Registry = std::move(rebuilt);
+		*m_Registry = std::move(rebuilt);
 		Save();
 
 		return true;
@@ -100,7 +102,7 @@ namespace AqualinkAutomate::Auth
 		nlohmann::json document;
 		auto groups = nlohmann::json::array();
 
-		for (const auto& group : m_Registry.All())
+		for (const auto& group : m_Registry->All())
 		{
 			groups.push_back({ { "name", group.Name }, { "entitlements", group.Entitlements.ToStrings() } });
 		}

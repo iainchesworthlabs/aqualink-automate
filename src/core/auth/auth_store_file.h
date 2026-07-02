@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <string>
+#include <string_view>
 
 #include <nlohmann/json.hpp>
 
@@ -26,6 +28,12 @@ namespace AqualinkAutomate::Auth
 	std::optional<nlohmann::json> LoadAuthStoreFile(const std::filesystem::path& file);
 
 	void SaveAuthStoreFile(const std::filesystem::path& file, nlohmann::json document);
+
+	// SHA-256 hex digest — the shared at-rest form for high-entropy secrets
+	// (API keys, refresh tokens).  NOT for passwords (argon2id via
+	// PasswordHasher); these secrets are random 256-bit values, so a fast
+	// hash is the correct primitive.
+	std::string Sha256Hex(std::string_view data);
 
 }
 // namespace AqualinkAutomate::Auth

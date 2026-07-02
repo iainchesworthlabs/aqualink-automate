@@ -116,7 +116,12 @@ BOOST_AUTO_TEST_CASE(Test_Enforcement_ButtonRouteCarriesAuxResourceKind)
 BOOST_AUTO_TEST_CASE(Test_Enforcement_DeliberatelyOpenRoutesStayOpen)
 {
 	// The ONLY endpoints allowed to skip the entitlement gate: liveness probe,
-	// auth-state probes, and the version banner.
+	// auth-state probes, and the version banner.  The session flows
+	// (/api/auth/login, /api/auth/refresh, /api/auth/logout) are also
+	// deliberately open — the credential IS the request body — and their
+	// open-by-design behaviour is asserted end-to-end in
+	// TestSuite_HttpAuthRoutes (constructing them here would drag the full
+	// session-service fixture into this compile-surface test).
 	CheckExempt(HTTP::WebRoute_AuthCheck{});
 	CheckExempt(HTTP::WebRoute_AuthMe{});
 	CheckExempt(HTTP::WebRoute_Health{});

@@ -64,6 +64,7 @@ namespace AqualinkAutomate::HTTP::Routing
 		// how the rest of this translation unit already manages per-request state).
 		SubjectResolver subject_resolver{};
 		Auth::Subject current_subject{ Auth::Subject::Anonymous() };
+		std::string current_peer_ip{};
 
 		Auth::Subject ResolveSubject(const HTTP::Request& req, bool is_websocket_upgrade)
 		{
@@ -470,6 +471,11 @@ namespace AqualinkAutomate::HTTP::Routing
 		return current_subject;
 	}
 
+	std::string_view CurrentPeerIp()
+	{
+		return current_peer_ip;
+	}
+
 	void SetSecurityConfig(SecurityConfig config)
 	{
 		security_config = std::move(config);
@@ -516,8 +522,28 @@ namespace AqualinkAutomate::HTTP::Routing
 		sf_route = std::move(sf);
 	}
 
-	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view raw_peer_ip)
+	void HTTP_OnRequestDispatch(HTTP::Request request_in, std::string_view raw_peer_ip, DispatchCompletion complete)
 	{
+		// Exactly-once completion guard: the catch handler below answers 500
+		// for a synchronously-throwing route, but must stay silent when the
+		// route already responded (double DoWrite would corrupt the session).
+		auto responded = std::make_shared<bool>(false);
+		auto respond = [responded, complete = std::move(complete)](HTTP::Message&& msg) mutable
+		{
+			if (*responded)
+			{
+				return;
+			}
+
+			*responded = true;
+			complete(std::move(msg));
+		};
+
+		// Async routes suspend and complete later: the request must outlive
+		// this frame, so it lives in shared storage from the start.
+		auto request = std::make_shared<HTTP::Request>(std::move(request_in));
+		const HTTP::Request& req = *request;
+
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("Routing::RouteRequest", std::source_location::current());
 		DeferredZoneText(zone, [&] { return std::format("{} {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
 
@@ -526,6 +552,7 @@ namespace AqualinkAutomate::HTTP::Routing
 		// auth failures rate-limit everyone (and an attacker hide in the crowd).
 		const std::string effective_ip = EffectiveClientIp(req, raw_peer_ip);
 		const std::string_view peer_ip{ effective_ip };
+		current_peer_ip = effective_ip;
 
 		try
 		{
@@ -554,7 +581,8 @@ namespace AqualinkAutomate::HTTP::Routing
 			{
 				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 400 Bad Request");
 				LogDebug(Channel::Web, [&] { return std::format("Supplied http target could not be parsed; error was -> {}", target_url.error().message()); });
-				return HTTP::Responses::Response_400(req);
+				respond(HTTP::Responses::Response_400(req));
+				return;
 			}
 			else if (auto p = http_routes.find_impl(target_url->encoded_segments(), matches_it, ids_it, matches_end, ids_end); nullptr != p)
 			{
@@ -565,7 +593,8 @@ namespace AqualinkAutomate::HTTP::Routing
 				{
 					if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
 					{
-						return std::move(*rejection);
+						respond(std::move(*rejection));
+						return;
 					}
 				}
 
@@ -585,10 +614,26 @@ namespace AqualinkAutomate::HTTP::Routing
 
 				if (auto denial = EvaluateAccess(req, requirement, access_resource_id); denial.has_value())
 				{
-					return std::move(*denial);
+					respond(std::move(*denial));
+					return;
 				}
 
 				LogTrace(Channel::Web, [&] { return std::format("Handling HTTP {} request for {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
+
+				if (p->IsAsyncRoute())
+				{
+					// Deferred-response route (e.g. login's off-thread argon2
+					// verify): the handler completes later on this same executor.
+					// `request` keeps the message alive across the suspension and
+					// `respond` stamps no-store exactly like the synchronous path.
+					p->OnRequestAsync(*request, [request, respond](HTTP::Response&& resp) mutable
+						{
+							resp.set(boost::beast::http::field::cache_control, "no-store");
+							respond(std::move(resp));
+						});
+
+					return;
+				}
 
 				// Dynamic route responses (API equipment state, diagnostics, etc.)
 				// reflect live data and must never be reused from a cache. The service
@@ -599,13 +644,15 @@ namespace AqualinkAutomate::HTTP::Routing
 				// and means no handler has to remember to set it.
 				HTTP::Response resp = p->OnRequest(req);
 				resp.set(boost::beast::http::field::cache_control, "no-store");
-				return resp;
+				respond(std::move(resp));
+				return;
 			}
 			else if (sf_route.has_value() && sf_route->match(req.target(), static_file_result))
 			{
 				// Static asset -> intentionally UNauthenticated (see above).
 				LogTrace(Channel::Web, [&] { return std::format("Attempting to serve static content; file is -> {}", static_file_result.string()); });
-				return HTTP::Responses::Response_StaticFile(req, static_file_result);
+				respond(HTTP::Responses::Response_StaticFile(req, static_file_result));
+				return;
 			}
 			else
 			{
@@ -613,7 +660,8 @@ namespace AqualinkAutomate::HTTP::Routing
 				// answers 401 (not 404) when a token is required.
 				if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
 				{
-					return std::move(*rejection);
+					respond(std::move(*rejection));
+					return;
 				}
 
 				// Same non-leak rule under the identity system: an unauthenticated
@@ -625,24 +673,49 @@ namespace AqualinkAutomate::HTTP::Routing
 
 					if (!current_subject.Authenticated && ToStringView(req.target()).starts_with("/api/"))
 					{
-						return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
+						respond(MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized."));
+						return;
 					}
 				}
 
 				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 404 Not Found");
 				LogDebug(Channel::Web, [&] { return std::format("Path '{}' was requested but no HTTP handler was available", std::string_view(req.target())); });
 				LogDebug(Channel::Web, "Could not handle request -> returning a 404 NOT FOUND");
-				return HTTP::Responses::Response_404(req);
+				respond(HTTP::Responses::Response_404(req));
+				return;
 			}
 		}
 		catch (const std::exception& ex)
 		{
 			// The detail stays server-side only; the client receives a context-free 500.
 			// Promote to Warning so an escaping exception is visible at the default log
-			// level (it indicates a route handler fault, not routine traffic).
+			// level (it indicates a route handler fault, not routine traffic).  The
+			// exactly-once guard keeps this silent when the route already responded.
 			LogWarning(Channel::Web, [&] { return std::format("An exception was thrown while processing an HTTP request: exception was -> {}", ex.what()); });
+			respond(HTTP::Responses::Response_500(req));
+		}
+	}
+
+	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view raw_peer_ip)
+	{
+		// Synchronous facade over the dispatcher (tests and any caller that
+		// cannot defer).  Every stock route completes inline; an async route
+		// reached through here cannot block the kernel thread waiting, so it
+		// answers 500 — use HTTP_OnRequestDispatch for those.
+		std::optional<HTTP::Message> result;
+
+		HTTP_OnRequestDispatch(HTTP::Request{ req }, raw_peer_ip, [&result](HTTP::Message&& msg)
+			{
+				result = std::move(msg);
+			});
+
+		if (!result.has_value())
+		{
+			LogWarning(Channel::Web, "Deferred-response route dispatched through the synchronous HTTP_OnRequest facade; answering 500");
 			return HTTP::Responses::Response_500(req);
 		}
+
+		return std::move(*result);
 	}
 
 	Interfaces::IWebSocketBase* WS_OnAccept(const std::string_view target)

@@ -4,7 +4,6 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <openssl/rand.h>
-#include <openssl/sha.h>
 
 #include "auth/api_key_store.h"
 #include "auth/auth_store_file.h"
@@ -81,10 +80,7 @@ namespace AqualinkAutomate::Auth
 
 	std::string ApiKeyStore::DigestOf(std::string_view secret)
 	{
-		std::uint8_t digest[SHA256_DIGEST_LENGTH];
-		SHA256(reinterpret_cast<const std::uint8_t*>(secret.data()), secret.size(), digest);
-
-		return ToHex(digest, sizeof(digest));
+		return Sha256Hex(secret);
 	}
 
 	std::optional<ApiKeyRecord> ApiKeyStore::FindById(std::string_view id) const

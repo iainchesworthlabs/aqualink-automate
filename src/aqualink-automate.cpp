@@ -41,17 +41,27 @@
 
 // Core — authentication / authorization substrate
 #include "application/secure_runtime_paths.h"
+#include "auth/api_key_store.h"
+#include "auth/audit_log.h"
 #include "auth/group.h"
+#include "auth/group_store.h"
 #include "auth/jwt_codec.h"
 #include "auth/jwt_key_store.h"
+#include "auth/session_service.h"
+#include "auth/session_store.h"
 #include "auth/subject_resolver.h"
+#include "auth/user_store.h"
+#include "utility/offload_pool.h"
 
 // Core — HTTP server and routes
 #include "http/server/http_server.h"
 #include "http/server/static_file_handler.h"
 #include "http/server/routing/routing.h"
 #include "http/webroute_auth_check.h"
+#include "http/webroute_auth_login.h"
+#include "http/webroute_auth_logout.h"
 #include "http/webroute_auth_me.h"
+#include "http/webroute_auth_refresh.h"
 #include "http/webroute_diagnostics_actualdevices.h"
 #include "http/webroute_diagnostics_devices.h"
 #include "http/webroute_diagnostics_matter.h"
@@ -648,61 +658,101 @@ int main(int argc, char* argv[])
 
 			// Identity system (--auth-mode) — docs/auth-redesign.md.  Disabled (the
 			// default) preserves historical behaviour exactly: no subject resolution,
-			// every policy decision is Permit by posture.  Enabled: requests resolve
-			// to a Subject (anonymous == the Guest group, deny-by-default) and routes
-			// are gated by the PolicyEngine; the legacy --api-auth-token check is then
-			// superseded (see SecurityConfig::AuthModeEnabled).
+			// every policy decision is Permit by posture.  Enabled: the auth stores
+			// are loaded from the hardened state directory, requests resolve to a
+			// Subject (anonymous == the Guest group, deny-by-default; session JWTs
+			// and API keys authenticate), routes are gated by the PolicyEngine, and
+			// the login/refresh/logout flows come online; the legacy
+			// --api-auth-token folds in as a bootstrap API key.
+			//
+			// Declared at this scope: the routes registered below hold references,
+			// so the whole stack must live for the application lifetime.
+			//
+			// Block-scope alias: bare `Auth` is otherwise ambiguous between the
+			// AqualinkAutomate::Auth subsystem and AqualinkAutomate::Options::Auth
+			// (same collision, and same fix, as `Alerting` further down).
+			namespace Auth = AqualinkAutomate::Auth;
+
+			std::shared_ptr<Auth::UserStore> auth_users{};
+			std::shared_ptr<Auth::GroupStore> auth_group_store{};
+			std::shared_ptr<Auth::SessionStore> auth_sessions{};
+			std::shared_ptr<Auth::ApiKeyStore> auth_api_keys{};
+			std::shared_ptr<Auth::JwtCodec> auth_codec{};
+			std::shared_ptr<Auth::AuditLog> auth_audit{};
+			std::shared_ptr<Utility::OffloadPool> auth_offload{};
+			std::shared_ptr<Auth::SessionService> auth_session_service{};
+
+			if (auto auth_settings_result = settings.Get<Options::Auth::AuthSettings>(); auth_settings_result)
 			{
-				auto auth_groups = std::make_shared<Auth::GroupRegistry>(Auth::GroupRegistry::WithBuiltIns());
-				std::shared_ptr<Auth::JwtCodec> auth_codec{};
+				const auto& auth_settings = auth_settings_result.value().get();
 
-				if (auto auth_settings_result = settings.Get<Options::Auth::AuthSettings>(); auth_settings_result)
+				if (auth_settings.auth_mode_enabled)
 				{
-					const auto& auth_settings = auth_settings_result.value().get();
+					security_config.AuthModeEnabled = true;
 
-					if (auth_settings.auth_mode_enabled)
+					// Resolve (and harden) the auth state directory: an explicit
+					// --auth-state-dir wins, otherwise the platform's secure state
+					// directory candidates (same posture as the TLS private key).
+					std::filesystem::path auth_state_dir;
+
+					if (!auth_settings.auth_state_dir.empty())
 					{
-						security_config.AuthModeEnabled = true;
-
-						// Resolve (and harden) the auth state directory: an explicit
-						// --auth-state-dir wins, otherwise the platform's secure state
-						// directory candidates (same posture as the TLS private key).
-						std::filesystem::path auth_state_dir;
-
-						if (!auth_settings.auth_state_dir.empty())
+						auth_state_dir = auth_settings.auth_state_dir;
+						Application::PrepareSecureDirectory(auth_state_dir);
+					}
+					else
+					{
+						for (const auto& candidate : Application::SecureRuntimeStateDirectories())
 						{
-							auth_state_dir = auth_settings.auth_state_dir;
-							Application::PrepareSecureDirectory(auth_state_dir);
-						}
-						else
-						{
-							for (const auto& candidate : Application::SecureRuntimeStateDirectories())
+							if (Application::PrepareSecureDirectory(candidate / "auth"))
 							{
-								if (Application::PrepareSecureDirectory(candidate / "auth"))
-								{
-									auth_state_dir = candidate / "auth";
-									break;
-								}
+								auth_state_dir = candidate / "auth";
+								break;
 							}
 						}
-
-						if (auth_state_dir.empty())
-						{
-							LogFatal(Channel::Main, "No usable secure state directory for authentication state (--auth-state-dir)");
-							return EXIT_FAILURE;
-						}
-
-						auto key_store = std::make_shared<Auth::JwtKeyStore>(Auth::JwtKeyStore::LoadOrCreate(auth_state_dir / "jwt-signing.key"));
-
-						Auth::JwtCodec::Config codec_config;
-						codec_config.AccessTokenTtl = std::chrono::minutes{ auth_settings.jwt_access_ttl_minutes };
-
-						auth_codec = std::make_shared<Auth::JwtCodec>(std::move(key_store), std::move(codec_config));
-
-						HTTP::Routing::SetSubjectResolver(Auth::MakeSubjectResolver(auth_groups, auth_codec));
-
-						LogInfo(Channel::Main, [&] { return std::format("Identity system enabled (auth-mode=enabled); auth state in '{}'", auth_state_dir.string()); });
 					}
+
+					if (auth_state_dir.empty())
+					{
+						LogFatal(Channel::Main, "No usable secure state directory for authentication state (--auth-state-dir)");
+						return EXIT_FAILURE;
+					}
+
+					auth_users = std::make_shared<Auth::UserStore>(Auth::UserStore::Load(auth_state_dir / "users.json"));
+					auth_group_store = std::make_shared<Auth::GroupStore>(Auth::GroupStore::Load(auth_state_dir / "groups.json"));
+					auth_sessions = std::make_shared<Auth::SessionStore>(Auth::SessionStore::Load(auth_state_dir / "sessions.json"));
+					auth_api_keys = std::make_shared<Auth::ApiKeyStore>(Auth::ApiKeyStore::Load(auth_state_dir / "api-keys.json"));
+
+					// Legacy shared token keeps working as a system.admin machine key.
+					if (web_settings.ApiAuthToken.has_value())
+					{
+						auth_api_keys->SeedBootstrapKey(*web_settings.ApiAuthToken);
+					}
+
+					auto key_store = std::make_shared<Auth::JwtKeyStore>(Auth::JwtKeyStore::LoadOrCreate(auth_state_dir / "jwt-signing.key"));
+
+					Auth::JwtCodec::Config codec_config;
+					codec_config.AccessTokenTtl = std::chrono::minutes{ auth_settings.jwt_access_ttl_minutes };
+
+					auth_codec = std::make_shared<Auth::JwtCodec>(std::move(key_store), std::move(codec_config));
+
+					// Audit trail: OS-native sink + owner-only JSONL in the state dir.
+					auth_audit = std::make_shared<Auth::AuditLog>(Auth::AuditLog::Config{ .JsonlFile = auth_state_dir / "audit.jsonl" });
+					Auth::RegisterAuditOsSink();
+
+					// argon2 runs here, never on the kernel thread.
+					auth_offload = std::make_shared<Utility::OffloadPool>(1);
+
+					auth_session_service = std::make_shared<Auth::SessionService>(
+						auth_users, auth_group_store, auth_sessions, auth_codec, *auth_offload, *auth_audit, Auth::SessionService::Config{});
+
+					HTTP::Routing::SetSubjectResolver(Auth::MakeSubjectResolver(Auth::SubjectResolverDeps{
+						.Groups = auth_group_store->SharedRegistry(),
+						.Codec = auth_codec,
+						.Users = auth_users,
+						.ApiKeys = auth_api_keys }));
+
+					LogInfo(Channel::Main, [&] { return std::format("Identity system enabled (auth-mode=enabled); auth state in '{}'; {} user(s) on file", auth_state_dir.string(), auth_users->Size()); });
 				}
 			}
 
@@ -747,6 +797,17 @@ int main(int argc, char* argv[])
 
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthCheck>());
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>());
+
+			// Session flows exist only under the identity system: with auth-mode
+			// disabled there are no accounts to log into and the routes would
+			// answer 503-shaped errors; not registering them keeps the legacy
+			// surface byte-identical.
+			if (auth_session_service)
+			{
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogin>(*auth_session_service, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthRefresh>(*auth_session_service));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogout>(*auth_session_service));
+			}
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Devices>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Mqtt>(hub_locator));
 			{

@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <system_error>
 
+#include <openssl/sha.h>
+
 #include "auth/auth_store_file.h"
 
 namespace AqualinkAutomate::Auth
@@ -65,6 +67,25 @@ namespace AqualinkAutomate::Auth
 		fs::permissions(temp_file, fs::perms::owner_read | fs::perms::owner_write, fs::perm_options::replace, perm_ec);
 
 		fs::rename(temp_file, file);
+	}
+
+	std::string Sha256Hex(std::string_view data)
+	{
+		static constexpr char HEX_DIGITS[] = "0123456789abcdef";
+
+		std::uint8_t digest[SHA256_DIGEST_LENGTH];
+		SHA256(reinterpret_cast<const std::uint8_t*>(data.data()), data.size(), digest);
+
+		std::string hex;
+		hex.reserve(sizeof(digest) * 2);
+
+		for (const auto byte : digest)
+		{
+			hex.push_back(HEX_DIGITS[byte >> 4]);
+			hex.push_back(HEX_DIGITS[byte & 0x0F]);
+		}
+
+		return hex;
 	}
 
 }
