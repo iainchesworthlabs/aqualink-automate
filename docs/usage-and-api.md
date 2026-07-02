@@ -525,6 +525,12 @@ These are the fields the UI consumes from each frame's `payload`:
 - Inbound WebSocket frames are capped at **64 KiB**.
 - The same HTTP limits apply to the upgrade request: a **10000-byte** body limit, at most **1000** concurrent connections, and a **30-second** idle timeout.
 
+### Keepalive and reverse proxies
+
+Both endpoints send a WebSocket protocol-level ping after roughly **30 seconds** of silence (the server runs a 60-second idle timeout with keep-alive pings enabled — see `WebSocketServerTimeout()` in `src/core/http/server/websocket_timeouts.h`). This matters because `/ws/equipment` is change-driven: with the pool in a steady state no data frames flow for minutes, and without the pings a reverse proxy in front of the app would sever the quiet connection at its own idle timeout (nginx defaults `proxy_read_timeout` to 60 s; Cloudflare closes idle WebSockets after ~100 s), causing a spurious "Connection lost — retrying..." toast in the UI. Browsers answer pings automatically — clients do not need to implement anything.
+
+If you run a reverse proxy in front of the application, any WebSocket/upstream idle timeout of **60 seconds or more** works out of the box. A proxy configured tighter than ~30 seconds will still drop quiet connections. A peer that stops answering pings is torn down by the server within the 60-second idle timeout.
+
 ## Prometheus metrics
 
 `GET /metrics` returns Prometheus exposition text with content type `text/plain; version=0.0.4; charset=utf-8`. It is at the root, not under `/api`. A token-protected deployment requires the bearer token for `/metrics` too.
