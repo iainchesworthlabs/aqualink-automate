@@ -21,8 +21,9 @@
 const _trends = { data: {}, geom: null, hoverIdx: null, bound: false };
 
 // Canvas <ctx.font> can't read CSS custom properties, so the reskin UI font is
-// spelled out here as a literal stack (matches --font-ui / 'Hanken Grotesk').
-const TREND_FONT = "\"Hanken Grotesk\", system-ui, sans-serif";
+// spelled out here as a literal stack (matches --font-ui, including the
+// vendored Arabic face for translated panel labels).
+const TREND_FONT = "\"Hanken Grotesk\", \"Noto Sans Arabic\", system-ui, sans-serif";
 
 // Labels resolve through the i18n catalog at render time (see the `ranges`
 // getter) — duration abbreviations differ per language ("7d" vs "٧ ي" vs "7日").
