@@ -59,6 +59,8 @@
 #include "http/server/http_server.h"
 #include "http/server/static_file_handler.h"
 #include "http/server/routing/routing.h"
+#include "http/webroute_apikey.h"
+#include "http/webroute_apikeys.h"
 #include "http/webroute_auth_check.h"
 #include "http/webroute_auth_login.h"
 #include "http/webroute_auth_logout.h"
@@ -84,9 +86,17 @@
 #include "http/webroute_equipment_circulation.h"
 #include "http/webroute_equipment_setpoints.h"
 #include "http/webroute_equipment_version.h"
+#include "http/webroute_entitlements.h"
+#include "http/webroute_group.h"
+#include "http/webroute_groups.h"
 #include "http/webroute_health.h"
 #include "http/webroute_health_detailed.h"
 #include "http/webroute_metrics.h"
+#include "http/webroute_session.h"
+#include "http/webroute_sessions.h"
+#include "http/webroute_user.h"
+#include "http/webroute_user_password.h"
+#include "http/webroute_users.h"
 #include "http/webroute_version.h"
 #include "http/websocket_equipment.h"
 #include "http/websocket_equipment_stats.h"
@@ -857,6 +867,19 @@ int main(int argc, char* argv[])
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthRefresh>(*auth_session_service));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogout>(*auth_session_service));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthSetup>(*auth_users, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
+
+				// The admin/user-management surface (docs/auth-redesign.md §6-§7):
+				// users, groups, entitlement vocabulary, API keys and sessions.
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Users>(*auth_users, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_User>(*auth_users, *auth_group_store, *auth_session_service, *auth_sessions, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_UserPassword>(*auth_users, *auth_group_store, *auth_sessions, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Groups>(*auth_group_store, *auth_users, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Group>(*auth_group_store, *auth_users, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Entitlements>());
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ApiKeys>(*auth_api_keys, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ApiKey>(*auth_api_keys, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Sessions>(*auth_sessions));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Session>(*auth_sessions, *auth_audit));
 			}
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Devices>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Mqtt>(hub_locator));

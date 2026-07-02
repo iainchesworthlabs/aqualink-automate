@@ -3,6 +3,7 @@
 
 #include <boost/beast/http/field.hpp>
 
+#include "auth/entitlement_vocabulary.h"
 #include "auth/subject_resolver.h"
 
 namespace AqualinkAutomate::Auth
@@ -29,6 +30,16 @@ namespace AqualinkAutomate::Auth
 			}
 
 			return header.substr(BEARER_PREFIX.size());
+		}
+
+		// prefs.self is IMPLICIT for authenticated HUMAN subjects (see
+		// entitlement_vocabulary.h): every logged-in user may manage their own
+		// preferences, password and sessions without an explicit grant.  It is
+		// NOT granted to API keys (machine credentials have no "self") nor to
+		// the anonymous subject.
+		void GrantImplicitSelfEntitlements(Subject& subject)
+		{
+			subject.Entitlements.Add(Entitlement{ std::string{ Vocabulary::PREFS_SELF } });
 		}
 
 		Subject AnonymousGuest(const GroupRegistry& groups)
@@ -87,6 +98,8 @@ namespace AqualinkAutomate::Auth
 					subject.Entitlements = deps.Groups->ResolveEffectiveEntitlements(user->DirectEntitlements, user->Groups);
 				}
 
+				GrantImplicitSelfEntitlements(subject);
+
 				return subject;
 			}
 
@@ -99,6 +112,8 @@ namespace AqualinkAutomate::Auth
 			{
 				subject.Entitlements = deps.Groups->ResolveEffectiveEntitlements({}, subject.Groups);
 			}
+
+			GrantImplicitSelfEntitlements(subject);
 
 			return subject;
 		}

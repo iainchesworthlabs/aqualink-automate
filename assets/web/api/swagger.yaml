@@ -89,6 +89,8 @@ tags:
     description: Temperature setpoint control
   - name: Diagnostics
     description: Diagnostics and logging configuration
+  - name: Administration
+    description: User, group, entitlement, API-key and session management (system.admin)
 
 # Authentication is optional (opt-in). The empty requirement object `{}` permits
 # unauthenticated access (the default when no API auth token is configured);
@@ -262,6 +264,349 @@ paths:
                 entitlements: []
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /api/users:
+    get:
+      tags: [Administration]
+      summary: List user accounts
+      description: >
+        Returns every local account: id, username, group memberships, direct
+        entitlements, disabled flag and token version. Password hashes are
+        never returned. Requires the `system.admin` entitlement (`403`
+        otherwise; `401` when anonymous), like every Administration route.
+      operationId: listUsers
+      responses:
+        '200':
+          description: The user list
+          content:
+            application/json:
+              example:
+                - id: "0f8fad5b-d9cb-469f-a165-70867728950e"
+                  username: alice
+                  groups: [Administrators]
+                  direct_entitlements: []
+                  disabled: false
+                  tokver: 3
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      summary: Create a user account
+      description: >
+        Creates a local account. The password must satisfy the policy (at
+        least 12 characters; the hash is computed off the kernel thread) and
+        every direct entitlement must parse and use a known vocabulary action.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              username: carol
+              password: a-long-enough-password
+              groups: [Staff]
+              direct_entitlements: ["equipment.view"]
+      responses:
+        '201': { description: Created; the new user record (no password material) }
+        '400': { description: Weak password, or unknown/malformed entitlements (listed in the error) }
+        '409': { description: Username already exists }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/users/{user_id}:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Administration]
+      summary: Get a user account
+      operationId: getUser
+      responses:
+        '200': { description: The user record (no password material) }
+        '404': { description: Unknown user }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [Administration]
+      summary: Update a user account
+      description: >
+        Partial update: `username`, `groups`, `direct_entitlements` and
+        `disabled` may each be supplied. A groups/entitlements change bumps the
+        user's token version so outstanding access tokens go stale immediately
+        (still-valid refresh tokens re-mint with the new grants); `disabled:
+        true` additionally revokes every session. A change that would remove
+        the last enabled administrator - or claim an existing username - is
+        refused with `409`.
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              groups: [Staff]
+              disabled: false
+      responses:
+        '200': { description: The updated user record }
+        '400': { description: Validation error (unknown entitlements are listed) }
+        '404': { description: Unknown user }
+        '409': { description: Duplicate username, or last-admin protection refused the change }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Administration]
+      summary: Delete a user account
+      description: >
+        Removes the account and revokes its refresh sessions; audit entries
+        are retained (keyed by the former user id). Deleting the last enabled
+        administrator is refused with `409`.
+      operationId: deleteUser
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Unknown user }
+        '409': { description: Last-admin protection refused the deletion }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/users/{user_id}/password:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Administration]
+      summary: Set a user's password
+      description: >
+        An administrator (`system.admin`) may set anyone's password; any other
+        authenticated subject may only set their OWN (`403` otherwise). On
+        success the user's token version is bumped and every refresh session
+        is revoked - a password change invalidates everything - and the change
+        is audited (`auth.password_changed`). Unlike the other Administration
+        routes this one is gated only on being authenticated (`prefs.self`).
+      operationId: setUserPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              password: a-brand-new-password
+      responses:
+        '204': { description: Password changed; every session and token for the user is now invalid }
+        '400': { description: Password fails the policy (minimum 12 characters) }
+        '403': { description: A non-admin subject may only set their own password }
+        '404': { description: Unknown user }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/groups:
+    get:
+      tags: [Administration]
+      summary: List groups
+      description: >
+        Returns every group with its entitlement set and whether it is a
+        built-in (Everyone/Guest/Administrators - editable but undeletable).
+      operationId: listGroups
+      responses:
+        '200':
+          description: The group list
+          content:
+            application/json:
+              example:
+                - name: Administrators
+                  entitlements: ["system.admin"]
+                  built_in: true
+                - name: Staff
+                  entitlements: ["equipment.view", "schedules.view"]
+                  built_in: false
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      summary: Create or update a group
+      description: >
+        Upserts a group by name. Every entitlement must parse
+        (`<domain>.<action>[:<selector>]`) and use a known vocabulary action
+        (`GET /api/entitlements`); rejects are listed in the `400` error.
+        Changing a group's entitlements bumps every member's token version so
+        the grant change propagates within one request.
+      operationId: upsertGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              name: Staff
+              entitlements: ["equipment.view", "equipment.control.aux:*"]
+      responses:
+        '200': { description: The upserted group }
+        '400': { description: Unknown or malformed entitlements (listed in the error) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/groups/{group_name}:
+    parameters:
+      - name: group_name
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Administration]
+      summary: Delete a group
+      description: >
+        Removes a (non-built-in) group. Member users keep their membership
+        reference, which degrades safely to no entitlements; their token
+        versions are bumped so the lost grants propagate immediately.
+      operationId: deleteGroup
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Unknown group }
+        '409': { description: Built-in groups cannot be removed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/entitlements:
+    get:
+      tags: [Administration]
+      summary: List the entitlement action vocabulary
+      description: >
+        Returns the known entitlement actions so the admin UI can enumerate
+        what is assignable to groups, direct grants and API keys. Selectors
+        (`:AUX3`, `:*`) are composed client-side onto these actions.
+      operationId: listEntitlements
+      responses:
+        '200':
+          description: The action vocabulary
+          content:
+            application/json:
+              example:
+                actions: ["system.admin", "equipment.view", "equipment.control.aux"]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/apikeys:
+    get:
+      tags: [Administration]
+      summary: List API keys
+      description: >
+        Returns every key's metadata - id, label, entitlements, expiry,
+        last-used and revoked flag. The secret (and its digest) is never
+        returned; it is shown exactly once, at creation.
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: The API-key list
+          content:
+            application/json:
+              example:
+                - id: "9c1d1c9e-8f2a-4a7e-b0d3-1f0f6a2b3c4d"
+                  label: ha-bridge
+                  entitlements: ["equipment.view"]
+                  expiry_unix: 0
+                  last_used_unix: 1767225600
+                  revoked: false
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      summary: Create an API key
+      description: >
+        Creates an entitlement-scoped machine credential. The response carries
+        the ONE-TIME secret (`aak_...`) plus a `warning` field; only its
+        digest is persisted, so the secret can never be retrieved again.
+        Entitlements are validated like a group's. `expiry_unix` is optional
+        (0 or absent = never expires).
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              label: ha-bridge
+              entitlements: ["equipment.view"]
+              expiry_unix: 1798761600
+      responses:
+        '201':
+          description: Created; includes the shown-once secret
+          content:
+            application/json:
+              example:
+                id: "9c1d1c9e-8f2a-4a7e-b0d3-1f0f6a2b3c4d"
+                label: ha-bridge
+                entitlements: ["equipment.view"]
+                expiry_unix: 1798761600
+                last_used_unix: 0
+                revoked: false
+                secret: "aak_..."
+                warning: "Store this secret now; it cannot be retrieved again"
+        '400': { description: Missing label, or unknown/malformed entitlements (listed in the error) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/apikeys/{key_id}:
+    parameters:
+      - name: key_id
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Administration]
+      summary: Revoke an API key
+      description: >
+        Revokes the key - it stays listed (revoked, for hygiene audits) but
+        authenticates nothing from the next request on. Audited.
+      operationId: revokeApiKey
+      responses:
+        '204': { description: Revoked }
+        '404': { description: Unknown key }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/sessions:
+    get:
+      tags: [Administration]
+      summary: List active sessions
+      description: >
+        Returns the refresh-token sessions ("active devices"): id, user id,
+        issued/expiry/last-seen timestamps, user agent and peer address. A
+        subject holding `system.admin` sees every session; any other
+        authenticated subject sees only their OWN (the route is gated on
+        `prefs.self`, i.e. simply being authenticated).
+      operationId: listSessions
+      responses:
+        '200':
+          description: The session list (scoped to the caller unless admin)
+          content:
+            application/json:
+              example:
+                - id: "2b0e9d3f-5a67-4c1d-9e8f-7a6b5c4d3e2f"
+                  user_id: "0f8fad5b-d9cb-469f-a165-70867728950e"
+                  issued_unix: 1767225600
+                  expiry_unix: 1768435200
+                  last_seen_unix: 1767312000
+                  user_agent: "Mozilla/5.0 ..."
+                  peer_ip: "192.168.1.50"
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/sessions/{session_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Administration]
+      summary: Revoke a session ("log out that browser")
+      description: >
+        Terminates one refresh session. An admin (`system.admin`) may revoke
+        ANY session; any other authenticated subject only their OWN - a
+        non-owned id answers `404`, indistinguishable from an unknown one, so
+        session ids are not enumerable. Audited.
+      operationId: revokeSession
+      responses:
+        '204': { description: Revoked; the session's refresh token is dead }
+        '404': { description: Unknown session (or not owned by a non-admin caller) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /api/health:
     get:
@@ -2832,6 +3177,17 @@ components:
           schema:
             type: string
             example: "Unauthorized"
+
+    Forbidden:
+      description: |
+        The request was authenticated but the subject lacks the route's
+        required entitlement (Administration routes require `system.admin`).
+        Only returned when the identity system (`--auth-mode enabled`) is on.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: "Forbidden: not entitled."
 
     NotFound:
       description: The specified resource was not found

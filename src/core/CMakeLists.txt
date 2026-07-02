@@ -71,6 +71,8 @@ target_sources(
 	formatters/units_dimensionless_formatter.cpp 
 	formatters/units_electric_potential_formatter.cpp 
 	formatters/url_segments_encoded_view_formatter.cpp 
+	http/webroute_apikey.cpp
+	http/webroute_apikeys.cpp
 	http/webroute_auth_check.cpp
 	http/webroute_auth_login.cpp
 	http/webroute_auth_logout.cpp
@@ -96,6 +98,9 @@ target_sources(
 	http/webroute_equipment_devices.cpp
 	http/webroute_equipment_setpoints.cpp
 	http/webroute_equipment_version.cpp
+	http/webroute_entitlements.cpp
+	http/webroute_group.cpp
+	http/webroute_groups.cpp
 	http/webroute_controller_schedules.cpp
 	http/webroute_health.cpp
 	http/webroute_health_detailed.cpp
@@ -103,6 +108,11 @@ target_sources(
 	http/webroute_metrics.cpp
 	http/webroute_preferences.cpp
 	http/webroute_schedules.cpp
+	http/webroute_session.cpp
+	http/webroute_sessions.cpp
+	http/webroute_user.cpp
+	http/webroute_user_password.cpp
+	http/webroute_users.cpp
 	http/webroute_version.cpp
 	http/websocket_event.cpp 
 	http/websocket_event_types.cpp 
