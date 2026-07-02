@@ -168,6 +168,48 @@ test.describe('locale-aware value formatting (Phase 1)', () => {
   });
 });
 
+test.describe('structured API errors (Phase 2)', () => {
+  test('error responses carry a stable code + params next to the English message', async ({ request }) => {
+    // Setpoint validation: code + interpolation params.
+    const bad = await request.post('/api/equipment/setpoints', { data: { pool: 'abc' } });
+    expect(bad.status()).toBe(400);
+    const body = await bad.json();
+    expect(body.code).toBe('setpoint_not_a_number');
+    expect(body.error).toContain('must be a number');
+    expect(body.params?.target).toBe('pool');
+
+    // Preferences validation: code plumbed through PreferencesService.
+    const prefs = await request.put('/api/preferences', { data: { temperature_units: 'Kelvin' } });
+    expect(prefs.status()).toBe(400);
+    const prefsBody = await prefs.json();
+    expect(prefsBody.code).toBe('invalid_temperature_units');
+    expect(prefsBody.error).toContain('Celsius');
+
+    // Recording control: invalid action.
+    const rec = await request.post('/api/diagnostics/recording', { data: { action: 'pause' } });
+    expect([400, 503]).toContain(rec.status());
+    expect((await rec.json()).code).toMatch(/^recording_/);
+  });
+
+  test('the UI translates error codes through the catalog', async ({ page }) => {
+    await page.goto('/');
+    const r = await page.evaluate(async () => {
+      const api = (window as any).AquaI18n;
+      const store = (window as any).Alpine.store('i18n');
+      const en = api.apiError({ error: 'Invalid severity level', code: 'invalid_severity' }, 'fallback');
+      await store.setLocale('ja');
+      const ja = api.apiError({ error: 'Invalid severity level', code: 'invalid_severity' }, 'fallback');
+      const unknownCode = api.apiError({ error: 'Wire English', code: 'not_a_real_code' }, 'fallback');
+      await store.setLocale('en');
+      localStorage.removeItem('locale');
+      return { en, ja, unknownCode };
+    });
+    expect(r.en).toBe('Invalid severity level.');
+    expect(r.ja).toBe('無効なログレベルです。');
+    expect(r.unknownCode).toBe('Wire English'); // unknown code falls back to the server message
+  });
+});
+
 test.describe('i18n guard rails', () => {
   test('no missing catalog keys anywhere in the UI', async ({ page }) => {
     const missing: string[] = [];
