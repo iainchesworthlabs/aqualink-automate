@@ -4,6 +4,9 @@
 #include <filesystem>
 #include <string>
 
+#include <boost/log/sinks/sink.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+
 namespace AqualinkAutomate::Auth
 {
 
@@ -63,9 +66,15 @@ namespace AqualinkAutomate::Auth
 
 	// Register the platform's OS-native audit sink on the logging core,
 	// filtered to Channel::Audit: syslog on POSIX, the Windows Event Log on
-	// Windows.  Returns false (after logging a warning) when the platform
-	// sink cannot be installed — the JSONL file remains the durable trail.
-	bool RegisterAuditOsSink();
+	// Windows.  Returns the installed sink as a removable handle, or an empty
+	// (null) shared_ptr — after logging a warning — when the platform sink
+	// cannot be installed (the JSONL file remains the durable trail).
+	//
+	// Production callers install for the process lifetime and may ignore the
+	// handle (consistent with the console sink in logging_initialise.cpp);
+	// callers that need a bounded lifetime (e.g. tests) keep the handle and
+	// pass it to boost::log::core::get()->remove_sink(handle) in teardown.
+	boost::shared_ptr<boost::log::sinks::sink> RegisterAuditOsSink();
 
 }
 // namespace AqualinkAutomate::Auth

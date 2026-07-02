@@ -131,7 +131,7 @@ namespace AqualinkAutomate::Auth
 		}
 	}
 
-	bool RegisterAuditOsSink()
+	boost::shared_ptr<boost::log::sinks::sink> RegisterAuditOsSink()
 	{
 		namespace expr = boost::log::expressions;
 		namespace sinks = boost::log::sinks;
@@ -157,12 +157,12 @@ namespace AqualinkAutomate::Auth
 
 			boost::log::core::get()->add_sink(sink);
 
-			return true;
+			return sink;
 		}
 		catch (const std::exception& ex)
 		{
 			LogWarning(Channel::Audit, std::format("Could not register the OS-native audit sink ({}); the JSONL audit file remains the durable trail", ex.what()));
-			return false;
+			return {};
 		}
 	}
 
