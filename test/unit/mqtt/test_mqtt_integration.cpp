@@ -778,3 +778,69 @@ BOOST_AUTO_TEST_CASE(Test_DeviceCommand_SlugCollision_RegistersSingleHandler)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// MqttIntegration lifetime / no-leak regression tests
+//
+// Regression for a command-handler self-reference cycle: the MQTT command
+// handlers registered on the hub used to capture a shared_ptr<MqttHub> (the hub
+// itself) and were then stored in that same hub's m_CommandHandlers map. The
+// resulting hub -> handler -> hub cycle kept the hub (and its MqttClient, and
+// every command-topic string) alive to process exit, which surfaced as the CRT
+// "Detected memory leaks!" dump on the debug test binary. The handlers now
+// capture a weak_ptr, so the hub is released once its owning MqttIntegration is
+// destroyed. These tests fail (weak_ptrs still valid) against the buggy code.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_MqttIntegration_Lifetime)
+
+BOOST_AUTO_TEST_CASE(Test_Integration_ReleasesHubAndClient_AfterDestruction)
+{
+	std::weak_ptr<Mqtt::MqttHub> weak_hub;
+	std::weak_ptr<Mqtt::MqttClient> weak_client;
+
+	{
+		boost::asio::io_context ioc;
+		Mqtt::MqttIntegration integration(ioc, MakeHaEnabledSettings());
+
+		auto data_hub = std::make_shared<Kernel::DataHub>();
+		auto equip_hub = std::make_shared<Kernel::EquipmentHub>();
+		auto stats_hub = std::make_shared<Kernel::StatisticsHub>();
+
+		// A labelled aux so the dynamic device/{slug} command-registration path also runs.
+		namespace Traits = Kernel::AuxillaryTraitsTypes;
+		auto aux = std::make_shared<Kernel::AuxillaryDevice>();
+		aux->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Auxillary);
+		aux->AuxillaryTraits.Set(Traits::LabelTrait{}, std::string{ "Pool Light" });
+		data_hub->Devices.Add(aux);
+
+		// ConnectHubs registers the "device"/"setpoint" handlers; the ctor already
+		// registered "status"/"refresh"; Start() + OnDevicesPublished() drive the
+		// dynamic "device/pool_light" registration. All four paths captured the hub.
+		Kernel::HubLocator locator;
+		locator.Register(data_hub).Register(equip_hub).Register(stats_hub);
+		integration.ConnectHubs(locator);
+
+		auto hub = integration.GetMqttHub();
+		BOOST_REQUIRE(hub != nullptr);
+		weak_hub = hub;
+		weak_client = hub->GetMqttClient();
+
+		integration.Start();
+		hub->OnDevicesPublished();
+		BOOST_REQUIRE(hub->HasCommand("status"));
+		BOOST_REQUIRE(hub->HasCommand("device"));
+		BOOST_REQUIRE(hub->HasCommand("setpoint"));
+		BOOST_REQUIRE(hub->HasCommand("device/pool_light"));
+		integration.Stop();
+	}
+
+	// Once the owning MqttIntegration is gone (and the local io_context has been
+	// destroyed, unwinding any pending async work that transiently holds the
+	// client), no command handler should keep the hub or its client alive. A
+	// surviving reference here is the retain cycle that produced the CRT leak dump.
+	BOOST_CHECK(weak_hub.expired());
+	BOOST_CHECK(weak_client.expired());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
