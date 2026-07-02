@@ -137,6 +137,26 @@ test.describe('i18n runtime', () => {
     expect(r.chartDirection).toBe('ltr');
   });
 
+  test('the vendored Arabic face serves Arabic glyphs (Phase 4)', async ({ page }) => {
+    await page.goto('/');
+    const r = await page.evaluate(async () => {
+      const store = (window as any).Alpine.store('i18n');
+      await store.setLocale('ar');
+      await document.fonts.load("16px 'Noto Sans Arabic'", 'لوحة التحكم');
+      await document.fonts.ready;
+      const loaded = [...document.fonts].some(
+        (f) => f.family.replace(/['"]/g, '') === 'Noto Sans Arabic' && f.status === 'loaded');
+      const check = document.fonts.check("16px 'Noto Sans Arabic'", 'لوحة');
+      const stack = getComputedStyle(document.documentElement).getPropertyValue('--font-ui');
+      await store.setLocale('en');
+      localStorage.removeItem('locale');
+      return { loaded, check, hasArabicInStack: stack.includes('Noto Sans Arabic') };
+    });
+    expect(r.loaded).toBe(true);
+    expect(r.check).toBe(true);
+    expect(r.hasArabicInStack).toBe(true);
+  });
+
   test('every shipped locale has full key parity with English', async ({ page }) => {
     await page.goto('/');
     const result = await page.evaluate(async () => {
