@@ -73,6 +73,17 @@ test.describe('i18n runtime', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'de');
     await expect(page.locator('.nav-link').first()).toHaveText(deDashboard);
 
+    // The saved locale's catalog must load SYNCHRONOUSLY at boot (parser-
+    // inserted via document.write), not via async injection — async loading
+    // renders an English first paint and freezes boot-time toasts in English.
+    // A parser-inserted script has async === false; a dynamically created one
+    // defaults to async === true.
+    const syncLoaded = await page.evaluate(() => {
+      const s = document.querySelector('script[src="/i18n/de.js"]') as HTMLScriptElement | null;
+      return s ? s.async === false : false;
+    });
+    expect(syncLoaded, 'saved locale catalog must be parser-loaded at boot (no English flash)').toBe(true);
+
     // Restore English so later tests start clean.
     await page.evaluate(async () => { await (window as any).Alpine.store('i18n').setLocale('en'); localStorage.removeItem('locale'); });
   });

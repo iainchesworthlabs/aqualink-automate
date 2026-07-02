@@ -150,6 +150,21 @@
     const initialLocale = savedLocale() || browserLocale();
     applyDocumentAttrs(initialLocale);
 
+    // Load the saved non-English catalog SYNCHRONOUSLY during parse so the
+    // first paint is already in the user's language. The async injection path
+    // would render English until the catalog arrived — and freeze anything
+    // fired in that window (e.g. the connection-lost toast) in English.
+    // document.write is intentional and safe here: this is a classic script
+    // executing DURING parsing, where document.write appends a parser-blocking
+    // <script> that runs before the deferred Alpine bundle. If it is
+    // unavailable (or the file 404s) the async path in init() still recovers,
+    // with English as the interim fallback.
+    if (initialLocale !== 'en' && !api.catalogs[initialLocale]) {
+        try {
+            document.write('<script src="/i18n/' + initialLocale + '.js"><\/script>');
+        } catch (_) { /* async fallback in init() */ }
+    }
+
     document.addEventListener('alpine:init', () => {
         Alpine.store('i18n', {
             locale: initialLocale,
