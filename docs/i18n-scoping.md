@@ -11,6 +11,14 @@
 > first paint never flashes raw keys; and locale persistence needed a small backend change
 > (`/api/preferences` now shallow-merges top-level `ui.*` keys instead of replacing the blob).
 > The key-completeness checker exists at `scripts/check-i18n-keys.ps1`.
+>
+> **Reconciliation 2026-07-02 (later the same day): Phase 1 is implemented** on
+> `feat/i18n-phase1` — locale-aware value formatting (docs/i18n.md "Value formatting"),
+> WS `TemperatureUpdate` switched to raw dual-unit objects (both live defects fixed:
+> the hardcoded-Celsius `TranslationsAndUnitsFormatter` is deleted; the HA setpoint
+> number entities follow `Temperature_DisplayUnits` with discovery republish). Sensors
+> deliberately stay °C (HA self-converts sensors — the "should still be honest" note
+> below was half-right). Trends chart stays °C pending a chart-wide conversion.
 
 ## Goal
 
