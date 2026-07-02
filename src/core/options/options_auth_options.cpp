@@ -64,6 +64,16 @@ namespace AqualinkAutomate::Options::Auth
 			settings.jwt_access_ttl_minutes = OPTION_JWT_ACCESS_TTL->As<std::uint32_t>(vm);
 		}
 
+		if (OPTION_BOOTSTRAP_ADMIN->IsPresent(vm))
+		{
+			settings.bootstrap_admin_username = OPTION_BOOTSTRAP_ADMIN->As<std::string>(vm);
+		}
+
+		if (OPTION_BOOTSTRAP_PASSWORD_FILE->IsPresent(vm))
+		{
+			settings.bootstrap_admin_password_file = OPTION_BOOTSTRAP_PASSWORD_FILE->As<std::string>(vm);
+		}
+
 		return settings;
 	}
 

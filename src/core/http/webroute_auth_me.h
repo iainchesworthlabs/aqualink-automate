@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <utility>
+
 #include "interfaces/iwebroute.h"
 
 namespace AqualinkAutomate::HTTP
@@ -18,11 +21,21 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_AuthMe : public Interfaces::IWebRoute<AUTH_ME_ROUTE_URL>
 	{
 	public:
-		WebRoute_AuthMe() = default;
+		// setup_required (optional): true while first-run setup is still open
+		// (auth-mode enabled + zero users) so the SPA can route straight to the
+		// setup wizard instead of the login form.
+		explicit WebRoute_AuthMe(std::function<bool()> setup_required = {}) :
+			m_SetupRequired(std::move(setup_required))
+		{
+		}
+
 		~WebRoute_AuthMe() override = default;
 
 	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
+
+	private:
+		std::function<bool()> m_SetupRequired;
 	};
 
 }

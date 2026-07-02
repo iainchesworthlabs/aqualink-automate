@@ -39,6 +39,17 @@ namespace AqualinkAutomate::Options::Auth
 		/// Access-token lifetime in minutes (short-lived by design; refresh
 		/// tokens arrive with the session flows in Slice 2).
 		std::uint32_t jwt_access_ttl_minutes{ 15 };
+
+		/// Headless first-admin bootstrap: create this administrator at startup
+		/// when auth-mode is enabled and NO users exist (idempotent otherwise).
+		/// The password comes from bootstrap_admin_password_file or the
+		/// AQUALINK_BOOTSTRAP_ADMIN_PASSWORD environment variable — never the
+		/// bare command line (process listings leak it).
+		std::string bootstrap_admin_username;
+
+		/// File whose first line (whitespace-trimmed) is the bootstrap
+		/// administrator's password.
+		std::string bootstrap_admin_password_file;
 	}
 	AuthSettings;
 
@@ -48,12 +59,16 @@ namespace AqualinkAutomate::Options::Auth
 		AppOptionPtr OPTION_AUTH_MODE{ make_appoption("auth-mode", "identity system posture: 'disabled' (default; historical behaviour) or 'enabled' (login + entitlement enforcement)", boost::program_options::value<std::string>()->default_value("disabled")) };
 		AppOptionPtr OPTION_AUTH_STATE_DIR{ make_appoption("auth-state-dir", "directory for authentication state (empty uses the platform's secure state directory)", boost::program_options::value<std::string>()) };
 		AppOptionPtr OPTION_JWT_ACCESS_TTL{ make_appoption("jwt-access-ttl", "access-token lifetime in minutes", boost::program_options::value<std::uint32_t>()->default_value(15)) };
+		AppOptionPtr OPTION_BOOTSTRAP_ADMIN{ make_appoption("bootstrap-admin", "create this administrator at startup when auth-mode is enabled and no users exist (password from --bootstrap-admin-password-file or AQUALINK_BOOTSTRAP_ADMIN_PASSWORD)", boost::program_options::value<std::string>()) };
+		AppOptionPtr OPTION_BOOTSTRAP_PASSWORD_FILE{ make_appoption("bootstrap-admin-password-file", "file whose first line is the bootstrap administrator's password", boost::program_options::value<std::string>()) };
 
 		const std::vector<AppOptionPtr> AuthOptionsCollection
 		{
 			OPTION_AUTH_MODE,
 			OPTION_AUTH_STATE_DIR,
-			OPTION_JWT_ACCESS_TTL
+			OPTION_JWT_ACCESS_TTL,
+			OPTION_BOOTSTRAP_ADMIN,
+			OPTION_BOOTSTRAP_PASSWORD_FILE
 		};
 
 	public:

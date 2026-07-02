@@ -15,6 +15,7 @@ target_sources(
 	unit/application/test_secure_runtime_paths.cpp
 	unit/auth/test_audit_log.cpp
 	unit/auth/test_auth_stores.cpp
+	unit/auth/test_bootstrap.cpp
 	unit/http/test_access_enforcement.cpp
 	unit/http/test_http_auth_routes.cpp
 	unit/http/test_http_diagnostics_options_redaction.cpp

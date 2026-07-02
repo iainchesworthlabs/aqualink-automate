@@ -20,6 +20,7 @@ namespace AqualinkAutomate::HTTP
 
 		nlohmann::json body;
 		body["posture"] = auth_mode ? "enabled" : "disabled";
+		body["setup_required"] = auth_mode && m_SetupRequired && m_SetupRequired();
 		body["id"] = subject.Id;
 		body["authenticated"] = subject.Authenticated;
 		body["provider"] = magic_enum::enum_name(subject.Provider);

@@ -16,6 +16,7 @@ target_sources(
 	auth/api_key_store.cpp
 	auth/audit_log.cpp
 	auth/auth_store_file.cpp
+	auth/bootstrap.cpp
 	auth/entitlement.cpp
 	auth/group_store.cpp
 	auth/password_hasher.cpp
@@ -75,6 +76,7 @@ target_sources(
 	http/webroute_auth_logout.cpp
 	http/webroute_auth_me.cpp
 	http/webroute_auth_refresh.cpp
+	http/webroute_auth_setup.cpp
 	http/webroute_diagnostics_actualdevices.cpp
 	http/webroute_diagnostics_devices.cpp
 	http/webroute_diagnostics_logging.cpp

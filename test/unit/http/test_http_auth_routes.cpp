@@ -32,6 +32,7 @@
 #include "http/webroute_auth_login.h"
 #include "http/webroute_auth_logout.h"
 #include "http/webroute_auth_refresh.h"
+#include "http/webroute_auth_setup.h"
 #include "interfaces/iwebroute.h"
 #include "utility/offload_pool.h"
 
@@ -70,7 +71,12 @@ namespace
 
 	struct AuthRoutesFixture
 	{
-		AuthRoutesFixture()
+		AuthRoutesFixture() :
+			AuthRoutesFixture(true)
+		{
+		}
+
+		explicit AuthRoutesFixture(bool seed_admin)
 		{
 			static std::uint32_t counter{ 0 };
 			Dir = fs::temp_directory_path() / std::format("aa-auth-routes-{}", counter++);
@@ -90,17 +96,21 @@ namespace
 
 			Service = std::make_unique<Auth::SessionService>(Users, Groups, Sessions, Codec, Offload, *Audit, std::move(config));
 
-			std::string error;
-			Auth::UserRecord alice;
-			alice.Username = "alice";
-			alice.PasswordHash = Auth::PasswordHasher::Hash("correct-horse-battery", Auth::PasswordHasher::TestParams());
-			alice.Groups = { std::string{ Auth::BuiltInGroups::ADMINISTRATORS } };
-			BOOST_REQUIRE_MESSAGE(Users->Create(std::move(alice), error), error);
+			if (seed_admin)
+			{
+				std::string error;
+				Auth::UserRecord alice;
+				alice.Username = "alice";
+				alice.PasswordHash = Auth::PasswordHasher::Hash("correct-horse-battery", Auth::PasswordHasher::TestParams());
+				alice.Groups = { std::string{ Auth::BuiltInGroups::ADMINISTRATORS } };
+				BOOST_REQUIRE_MESSAGE(Users->Create(std::move(alice), error), error);
+			}
 
 			HTTP::Routing::Clear();
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogin>(*Service, IoContext.get_executor()));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthRefresh>(*Service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogout>(*Service));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthSetup>(*Users, *Audit, Offload, Auth::PasswordHasher::TestParams(), IoContext.get_executor()));
 			HTTP::Routing::Add(std::make_unique<TestGatedRoute>());
 
 			HTTP::Routing::SecurityConfig security;
@@ -215,6 +225,15 @@ namespace
 
 		std::optional<HTTP::Message> Serialised;
 	};
+
+	// First-run shape: same stack, EMPTY user store.
+	struct FirstRunFixture : AuthRoutesFixture
+	{
+		FirstRunFixture() :
+			AuthRoutesFixture(false)
+		{
+		}
+	};
 }
 
 BOOST_AUTO_TEST_SUITE(TestSuite_HttpAuthRoutes)
@@ -291,6 +310,38 @@ BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_RevocationLocksOutLiveToken, AuthRoutesF
 	// D15 immediate propagation: the still-unexpired access token is now
 	// stale (tokver bumped) and the gated route answers 401 again.
 	BOOST_CHECK(boost::beast::http::status::unauthorized == Dispatch(MakeRequest(boost::beast::http::verb::get, "/api/test/gated", {}, access)).result());
+}
+
+//-----------------------------------------------------------------------------
+// FIRST-RUN SETUP (/api/auth/setup)
+//-----------------------------------------------------------------------------
+
+BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_FirstRunSetupThenSelfSeals, FirstRunFixture)
+{
+	// Weak password refused, store untouched.
+	BOOST_CHECK(boost::beast::http::status::bad_request == Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/setup", { { "username", "owner" }, { "password", "weak" } })).result());
+	BOOST_CHECK(Users->Empty());
+
+	// First-run setup creates the first administrator (deferred-response
+	// route: the hash runs on the pool).
+	const auto created = Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/setup", { { "username", "owner" }, { "password", "a-long-enough-password" } }));
+	BOOST_REQUIRE(boost::beast::http::status::created == created.result());
+	BOOST_CHECK(!BodyOf(created).value("user_id", "").empty());
+
+	// The new admin can log in and reach a gated route.
+	const auto login = Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/login", { { "username", "owner" }, { "password", "a-long-enough-password" } }));
+	BOOST_REQUIRE(boost::beast::http::status::ok == login.result());
+	BOOST_CHECK(boost::beast::http::status::ok == Dispatch(MakeRequest(boost::beast::http::verb::get, "/api/test/gated", {}, BodyOf(login)["access_token"].get<std::string>())).result());
+
+	// Self-sealing: a second setup attempt is refused permanently.
+	BOOST_CHECK(boost::beast::http::status::forbidden == Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/setup", { { "username", "intruder" }, { "password", "another-long-password" } })).result());
+	BOOST_CHECK_EQUAL(Users->Size(), 1u);
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_SetupRefusedOnceUsersExist, AuthRoutesFixture)
+{
+	// The seeded fixture already has an owner: setup is sealed.
+	BOOST_CHECK(boost::beast::http::status::forbidden == Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/setup", { { "username", "intruder" }, { "password", "another-long-password" } })).result());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

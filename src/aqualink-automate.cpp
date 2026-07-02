@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <fstream>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -43,6 +44,7 @@
 #include "application/secure_runtime_paths.h"
 #include "auth/api_key_store.h"
 #include "auth/audit_log.h"
+#include "auth/bootstrap.h"
 #include "auth/group.h"
 #include "auth/group_store.h"
 #include "auth/jwt_codec.h"
@@ -62,6 +64,7 @@
 #include "http/webroute_auth_logout.h"
 #include "http/webroute_auth_me.h"
 #include "http/webroute_auth_refresh.h"
+#include "http/webroute_auth_setup.h"
 #include "http/webroute_diagnostics_actualdevices.h"
 #include "http/webroute_diagnostics_devices.h"
 #include "http/webroute_diagnostics_matter.h"
@@ -752,6 +755,52 @@ int main(int argc, char* argv[])
 						.Users = auth_users,
 						.ApiKeys = auth_api_keys }));
 
+					// Headless first-admin bootstrap (--bootstrap-admin).  The kernel
+					// loop is not running yet, so the synchronous argon2 hash here is
+					// acceptable.  Idempotent: with any user on file it is a no-op.
+					if (!auth_settings.bootstrap_admin_username.empty())
+					{
+						if (!auth_users->Empty())
+						{
+							LogDebug(Channel::Main, "--bootstrap-admin ignored: users already exist (setup is complete)");
+						}
+						else
+						{
+							std::string bootstrap_password;
+
+							if (!auth_settings.bootstrap_admin_password_file.empty())
+							{
+								std::ifstream password_file(auth_settings.bootstrap_admin_password_file);
+								std::getline(password_file, bootstrap_password);
+							}
+							else if (const char* env_password = std::getenv("AQUALINK_BOOTSTRAP_ADMIN_PASSWORD"); nullptr != env_password)
+							{
+								bootstrap_password = env_password;
+							}
+
+							// Trim trailing CR/whitespace (CRLF password files).
+							while (!bootstrap_password.empty() && (('\r' == bootstrap_password.back()) || (' ' == bootstrap_password.back()) || ('\t' == bootstrap_password.back())))
+							{
+								bootstrap_password.pop_back();
+							}
+
+							std::string bootstrap_error;
+
+							if (bootstrap_password.empty())
+							{
+								LogWarning(Channel::Main, "--bootstrap-admin supplied but no password found (--bootstrap-admin-password-file or AQUALINK_BOOTSTRAP_ADMIN_PASSWORD); no administrator created");
+							}
+							else if (!Auth::BootstrapAdmin(*auth_users, auth_settings.bootstrap_admin_username, bootstrap_password, Auth::PasswordHasher::Params{}, *auth_audit, bootstrap_error).has_value())
+							{
+								LogWarning(Channel::Main, [&] { return std::format("Bootstrap administrator was not created: {}", bootstrap_error); });
+							}
+							else
+							{
+								LogInfo(Channel::Main, [&] { return std::format("Bootstrap administrator '{}' created", auth_settings.bootstrap_admin_username); });
+							}
+						}
+					}
+
 					LogInfo(Channel::Main, [&] { return std::format("Identity system enabled (auth-mode=enabled); auth state in '{}'; {} user(s) on file", auth_state_dir.string(), auth_users->Size()); });
 				}
 			}
@@ -796,7 +845,7 @@ int main(int argc, char* argv[])
 			}
 
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthCheck>());
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>());
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>([users = auth_users]() { return (nullptr != users) && users->Empty(); }));
 
 			// Session flows exist only under the identity system: with auth-mode
 			// disabled there are no accounts to log into and the routes would
@@ -807,6 +856,7 @@ int main(int argc, char* argv[])
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogin>(*auth_session_service, io_context.get_executor()));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthRefresh>(*auth_session_service));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogout>(*auth_session_service));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthSetup>(*auth_users, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
 			}
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Devices>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Mqtt>(hub_locator));
