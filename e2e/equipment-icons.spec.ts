@@ -17,12 +17,12 @@ const MOCK = [
 ];
 
 test('equipment controls render line-art SVG icons (not emoji)', async ({ page }) => {
+  // Serve the mock from the buttons endpoint itself. Writing it into the
+  // Alpine store after goto raced the app's own in-flight buttons fetch,
+  // which could land later and overwrite the mock with fixture data
+  // (0 controllable devices) — a long-standing flake.
+  await page.route('**/api/equipment/buttons', (route) => route.fulfill({ json: { buttons: MOCK } }));
   await page.goto('/');
-  await page.evaluate((mock) => {
-    const s = (window as any).Alpine.store('pool');
-    s.buttons = mock;
-    s.buttonsLoading = false;
-  }, MOCK);
 
   const controls = page.locator('.eq-control');
   await expect(controls).toHaveCount(MOCK.length);

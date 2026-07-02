@@ -100,6 +100,43 @@ test.describe('i18n runtime', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
   });
 
+  test('RTL actually mirrors the layout (Phase 3 logical-properties pass)', async ({ page }) => {
+    await page.goto('/');
+    const r = await page.evaluate(async () => {
+      const store = (window as any).Alpine.store('i18n');
+
+      const probe = () => {
+        const brand = document.querySelector('.nav-brand')!.getBoundingClientRect();
+        const toast = document.querySelector('.toast-container')!.getBoundingClientRect();
+        return { brandX: brand.x, toastX: toast.x, mid: window.innerWidth / 2 };
+      };
+
+      const ltr = probe();
+      await store.setLocale('ar');
+      await new Promise((res) => setTimeout(res, 300));
+      const rtl = probe();
+
+      // Time-axis geometry stays physical LTR even under dir=rtl.
+      document.location.hash = '#diagnostics';
+      await new Promise((res) => setTimeout(res, 500));
+      const chart = document.querySelector('.bw-chart');
+      const chartDirection = chart ? getComputedStyle(chart).direction : 'missing';
+
+      await store.setLocale('en');
+      localStorage.removeItem('locale');
+      return { ltr, rtl, chartDirection };
+    });
+
+    // Brand: left side in LTR, right side in RTL.
+    expect(r.ltr.brandX).toBeLessThan(r.ltr.mid);
+    expect(r.rtl.brandX).toBeGreaterThan(r.rtl.mid);
+    // Toasts: inline-end corner — right half in LTR, left half in RTL.
+    expect(r.ltr.toastX).toBeGreaterThan(r.ltr.mid);
+    expect(r.rtl.toastX).toBeLessThan(r.rtl.mid);
+    // Chart geometry is direction-pinned.
+    expect(r.chartDirection).toBe('ltr');
+  });
+
   test('every shipped locale has full key parity with English', async ({ page }) => {
     await page.goto('/');
     const result = await page.evaluate(async () => {
