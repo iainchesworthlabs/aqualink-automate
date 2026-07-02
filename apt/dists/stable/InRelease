@@ -4,44 +4,44 @@ Hash: SHA512
 Origin: Aqualink Automate
 Label: Aqualink Automate
 Codename: stable
-Date: Wed, 01 Jul 2026 10:48:55 UTC
+Date: Thu, 02 Jul 2026 04:22:36 UTC
 Architectures: amd64 arm64
 Components: main
 Description: Aqualink Automate APT repository
 MD5Sum:
- 88ecd5b359fd70dd54e0476f76f9e1a1 6286 main/binary-amd64/Packages
- 9daf442600c48a5425df1ff5a401ce44 2731 main/binary-amd64/Packages.gz
+ 1065ea78965b883257d0d76050d16e32 6288 main/binary-amd64/Packages
+ 7402a95238279824524816a2c12cd044 2730 main/binary-amd64/Packages.gz
  d971d3bbe41152811ef0fd506cc8c6c1 133 main/binary-amd64/Release
- c161086b02792fb891bea8491feb734f 6286 main/binary-arm64/Packages
- fedf0039a4f381dfb73393cfbd4274c1 2733 main/binary-arm64/Packages.gz
+ ec2349625580b74819a8a585286dce4c 6288 main/binary-arm64/Packages
+ 41d30fd388b77e05330356e448f90a69 2734 main/binary-arm64/Packages.gz
  17df63a7897ce330d6be74a7840c3061 133 main/binary-arm64/Release
 SHA1:
- 5335a5afa48e6bfd35f186b7618a656ca8aeb4f2 6286 main/binary-amd64/Packages
- f5ef0e92c8de5de86e14fcd188906eb6dee01a21 2731 main/binary-amd64/Packages.gz
+ 46142a822e8d577106f24cc10db5711c181528ad 6288 main/binary-amd64/Packages
+ e0c4451e545d32cc2ebd261a3383969a721460bc 2730 main/binary-amd64/Packages.gz
  49b9046ea11419384cb6b70972826d28bcf18e79 133 main/binary-amd64/Release
- 1a5567aaf67745a59c99ae7719fafff13bdd348b 6286 main/binary-arm64/Packages
- b1596c3a55e48b41e440bad069346b14e05be171 2733 main/binary-arm64/Packages.gz
+ 16e7e5d08ad523520f1f90a36421ea31349288e3 6288 main/binary-arm64/Packages
+ 2e778ea81dba9293c36f7a95550ac08f0e4c2ec6 2734 main/binary-arm64/Packages.gz
  f734ef360d77d822fbd223b5183408a8900757dd 133 main/binary-arm64/Release
 SHA256:
- 3d51a0890cd122cede53fadc366cf31aef6b124d0b2483f2a891e466dd8c4d9a 6286 main/binary-amd64/Packages
- 7539a085069cca9cf4ac3a55a3ea4bbeb5249d33dfcec0eae3e1feb209c0a7c8 2731 main/binary-amd64/Packages.gz
+ 58a325747764ca00e073bfe35dd85b9fb0da4571a8ac428f693786eeba4129a0 6288 main/binary-amd64/Packages
+ 3efa72e778e494a17c7cbba853d80750e28d0a1f38c40402c038c78efb21b85b 2730 main/binary-amd64/Packages.gz
  b930f48053dc93e634356edbe7f7e233fcaeb2689c3d5d59e92bdd64cfc8c76c 133 main/binary-amd64/Release
- 10da7cf99a7938a03ce36a0ba1b297da6626a394a9e71c2de0954026b55a5a6e 6286 main/binary-arm64/Packages
- c2ec198a8ebb2d791541a7ec36e29611fb5906dafa14dd891f9ce80f5b82050f 2733 main/binary-arm64/Packages.gz
+ cb08a48ee0d43b647282a94bcf7b8c8710f0d3da1dbd257e2fb5a1691e7d215a 6288 main/binary-arm64/Packages
+ 8e873da6965ca4ea799640929e999340ea639a4aa34f3993b4f9c124a58e8fea 2734 main/binary-arm64/Packages.gz
  7e3e72911a1127ccccfdd8769b410fe8d8e6a5f4af24a19080e79afdc9234f48 133 main/binary-arm64/Release
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEExKp+OO+ZF5ZXHZEfgeRxctW1XrAFAmpE8JcACgkQgeRxctW1
-XrAFRA/+LeDmDDuUjvUpZxSYNh8IkNzV2oDEW50qrPjgH2Fvk/j8DQucyYXdAUHE
-jdgo+qi7UoG+7Ai3/5Uo1MeMBgKxHYo4VeiEoCbjQsAZpB2Jek7wwzQt2GHV1KUj
-hNWejQ/IXTXrVh/F15R5nH2mW+aCgkXhqsByv5N2qUEhJGH+drz8irVoTjF+IooC
-/Lqm6gjVjsgaH5XuBrrdP/jeEm2kcs5mKoWrRmPPJtO42MQzbF1zia8Iz4uX1IXY
-dVN6t85woj41kx4zGqCyNvEk4PmAhktPh2URsXQCi1wpz3j5Ger/ufzY6SIBAVdt
-KE/f4KPrbdFPuWljao+M+qwtyP+tz6A7kTXTOF4j45/zAAqESKa9FWYWlDvycScG
-eYhXbl+OZ1ayWAMDcRpQS+FBWiQuLnUanzTx0dMTI66qsIx5glHtE8X4RIxY+fyO
-D3gWCj0ydb7aicNfbex5L0fhBixLoAgiGsWUOcHMaMdkxJfOixlKyeTL/VMaBk4B
-XdKr7EHw6n8I6hhLwgXp1bHHU+K15evZ65jbZKTWt1xZaHFIMKJz9BxK3FQOmlyK
-9p8JBc9LbTig0gR3pFuYkaQarKak7mAwktkqDtq6dudEIWgq0pffVfG3kaJYlUxn
-PySW/DoGNQEDH//RrgyBlGN0AeA9yjvTSuuZ8In+lL8iLSdpFWU=
-=jt37
+iQIzBAEBCgAdFiEExKp+OO+ZF5ZXHZEfgeRxctW1XrAFAmpF54wACgkQgeRxctW1
+XrC7lg/8DU4Tr3chLSNjBnw+fG7LwNbUQ9ebU90kuHBcKDNis+801nxPi1t4zo0D
+z31xF0+yYyrXiIH2pvc1kROITCImMgq5jlVgsMqFuGi+G/2kgRIHTQ6ITBdHwW/X
+snRindFZivhqU4PA+xEH9GVf+1Ge9fny8yHtxJZH5FBhQGYu2q1rKte/It3WOYf2
+G4LigJORs3JcXtvvv0MUsnRw8v/QnDPnXGuKrqY/DUaSMLrXOrrr7lpiw/YsylQj
+2h1vZyo5NAwvzz3wCrhVWgqNYSCFW5UZWlNPIXoL4MruBjZNDkZOHK/9POHsOw4V
+lgQrk3SO6g0XkJeCK9AQOMyjZlk0eGlT5Jfn7WHVtQoplDcNyx6n7eK0gb/sgM7/
+6s0IBUuXWbHBG1GiMDoU07JRue2BxTbG2TZzAO2oZKX9gm7UFw+OKSPiCu4mazfg
+C2i7lY12N9GdmEFNJ3J1NCYJLnUKKqMFC3G5F52wvu13D3b/Yo5EVNAMoudZx8Ay
+2/3nXXtjqgzI1k/yGXMr1lPZScaYCBmR4L7bJCFZDlmer6sKhLj8XiuLL6rd3zDC
+EkBr1a1E5pa+jX6prIoz/5RXvkrFIZ6fBNfHMDGGTRnaDgKU2SOLUwskebh3KzQU
+hrKcwwOPBnr/TBvu68+nj7FX77x70wg9L+YvRBwZfDsUbzkpxms=
+=PEMg
 -----END PGP SIGNATURE-----
