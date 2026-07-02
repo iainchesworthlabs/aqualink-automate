@@ -145,6 +145,26 @@
         return lookup(savedLocale() || browserLocale(), key, params);
     };
 
+    // True when the key exists in the active or English catalog — WITHOUT the
+    // missing-key console warning, for optional keys resolved from server data
+    // (error codes, alert conditions).
+    api.has = function (key) {
+        const st = global.Alpine && Alpine.store('i18n');
+        const code = st ? st.locale : (savedLocale() || browserLocale());
+        return !!((api.catalogs[code] && Object.prototype.hasOwnProperty.call(api.catalogs[code], key))
+            || (api.catalogs.en && Object.prototype.hasOwnProperty.call(api.catalogs.en, key)));
+    };
+
+    // Translated message for a structured API error body ({error, code,
+    // params} — docs/i18n.md): the catalog entry for the code when one exists,
+    // else the server's English `error` string, else the fallback.
+    api.apiError = function (data, fallback) {
+        if (data && data.code && api.has('error.' + data.code)) {
+            return api.t('error.' + data.code, data.params);
+        }
+        return (data && (data.error || data.message)) || fallback;
+    };
+
     // ---- Locale-aware value formatting (docs/i18n.md) ----------------------
     // All helpers resolve the ACTIVE locale through the Alpine store when it
     // exists — reading store.locale registers a reactive dependency, so

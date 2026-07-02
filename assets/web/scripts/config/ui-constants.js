@@ -71,12 +71,37 @@
         return keywords.some((kw) => l.includes(kw));
     }
 
+    // ---- Chlorinator (SWG) health display keys --------------------------------
+    // Catalog key for a backend ChlorinatorHealth enum name (see docs/i18n.md),
+    // or null for an unknown value (callers fall back to the raw name).
+    // Shared by the pool store's health label and the alerts store's
+    // chlorinator alert details.
+    const SWG_HEALTH_KEYS = {
+        'Ok': 'swg_health.ok',
+        'TurningOff': 'swg_health.turning_off',
+        'Warning_NoFlow': 'swg_health.no_flow',
+        'Warning_LowSalt': 'swg_health.low_salt',
+        'Warning_HighSalt': 'swg_health.high_salt',
+        'Warning_HighCurrent': 'swg_health.high_current',
+        'Warning_CleanCell': 'swg_health.clean_cell',
+        'Warning_LowVoltage': 'swg_health.low_voltage',
+        'Warning_LowTemperature': 'swg_health.low_temperature',
+        'Error_CheckPCB': 'swg_health.check_pcb',
+        'GeneralFault': 'swg_health.general_fault',
+        'Unknown': 'common.unknown'
+    };
+
+    function swgHealthKey(health) {
+        return SWG_HEALTH_KEYS[String(health)] || null;
+    }
+
     global.AquaUI = {
         CHEMISTRY_BANDS_KEY,
         CHEMISTRY_BAND_DEFAULTS,
         ACTIVE_STATUS_VALUES,
         isActiveStatus,
         DEVICE_KEYWORDS,
-        labelMatchesKeywords
+        labelMatchesKeywords,
+        swgHealthKey
     };
 })(typeof window !== 'undefined' ? window : globalThis);
