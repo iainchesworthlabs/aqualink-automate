@@ -33,7 +33,10 @@
     --radius-xl: 1.5rem;
     --transition: 0.2s ease;
     --grid-color: rgba(0, 0, 0, 0.06);
-    --font-family: 'Hanken Grotesk', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Per-glyph fallback: Latin renders from the brand faces; Arabic-script
+       glyphs fall through to the vendored Noto Sans Arabic (its @font-face is
+       unicode-range-limited to Arabic); everything else lands on system-ui. */
+    --font-family: 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html.dark {
@@ -69,13 +72,22 @@ html.dark {
    each view is migrated; new surfaces use the tokens below.
    ============================================================================ */
 :root {
-    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif;
-    --font-ui: 'Hanken Grotesk', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     --radius-card: 22px;
     --radius-row: 16px;
     --radius-chip: 11px;
     --content-max: 1180px;
+}
+
+/* CJK: name the platform Japanese faces explicitly so kana/kanji render on a
+   consistent, high-quality face on every OS (Latin still comes from the brand
+   faces via per-glyph fallback). system-ui remains the final net. */
+html[lang='ja'] {
+    --font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
 }
 
 :root[data-theme="dark"],
@@ -692,7 +704,7 @@ nav .nav-controls {
 .trends-ro-row { display: flex; align-items: center; gap: 0.4rem; margin: 0.12rem 0; }
 .trends-ro-sw { width: 0.5rem; height: 0.5rem; border-radius: 2px; flex: none; }
 .trends-ro-name { color: var(--text-secondary); }
-.trends-ro-val { margin-left: auto; font-weight: 600; color: var(--text-primary); }
+.trends-ro-val { margin-inline-start: auto; font-weight: 600; color: var(--text-primary); }
 .trends-ro-on { color: var(--gauge-good, #10b981); }
 .trends-ro-off { color: var(--text-muted); }
 
@@ -823,7 +835,7 @@ nav .nav-controls {
     letter-spacing: 0.03em;
     padding: 0.1rem 0.4rem;
     border-radius: var(--radius-sm, 8px);
-    margin-right: 0.4rem;
+    margin-inline-end: 0.4rem;
     vertical-align: 0.05rem;
 }
 .sched-owner-tag.tag-controller { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-hover); }
@@ -833,7 +845,7 @@ nav .nav-controls {
 .sched-row-disabled { opacity: 0.55; }
 .sched-row-conflict { border-color: var(--gauge-bad); box-shadow: inset 3px 0 0 var(--gauge-bad); }
 .sched-conflict-flag {
-    margin-left: 0.4rem;
+    margin-inline-start: 0.4rem;
     font-size: 0.62rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -864,14 +876,14 @@ nav .nav-controls {
 .lg-swatch.lg-conflict { background: var(--gauge-bad); transform: rotate(45deg); border-radius: 1px; }
 .sched-axis {
     display: flex; justify-content: space-between;
-    padding-left: 118px;
+    padding-inline-start: 118px;
     margin-top: 0.6rem;
     font-size: 0.68rem; color: var(--text-muted, #94a3b8);
 }
 .sched-trk-row { display: grid; grid-template-columns: 118px 1fr; align-items: center; }
-.sched-trk-label { font-size: 0.78rem; color: var(--text-primary); padding-right: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sched-trk-label { font-size: 0.78rem; color: var(--text-primary); padding-inline-end: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sched-trk { position: relative; height: 34px; border-bottom: 1px solid var(--border-color); }
-.sched-grid { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--border-color); }
+.sched-grid { position: absolute; top: 0; bottom: 0; width: 0; border-inline-start: 1px dashed var(--border-color); }
 .sched-bar {
     position: absolute; top: 7px; height: 20px;
     background: color-mix(in srgb, var(--accent) 55%, transparent);
@@ -958,7 +970,7 @@ nav .nav-controls {
     border-radius: var(--radius-sm);
     background: var(--bg-secondary);
     color: var(--text-muted);
-    margin-left: 0.25rem;
+    margin-inline-start: 0.25rem;
     vertical-align: middle;
 }
 
@@ -1139,7 +1151,7 @@ html.dark .card {
 .mb-1 { margin-bottom: 0.5rem; }
 .mb-2 { margin-bottom: 1rem; }
 .mb-3 { margin-bottom: 1.5rem; }
-.ml-1 { margin-left: 0.5rem; }
+.ml-1 { margin-inline-start: 0.5rem; }
 .p-0 { padding: 0; }
 .p-2 { padding: 1rem; }
 .py-3 { padding: 2rem 0; }
@@ -1160,7 +1172,7 @@ html.dark .card {
 .toast-container {
     position: fixed;
     bottom: 1rem;
-    right: 1rem;
+    inset-inline-end: 1rem;
     z-index: 300;
     display: flex;
     flex-direction: column;
@@ -1207,7 +1219,7 @@ html.dark .card {
     cursor: pointer;
     font-size: 1rem;
     padding: 0;
-    margin-left: auto;
+    margin-inline-start: auto;
     line-height: 1;
 }
 
@@ -1241,7 +1253,7 @@ a:hover {
 }
 
 .data-table th {
-    text-align: left;
+    text-align: start;
     padding: 0.6rem 0.75rem;
     border-bottom: 2px solid var(--border-color);
     color: var(--text-secondary);
@@ -1349,7 +1361,7 @@ a:hover {
 
 
 .device-status-time {
-    margin-left: auto;
+    margin-inline-start: auto;
     color: var(--text-muted);
     font-size: 0.7rem;
     font-variant-numeric: tabular-nums;
@@ -1516,7 +1528,7 @@ nav.app-nav .nav-inner {
 }
 /* nav-links takes the slack so the status pill + all header buttons group into
    one right-aligned cluster (instead of space-between spreading them apart). */
-nav.app-nav .nav-links { margin-right: auto; }
+nav.app-nav .nav-links { margin-inline-end: auto; }
 
 nav.app-nav .nav-brand {
     font-family: var(--font-display);
@@ -1634,7 +1646,7 @@ nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad
 .alerts-wrap { position: relative; display: inline-flex; }
 .alerts-badge {
     position: absolute;
-    top: -5px; right: -5px;
+    top: -5px; inset-inline-end: -5px;
     min-width: 16px; height: 16px;
     padding: 0 4px;
     border-radius: 99px;
@@ -1645,7 +1657,7 @@ nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad
 }
 .alerts-dropdown {
     position: absolute;
-    top: 44px; right: 0;
+    top: 44px; inset-inline-end: 0;
     z-index: 120;
     width: 320px;
     background: var(--surface-1);
