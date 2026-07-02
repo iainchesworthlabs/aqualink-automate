@@ -18,7 +18,7 @@ namespace AqualinkAutomate::HTTP
 			return HandleGet(req);
 
 		default:
-			return MakeJsonResponse(req, HTTP::Status::method_not_allowed, R"({"error":"Method not allowed. Use GET."})");
+			return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET.", {{"allowed", "GET"}});
 		}
 	}
 

@@ -5,6 +5,7 @@
 
 #include "http/webroute_diagnostics_actualdevices.h"
 #include "http/webroute_diagnostics_devices.h"
+#include "http/server/make_response.h"
 #include "http/server/server_fields.h"
 #include "logging/logging.h"
 #include "profiling/factories/profiling_unit_factory.h"
@@ -34,13 +35,7 @@ namespace AqualinkAutomate::HTTP
 		{
 			LogDebug(Channel::Web, "Rejected non-GET request to the actual-devices diagnostics endpoint");
 
-			HTTP::Response resp{ HTTP::Status::method_not_allowed, req.version() };
-			resp.set(boost::beast::http::field::server, ServerFields::Server());
-			resp.set(boost::beast::http::field::content_type, ContentTypes::APPLICATION_JSON);
-			resp.keep_alive(req.keep_alive());
-			resp.body() = R"({"error":"Method not allowed. Use GET."})";
-			resp.prepare_payload();
-			return resp;
+			return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET.", {{"allowed", "GET"}});
 		}
 
 		const auto result = CollectActualDiagnostics();

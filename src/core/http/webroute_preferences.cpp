@@ -39,13 +39,14 @@ namespace AqualinkAutomate::HTTP
 			auto json = nlohmann::json::parse(req.body(), nullptr, /*allow_exceptions=*/false);
 			if (json.is_discarded())
 			{
-				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "request body is not valid JSON");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
 			}
 
 			std::string error;
-			if (!m_Service->ApplyJson(json, error))
+			std::string error_code;
+			if (!m_Service->ApplyJson(json, error, error_code))
 			{
-				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, error);
+				return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
 			}
 			return MakeJsonResponse(req, HTTP::Status::ok, m_Service->ToJson().dump());
 		}

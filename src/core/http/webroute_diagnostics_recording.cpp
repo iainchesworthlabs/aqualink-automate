@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include "http/webroute_diagnostics_recording.h"
+#include "http/server/make_response.h"
 #include "http/server/server_fields.h"
 #include "logging/logging.h"
 #include "profiling/factories/profiling_unit_factory.h"
@@ -34,16 +35,6 @@ namespace AqualinkAutomate::HTTP
 			return result;
 		}
 
-		HTTP::Response MakeJsonResponse(const HTTP::Request& req, HTTP::Status code, const std::string& body)
-		{
-			HTTP::Response resp{ code, req.version() };
-			resp.set(boost::beast::http::field::server, ServerFields::Server());
-			resp.set(boost::beast::http::field::content_type, ContentTypes::APPLICATION_JSON);
-			resp.keep_alive(req.keep_alive());
-			resp.body() = body;
-			resp.prepare_payload();
-			return resp;
-		}
 
 		// Fixed, on-disk directory that on-demand captures are confined to.  This
 		// is the SOLE location the unauthenticated diagnostics route is permitted
@@ -171,7 +162,7 @@ namespace AqualinkAutomate::HTTP
 			return HandlePost(req);
 
 		default:
-			return MakeJsonResponse(req, HTTP::Status::method_not_allowed, R"({"error":"Method not allowed. Use GET or POST."})");
+			return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET or POST.", {{"allowed", "GET, POST"}});
 		}
 	}
 
@@ -193,7 +184,7 @@ namespace AqualinkAutomate::HTTP
 		if (!m_RecordingController)
 		{
 			LogWarning(Channel::Web, "Recording toggle requested but no recording controller is available (dev-mode/replay?)");
-			return MakeJsonResponse(req, HTTP::Status::service_unavailable, R"({"error":"Recording is not available in this mode"})");
+			return MakeErrorResponse(req, HTTP::Status::service_unavailable, "recording_unavailable", "Recording is not available in this mode");
 		}
 
 		try
@@ -202,7 +193,7 @@ namespace AqualinkAutomate::HTTP
 
 			if (!body.contains("action") || !body["action"].is_string())
 			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Request must contain a string 'action' of 'start' or 'stop'"})");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "recording_action_required", "Request must contain a string 'action' of 'start' or 'stop'");
 			}
 
 			const auto action = body["action"].get<std::string>();
@@ -211,13 +202,13 @@ namespace AqualinkAutomate::HTTP
 			{
 				if (!body.contains("filename") || !body["filename"].is_string())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'start' action requires a string 'filename'"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "recording_filename_required", "'start' action requires a string 'filename'");
 				}
 
 				const auto filename = body["filename"].get<std::string>();
 				if (filename.empty())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'filename' must not be empty"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "recording_filename_empty", "'filename' must not be empty");
 				}
 
 				// SECURITY: the filename is attacker-controlled (unauthenticated POST).
@@ -227,14 +218,14 @@ namespace AqualinkAutomate::HTTP
 				const auto safe_path = JailRecordingFilename(filename);
 				if (!safe_path)
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"json({"error":"'filename' must be a bare *.cap name with no path separators or '..'"})json");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "recording_filename_invalid", "'filename' must be a bare *.cap name with no path separators or '..'");
 				}
 
 				if (!m_RecordingController->StartRecording(*safe_path))
 				{
 					// Already recording, or the file could not be opened.
 					LogWarning(Channel::Web, std::format("Failed to start serial recording to '{}' via web UI", *safe_path));
-					return MakeJsonResponse(req, HTTP::Status::conflict, R"json({"error":"Could not start recording: already recording or file could not be opened"})json");
+					return MakeErrorResponse(req, HTTP::Status::conflict, "recording_start_failed", "Could not start recording: already recording or file could not be opened");
 				}
 
 				LogInfo(Channel::Web, std::format("Serial recording started to '{}' via web UI", *safe_path));
@@ -244,14 +235,14 @@ namespace AqualinkAutomate::HTTP
 				if (!m_RecordingController->StopRecording())
 				{
 					LogDebug(Channel::Web, "Stop recording requested via web UI but nothing was recording");
-					return MakeJsonResponse(req, HTTP::Status::conflict, R"({"error":"Not currently recording"})");
+					return MakeErrorResponse(req, HTTP::Status::conflict, "recording_not_recording", "Not currently recording");
 				}
 
 				LogInfo(Channel::Web, "Serial recording stopped via web UI");
 			}
 			else
 			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'action' must be 'start' or 'stop'"})");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "recording_invalid_action", "'action' must be 'start' or 'stop'");
 			}
 
 			// Success: return the up-to-date status.
@@ -259,7 +250,7 @@ namespace AqualinkAutomate::HTTP
 		}
 		catch (const nlohmann::json::exception&)
 		{
-			return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Invalid JSON in request body"})");
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
 		}
 	}
 
