@@ -37,11 +37,14 @@ function settingsView() {
     }
 
     return {
-        gauges: [
-            { key: 'ph', label: 'pH', step: 0.1 },
-            { key: 'orp', label: 'ORP (mV)', step: 10 },
-            { key: 'salt', label: 'Salt (ppm)', step: 100 }
-        ],
+        get gauges() {
+            const t = window.AquaI18n.t;
+            return [
+                { key: 'ph', label: t('settings.gauge_ph'), step: 0.1 },
+                { key: 'orp', label: t('settings.gauge_orp'), step: 10 },
+                { key: 'salt', label: t('settings.gauge_salt'), step: 100 }
+            ];
+        },
         values,
         errors: {},
 
@@ -165,7 +168,7 @@ function settingsView() {
             const v = this.values[gaugeKey];
             let error = '';
             if (v.goodMin > v.goodMax || v.okayMin > v.okayMax || v.badMin > v.badMax) {
-                error = 'Each tier minimum must be less than or equal to its maximum.';
+                error = window.AquaI18n.t('settings.tier_min_max_error');
             }
             this.errors[gaugeKey] = error;
             return error === '';
@@ -209,6 +212,9 @@ function settingsView() {
 
         // ---- Server-backed preferences ----
         async saveServerPrefs() {
+            // Push the units into the pool store immediately so every
+            // temperature display flips without waiting for a refetch.
+            if (this.$store.pool) { this.$store.pool.displayUnits = this.prefs.temperature_units; }
             await this._putPrefs({
                 temperature_units: this.prefs.temperature_units,
                 alert: {
@@ -229,15 +235,20 @@ function settingsView() {
                     body: JSON.stringify(payload),
                 });
                 if (!resp.ok) {
+                    // Structured error body ({error, code, params} — docs/i18n.md):
+                    // show the translated message for the code when we have one.
                     let detail = '';
-                    try { detail = await resp.text(); } catch (_) { /* ignore */ }
-                    this.prefsError = `Save failed (${resp.status})${detail ? ': ' + detail : ''}`;
+                    try {
+                        const data = await resp.json();
+                        detail = window.AquaI18n.apiError(data, '');
+                    } catch (_) { /* non-JSON body */ }
+                    this.prefsError = window.AquaI18n.t('settings.save_failed_status', { status: resp.status }) + (detail ? ': ' + detail : '');
                     return;
                 }
                 this.savedFlash = true;
                 setTimeout(() => { this.savedFlash = false; }, 1500);
             } catch (e) {
-                this.prefsError = 'Save failed (network).';
+                this.prefsError = window.AquaI18n.t('settings.save_failed_network');
             }
         },
 
@@ -282,13 +293,13 @@ function settingsView() {
                 });
                 const data = await resp.json().catch(() => ({}));
                 if (resp.ok) { this.profiling = data; Alpine.store('toast').show(okMessage, 'info'); }
-                else { Alpine.store('toast').show(data.error || failMessage, 'error'); }
+                else { Alpine.store('toast').show(window.AquaI18n.apiError(data, failMessage), 'error'); }
             } catch (e) { Alpine.store('toast').show(failMessage, 'error'); }
             finally { this.profilingBusy = false; }
         },
 
-        async startProfiling() { await this._postProfiling({ action: 'start' }, 'Profiling resumed', 'Failed to resume profiling'); },
-        async stopProfiling() { await this._postProfiling({ action: 'stop' }, 'Profiling paused', 'Failed to pause profiling'); },
-        async selectProfilingBackend(backend) { if (!backend) return; await this._postProfiling({ action: 'select', backend }, `Profiling backend set to ${backend}`, 'Failed to select backend'); },
+        async startProfiling() { await this._postProfiling({ action: 'start' }, window.AquaI18n.t('toast.profiling_resumed'), window.AquaI18n.t('toast.profiling_resume_failed')); },
+        async stopProfiling() { await this._postProfiling({ action: 'stop' }, window.AquaI18n.t('toast.profiling_paused'), window.AquaI18n.t('toast.profiling_pause_failed')); },
+        async selectProfilingBackend(backend) { if (!backend) return; await this._postProfiling({ action: 'select', backend }, window.AquaI18n.t('toast.profiling_backend_set', { backend }), window.AquaI18n.t('toast.profiling_backend_failed')); },
     };
 }

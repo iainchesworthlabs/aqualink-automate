@@ -45,8 +45,10 @@ namespace AqualinkAutomate::Kernel
 		// Alerting (WS3): emitted by AlertMonitor on each fault-condition edge so
 		// the WebSocket layer can broadcast it to UI clients.
 		// Args: condition key, raised(true)/cleared(false), unix-seconds timestamp,
-		// human-readable detail.
-		mutable boost::signals2::signal<void(const std::string&, bool, std::int64_t, const std::string&)> AlertTransitionSignal;
+		// human-readable ENGLISH detail, structured params behind the detail
+		// (empty object when none; the UI builds its translated text from
+		// condition + params, see docs/i18n.md).
+		mutable boost::signals2::signal<void(const std::string&, bool, std::int64_t, const std::string&, const nlohmann::json&)> AlertTransitionSignal;
 
 		//---------------------------------------------------------------------
 		// ACTIVE EQUIPMENT

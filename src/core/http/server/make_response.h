@@ -3,6 +3,8 @@
 #include <string>
 #include <string_view>
 
+#include <nlohmann/json.hpp>
+
 #include "http/server/server_types.h"
 
 namespace AqualinkAutomate::HTTP
@@ -24,6 +26,17 @@ namespace AqualinkAutomate::HTTP
 	///
 	/// Equivalent to MakeResponse(req, code, ContentTypes::APPLICATION_JSON, std::move(body)).
 	Response MakeJsonResponse(const Request& req, Status code, std::string body);
+
+	/// @brief Structured JSON error response.
+	///
+	/// Emits {"error": <message>, "code": <error_code>[, "params": <params>]}.
+	/// `error` remains the human-readable ENGLISH message — the stable contract
+	/// for direct API consumers and log greps. `code` is a stable snake_case
+	/// identifier the web UI maps to a translated message (catalog key
+	/// `error.<code>`, docs/i18n.md); `params` carries any values that
+	/// translation interpolates and is omitted when empty. Adding a code here
+	/// means adding the matching key to every locale catalog.
+	Response MakeErrorResponse(const Request& req, Status code, std::string_view error_code, std::string_view message, const nlohmann::json& params = nlohmann::json::object());
 
 }
 // namespace AqualinkAutomate::HTTP

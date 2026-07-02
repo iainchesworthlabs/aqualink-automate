@@ -1,9 +1,12 @@
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <format>
 #include <optional>
 #include <string_view>
 #include <utility>
+
+#include <magic_enum/magic_enum.hpp>
 
 #include "alerting/alert_monitor.h"
 #include "kernel/auxillary_devices/chlorinator_status.h"
@@ -219,12 +222,14 @@ namespace AqualinkAutomate::Alerting
 		if (!currently_raised && salt < threshold)
 		{
 			SetCondition(ConditionKeys::SaltLow, true,
-				std::format("Salt {:.0f} ppm below threshold {:.0f} ppm", salt, threshold));
+				std::format("Salt {:.0f} ppm below threshold {:.0f} ppm", salt, threshold),
+				{ { "salt_ppm", std::round(salt) }, { "threshold_ppm", threshold } });
 		}
 		else if (currently_raised && salt >= (threshold + 100.0))
 		{
 			SetCondition(ConditionKeys::SaltLow, false,
-				std::format("Salt {:.0f} ppm recovered above {:.0f} ppm", salt, threshold + 100.0));
+				std::format("Salt {:.0f} ppm recovered above {:.0f} ppm", salt, threshold + 100.0),
+				{ { "salt_ppm", std::round(salt) }, { "threshold_ppm", threshold + 100.0 } });
 		}
 	}
 
@@ -255,7 +260,8 @@ namespace AqualinkAutomate::Alerting
 		// is dwell-smoothed at the device layer, so this does not flap when the
 		// cell sits on a boundary.
 		SetCondition(ConditionKeys::ChlorinatorWarning, warning.has_value(),
-			warning.has_value() ? std::format("Chlorinator warning: {}", warning.value()) : "Chlorinator health OK");
+			warning.has_value() ? std::format("Chlorinator warning: {}", warning.value()) : "Chlorinator health OK",
+			warning.has_value() ? nlohmann::json{ { "health", magic_enum::enum_name(health.value()) } } : nlohmann::json::object());
 	}
 
 	void AlertMonitor::EvaluateChlorinatorFault()
@@ -277,7 +283,8 @@ namespace AqualinkAutomate::Alerting
 		const bool fault = health.has_value() && IsChlorinatorFault(health.value());
 
 		SetCondition(ConditionKeys::ChlorinatorFault, fault,
-			fault ? std::format("Chlorinator fault: {}", ChlorinatorFaultLabel(health.value())) : "Chlorinator health OK");
+			fault ? std::format("Chlorinator fault: {}", ChlorinatorFaultLabel(health.value())) : "Chlorinator health OK",
+			fault ? nlohmann::json{ { "health", magic_enum::enum_name(health.value()) } } : nlohmann::json::object());
 	}
 
 	void AlertMonitor::EvaluateServiceMode()
@@ -289,7 +296,8 @@ namespace AqualinkAutomate::Alerting
 
 		const bool in_service = (m_DataHub->Mode == Kernel::EquipmentMode::Service);
 		SetCondition(ConditionKeys::ServiceMode, in_service,
-			in_service ? "Controller is in Service mode" : "Controller left Service mode");
+			in_service ? "Controller is in Service mode" : "Controller left Service mode",
+			in_service ? nlohmann::json{ { "mode", "Service" } } : nlohmann::json::object());
 	}
 
 	void AlertMonitor::EvaluateSerialCommsLoss()
@@ -317,11 +325,12 @@ namespace AqualinkAutomate::Alerting
 		if ((now - m_LastMessageChangeTs) >= static_cast<std::int64_t>(comms_timeout))
 		{
 			SetCondition(ConditionKeys::SerialCommsLoss, true,
-				std::format("No protocol message decoded for {} s", comms_timeout));
+				std::format("No protocol message decoded for {} s", comms_timeout),
+				{ { "timeout_seconds", comms_timeout } });
 		}
 	}
 
-	void AlertMonitor::SetCondition(std::string_view key, bool raised, std::string detail)
+	void AlertMonitor::SetCondition(std::string_view key, bool raised, std::string detail, nlohmann::json params)
 	{
 		auto it = m_Latched.find(key);
 		if (it == m_Latched.end())
@@ -337,7 +346,7 @@ namespace AqualinkAutomate::Alerting
 
 		it->second = raised;
 
-		AlertTransition transition{ std::string{ key }, raised, m_Clock(), std::move(detail) };
+		AlertTransition transition{ std::string{ key }, raised, m_Clock(), std::move(detail), std::move(params) };
 
 		LogInfo(Channel::Equipment, [&] { return std::format("Alert {} {}: {}", transition.condition, raised ? "RAISED" : "cleared", transition.detail); });
 

@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include "http/webroute_diagnostics_profiling.h"
+#include "http/server/make_response.h"
 #include "http/server/server_fields.h"
 #include "logging/logging.h"
 #include "profiling/factories/profiling_unit_factory.h"
@@ -28,16 +29,6 @@ namespace AqualinkAutomate::HTTP
 			return result;
 		}
 
-		HTTP::Response MakeJsonResponse(const HTTP::Request& req, HTTP::Status code, const std::string& body)
-		{
-			HTTP::Response resp{ code, req.version() };
-			resp.set(boost::beast::http::field::server, ServerFields::Server());
-			resp.set(boost::beast::http::field::content_type, ContentTypes::APPLICATION_JSON);
-			resp.keep_alive(req.keep_alive());
-			resp.body() = body;
-			resp.prepare_payload();
-			return resp;
-		}
 	}
 
 	WebRoute_Diagnostics_Profiling::WebRoute_Diagnostics_Profiling(Kernel::HubLocator& hub_locator)
@@ -60,7 +51,7 @@ namespace AqualinkAutomate::HTTP
 			return HandlePost(req);
 
 		default:
-			return MakeJsonResponse(req, HTTP::Status::method_not_allowed, R"({"error":"Method not allowed. Use GET or POST."})");
+			return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET or POST.", {{"allowed", "GET, POST"}});
 		}
 	}
 
@@ -82,7 +73,7 @@ namespace AqualinkAutomate::HTTP
 		if (!m_ProfilingController)
 		{
 			LogWarning(Channel::Web, "Profiling control requested but no profiling controller is available");
-			return MakeJsonResponse(req, HTTP::Status::service_unavailable, R"({"error":"Profiling control is not available"})");
+			return MakeErrorResponse(req, HTTP::Status::service_unavailable, "profiling_unavailable", "Profiling control is not available");
 		}
 
 		try
@@ -91,7 +82,7 @@ namespace AqualinkAutomate::HTTP
 
 			if (!body.contains("action") || !body["action"].is_string())
 			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Request must contain a string 'action' of 'start', 'stop' or 'select'"})");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "profiling_action_required", "Request must contain a string 'action' of 'start', 'stop' or 'select'");
 			}
 
 			const auto action = body["action"].get<std::string>();
@@ -100,7 +91,7 @@ namespace AqualinkAutomate::HTTP
 			{
 				if (!m_ProfilingController->Start())
 				{
-					return MakeJsonResponse(req, HTTP::Status::conflict, R"json({"error":"No profiling backend is available in this build (ENABLE_PROFILING=OFF or backend not selected)"})json");
+					return MakeErrorResponse(req, HTTP::Status::conflict, "profiling_no_backend", "No profiling backend is available in this build (ENABLE_PROFILING=OFF or backend not selected)");
 				}
 				LogInfo(Channel::Web, "Profiling capture resumed via web UI");
 			}
@@ -108,7 +99,7 @@ namespace AqualinkAutomate::HTTP
 			{
 				if (!m_ProfilingController->Stop())
 				{
-					return MakeJsonResponse(req, HTTP::Status::conflict, R"json({"error":"No profiling backend is available in this build (ENABLE_PROFILING=OFF or backend not selected)"})json");
+					return MakeErrorResponse(req, HTTP::Status::conflict, "profiling_no_backend", "No profiling backend is available in this build (ENABLE_PROFILING=OFF or backend not selected)");
 				}
 				LogInfo(Channel::Web, "Profiling capture paused via web UI");
 			}
@@ -116,19 +107,19 @@ namespace AqualinkAutomate::HTTP
 			{
 				if (!body.contains("backend") || !body["backend"].is_string())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"json({"error":"'select' action requires a string 'backend' (tracy, uprof or vtune)"})json");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "profiling_select_requires_backend", "'select' action requires a string 'backend' (tracy, uprof or vtune)");
 				}
 
 				const auto backend = body["backend"].get<std::string>();
 				if (!m_ProfilingController->SelectBackend(backend))
 				{
-					return MakeJsonResponse(req, HTTP::Status::conflict, R"({"error":"Requested backend is unknown or was not compiled into this build"})");
+					return MakeErrorResponse(req, HTTP::Status::conflict, "profiling_unknown_backend", "Requested backend is unknown or was not compiled into this build");
 				}
 				LogInfo(Channel::Web, std::format("Profiling backend '{}' selected via web UI", backend));
 			}
 			else
 			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'action' must be 'start', 'stop' or 'select'"})");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "profiling_invalid_action", "'action' must be 'start', 'stop' or 'select'");
 			}
 
 			// Success: return the up-to-date status.
@@ -136,7 +127,7 @@ namespace AqualinkAutomate::HTTP
 		}
 		catch (const nlohmann::json::exception&)
 		{
-			return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Invalid JSON in request body"})");
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
 		}
 	}
 

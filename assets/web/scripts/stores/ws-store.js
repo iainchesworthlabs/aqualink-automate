@@ -112,7 +112,7 @@ document.addEventListener('alpine:init', () => {
                 ws.onclose = (event) => {
                     onDown();
                     if (name === 'equipment') {
-                        Alpine.store('toast').show('Connection lost — retrying...', 'warn');
+                        Alpine.store('toast').show(window.AquaI18n.t('toast.conn_lost_retrying'), 'warn');
                     }
                     // #20: the server closes sockets when a session is revoked or
                     // its access token expires. A browser can't read the upgrade's

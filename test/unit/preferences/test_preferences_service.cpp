@@ -54,6 +54,59 @@ BOOST_AUTO_TEST_CASE(ApplyJson_ValidUpdatesHubLive)
 	BOOST_CHECK_EQUAL(hub->UiPreferences["chemistryBands"]["ph"]["goodMin"], 7.4);
 }
 
+// Regression: a PUT touching one ui.* key must not clobber the others — the
+// blob merges shallowly at its top level (ui.chemistryBands and ui.locale are
+// written by independent frontend features), and a null value deletes a key.
+BOOST_AUTO_TEST_CASE(ApplyJson_UiMergesTopLevelKeys)
+{
+	Options::Preferences::PreferencesSettings settings;
+	Preferences::PreferencesService service(*this, settings);
+
+	std::string error;
+	nlohmann::json first = { { "ui", { { "chemistryBands", { { "ph", { { "goodMin", 7.4 } } } } } } } };
+	BOOST_REQUIRE_MESSAGE(service.ApplyJson(first, error), error);
+
+	nlohmann::json second = { { "ui", { { "locale", "fr" } } } };
+	BOOST_REQUIRE_MESSAGE(service.ApplyJson(second, error), error);
+
+	auto hub = Find<Kernel::PreferencesHub>();
+	BOOST_CHECK_EQUAL(hub->UiPreferences["locale"], "fr");
+	BOOST_CHECK_EQUAL(hub->UiPreferences["chemistryBands"]["ph"]["goodMin"], 7.4);
+
+	nlohmann::json third = { { "ui", { { "locale", nullptr } } } };
+	BOOST_REQUIRE_MESSAGE(service.ApplyJson(third, error), error);
+	BOOST_CHECK(!hub->UiPreferences.contains("locale"));
+	BOOST_CHECK(hub->UiPreferences.contains("chemistryBands"));
+}
+
+// DisplayUnitsChangedSignal fires exactly when Temperature_DisplayUnits
+// changes value — consumers with published artefacts derived from it (the HA
+// discovery setpoint number entities) republish on it. Re-applying the same
+// value or touching unrelated fields must not fire it.
+BOOST_AUTO_TEST_CASE(ApplyJson_UnitsChangeFiresSignal)
+{
+	Options::Preferences::PreferencesSettings settings;
+	Preferences::PreferencesService service(*this, settings);
+	auto hub = Find<Kernel::PreferencesHub>();
+
+	int fired = 0;
+	auto conn = hub->DisplayUnitsChangedSignal.connect([&fired]() { ++fired; });
+
+	std::string error;
+	nlohmann::json to_f = { { "temperature_units", "Fahrenheit" } };
+	BOOST_REQUIRE_MESSAGE(service.ApplyJson(to_f, error), error);
+	BOOST_CHECK_EQUAL(fired, 1);
+
+	BOOST_REQUIRE_MESSAGE(service.ApplyJson(to_f, error), error);
+	BOOST_CHECK_EQUAL(fired, 1);
+
+	nlohmann::json other = { { "history", { { "retention_days", 10 } } } };
+	BOOST_REQUIRE_MESSAGE(service.ApplyJson(other, error), error);
+	BOOST_CHECK_EQUAL(fired, 1);
+
+	conn.disconnect();
+}
+
 BOOST_AUTO_TEST_CASE(ApplyJson_RejectsBadValues)
 {
 	Options::Preferences::PreferencesSettings settings;

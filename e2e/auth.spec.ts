@@ -37,7 +37,10 @@ async function expectLiveDashboard(page: Page) {
   const saltCard = page
     .locator('.gauge-card')
     .filter({ has: page.locator('.gauge-label', { hasText: 'Salt' }) });
-  await expect(saltCard.locator('.chem-dial-num')).toHaveText(/3200/, { timeout: 15_000 });
+  // The chem dial renders through the i18n number formatter (Intl.NumberFormat),
+  // which groups thousands per locale — "3,200" in en — so tolerate an optional
+  // grouping separator (comma / dot / space / nbsp / narrow-nbsp).
+  await expect(saltCard.locator('.chem-dial-num')).toHaveText(/3[\s,.]?200/, { timeout: 15_000 });
 }
 
 async function loginViaCard(page: Page, user: string, pass: string, remember = false) {

@@ -25,6 +25,11 @@ namespace AqualinkAutomate::Mqtt
 		LogInfo(Channel::Mqtt, "Home Assistant Discovery initialized");
 	}
 
+	void HomeAssistantDiscovery::ConnectPreferencesHub(const std::shared_ptr<Kernel::PreferencesHub>& preferences_hub)
+	{
+		m_PreferencesHub = preferences_hub;
+	}
+
 	void HomeAssistantDiscovery::ConnectDataHub(const std::shared_ptr<Kernel::DataHub>& data_hub)
 	{
 		m_DataHub = data_hub;
@@ -233,6 +238,10 @@ namespace AqualinkAutomate::Mqtt
 			bool emit;
 		};
 
+		// Sensors deliberately stay declared in °C: the payload value IS celsius,
+		// and HA converts device_class=temperature SENSORS to its own configured
+		// unit system for display. (Number entities are different — see
+		// AddSetpointComponents.)
 		const TempSensor sensors[] = {
 			{ "Pool Temperature",           "pool_temp",           "{{ value_json.pool.celsius if value_json.pool else '' }}",                     has_pool },
 			{ "Spa Temperature",            "spa_temp",            "{{ value_json.spa.celsius if value_json.spa else '' }}",                       has_spa },
@@ -334,15 +343,31 @@ namespace AqualinkAutomate::Mqtt
 		{
 			const char* name;
 			const char* key;
-			const char* value_template;
 			const char* target;
 			bool emit;
 		};
 
 		const SetpointEntity entities[] = {
-			{ "Pool Setpoint", "pool_setpoint", "{{ value_json.pool_setpoint.celsius if value_json.pool_setpoint else '' }}", "pool", has_pool },
-			{ "Spa Setpoint",  "spa_setpoint",  "{{ value_json.spa_setpoint.celsius if value_json.spa_setpoint else '' }}",  "spa",  has_spa },
+			{ "Pool Setpoint", "pool_setpoint", "pool", has_pool },
+			{ "Spa Setpoint",  "spa_setpoint",  "spa",  has_spa },
 		};
+
+		// The setpoint NUMBER entities follow the user's Temperature_DisplayUnits
+		// preference. Unlike sensors (where HA converts the declared unit to its
+		// own unit system, so the \u00B0C-declared celsius payload above is correct),
+		// HA presents a number entity exactly as declared \u2014 an imperial user
+		// would otherwise get a 15\u201341 \u00B0C slider. The published payload always
+		// carries both units, so switching only changes the value_template, the
+		// declared unit/range, and how the inbound command value is interpreted
+		// (see MqttIntegration's HA setpoint handlers). A preference change
+		// republishes discovery via PreferencesHub::DisplayUnitsChangedSignal.
+		const auto prefs = m_PreferencesHub.lock();
+		const bool fahrenheit = prefs && (prefs->Temperature_DisplayUnits == Kernel::TemperatureUnits::Fahrenheit);
+		const char* setpoint_unit_field = fahrenheit ? "fahrenheit" : "celsius";
+		const char* setpoint_unit_symbol = fahrenheit ? "\u00B0F" : "\u00B0C";
+		const double setpoint_min = fahrenheit ? 59.0 : 15.0;   // 15\u201341 \u00B0C \u2259 59\u2013105.8 \u00B0F
+		const double setpoint_max = fahrenheit ? 106.0 : 41.0;
+		const double setpoint_step = fahrenheit ? 1.0 : 0.5;
 
 		for (const auto& entity : entities)
 		{
@@ -356,12 +381,12 @@ namespace AqualinkAutomate::Mqtt
 				{"name", entity.name},
 				{"unique_id", UniqueId(entity.key)},
 				{"state_topic", temperatures_topic},
-				{"value_template", entity.value_template},
+				{"value_template", std::format("{{{{ value_json.{0}.{1} if value_json.{0} else '' }}}}", entity.key, setpoint_unit_field)},
 				{"command_topic", SetpointCommandTopic(entity.target)},
-				{"min", 15},
-				{"max", 41},
-				{"step", 0.5},
-				{"unit_of_measurement", "\u00B0C"},
+				{"min", setpoint_min},
+				{"max", setpoint_max},
+				{"step", setpoint_step},
+				{"unit_of_measurement", setpoint_unit_symbol},
 				{"device_class", "temperature"},
 				{"mode", "slider"}
 			};

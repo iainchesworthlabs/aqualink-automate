@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include "http/webroute_equipment_setpoints.h"
+#include "http/server/make_response.h"
 #include "http/server/server_fields.h"
 #include "utility/json_serialization_helpers.h"
 #include "http/server/responses/response_405.h"
@@ -85,13 +86,7 @@ namespace AqualinkAutomate::HTTP
 	{
 		if (!m_CommandDispatcher)
 		{
-			HTTP::Response resp{ HTTP::Status::service_unavailable, req.version() };
-			resp.set(boost::beast::http::field::server, ServerFields::Server());
-			resp.set(boost::beast::http::field::content_type, ContentTypes::TEXT_PLAIN);
-			resp.keep_alive(req.keep_alive());
-			resp.body() = "Command dispatcher not available";
-			resp.prepare_payload();
-			return resp;
+			return MakeErrorResponse(req, HTTP::Status::service_unavailable, "dispatcher_unavailable", "Command dispatcher not available");
 		}
 
 		nlohmann::json payload;
@@ -101,25 +96,8 @@ namespace AqualinkAutomate::HTTP
 		}
 		catch (const nlohmann::json::parse_error&)
 		{
-			HTTP::Response resp{ HTTP::Status::bad_request, req.version() };
-			resp.set(boost::beast::http::field::server, ServerFields::Server());
-			resp.set(boost::beast::http::field::content_type, ContentTypes::TEXT_PLAIN);
-			resp.keep_alive(req.keep_alive());
-			resp.body() = "Invalid JSON";
-			resp.prepare_payload();
-			return resp;
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
 		}
-
-		const auto make_error_response = [&](HTTP::Status status, const std::string& message) -> HTTP::Response
-		{
-			HTTP::Response resp{ status, req.version() };
-			resp.set(boost::beast::http::field::server, ServerFields::Server());
-			resp.set(boost::beast::http::field::content_type, ContentTypes::TEXT_PLAIN);
-			resp.keep_alive(req.keep_alive());
-			resp.body() = message;
-			resp.prepare_payload();
-			return resp;
-		};
 
 		nlohmann::json result;
 		bool any_dispatch_failed = false;
@@ -136,7 +114,7 @@ namespace AqualinkAutomate::HTTP
 			if (!field.is_number())
 			{
 				LogWarning(Channel::Web, std::format("Setpoints POST: '{}' field is not a number", key));
-				return make_error_response(HTTP::Status::bad_request, std::format("Setpoint '{}' must be a number", key));
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "setpoint_not_a_number", std::format("Setpoint '{}' must be a number", key), {{"target", key}});
 			}
 
 			double celsius = field.get<double>();
@@ -144,7 +122,7 @@ namespace AqualinkAutomate::HTTP
 			if (!std::isfinite(celsius) || (celsius < SETPOINT_CELSIUS_MIN) || (celsius > SETPOINT_CELSIUS_MAX))
 			{
 				LogWarning(Channel::Web, std::format("Setpoints POST: '{}' value {} out of range [{}, {}]", key, celsius, SETPOINT_CELSIUS_MIN, SETPOINT_CELSIUS_MAX));
-				return make_error_response(HTTP::Status::bad_request, std::format("Setpoint '{}' out of range", key));
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "setpoint_out_of_range", std::format("Setpoint '{}' out of range", key), {{"target", key}, {"min", SETPOINT_CELSIUS_MIN}, {"max", SETPOINT_CELSIUS_MAX}});
 			}
 
 			// Convert to the system's configured units, then clamp to the uint8_t domain BEFORE the
@@ -185,7 +163,7 @@ namespace AqualinkAutomate::HTTP
 		{
 			// Defence-in-depth: any JSON type/access error maps to a client error, never a 500.
 			LogWarning(Channel::Web, std::format("Setpoints POST: JSON access error: {}", ex.what()));
-			return make_error_response(HTTP::Status::bad_request, "Invalid setpoint payload");
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_setpoint_payload", "Invalid setpoint payload");
 		}
 
 		// Surface a non-2xx status when any per-key dispatch failed so the UI's resp.ok is

@@ -89,7 +89,7 @@ namespace AqualinkAutomate::Alerting
 		nlohmann::json BuildStateJson() const;
 
 	private:
-		void SetCondition(std::string_view key, bool raised, std::string detail);
+		void SetCondition(std::string_view key, bool raised, std::string detail, nlohmann::json params = nlohmann::json::object());
 		void ScheduleCommsTimer();
 
 	private:

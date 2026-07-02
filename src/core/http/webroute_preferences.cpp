@@ -103,7 +103,7 @@ namespace AqualinkAutomate::HTTP
 			auto json = nlohmann::json::parse(req.body(), nullptr, /*allow_exceptions=*/false);
 			if (!json.is_object())
 			{
-				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "request body must be a JSON object");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
 			}
 
 			if (!per_user_active)
@@ -112,9 +112,10 @@ namespace AqualinkAutomate::HTTP
 				// whole document goes to the global service, which picks out the
 				// fields it knows (units, ui, alert, ...) and ignores the rest.
 				std::string error;
-				if (!m_Service->ApplyJson(json, error))
+				std::string error_code;
+				if (!m_Service->ApplyJson(json, error, error_code))
 				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, error);
+					return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
 				}
 				return MakeJsonResponse(req, HTTP::Status::ok, merged_view().dump());
 			}
@@ -133,13 +134,14 @@ namespace AqualinkAutomate::HTTP
 			{
 				if (!subject.Entitlements.Permits(Auth::Vocabulary::SYSTEM_ADMIN))
 				{
-					return MakeResponse(req, HTTP::Status::forbidden, ContentTypes::TEXT_PLAIN, "system preferences require administrator access");
+					return MakeErrorResponse(req, HTTP::Status::forbidden, "admin_required", "system preferences require administrator access");
 				}
 
 				std::string error;
-				if (!m_Service->ApplyJson(system_fields, error))
+				std::string error_code;
+				if (!m_Service->ApplyJson(system_fields, error, error_code))
 				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, error);
+					return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
 				}
 			}
 
@@ -148,7 +150,7 @@ namespace AqualinkAutomate::HTTP
 				std::string error;
 				if (!m_UserPrefs->Apply(subject.Id, user_fields, error))
 				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, error);
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_preferences", error);
 				}
 			}
 

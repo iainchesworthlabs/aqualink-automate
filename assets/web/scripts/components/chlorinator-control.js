@@ -64,9 +64,7 @@ function chlorinatorControl() {
             return null;
         },
         get healthLabel() {
-            const h = Alpine.store('pool').chlorinatorHealth;
-            if (!h || h === '--') return '';
-            return String(h).replace(/_/g, ' ');
+            return Alpine.store('pool').chlorinatorHealthLabel;
         },
 
         init() {

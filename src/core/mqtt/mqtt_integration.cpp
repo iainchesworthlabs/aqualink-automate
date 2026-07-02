@@ -240,6 +240,7 @@ namespace AqualinkAutomate::Mqtt
 		auto data_hub = hub_locator.TryFind<Kernel::DataHub>();
 		auto equipment_hub = hub_locator.TryFind<Kernel::EquipmentHub>();
 		auto statistics_hub = hub_locator.TryFind<Kernel::StatisticsHub>();
+		auto preferences_hub = hub_locator.TryFind<Kernel::PreferencesHub>();
 
 		m_CommandDispatcher = hub_locator.TryFind<Interfaces::ICommandDispatcher>();
 
@@ -263,17 +264,24 @@ namespace AqualinkAutomate::Mqtt
 			LogError(Channel::Mqtt, "ICommandDispatcher not found via locator; MQTT integration degraded (inbound control commands will be rejected)");
 		}
 
-		ConnectHubs(data_hub, equipment_hub, statistics_hub);
+		if (!preferences_hub)
+		{
+			LogError(Channel::Mqtt, "PreferencesHub not found via locator; MQTT integration degraded (HA setpoint entities stay Celsius regardless of the display-units preference)");
+		}
+
+		ConnectHubs(data_hub, equipment_hub, statistics_hub, preferences_hub);
 	}
 
 	void MqttIntegration::ConnectHubs(
 		const std::shared_ptr<Kernel::DataHub>& data_hub,
 		const std::shared_ptr<Kernel::EquipmentHub>& equipment_hub,
-		const std::shared_ptr<Kernel::StatisticsHub>& statistics_hub)
+		const std::shared_ptr<Kernel::StatisticsHub>& statistics_hub,
+		const std::shared_ptr<Kernel::PreferencesHub>& preferences_hub)
 	{
 		m_DataHub = data_hub;
 		m_EquipmentHub = equipment_hub;
 		m_StatisticsHub = statistics_hub;
+		m_PreferencesHub = preferences_hub;
 
 		if (m_Hub)
 		{
@@ -297,6 +305,23 @@ namespace AqualinkAutomate::Mqtt
 				m_HaDiscovery->ConnectDataHub(data_hub);
 			}
 
+			if (m_HaDiscovery && preferences_hub)
+			{
+				m_HaDiscovery->ConnectPreferencesHub(preferences_hub);
+
+				// The setpoint number entities' declared unit/range follow the
+				// display-units preference, so a change must republish the
+				// (retained) discovery configs for HA to pick it up.
+				m_PrefsUnitsConnection = preferences_hub->DisplayUnitsChangedSignal.connect([this]()
+				{
+					if (m_HaDiscovery)
+					{
+						LogInfo(Channel::Mqtt, "Temperature display units changed; republishing Home Assistant discovery configs");
+						m_HaDiscovery->PublishDiscoveryConfigs();
+					}
+				});
+			}
+
 			// Re-register the device command now that the command dispatcher is available
 			RegisterDeviceCommand();
 			RegisterSetpointCommand();
@@ -317,16 +342,21 @@ namespace AqualinkAutomate::Mqtt
 			return;
 		}
 
-		auto hub = m_Hub;
+		// Capture a weak_ptr to the hub, NOT a shared_ptr: every handler registered here is
+		// stored in the hub's own m_CommandHandlers map, so a shared_ptr capture forms a
+		// self-owning cycle (hub -> handler -> hub) that keeps the hub - and its MqttClient -
+		// alive to process exit (this was the source of the CRT "Detected memory leaks!" dump).
+		// The handler only ever runs while the hub is dispatching it, so lock() always succeeds.
+		std::weak_ptr<MqttHub> weak_hub = m_Hub;
 
 		// Register status command - republishes all status
 		m_Hub->RegisterCommand("status",
-			[hub](const std::string& topic, const nlohmann::json& payload)
+			[weak_hub](const std::string& topic, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, "Received status command");
 				try
 				{
-					if (hub) { hub->PublishAllStatus(); }
+					if (auto hub = weak_hub.lock()) { hub->PublishAllStatus(); }
 				}
 				catch (const std::exception& ex)
 				{
@@ -341,15 +371,18 @@ namespace AqualinkAutomate::Mqtt
 
 		// Register refresh command - forces status refresh
 		m_Hub->RegisterCommand("refresh",
-			[hub](const std::string& topic, const nlohmann::json& payload)
+			[weak_hub](const std::string& topic, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, "Received refresh command");
 				try
 				{
-					if (hub) { hub->PublishAllStatus(); }
+					if (auto hub = weak_hub.lock())
+					{
+						hub->PublishAllStatus();
 
-					auto response = BuildCommandResponse("refresh", "completed");
-					if (hub) { hub->PublishCustom("response/refresh", response); }
+						auto response = BuildCommandResponse("refresh", "completed");
+						hub->PublishCustom("response/refresh", response);
+					}
 				}
 				catch (const std::exception& ex)
 				{
@@ -367,11 +400,13 @@ namespace AqualinkAutomate::Mqtt
 			return;
 		}
 
-		auto hub = m_Hub;
+		// weak_ptr capture (see RegisterDefaultCommands): the handler is stored on the hub, so a
+		// shared_ptr capture would form a hub -> handler -> hub retain cycle.
+		std::weak_ptr<MqttHub> weak_hub = m_Hub;
 		std::weak_ptr<Interfaces::ICommandDispatcher> weak_dispatcher = m_CommandDispatcher;
 
 		m_Hub->RegisterCommand("device",
-			[hub, weak_dispatcher](const std::string& topic, const nlohmann::json& payload)
+			[weak_hub, weak_dispatcher](const std::string& topic, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, "Received device command");
 				try
@@ -382,7 +417,7 @@ namespace AqualinkAutomate::Mqtt
 						LogWarning(Channel::Mqtt, "Command dispatcher not available");
 
 						auto response = BuildCommandResponse("device", "error", {{"error", "command dispatcher not available"}});
-						if (hub) { hub->PublishCustom("response/device", response); }
+						if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/device", response); }
 						return;
 					}
 
@@ -412,7 +447,7 @@ namespace AqualinkAutomate::Mqtt
 
 					auto response = BuildCommandResponse("device", CommandResultToString(result),
 						{{"device_id", device_id}, {"action", action}});
-					if (hub) { hub->PublishCustom("response/device", response); }
+					if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/device", response); }
 				}
 				catch (const std::exception& ex)
 				{
@@ -430,7 +465,9 @@ namespace AqualinkAutomate::Mqtt
 			return;
 		}
 
-		auto hub = m_Hub;
+		// weak_ptr capture (see RegisterDefaultCommands): the handlers are stored on the hub, so a
+		// shared_ptr capture would form a hub -> handler -> hub retain cycle.
+		std::weak_ptr<MqttHub> weak_hub = m_Hub;
 		std::weak_ptr<Interfaces::ICommandDispatcher> weak_dispatcher = m_CommandDispatcher;
 		std::weak_ptr<Kernel::DataHub> weak_data_hub = m_DataHub;
 
@@ -495,7 +532,7 @@ namespace AqualinkAutomate::Mqtt
 
 		// JSON command handler: {"target": "pool"|"spa", "temperature": <celsius>}
 		m_Hub->RegisterCommand("setpoint",
-			[hub, dispatch_setpoint](const std::string& topic, const nlohmann::json& payload)
+			[weak_hub, dispatch_setpoint](const std::string& topic, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, "Received setpoint command");
 				try
@@ -513,7 +550,7 @@ namespace AqualinkAutomate::Mqtt
 
 					auto response = BuildCommandResponse("setpoint", status_str,
 						{{"target", target}, {"temperature", temperature}});
-					if (hub) { hub->PublishCustom("response/setpoint", response); }
+					if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/setpoint", response); }
 				}
 				catch (const std::exception& ex)
 				{
@@ -524,9 +561,15 @@ namespace AqualinkAutomate::Mqtt
 		// HA number entity handlers: plain text number on setpoint/pool and setpoint/spa.
 		// Both capture dispatch_setpoint's result so the outcome is published and never discarded
 		// (dispatch_setpoint itself also logs the CommandResult, escalating to Warning on failure).
-		auto make_ha_setpoint_handler = [hub, dispatch_setpoint](const std::string& target)
+		//
+		// The incoming value arrives in whatever unit the discovery config declared for the
+		// number entity — the Temperature_DisplayUnits preference (see AddSetpointComponents) —
+		// so it is normalised to the Celsius that dispatch_setpoint expects. Read at command
+		// time, matching the discovery config that a preference change republishes.
+		std::weak_ptr<Kernel::PreferencesHub> weak_prefs = m_PreferencesHub;
+		auto make_ha_setpoint_handler = [weak_hub, dispatch_setpoint, weak_prefs](const std::string& target)
 		{
-			return [hub, dispatch_setpoint, target](const std::string& topic, const nlohmann::json& payload)
+			return [weak_hub, dispatch_setpoint, weak_prefs, target](const std::string& topic, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, std::format("Received HA {} setpoint command", target));
 				try
@@ -539,11 +582,17 @@ namespace AqualinkAutomate::Mqtt
 						return;
 					}
 
-					auto status_str = dispatch_setpoint(target, temperature);
+					auto celsius = temperature;
+					if (auto prefs = weak_prefs.lock(); prefs && (prefs->Temperature_DisplayUnits == Kernel::TemperatureUnits::Fahrenheit))
+					{
+						celsius = (temperature - 32.0) * 5.0 / 9.0;
+					}
+
+					auto status_str = dispatch_setpoint(target, celsius);
 
 					auto response = BuildCommandResponse("setpoint", status_str,
 						{{"target", target}, {"temperature", temperature}});
-					if (hub) { hub->PublishCustom("response/setpoint", response); }
+					if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/setpoint", response); }
 				}
 				catch (const std::exception& ex)
 				{
@@ -572,7 +621,6 @@ namespace AqualinkAutomate::Mqtt
 		}
 
 		std::weak_ptr<Interfaces::ICommandDispatcher> weak_dispatcher = m_CommandDispatcher;
-		auto hub = m_Hub;
 
 		// Track which device label claimed each command slug this pass so a collision
 		// (two distinct labels that Slugify to the same key) is detected rather than
@@ -620,7 +668,7 @@ namespace AqualinkAutomate::Mqtt
 			}
 
 			m_Hub->RegisterCommand(command_key,
-				[weak_dispatcher, label, hub](const std::string& topic, const nlohmann::json& payload)
+				[weak_dispatcher, label](const std::string& topic, const nlohmann::json& payload)
 				{
 					LogDebug(Channel::Mqtt, std::format("Received device command for '{}'", label));
 					try

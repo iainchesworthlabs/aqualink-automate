@@ -1149,3 +1149,71 @@ BOOST_AUTO_TEST_CASE(Test_CustomTopicPrefix)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// Setpoint number entities follow the Temperature_DisplayUnits preference
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_HaDiscovery_SetpointUnits)
+
+namespace
+{
+	nlohmann::json PublishAndGetComponentsForUnits(Mqtt::HomeAssistantDiscovery& ha, Mqtt::MqttClient& client)
+	{
+		ha.PublishDiscoveryConfigs();
+		auto& queue = Test::MqttClientPacketTest::GetPublishQueue(client);
+		BOOST_REQUIRE_GE(queue.size(), 1);
+		return nlohmann::json::parse(queue.back().payload)["cmps"];
+	}
+}
+
+// Default / no preferences hub connected: Celsius entity, exactly as before.
+BOOST_AUTO_TEST_CASE(Test_SetpointUnits_DefaultCelsius)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto cmps = PublishAndGetComponentsForUnits(ha, *client);
+
+	BOOST_REQUIRE(cmps.contains("pool_setpoint"));
+	const auto& sp = cmps["pool_setpoint"];
+	BOOST_CHECK_EQUAL(sp["unit_of_measurement"], "°C");
+	BOOST_CHECK(sp["value_template"].get<std::string>().find(".celsius") != std::string::npos);
+	BOOST_CHECK_EQUAL(15.0, sp["min"].get<double>());
+	BOOST_CHECK_EQUAL(41.0, sp["max"].get<double>());
+	BOOST_CHECK_EQUAL(0.5, sp["step"].get<double>());
+}
+
+// Fahrenheit preference: the NUMBER entities switch template/unit/range (HA
+// does not convert number entities to its own unit system) while the
+// temperature SENSORS stay declared degC (their payload IS celsius; HA
+// converts sensors itself).
+BOOST_AUTO_TEST_CASE(Test_SetpointUnits_FahrenheitPreference)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto preferences_hub = std::make_shared<Kernel::PreferencesHub>();
+	preferences_hub->Temperature_DisplayUnits = Kernel::TemperatureUnits::Fahrenheit;
+	ha.ConnectPreferencesHub(preferences_hub);
+
+	auto cmps = PublishAndGetComponentsForUnits(ha, *client);
+
+	BOOST_REQUIRE(cmps.contains("pool_setpoint"));
+	const auto& sp = cmps["pool_setpoint"];
+	BOOST_CHECK_EQUAL(sp["unit_of_measurement"], "°F");
+	BOOST_CHECK(sp["value_template"].get<std::string>().find(".fahrenheit") != std::string::npos);
+	BOOST_CHECK_EQUAL(59.0, sp["min"].get<double>());
+	BOOST_CHECK_EQUAL(106.0, sp["max"].get<double>());
+	BOOST_CHECK_EQUAL(1.0, sp["step"].get<double>());
+
+	BOOST_REQUIRE(cmps.contains("air_temp"));
+	BOOST_CHECK_EQUAL(cmps["air_temp"]["unit_of_measurement"], "°C");
+	BOOST_CHECK(cmps["air_temp"]["value_template"].get<std::string>().find(".celsius") != std::string::npos);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

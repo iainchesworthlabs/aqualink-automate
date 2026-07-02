@@ -77,12 +77,16 @@ BOOST_AUTO_TEST_CASE(SaltLow_RaisesBelowThreshold_ClearsWithHysteresis)
 
 	auto data_hub = Find<Kernel::DataHub>();
 
-	// Below threshold -> raise.
+	// Below threshold -> raise, carrying the structured values behind the
+	// detail prose (the UI's translated alert text and webhook automations
+	// consume these instead of parsing English).
 	data_hub->SaltLevel(2000 * Units::ppm);
 	monitor.EvaluateSaltLow();
 	BOOST_REQUIRE_EQUAL(rec.CountFor(ConditionKeys::SaltLow), 1u);
 	BOOST_CHECK(rec.transitions.back().raised);
 	BOOST_CHECK(monitor.IsRaised(ConditionKeys::SaltLow));
+	BOOST_CHECK_EQUAL(2000.0, rec.transitions.back().params.at("salt_ppm").get<double>());
+	BOOST_CHECK_EQUAL(2600.0, rec.transitions.back().params.at("threshold_ppm").get<double>());
 
 	// Inside the hysteresis band (>= threshold but < threshold+100) -> stay raised.
 	data_hub->SaltLevel(2650 * Units::ppm);
@@ -170,6 +174,9 @@ BOOST_AUTO_TEST_CASE(ChlorinatorWarning_RaisesOnWarning_NamesIt_ClearsOnOk)
 	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorFault));   // a warning is not a fault
 	BOOST_REQUIRE_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorWarning), 1u);
 	BOOST_CHECK(rec.transitions.back().detail.find("No flow") != std::string::npos);
+	// The params carry the raw health enum name so the UI maps it to its own
+	// translated label (swg_health.* catalog keys) instead of parsing the prose.
+	BOOST_CHECK_EQUAL("Warning_NoFlow", rec.transitions.back().params.at("health").get<std::string>());
 
 	// Recovery clears it.
 	chlor->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Ok);

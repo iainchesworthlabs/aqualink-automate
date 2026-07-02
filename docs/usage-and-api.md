@@ -73,10 +73,10 @@ To require authentication, set a bearer token via `--api-auth-token <token>` (co
 - **`GET /api/health` is intentionally served without authentication.** The liveness probe must be reachable by a container/orchestrator health check without baking in the operator's token. It returns only `{"status":"ok","uptime_seconds":N}` — no sensitive data. The richer `GET /api/health/detailed` is **not** exempt: it exposes internal subsystem state and is gated by the bearer-token policy like every other route.
 - **WebSocket upgrades are gated by the same policy.** Browsers cannot set an `Authorization` header on a WebSocket upgrade, so the token rides in the `Sec-WebSocket-Protocol` header as a `bearer.<token>` entry alongside the `aqualink` marker (for example `Sec-WebSocket-Protocol: aqualink, bearer.<token>`). On success the handshake echoes back the `aqualink` subprotocol.
 
-Two further hardening layers are built into the routing layer but are **not currently exposed by any CLI flag or config key** — only `--api-auth-token` (the bearer token above) is wired today, so these are reachable only programmatically (and in tests). If they were enabled, they would behave as follows:
+Two further hardening layers are built into the routing layer and are exposed via CLI flags / config keys (see the [Configuration reference](configuration.md)):
 
-- **Origin allow-list.** A request whose `Origin` header is not on the list is rejected with `403 Forbidden`.
-- **CSRF header.** State-changing methods (`POST`, `PUT`, `DELETE`, …) must send an `X-Requested-With` header or they are rejected with `403 Forbidden`. This check does not apply to the WebSocket upgrade, which is always a `GET`.
+- **Origin allow-list.** Set one or more allowed origins with the repeatable `--api-allowed-origin` flag (config key `api-allowed-origin`). When at least one origin is configured, a request or WebSocket upgrade whose `Origin` header is not on the list is rejected with `403 Forbidden`.
+- **CSRF header.** Enable `--api-require-csrf-header` (config key `api-require-csrf-header`) so that state-changing methods (`POST`, `PUT`, `DELETE`, …) must send an `X-Requested-With` header or they are rejected with `403 Forbidden`. This check does not apply to the WebSocket upgrade, which is always a `GET`.
 
 **Security:** A token over plain HTTP travels in cleartext. Pair `--api-auth-token` with HTTPS (see the TLS options in the [Configuration reference](configuration.md)) whenever the server is reachable beyond `localhost`.
 
@@ -191,7 +191,7 @@ both into one timeline. Writing controller schedules is not yet supported.
 | Method | Path | Success | Other codes |
 |---|---|---|---|
 | GET | `/api/preferences` | `200` JSON | `503` when the service is unavailable. |
-| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. |
+| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. The opaque `ui` object merges shallowly at its top level (a `ui.*` value of null deletes that key) so independent UI features never clobber each other's keys. |
 
 ### Metrics
 
@@ -541,7 +541,7 @@ Every frame is a JSON object with two fields:
 - `CirculationUpdate` — circulation/heater mode changes
 - `ButtonStateChange`
 - `SystemStatusChange`
-- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ... }`
+- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ..., "params": <object, optional> }` — `detail` is the English description; `params` carries the structured values behind it (e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}`) for translated UI text / automations (docs/i18n.md)
 
 On connect, `/ws/equipment` enqueues exactly one `SystemStateUpdate` so a freshly connected client knows the current state immediately:
 
@@ -566,7 +566,7 @@ These are the fields the UI consumes from each frame's `payload`:
 
 | Event type | Payload fields |
 |---|---|
-| `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` |
+| `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` — each a raw dual-unit object `{celsius, fahrenheit}` (same shape as REST `/api/equipment`; display formatting is the frontend's job, see `docs/i18n.md`) |
 | `ChemistryUpdate` | `ph`, `orp`, `salt_level` |
 | `ButtonStateChange` | `button_id`, `status`, `label` (optional) |
 | `SystemStateUpdate` | `state`, `pool_configuration`, `equipment_mode` |
@@ -577,6 +577,12 @@ These are the fields the UI consumes from each frame's `payload`:
 - Each connection has an outbound queue capped at **100** messages. When full, the oldest message is dropped (with a rate-limited warning) before the new one is enqueued.
 - Inbound WebSocket frames are capped at **64 KiB**.
 - The same HTTP limits apply to the upgrade request: a **10000-byte** body limit, at most **1000** concurrent connections, and a **30-second** idle timeout.
+
+### Keepalive and reverse proxies
+
+Both endpoints send a WebSocket protocol-level ping after roughly **30 seconds** of silence (the server runs a 60-second idle timeout with keep-alive pings enabled — see `WebSocketServerTimeout()` in `src/core/http/server/websocket_timeouts.h`). This matters because `/ws/equipment` is change-driven: with the pool in a steady state no data frames flow for minutes, and without the pings a reverse proxy in front of the app would sever the quiet connection at its own idle timeout (nginx defaults `proxy_read_timeout` to 60 s; Cloudflare closes idle WebSockets after ~100 s), causing a spurious "Connection lost — retrying..." toast in the UI. Browsers answer pings automatically — clients do not need to implement anything.
+
+If you run a reverse proxy in front of the application, any WebSocket/upstream idle timeout of **60 seconds or more** works out of the box. A proxy configured tighter than ~30 seconds will still drop quiet connections. A peer that stops answering pings is torn down by the server within the 60-second idle timeout.
 
 ## Prometheus metrics
 

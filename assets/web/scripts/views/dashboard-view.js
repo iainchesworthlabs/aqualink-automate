@@ -19,17 +19,18 @@ function dashboardView() {
         get lastUpdateText() {
             const lu = Alpine.store('pool').lastUpdate;
             if (!lu) return '';
-            return lu.toLocaleTimeString();
+            return window.AquaI18n.formatTime(lu);
         },
 
         ageText(field) {
             void this._tick; // reactive dependency on tick
             const a = Alpine.store('pool').age(field);
+            const t = window.AquaI18n.t;
             if (a === null) return '';
-            if (a < 5) return 'just now';
-            if (a < 60) return a + 's ago';
-            if (a < 3600) return Math.floor(a / 60) + 'm ago';
-            return Math.floor(a / 3600) + 'h ago';
+            if (a < 5) return t('time.just_now');
+            if (a < 60) return t('time.seconds_ago', { n: a });
+            if (a < 3600) return t('time.minutes_ago', { n: Math.floor(a / 60) });
+            return t('time.hours_ago', { n: Math.floor(a / 3600) });
         },
 
         isStale(field) {

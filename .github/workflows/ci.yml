@@ -103,6 +103,20 @@ jobs:
             exit 1
           fi
 
+  # Guard the web UI translation catalogs: every key referenced in code must
+  # exist in en.js, and every shipped locale must have full key + placeholder
+  # parity with English. Runtime-level guards (missing-key console warnings,
+  # pseudo-locale hardcoded-string scan) live in e2e/i18n.spec.ts; see
+  # docs/i18n.md.
+  i18n-catalogs:
+    name: I18n Catalogs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Check catalog completeness and locale parity
+        shell: pwsh
+        run: ./scripts/check-i18n-keys.ps1 -Root $PWD
+
   # The configure/build/test matrix lives in the reusable _build.yml so CI and the
   # release pipeline share one definition and can never drift. Runner selection
   # (vars.RUNNER_LINUX / RUNNER_WINDOWS) is handled inside that workflow.
@@ -359,7 +373,7 @@ jobs:
   ci-status:
     name: CI Status
     if: always()
-    needs: [changes, build-and-test, e2e-ui, matter-bridge, docker-verify]
+    needs: [changes, build-and-test, e2e-ui, matter-bridge, docker-verify, i18n-catalogs]
     runs-on: ubuntu-latest
     steps:
       - name: Gate on required job results
@@ -370,10 +384,11 @@ jobs:
           R_E2E: ${{ needs.e2e-ui.result }}
           R_MATTER: ${{ needs.matter-bridge.result }}
           R_DOCKER: ${{ needs.docker-verify.result }}
+          R_I18N: ${{ needs.i18n-catalogs.result }}
         run: |
           set -euo pipefail
           fail=0
-          for pair in "changes:$R_CHANGES" "build-and-test:$R_BUILD" "e2e-ui:$R_E2E" "matter-bridge:$R_MATTER" "docker-verify:$R_DOCKER"; do
+          for pair in "changes:$R_CHANGES" "build-and-test:$R_BUILD" "e2e-ui:$R_E2E" "matter-bridge:$R_MATTER" "docker-verify:$R_DOCKER" "i18n-catalogs:$R_I18N"; do
             job="${pair%%:*}"; result="${pair#*:}"
             echo "  $job: $result"
             if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then

@@ -838,7 +838,7 @@
     </div>
 
     <!-- ====== NAV ====== -->
-    <nav class="app-nav" aria-label="Main navigation">
+    <nav class="app-nav" x-data :aria-label="$t('nav.main_aria')">
         <div class="nav-inner">
             <a class="nav-brand" href="#dashboard">
                 <span class="nav-brand-mark" aria-hidden="true">
@@ -847,49 +847,49 @@
                 Aqualink
             </a>
             <div class="nav-links">
-                <button class="nav-link" :class="{ active: isRoute('dashboard') }" @click="navigate('dashboard')">Dashboard</button>
-                <button class="nav-link" :class="{ active: isRoute('detailed') }" @click="navigate('detailed')">Detailed</button>
-                <button class="nav-link" :class="{ active: isRoute('trends') }" @click="navigate('trends')">Trends</button>
-                <button class="nav-link" :class="{ active: isRoute('schedules') }" @click="navigate('schedules')">Schedules</button>
-                <button class="nav-link" :class="{ active: isRoute('settings') }" @click="navigate('settings')">Settings</button>
-                <button class="nav-link" :class="{ active: isRoute('about') }" @click="navigate('about')">About</button>
-                <button class="nav-link" :class="{ active: isRoute('diagnostics') }" @click="navigate('diagnostics')">Diagnostics</button>
+                <button class="nav-link" :class="{ active: isRoute('dashboard') }" @click="navigate('dashboard')" x-text="$t('nav.dashboard')"></button>
+                <button class="nav-link" :class="{ active: isRoute('detailed') }" @click="navigate('detailed')" x-text="$t('nav.detailed')"></button>
+                <button class="nav-link" :class="{ active: isRoute('trends') }" @click="navigate('trends')" x-text="$t('nav.trends')"></button>
+                <button class="nav-link" :class="{ active: isRoute('schedules') }" @click="navigate('schedules')" x-text="$t('nav.schedules')"></button>
+                <button class="nav-link" :class="{ active: isRoute('settings') }" @click="navigate('settings')" x-text="$t('nav.settings')"></button>
+                <button class="nav-link" :class="{ active: isRoute('about') }" @click="navigate('about')" x-text="$t('nav.about')"></button>
+                <button class="nav-link" :class="{ active: isRoute('diagnostics') }" @click="navigate('diagnostics')" x-text="$t('nav.diagnostics')"></button>
             </div>
             <div class="nav-status" role="status" aria-live="polite">
                 <!-- connection chip -->
                 <span class="conn-chip" :class="$store.ws.connected ? 'is-online' : 'is-offline'"
-                      :title="$store.ws.connected ? 'Live connection to controller' : 'Connection lost — reconnecting'">
+                      :title="$store.ws.connected ? $t('nav.conn_live_title') : $t('nav.conn_lost_title')">
                     <span class="conn-dot" aria-hidden="true"></span>
-                    <span x-text="$store.ws.connected ? 'Live' : 'Offline'"></span>
+                    <span x-text="$store.ws.connected ? $t('common.live') : $t('common.offline')"></span>
                 </span>
                 <!-- status pill -->
                 <span class="status-pill status-starting" x-show="$store.system.state === 'Starting'" x-cloak>
-                    <span class="pill-spinner" aria-hidden="true"></span> Starting
+                    <span class="pill-spinner" aria-hidden="true"></span> <span x-text="$t('status.starting')"></span>
                 </span>
                 <span class="status-pill status-disconnected" x-show="$store.system.state === 'Disconnected'" x-cloak>
-                    <span class="pill-dot" aria-hidden="true"></span> Disconnected
+                    <span class="pill-dot" aria-hidden="true"></span> <span x-text="$t('status.disconnected')"></span>
                 </span>
                 <span class="status-pill status-service" x-show="$store.system.state === 'ServiceMode'" x-cloak>
-                    <span class="pill-dot" aria-hidden="true"></span> Service Mode
+                    <span class="pill-dot" aria-hidden="true"></span> <span x-text="$t('status.service_mode')"></span>
                 </span>
                 <span class="status-pill status-monitor" x-show="$store.system.state === 'MonitorOnly'" x-cloak>
-                    <span class="pill-dot" aria-hidden="true"></span> Monitor-only
+                    <span class="pill-dot" aria-hidden="true"></span> <span x-text="$t('status.monitor_only')"></span>
                 </span>
                 <span class="status-pill status-ready" x-show="$store.system.state === 'Ready'" x-cloak>
-                    <span class="pill-dot" aria-hidden="true"></span> Ready
+                    <span class="pill-dot" aria-hidden="true"></span> <span x-text="$t('status.ready')"></span>
                 </span>
                 <!-- alerts bell + dropdown -->
                 <span class="alerts-wrap" x-data="{ open: false }" @keydown.escape.window="open = false">
                     <button class="nav-icon-btn alerts-bell" :class="{ 'has-alerts': $store.alerts.hasAlerts }"
-                            @click="open = !open" :aria-expanded="open" aria-label="Active alerts">
+                            @click="open = !open" :aria-expanded="open" :aria-label="$t('alerts.aria')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                         </svg>
                         <span class="alerts-badge" x-show="$store.alerts.hasAlerts" x-cloak x-text="$store.alerts.count"></span>
                     </button>
-                    <div class="alerts-dropdown" x-show="open" x-cloak @click.outside="open = false" x-transition.opacity role="dialog" aria-label="Active alerts">
-                        <div class="alerts-dd-head">Active Alerts<span class="alerts-dd-count" x-text="$store.alerts.count"></span></div>
-                        <div class="alerts-dd-empty" x-show="!$store.alerts.hasAlerts">No active alerts.</div>
+                    <div class="alerts-dropdown" x-show="open" x-cloak @click.outside="open = false" x-transition.opacity role="dialog" :aria-label="$t('alerts.aria')">
+                        <div class="alerts-dd-head"><span x-text="$t('alerts.title')"></span><span class="alerts-dd-count" x-text="$store.alerts.count"></span></div>
+                        <div class="alerts-dd-empty" x-show="!$store.alerts.hasAlerts" x-text="$t('alerts.empty')"></div>
                         <div class="alerts-dd-list">
                             <template x-for="a in $store.alerts.list" :key="a.condition">
                                 <div class="alerts-dd-item">
@@ -901,18 +901,18 @@
                                 </div>
                             </template>
                         </div>
-                        <div class="alerts-dd-foot">Alerts clear automatically when the condition resolves.</div>
+                        <div class="alerts-dd-foot" x-text="$t('alerts.footer')"></div>
                     </div>
                 </span>
             </div>
             <div class="nav-controls">
                 <button class="theme-toggle" @click="$store.system.toggleMonitorOnly()"
-                        :title="$store.system.monitorOnly ? 'Disable monitor-only mode' : 'Enable monitor-only mode'"
+                        :title="$store.system.monitorOnly ? $t('nav.monitor_only_disable') : $t('nav.monitor_only_enable')"
                         :class="{ active: $store.system.monitorOnly }">
                     <svg x-show="$store.system.monitorOnly" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     <svg x-show="!$store.system.monitorOnly" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
                 </button>
-                <button class="theme-toggle" @click="$store.theme.toggle()" :title="$store.theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+                <button class="theme-toggle" @click="$store.theme.toggle()" :title="$store.theme.isDark ? $t('nav.theme_to_light') : $t('nav.theme_to_dark')">
                     <svg x-show="$store.theme.isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
                     <svg x-show="!$store.theme.isDark" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 </button>
@@ -945,15 +945,15 @@
     <div class="startup-banner" x-show="$store.system.state === 'Starting'" x-cloak x-transition.opacity>
         <div class="startup-banner-inner">
             <span class="mode-spinner"></span>
-            <span x-show="!$store.ws.connected">Connecting to server...</span>
-            <span x-show="$store.ws.connected && $store.system.poolConfiguration === 'Unknown'">Discovering equipment...</span>
+            <span x-show="!$store.ws.connected" x-text="$t('banner.connecting')"></span>
+            <span x-show="$store.ws.connected && $store.system.poolConfiguration === 'Unknown'" x-text="$t('banner.discovering')"></span>
         </div>
     </div>
 
     <!-- ====== SERVICE MODE BANNER ====== -->
     <div class="service-banner" x-show="$store.system.state === 'ServiceMode'" x-cloak x-transition.opacity>
         <div class="service-banner-inner">
-            &#x1F527; Service Mode active &mdash; commands are disabled
+            &#x1F527; <span x-text="$t('banner.service_mode')"></span>
         </div>
     </div>
 
@@ -963,10 +963,10 @@
          @click.self="$store.system.dismissServiceModal()">
         <div class="modal-content">
             <div class="modal-icon" aria-hidden="true">&#x1F527;</div>
-            <h3 id="service-modal-title" class="modal-title">Service Mode Active</h3>
-            <p class="modal-text">The pool controller has entered Service Mode. All commands are disabled until the controller returns to normal operation.</p>
-            <p class="modal-hint">To exit Service Mode, use the physical controller panel.</p>
-            <button class="modal-dismiss" @click="$store.system.dismissServiceModal()">Understood</button>
+            <h3 id="service-modal-title" class="modal-title" x-text="$t('service_modal.title')"></h3>
+            <p class="modal-text" x-text="$t('service_modal.text')"></p>
+            <p class="modal-hint" x-text="$t('service_modal.hint')"></p>
+            <button class="modal-dismiss" @click="$store.system.dismissServiceModal()" x-text="$t('service_modal.dismiss')"></button>
         </div>
     </div>
 
@@ -978,15 +978,15 @@
         <div x-show="route === 'dashboard'" x-cloak x-data="dashboardView()">
 
             <!-- Summary Strip -->
-            <div class="summary-strip card mt-2 mb-2" x-data="poolGraphic()" role="region" aria-label="Pool and spa temperature overview and equipment status">
+            <div class="summary-strip card mt-2 mb-2" x-data="poolGraphic()" role="region" :aria-label="$t('dash.summary_aria')">
                 <!-- Pool -->
                 <div class="summary-section">
                     <span class="summary-accent summary-accent--pool" aria-hidden="true"></span>
                     <div class="summary-section-body">
-                        <span class="summary-label">Pool</span>
+                        <span class="summary-label" x-text="$t('common.pool')"></span>
                         <span class="summary-temp" x-text="poolTempDisplay"></span>
                         <span class="summary-setpoint" x-show="$store.pool.poolSetpoint !== '--'"
-                              x-text="'Set ' + (typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.poolSetpoint)"></span>
+                              x-text="$t('dash.set_value', { value: $store.pool.poolSetpointDisplay })"></span>
                     </div>
                 </div>
 
@@ -995,10 +995,10 @@
                 <div class="summary-section">
                     <span class="summary-accent summary-accent--spa" aria-hidden="true"></span>
                     <div class="summary-section-body">
-                        <span class="summary-label">Spa</span>
+                        <span class="summary-label" x-text="$t('common.spa')"></span>
                         <span class="summary-temp" x-text="spaTempDisplay"></span>
                         <span class="summary-setpoint" x-show="$store.pool.spaSetpoint !== '--'"
-                              x-text="'Set ' + (typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.spaSetpoint)"></span>
+                              x-text="$t('dash.set_value', { value: $store.pool.spaSetpointDisplay })"></span>
                     </div>
                 </div>
                 </template>
@@ -1006,7 +1006,7 @@
                 <!-- Air -->
                 <div class="summary-section">
                     <div class="summary-section-body">
-                        <span class="summary-label">Air</span>
+                        <span class="summary-label" x-text="$t('common.air')"></span>
                         <span class="summary-temp" x-text="airTempDisplay"></span>
                     </div>
                 </div>
@@ -1017,18 +1017,18 @@
                 <div class="summary-status">
                     <span class="hero-status-pill"
                           :class="$store.pool.systemStatus === 'Operational' ? 'is-ok' : 'is-warn'"
-                          x-text="($store.pool.systemStatus || 'Unknown').toUpperCase()"></span>
+                          x-text="($store.pool.systemStatus ? $store.pool.systemStatusLabel : $t('common.unknown')).toUpperCase()"></span>
                     <div class="summary-status-row">
                         <span class="summary-status-dot" :class="pumpActive ? 'dot-active' : 'dot-inactive'" aria-hidden="true"></span>
-                        <span x-text="'Pump ' + (pumpActive ? 'On' : 'Off')"></span>
+                        <span x-text="$t('dash.pump_state', { state: pumpActive ? $t('common.on') : $t('common.off') })"></span>
                     </div>
                     <div class="summary-status-row">
                         <span class="summary-status-dot" :class="heaterActive ? 'dot-active' : 'dot-inactive'" aria-hidden="true"></span>
-                        <span x-text="'Heater ' + (heaterActive ? 'On' : 'Off')"></span>
+                        <span x-text="$t('dash.heater_state', { state: heaterActive ? $t('common.on') : $t('common.off') })"></span>
                     </div>
                     <div class="summary-status-row" x-show="hasChlorinator" x-cloak>
                         <span class="summary-status-dot" :class="chlorinatorActive ? 'dot-active' : 'dot-inactive'" aria-hidden="true"></span>
-                        <span x-text="'Chlorinator ' + (chlorinatorActive ? 'On' : 'Off')"></span>
+                        <span x-text="$t('dash.chlorinator_state', { state: chlorinatorActive ? $t('common.on') : $t('common.off') })"></span>
                     </div>
                 </div>
             </div>
@@ -1038,32 +1038,32 @@
             <!-- Circulation — dual-body (Pool + Spa) systems only -->
             <template x-if="$store.pool.hasDualBody">
                 <div class="card">
-                    <div class="card-header">Circulation</div>
+                    <div class="card-header" x-text="$t('dash.circulation')"></div>
                     <div class="card-body">
                         <div class="circ-row">
                             <span class="circ-icon" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2 8c2.2-2 3.8-2 6 0s3.8 2 6 0 3.8-2 6 0M2 14c2.2-2 3.8-2 6 0s3.8 2 6 0 3.8-2 6 0"/></svg>
                             </span>
                             <div class="circ-body">
-                                <div class="circ-title">Active Body</div>
-                                <div class="circ-sub" x-text="'Shared pump circulating: ' + ($store.pool.spaModeActive ? 'Spa' : 'Pool')"></div>
+                                <div class="circ-title" x-text="$t('dash.active_body')"></div>
+                                <div class="circ-sub" x-text="$t('dash.shared_pump', { body: $store.pool.spaModeActive ? $t('common.spa') : $t('common.pool') })"></div>
                             </div>
-                            <div class="circ-seg" role="group" aria-label="Active body">
+                            <div class="circ-seg" role="group" :aria-label="$t('dash.active_body')">
                                 <button type="button" class="circ-seg-btn" :class="{ active: !$store.pool.spaModeActive }"
                                         :aria-pressed="!$store.pool.spaModeActive"
                                         :disabled="$store.pool.getCommandState('circulation') === 'sending'"
-                                        @click="$store.pool.toggleSpaMode(false)">Pool</button>
+                                        @click="$store.pool.toggleSpaMode(false)" x-text="$t('common.pool')"></button>
                                 <button type="button" class="circ-seg-btn" :class="{ active: $store.pool.spaModeActive }"
                                         :aria-pressed="$store.pool.spaModeActive"
                                         :disabled="$store.pool.getCommandState('circulation') === 'sending'"
-                                        @click="$store.pool.toggleSpaMode(true)">Spa</button>
+                                        @click="$store.pool.toggleSpaMode(true)" x-text="$t('common.spa')"></button>
                             </div>
                         </div>
                         <div class="circ-feedback">
-                            <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('circulation') === 'applied'" x-transition.opacity>Applied</span>
-                            <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('circulation') === 'rejected'" x-transition.opacity>Rejected</span>
-                            <span class="cmd-badge cmd-timedout" x-show="$store.pool.getCommandState('circulation') === 'timedout'" x-transition.opacity>Timed out</span>
-                            <span class="cmd-badge cmd-blocked" x-show="$store.pool.getCommandState('circulation') === 'blocked'" x-transition.opacity x-text="$store.system.disableReason || 'Blocked'"></span>
+                            <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('circulation') === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                            <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('circulation') === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
+                            <span class="cmd-badge cmd-timedout" x-show="$store.pool.getCommandState('circulation') === 'timedout'" x-transition.opacity x-text="$t('cmd.timedout')"></span>
+                            <span class="cmd-badge cmd-blocked" x-show="$store.pool.getCommandState('circulation') === 'blocked'" x-transition.opacity x-text="$store.system.disableReason || $t('cmd.blocked')"></span>
                         </div>
                     </div>
                 </div>
@@ -1071,34 +1071,32 @@
 
             <!-- Temperature Setpoints \u2014 always-visible per-body steppers -->
             <div class="card" x-show="$store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--'">
-                <div class="card-header">Temperature Setpoints</div>
+                <div class="card-header" x-text="$t('dash.temperature_setpoints')"></div>
                 <div class="card-body">
                     <!-- Pool setpoint -->
                     <div class="setpoint-row" x-show="$store.pool.poolSetpoint !== '--'">
-                        <span class="setpoint-row-label">Pool</span>
+                        <span class="setpoint-row-label" x-text="$t('common.pool')"></span>
                         <span class="setpoint-feedback">
-                            <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:pool') === 'applied'" x-transition.opacity>Applied</span>
-                            <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:pool') === 'rejected'" x-transition.opacity>Rejected</span>
+                            <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:pool') === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                            <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:pool') === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
                         </span>
                         <div class="setpoint-stepper">
-                            <button class="setpoint-btn" aria-label="Decrease pool setpoint" @click="$store.pool.adjustSetpoint('pool', -0.5)">&minus;</button>
-                            <span class="setpoint-row-value"
-                                  x-text="typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.poolSetpoint"></span>
-                            <button class="setpoint-btn" aria-label="Increase pool setpoint" @click="$store.pool.adjustSetpoint('pool', 0.5)">+</button>
+                            <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', -0.5)">&minus;</button>
+                            <span class="setpoint-row-value" x-text="$store.pool.poolSetpointDisplay"></span>
+                            <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', 0.5)">+</button>
                         </div>
                     </div>
                     <!-- Spa setpoint -->
                     <div class="setpoint-row" x-show="$store.pool.spaSetpoint !== '--'">
-                        <span class="setpoint-row-label">Spa</span>
+                        <span class="setpoint-row-label" x-text="$t('common.spa')"></span>
                         <span class="setpoint-feedback">
-                            <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:spa') === 'applied'" x-transition.opacity>Applied</span>
-                            <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:spa') === 'rejected'" x-transition.opacity>Rejected</span>
+                            <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:spa') === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                            <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:spa') === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
                         </span>
                         <div class="setpoint-stepper">
-                            <button class="setpoint-btn" aria-label="Decrease spa setpoint" @click="$store.pool.adjustSetpoint('spa', -0.5)">&minus;</button>
-                            <span class="setpoint-row-value"
-                                  x-text="typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.spaSetpoint"></span>
-                            <button class="setpoint-btn" aria-label="Increase spa setpoint" @click="$store.pool.adjustSetpoint('spa', 0.5)">+</button>
+                            <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', -0.5)">&minus;</button>
+                            <span class="setpoint-row-value" x-text="$store.pool.spaSetpointDisplay"></span>
+                            <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', 0.5)">+</button>
                         </div>
                     </div>
                 </div>
@@ -1106,7 +1104,7 @@
             </div><!-- /.dash-cols -->
 
             <!-- Chemistry Gauges -->
-            <div class="section-title">Water Chemistry</div>
+            <div class="section-title" x-text="$t('dash.water_chemistry')"></div>
             <div class="gauge-grid mb-2">
                 <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
                     <div class="gauge-card" x-data="chemistryGauge(type)"
@@ -1129,40 +1127,40 @@
                                         x-show="numericValue !== null" :stroke="statusColor" :stroke-dasharray="valueDash"></circle>
                             </svg>
                             <div class="chem-dial-center">
-                                <span class="chem-dial-num" :style="`color:${statusColor}`" x-text="numericValue === null ? '--' : numericValue.toFixed(cfg.decimals)"></span>
+                                <span class="chem-dial-num" :style="`color:${statusColor}`" x-text="numericValue === null ? '--' : $nf(numericValue, cfg.decimals)"></span>
                                 <span class="chem-dial-unit" x-text="(cfg.unit || '').trim()"></span>
                             </div>
                         </div>
-                        <div class="chem-dial-range" x-text="cfg.min + ' – ' + cfg.max"></div>
+                        <div class="chem-dial-range" x-text="$n(cfg.min) + ' – ' + $n(cfg.max)"></div>
                     </div>
                 </template>
 
                 <!-- Chlorinator (SWG): actual output (big) + inline TARGET control.
                      Folded in here (was a duplicate card repeating pH/ORP/Salt). -->
                 <div class="gauge-card swg-card" x-data="chlorinatorControl()" x-show="present" x-cloak
-                     role="region" aria-label="Chlorinator output and target control">
+                     role="region" :aria-label="$t('dash.swg_aria')">
                     <div class="gauge-header">
-                        <span class="gauge-label">SWG Output</span>
+                        <span class="gauge-label" x-text="$t('dash.swg_output')"></span>
                         <span class="gauge-band-indicator" x-show="healthBand"
                               :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
                     </div>
                     <div class="gauge-value" :style="`color:${healthColor}`" x-text="actualLabel"></div>
                     <div class="swg-target">
-                        <span class="swg-target-label">Target</span>
+                        <span class="swg-target-label" x-text="$t('dash.target')"></span>
                         <input type="range" min="0" max="100" step="5" class="swg-slider"
                                x-model.number="target" @input="touched = true"
                                :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
-                               aria-label="Target output percentage">
-                        <span class="swg-target-value" x-text="target + '%'"></span>
+                               :aria-label="$t('dash.target_aria')">
+                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
                     </div>
                     <div class="swg-actions">
                         <template x-if="$store.auth.can('equipment.control.chlorinator')">
                             <div class="swg-actions-inner">
-                                <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed">Set</button>
+                                <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
                                 <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
-                                        :disabled="busy" :aria-pressed="boost">Boost</button>
-                                <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity>Set&nbsp;&#x2713;</span>
-                                <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity>Failed</span>
+                                        :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
+                                <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
+                                <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
                             </div>
                         </template>
                         <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak>Sign in to adjust</span>
@@ -1173,7 +1171,7 @@
             <!-- Heater Controls -->
             <template x-if="heaterButtons().length > 0">
                 <div>
-                    <div class="section-title">Heater</div>
+                    <div class="section-title" x-text="$t('dash.heater')"></div>
                     <div class="heater-rows mb-2">
                         <template x-for="button in heaterButtons()" :key="button.id">
                             <div class="heater-row card" x-data="equipmentButton()">
@@ -1182,9 +1180,9 @@
                                             :class="{ active: isActive(button), 'is-locked': !$store.auth.can('equipment.control.heater'), 'cmd-sending': cmdState(button) === 'sending', 'cmd-flash-ok': cmdState(button) === 'applied', 'cmd-flash-bad': cmdState(button) === 'rejected' || cmdState(button) === 'timedout' }"
                                             :aria-pressed="isActive(button)"
                                             :disabled="!$store.auth.can('equipment.control.heater')"
-                                            :aria-label="'Toggle ' + button.label + (!$store.auth.can('equipment.control.heater') ? ' (sign in to control)' : '')"
+                                            :aria-label="$t('dash.toggle_device', { device: button.label })"
                                             @click="$store.pool.setHeaterMode(button, !isActive(button))">
-                                        <span x-text="isActive(button) ? 'On' : 'Off'"></span>
+                                        <span x-text="isActive(button) ? $t('common.on') : $t('common.off')"></span>
                                     </button>
                                     <span class="heater-label" x-text="button.display_label || button.label"></span>
                                     <span class="heater-status-badge"
@@ -1196,13 +1194,13 @@
                                           x-text="statusLabel(button)"></span>
                                     <span class="heater-temp" x-text="button.label.toLowerCase().includes('spa') ? $store.pool.spaTemp : $store.pool.poolTemp"></span>
                                     <span class="heater-setpoint text-muted" x-text="button.label.toLowerCase().includes('spa')
-                                        ? (typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.spaSetpoint)
-                                        : (typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.poolSetpoint)"></span>
+                                        ? $store.pool.spaSetpointDisplay
+                                        : $store.pool.poolSetpointDisplay"></span>
                                 </div>
                                 <!-- Command feedback -->
-                                <span class="cmd-badge cmd-applied" x-show="cmdState(button) === 'applied'" x-transition.opacity>Applied</span>
-                                <span class="cmd-badge cmd-rejected" x-show="cmdState(button) === 'rejected'" x-transition.opacity>Rejected</span>
-                                <span class="cmd-badge cmd-timedout" x-show="cmdState(button) === 'timedout'" x-transition.opacity>Timed out</span>
+                                <span class="cmd-badge cmd-applied" x-show="cmdState(button) === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                                <span class="cmd-badge cmd-rejected" x-show="cmdState(button) === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
+                                <span class="cmd-badge cmd-timedout" x-show="cmdState(button) === 'timedout'" x-transition.opacity x-text="$t('cmd.timedout')"></span>
                             </div>
                         </template>
                     </div>
@@ -1210,13 +1208,13 @@
             </template>
 
             <!-- Equipment Controls — controllable (toggleable) devices only -->
-            <div class="section-title">Equipment Controls</div>
+            <div class="section-title" x-text="$t('dash.equipment_controls')"></div>
             <div x-show="$store.pool.buttonsLoading" class="text-center">
                 <div class="spinner"></div>
-                <p class="text-muted text-sm">Loading equipment...</p>
+                <p class="text-muted text-sm" x-text="$t('dash.loading_equipment')"></p>
             </div>
             <div x-show="!$store.pool.buttonsLoading && controlButtons().length === 0" class="text-center py-3">
-                <p class="text-muted">No controllable equipment available</p>
+                <p class="text-muted" x-text="$t('dash.no_controllable')"></p>
             </div>
             <div class="control-grid" x-show="!$store.pool.buttonsLoading && controlButtons().length > 0">
                 <template x-for="button in controlButtons()" :key="button.id">
@@ -1241,10 +1239,10 @@
                             <span class="eq-switch-knob"></span>
                         </span>
                         <!-- Command feedback -->
-                        <span class="cmd-badge cmd-applied" x-show="cmdState(button) === 'applied'" x-transition.opacity>Applied</span>
-                        <span class="cmd-badge cmd-rejected" x-show="cmdState(button) === 'rejected'" x-transition.opacity>Rejected</span>
-                        <span class="cmd-badge cmd-timedout" x-show="cmdState(button) === 'timedout'" x-transition.opacity>Timed out</span>
-                        <span class="cmd-badge cmd-blocked" x-show="cmdState(button) === 'blocked'" x-transition.opacity x-text="$store.system.disableReason || 'Blocked'"></span>
+                        <span class="cmd-badge cmd-applied" x-show="cmdState(button) === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                        <span class="cmd-badge cmd-rejected" x-show="cmdState(button) === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
+                        <span class="cmd-badge cmd-timedout" x-show="cmdState(button) === 'timedout'" x-transition.opacity x-text="$t('cmd.timedout')"></span>
+                        <span class="cmd-badge cmd-blocked" x-show="cmdState(button) === 'blocked'" x-transition.opacity x-text="$store.system.disableReason || $t('cmd.blocked')"></span>
                         <span class="cmd-spinner-overlay" x-show="cmdState(button) === 'sending'" aria-hidden="true">
                             <span class="cmd-spinner"></span>
                         </span>
@@ -1255,12 +1253,12 @@
             <!-- Other Equipment — configurable / informational, read-only. Hidden when empty. -->
             <template x-if="otherButtons().length > 0">
                 <div>
-                    <div class="section-title">Other Equipment</div>
+                    <div class="section-title" x-text="$t('dash.other_equipment')"></div>
                     <div class="other-equip card mb-2">
                         <template x-for="button in otherButtons()" :key="button.id">
                             <div class="other-equip-row">
                                 <span class="other-equip-label" x-text="button.display_label || button.label"></span>
-                                <span class="other-equip-status text-muted" x-text="button.status || 'Status only'"></span>
+                                <span class="other-equip-status text-muted" x-text="button.status || $t('dash.status_only')"></span>
                             </div>
                         </template>
                     </div>
@@ -1271,44 +1269,44 @@
             <div class="freshness-wrap" x-show="lastUpdateText">
                 <span class="freshness-pill" :class="$store.ws.connected ? 'is-live' : 'is-stale'">
                     <span class="freshness-dot" aria-hidden="true"></span>
-                    <span x-text="($store.ws.connected ? 'Live' : 'Stale') + ' · last update '"></span><span x-text="lastUpdateText"></span>
+                    <span x-text="$t('dash.freshness', { state: $store.ws.connected ? $t('common.live') : $t('common.stale'), time: lastUpdateText })"></span>
                 </span>
             </div>
         </div>
 
         <!-- ====== DETAILED VIEW ====== -->
         <div x-show="route === 'detailed'" x-cloak>
-            <div class="section-title">Live System State</div>
+            <div class="section-title" x-text="$t('detail.live_system_state')"></div>
             <div class="detail-grid">
 
                 <!-- Temperatures -->
                 <div class="card detail-card">
-                    <div class="card-header">Temperatures</div>
+                    <div class="card-header" x-text="$t('detail.temperatures')"></div>
                     <div class="detail-kv">
-                        <div class="kv-row"><span class="kv-k">Pool</span><span class="kv-v" x-text="$store.pool.poolTemp"></span></div>
-                        <div class="kv-row"><span class="kv-k">Pool setpoint</span><span class="kv-v" x-text="typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' °C') : $store.pool.poolSetpoint"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('common.pool')"></span><span class="kv-v" x-text="$store.pool.poolTemp"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.pool_setpoint')"></span><span class="kv-v" x-text="$store.pool.poolSetpointDisplay"></span></div>
                         <template x-if="$store.pool.hasDualBody">
                             <div>
-                                <div class="kv-row"><span class="kv-k">Spa</span><span class="kv-v" x-text="$store.pool.spaTemp"></span></div>
-                                <div class="kv-row"><span class="kv-k">Spa setpoint</span><span class="kv-v" x-text="typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' °C') : $store.pool.spaSetpoint"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('common.spa')"></span><span class="kv-v" x-text="$store.pool.spaTemp"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.spa_setpoint')"></span><span class="kv-v" x-text="$store.pool.spaSetpointDisplay"></span></div>
                             </div>
                         </template>
-                        <div class="kv-row"><span class="kv-k">Air</span><span class="kv-v" x-text="$store.pool.airTemp"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('common.air')"></span><span class="kv-v" x-text="$store.pool.airTemp"></span></div>
                     </div>
                 </div>
 
                 <!-- Water Chemistry -->
                 <div class="card detail-card">
-                    <div class="card-header">Water Chemistry</div>
+                    <div class="card-header" x-text="$t('detail.water_chemistry')"></div>
                     <div class="detail-kv">
-                        <div class="kv-row"><span class="kv-k">pH</span><span class="kv-v" x-text="$store.pool.ph"></span></div>
-                        <div class="kv-row"><span class="kv-k">ORP</span><span class="kv-v" x-text="$store.pool.orp === '--' ? '--' : ($store.pool.orp + ' mV')"></span></div>
-                        <div class="kv-row"><span class="kv-k">Salt</span><span class="kv-v" x-text="$store.pool.saltPpm === '--' ? '--' : ($store.pool.saltPpm + ' ppm')"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.ph')"></span><span class="kv-v" x-text="$store.pool.ph === '--' ? '--' : $n($store.pool.ph)"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.orp')"></span><span class="kv-v" x-text="$store.pool.orp === '--' ? '--' : ($n($store.pool.orp) + ' mV')"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.salt')"></span><span class="kv-v" x-text="$store.pool.saltPpm === '--' ? '--' : ($n($store.pool.saltPpm) + ' ppm')"></span></div>
                         <template x-if="$store.pool.chlorinatorPresent">
                             <div>
-                                <div class="kv-row"><span class="kv-k">SWG output</span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($store.pool.swgGeneratingPercent + ' %')"></span></div>
-                                <div class="kv-row"><span class="kv-k">SWG target</span><span class="kv-v" x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($store.pool.swgSetpointPercent + ' %')"></span></div>
-                                <div class="kv-row"><span class="kv-k">SWG health</span><span class="kv-v" x-text="$store.pool.chlorinatorHealth"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_output')"></span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($n($store.pool.swgGeneratingPercent) + ' %')"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v" x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($n($store.pool.swgSetpointPercent) + ' %')"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_health')"></span><span class="kv-v" x-text="$store.pool.chlorinatorHealthLabel || $store.pool.chlorinatorHealth"></span></div>
                             </div>
                         </template>
                     </div>
@@ -1316,13 +1314,13 @@
 
                 <!-- Circulation -->
                 <div class="card detail-card">
-                    <div class="card-header">Circulation</div>
+                    <div class="card-header" x-text="$t('detail.circulation')"></div>
                     <div class="detail-kv">
                         <template x-if="$store.pool.hasDualBody">
-                            <div class="kv-row"><span class="kv-k">Mode</span><span class="kv-v" x-text="$store.pool.spaModeActive ? 'Spa' : 'Pool'"></span></div>
+                            <div class="kv-row"><span class="kv-k" x-text="$t('detail.mode')"></span><span class="kv-v" x-text="$store.pool.spaModeActive ? $t('common.spa') : $t('common.pool')"></span></div>
                         </template>
                         <template x-if="!$store.pool.hasDualBody">
-                            <div class="kv-row"><span class="kv-k">Body</span><span class="kv-v">Pool</span></div>
+                            <div class="kv-row"><span class="kv-k" x-text="$t('detail.body')"></span><span class="kv-v" x-text="$t('common.pool')"></span></div>
                         </template>
                         <template x-for="b in ($store.pool.buttons || []).filter(x => /pump|filter|spillway/i.test(x.label))" :key="b.id">
                             <div class="kv-row"><span class="kv-k" x-text="b.display_label || b.label"></span><span class="kv-v" x-text="b.status || '--'"></span></div>
@@ -1333,9 +1331,9 @@
                 <!-- Heating -->
                 <template x-if="($store.pool.buttons || []).some(b => /heat|solar/i.test(b.label))">
                 <div class="card detail-card">
-                    <div class="card-header">Heating</div>
+                    <div class="card-header" x-text="$t('detail.heating')"></div>
                     <div class="detail-kv">
-                        <div class="kv-row"><span class="kv-k">Heat source</span><span class="kv-v" x-text="(() => { const h = ($store.pool.buttons || []).find(b => /heat|solar/i.test(b.label) && b.status && !/off/i.test(b.status)); return h ? (h.display_label || h.label) : 'None'; })()"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.heat_source')"></span><span class="kv-v" x-text="(() => { const h = ($store.pool.buttons || []).find(b => /heat|solar/i.test(b.label) && b.status && !/off/i.test(b.status)); return h ? (h.display_label || h.label) : $t('common.none'); })()"></span></div>
                         <template x-for="b in ($store.pool.buttons || []).filter(x => /heat|solar/i.test(x.label))" :key="b.id">
                             <div class="kv-row"><span class="kv-k" x-text="b.display_label || b.label"></span><span class="kv-v" x-text="b.status || '--'"></span></div>
                         </template>
@@ -1345,15 +1343,15 @@
 
                 <!-- System -->
                 <div class="card detail-card">
-                    <div class="card-header">System</div>
+                    <div class="card-header" x-text="$t('detail.system')"></div>
                     <div class="detail-kv">
                         <template x-for="field in $store.pool.equipmentVersion" :key="field.label">
                             <div class="kv-row"><span class="kv-k" x-text="field.label"></span><span class="kv-v" x-text="field.value"></span></div>
                         </template>
-                        <div class="kv-row"><span class="kv-k">State</span><span class="kv-v" x-text="$store.system.state"></span></div>
-                        <div class="kv-row"><span class="kv-k">System status</span><span class="kv-v" x-text="$store.pool.systemStatus"></span></div>
-                        <div class="kv-row" x-show="$store.system.startedAt"><span class="kv-k">Started</span><span class="kv-v" x-text="$store.system.startedAt"></span></div>
-                        <div class="kv-row" x-show="$store.system.uptime"><span class="kv-k">Uptime</span><span class="kv-v" x-text="$store.system.uptime"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.state')"></span><span class="kv-v" x-text="$store.system.state"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.system_status')"></span><span class="kv-v" x-text="$store.pool.systemStatusLabel"></span></div>
+                        <div class="kv-row" x-show="$store.system.startedAt"><span class="kv-k" x-text="$t('detail.started')"></span><span class="kv-v" x-text="$store.system.startedAt"></span></div>
+                        <div class="kv-row" x-show="$store.system.uptime"><span class="kv-k" x-text="$t('detail.uptime')"></span><span class="kv-v" x-text="$store.system.uptime"></span></div>
                     </div>
                 </div>
 
@@ -1366,68 +1364,68 @@
              x-effect="if (route === 'diagnostics') { initChart() } else { destroyChart() }">
 
             <!-- System Health -->
-            <div class="section-title mt-2">System Health</div>
+            <div class="section-title mt-2" x-text="$t('diag.system_health')"></div>
             <div class="card mb-2 health-card">
                 <div class="health-head">
                     <span class="health-icon" :class="health.ready ? 'is-ok' : 'is-warn'" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                     </span>
                     <div class="health-head-body">
-                        <div class="health-title"><span x-text="health.ready ? 'Ready' : 'Not ready'"></span> <code class="health-endpoint">GET /api/health/detailed</code></div>
-                        <div class="health-sub" x-text="health.ready ? 'All subsystems nominal · configuration determined' : (health.status || 'Starting…')"></div>
+                        <div class="health-title"><span x-text="health.ready ? $t('diag.ready') : $t('diag.not_ready')"></span> <code class="health-endpoint">GET /api/health/detailed</code></div>
+                        <div class="health-sub" x-text="health.ready ? $t('diag.all_nominal') : (health.status || $t('diag.starting'))"></div>
                     </div>
-                    <div class="health-uptime" x-show="health.uptime_seconds">uptime <span x-text="_fmtUptime(health.uptime_seconds)"></span></div>
+                    <div class="health-uptime" x-show="health.uptime_seconds" x-text="$t('diag.uptime', { value: _fmtUptime(health.uptime_seconds) })"></div>
                 </div>
                 <div class="health-grid">
                     <div class="health-sub-card">
-                        <div class="health-sub-title"><span class="health-dot is-ok"></span>Configuration</div>
-                        <div class="health-kv"><span>Pool config</span><span x-text="health.checks?.configuration?.pool_configuration || '--'"></span></div>
-                        <div class="health-kv"><span>System board</span><span x-text="health.checks?.configuration?.system_board || '--'"></span></div>
-                        <div class="health-kv"><span>Mode</span><span x-text="health.checks?.configuration?.mode || '--'"></span></div>
-                        <div class="health-kv"><span>Validation</span><span :class="health.checks?.configuration?.equipment_validation?.passed ? 'val-ok' : 'val-bad'" x-text="health.checks?.configuration?.equipment_validation?.passed ? 'Passed' : 'Failed'"></span></div>
-                        <div class="health-kv"><span>Auxiliaries</span><span x-text="(health.checks?.configuration?.equipment_validation?.discovered_auxillaries ?? '–') + ' / ' + (health.checks?.configuration?.equipment_validation?.expected_auxillaries ?? '–')"></span></div>
-                        <div class="health-kv"><span>Power centers</span><span x-text="(health.checks?.configuration?.equipment_validation?.discovered_power_centers ?? '–') + ' / ' + (health.checks?.configuration?.equipment_validation?.expected_power_centers ?? '–')"></span></div>
+                        <div class="health-sub-title"><span class="health-dot is-ok"></span><span x-text="$t('diag.configuration')"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.pool_config')"></span><span x-text="health.checks?.configuration?.pool_configuration || '--'"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.system_board')"></span><span x-text="health.checks?.configuration?.system_board || '--'"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.mode')"></span><span x-text="health.checks?.configuration?.mode || '--'"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.validation')"></span><span :class="health.checks?.configuration?.equipment_validation?.passed ? 'val-ok' : 'val-bad'" x-text="health.checks?.configuration?.equipment_validation?.passed ? $t('diag.passed') : $t('diag.failed')"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.auxiliaries')"></span><span x-text="(health.checks?.configuration?.equipment_validation?.discovered_auxillaries ?? '–') + ' / ' + (health.checks?.configuration?.equipment_validation?.expected_auxillaries ?? '–')"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.power_centers')"></span><span x-text="(health.checks?.configuration?.equipment_validation?.discovered_power_centers ?? '–') + ' / ' + (health.checks?.configuration?.equipment_validation?.expected_power_centers ?? '–')"></span></div>
                     </div>
                     <div class="health-sub-card">
-                        <div class="health-sub-title"><span class="health-dot is-ok"></span>Equipment</div>
-                        <div class="health-kv"><span>Status</span><span :class="health.checks?.equipment?.status === 'ok' ? 'val-ok' : ''" x-text="(health.checks?.equipment?.status || '--').toUpperCase()"></span></div>
-                        <div class="health-kv"><span>Devices</span><span x-text="health.checks?.equipment?.device_count ?? '--'"></span></div>
-                        <div class="health-kv"><span>Anomalies</span><span x-text="(health.checks?.configuration?.equipment_validation?.anomalies?.length) ? health.checks.configuration.equipment_validation.anomalies.length : 'None'"></span></div>
+                        <div class="health-sub-title"><span class="health-dot is-ok"></span><span x-text="$t('diag.equipment')"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.status')"></span><span :class="health.checks?.equipment?.status === 'ok' ? 'val-ok' : ''" x-text="(health.checks?.equipment?.status || '--').toUpperCase()"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.devices')"></span><span x-text="health.checks?.equipment?.device_count ?? '--'"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.anomalies')"></span><span x-text="(health.checks?.configuration?.equipment_validation?.anomalies?.length) ? health.checks.configuration.equipment_validation.anomalies.length : $t('common.none')"></span></div>
                     </div>
                     <div class="health-sub-card">
-                        <div class="health-sub-title"><span class="health-dot" :class="health.checks?.mqtt?.enabled ? 'is-ok' : 'is-off'"></span>MQTT</div>
-                        <div class="health-kv"><span>Enabled</span><span x-text="health.checks?.mqtt?.enabled ? 'Yes' : 'No'"></span></div>
-                        <div class="health-kv" x-show="health.checks?.mqtt?.enabled"><span>Running</span><span x-text="health.checks?.mqtt?.running ? 'Yes' : 'No'"></span></div>
-                        <div class="health-kv" x-show="health.checks?.mqtt?.enabled"><span>Connected</span><span x-text="health.checks?.mqtt?.connected ? 'Yes' : 'No'"></span></div>
+                        <div class="health-sub-title"><span class="health-dot" :class="health.checks?.mqtt?.enabled ? 'is-ok' : 'is-off'"></span><span x-text="$t('diag.mqtt')"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.enabled')"></span><span x-text="health.checks?.mqtt?.enabled ? $t('common.yes') : $t('common.no')"></span></div>
+                        <div class="health-kv" x-show="health.checks?.mqtt?.enabled"><span x-text="$t('diag.running')"></span><span x-text="health.checks?.mqtt?.running ? $t('common.yes') : $t('common.no')"></span></div>
+                        <div class="health-kv" x-show="health.checks?.mqtt?.enabled"><span x-text="$t('diag.connected')"></span><span x-text="health.checks?.mqtt?.connected ? $t('common.yes') : $t('common.no')"></span></div>
                     </div>
                 </div>
             </div>
 
-            <div class="section-title mt-2">Serial Port Utilization</div>
+            <div class="section-title mt-2" x-text="$t('diag.serial_port_utilization')"></div>
 
             <!-- Bandwidth stats -->
             <div class="stat-cards mb-2">
                 <div class="stat-card">
-                    <div class="stat-card-label">Read Total</div>
+                    <div class="stat-card-label" x-text="$t('diag.read_total')"></div>
                     <div class="stat-card-value" x-text="formatBytes($store.stats.bandwidthRead?.total_bytes)"></div>
                     <div class="util-bar-bg">
                         <div class="util-bar-fill" :style="`width:${Math.min(100, $store.stats.bandwidthRead?.average_utilisation_1sec || 0)}%;background:${utilColor($store.stats.bandwidthRead?.average_utilisation_1sec)}`"></div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Write Total</div>
+                    <div class="stat-card-label" x-text="$t('diag.write_total')"></div>
                     <div class="stat-card-value" x-text="formatBytes($store.stats.bandwidthWrite?.total_bytes)"></div>
                     <div class="util-bar-bg">
                         <div class="util-bar-fill" :style="`width:${Math.min(100, $store.stats.bandwidthWrite?.average_utilisation_1sec || 0)}%;background:${utilColor($store.stats.bandwidthWrite?.average_utilisation_1sec)}`"></div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Read 1s Avg</div>
-                    <div class="stat-card-value" x-text="($store.stats.bandwidthRead?.average_utilisation_1sec || 0).toFixed(2) + '%'"></div>
+                    <div class="stat-card-label" x-text="$t('diag.read_1s_avg')"></div>
+                    <div class="stat-card-value" x-text="$nf($store.stats.bandwidthRead?.average_utilisation_1sec || 0, 2) + '%'"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Write 1s Avg</div>
-                    <div class="stat-card-value" x-text="($store.stats.bandwidthWrite?.average_utilisation_1sec || 0).toFixed(2) + '%'"></div>
+                    <div class="stat-card-label" x-text="$t('diag.write_1s_avg')"></div>
+                    <div class="stat-card-value" x-text="$nf($store.stats.bandwidthWrite?.average_utilisation_1sec || 0, 2) + '%'"></div>
                 </div>
             </div>
 
@@ -1435,23 +1433,23 @@
             <div class="card mb-2 bw-card">
                 <div class="bw-head">
                     <div>
-                        <div class="section-title bw-title">Bandwidth Utilization</div>
+                        <div class="section-title bw-title" x-text="$t('diag.bandwidth_utilization')"></div>
                         <div class="bw-legend">
                             <button type="button" class="bw-legend-item" :class="{ 'is-off': !bwRead }"
-                                    :aria-pressed="bwRead" @click="toggleBw('read')" title="Toggle the Read series">
-                                <span class="bw-legend-swatch bw-swatch-read"></span>Read
-                                <strong x-text="($store.stats.bandwidthRead?.average_utilisation_1sec || 0).toFixed(1) + '%'"></strong>
+                                    :aria-pressed="bwRead" @click="toggleBw('read')" :title="$t('diag.toggle_read_series')">
+                                <span class="bw-legend-swatch bw-swatch-read"></span><span x-text="$t('diag.read')"></span>
+                                <strong x-text="$nf($store.stats.bandwidthRead?.average_utilisation_1sec || 0, 1) + '%'"></strong>
                             </button>
                             <button type="button" class="bw-legend-item" :class="{ 'is-off': !bwWrite }"
-                                    :aria-pressed="bwWrite" @click="toggleBw('write')" title="Toggle the Write series">
-                                <span class="bw-legend-swatch bw-swatch-write"></span>Write
-                                <strong x-text="($store.stats.bandwidthWrite?.average_utilisation_1sec || 0).toFixed(1) + '%'"></strong>
+                                    :aria-pressed="bwWrite" @click="toggleBw('write')" :title="$t('diag.toggle_write_series')">
+                                <span class="bw-legend-swatch bw-swatch-write"></span><span x-text="$t('diag.write')"></span>
+                                <strong x-text="$nf($store.stats.bandwidthWrite?.average_utilisation_1sec || 0, 1) + '%'"></strong>
                             </button>
                         </div>
                     </div>
                     <div class="bw-head-right">
                         <span class="bw-live" :class="{ 'is-off': !$store.ws.statsConnected }">
-                            <span class="bw-live-dot"></span><span x-text="$store.ws.statsConnected ? 'Live' : 'Offline'"></span>
+                            <span class="bw-live-dot"></span><span x-text="$store.ws.statsConnected ? $t('common.live') : $t('common.offline')"></span>
                         </span>
                         <div class="window-selector">
                             <template x-for="opt in windowOptions" :key="opt.value">
@@ -1469,78 +1467,78 @@
             </div>
 
             <!-- Serial health metrics (FIX 3: moved to after Bandwidth) -->
-            <div class="section-title">Serial Health</div>
+            <div class="section-title" x-text="$t('diag.serial_health')"></div>
             <div x-show="$store.stats.serial" class="stat-cards mb-2">
                 <div class="stat-card">
-                    <div class="stat-card-label">Error Rate</div>
+                    <div class="stat-card-label" x-text="$t('diag.error_rate')"></div>
                     <div class="stat-card-value" x-text="$store.stats.serial?.message_error_rate ?? '--'"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Overflow</div>
+                    <div class="stat-card-label" x-text="$t('diag.overflow')"></div>
                     <div class="stat-card-value" x-text="$store.stats.serial?.overflow_count ?? '--'"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Underflow</div>
+                    <div class="stat-card-label" x-text="$t('diag.underflow')"></div>
                     <div class="stat-card-value" x-text="$store.stats.serial?.underflow_count ?? '--'"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">TX Failures</div>
+                    <div class="stat-card-label" x-text="$t('diag.tx_failures')"></div>
                     <div class="stat-card-value" x-text="$store.stats.serial?.transmission_failures ?? '--'"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Write Queue</div>
+                    <div class="stat-card-label" x-text="$t('diag.write_queue')"></div>
                     <div class="stat-card-value" x-text="$store.stats.serial?.write_queue_depth ?? '--'"></div>
                 </div>
             </div>
-            <div x-show="!$store.stats.serial" class="text-center text-muted mb-2 p-2">Waiting for serial data...</div>
+            <div x-show="!$store.stats.serial" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_serial')"></div>
 
             <!-- Message error metrics (FIX 4: after Serial Health, before Latency) -->
-            <div class="section-title">Message Errors</div>
+            <div class="section-title" x-text="$t('diag.message_errors')"></div>
             <div x-show="$store.stats.messageErrors" class="stat-cards mb-2">
                 <div class="stat-card">
-                    <div class="stat-card-label">Checksum</div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.checksum_failures ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-label" x-text="$t('diag.checksum')"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.checksum_failures ?? 0)"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Deserialize</div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.deserialization_failures ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-label" x-text="$t('diag.deserialize')"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.deserialization_failures ?? 0)"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Invalid Packet</div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.invalid_packet_format ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-label" x-text="$t('diag.invalid_packet')"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.invalid_packet_format ?? 0)"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Generator</div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.generator_failures ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-label" x-text="$t('diag.generator')"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.generator_failures ?? 0)"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Overlapping</div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.overlapping_packets ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-label" x-text="$t('diag.overlapping')"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.overlapping_packets ?? 0)"></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Buffer Overflow</div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.buffer_overflows ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-label" x-text="$t('diag.buffer_overflow')"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.buffer_overflows ?? 0)"></div>
                 </div>
             </div>
-            <div x-show="!$store.stats.messageErrors" class="text-center text-muted mb-2 p-2">Waiting for error data...</div>
+            <div x-show="!$store.stats.messageErrors" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_errors')"></div>
 
             <!-- Communication Latency (FIX 5: 3-column compact cards, same row) -->
-            <div class="section-title">Communication Latency</div>
+            <div class="section-title" x-text="$t('diag.communication_latency')"></div>
             <div x-show="$store.stats.latency" class="latency-cards mb-2">
                 <template x-for="cat in [
-                    { key: 'serial_read', label: 'Serial Read' },
-                    { key: 'serial_write', label: 'Serial Write' },
-                    { key: 'message_processing', label: 'Message Processing' }
+                    { key: 'serial_read', labelKey: 'diag.serial_read' },
+                    { key: 'serial_write', labelKey: 'diag.serial_write' },
+                    { key: 'message_processing', labelKey: 'diag.message_processing' }
                 ]" :key="cat.key">
                     <div class="latency-card" x-show="$store.stats.latency?.[cat.key]">
                         <div class="latency-card-head">
-                            <span class="latency-card-title" x-text="cat.label"></span>
+                            <span class="latency-card-title" x-text="$t(cat.labelKey)"></span>
                             <span class="latency-window-pill"
-                                  x-text="'Last ' + (($store.stats.latency?.[cat.key]?.window_secs)
+                                  x-text="$t('diag.last_window', { window: (($store.stats.latency?.[cat.key]?.window_secs)
                                         ? (($store.stats.latency[cat.key].window_secs % 60 === 0)
-                                            ? ($store.stats.latency[cat.key].window_secs / 60) + 'm'
-                                            : $store.stats.latency[cat.key].window_secs + 's')
-                                        : '15m')"></span>
+                                            ? $t('time.abbr_minutes', { n: $store.stats.latency[cat.key].window_secs / 60 })
+                                            : $t('time.abbr_seconds', { n: $store.stats.latency[cat.key].window_secs }))
+                                        : $t('time.abbr_minutes', { n: 15 })) })"></span>
                         </div>
                         <div class="latency-pct-grid">
                             <div class="latency-pct">
@@ -1560,33 +1558,33 @@
                                 <div class="latency-pct-v" x-text="formatMicros($store.stats.latency?.[cat.key]?.p99_us)"></div>
                             </div>
                             <div class="latency-pct">
-                                <div class="latency-pct-k">Mean</div>
+                                <div class="latency-pct-k" x-text="$t('diag.mean')"></div>
                                 <div class="latency-pct-v latency-pct-dim" x-text="formatMicros($store.stats.latency?.[cat.key]?.mean_us)"></div>
                             </div>
                             <div class="latency-pct">
-                                <div class="latency-pct-k">Samples</div>
-                                <div class="latency-pct-v latency-pct-dim" x-text="($store.stats.latency?.[cat.key]?.sample_count || 0).toLocaleString()"></div>
+                                <div class="latency-pct-k" x-text="$t('diag.samples')"></div>
+                                <div class="latency-pct-v latency-pct-dim" x-text="$n($store.stats.latency?.[cat.key]?.sample_count || 0)"></div>
                             </div>
                             <div class="latency-pct">
-                                <div class="latency-pct-k">Cum. Mean</div>
+                                <div class="latency-pct-k" x-text="$t('diag.cum_mean')"></div>
                                 <div class="latency-pct-v latency-pct-dim" x-text="formatMicros($store.stats.latency?.[cat.key]?.cumulative_mean_us)"></div>
                             </div>
                             <div class="latency-pct">
-                                <div class="latency-pct-k">Max</div>
+                                <div class="latency-pct-k" x-text="$t('diag.max')"></div>
                                 <div class="latency-pct-v latency-pct-dim" x-text="formatMicros($store.stats.latency?.[cat.key]?.max_us)"></div>
                             </div>
                         </div>
                         <div class="latency-card-foot">
-                            <span class="latency-foot-label">Since restart</span>
+                            <span class="latency-foot-label" x-text="$t('diag.since_restart')"></span>
                             <span class="latency-foot-vals">
-                                <span>min <strong x-text="formatMicros($store.stats.latency?.[cat.key]?.alltime_min_us)"></strong></span>
-                                <span>max <strong x-text="formatMicros($store.stats.latency?.[cat.key]?.alltime_max_us)"></strong></span>
+                                <span><span x-text="$t('diag.min_abbr')"></span> <strong x-text="formatMicros($store.stats.latency?.[cat.key]?.alltime_min_us)"></strong></span>
+                                <span><span x-text="$t('diag.max_abbr')"></span> <strong x-text="formatMicros($store.stats.latency?.[cat.key]?.alltime_max_us)"></strong></span>
                             </span>
                         </div>
                     </div>
                 </template>
             </div>
-            <div x-show="!$store.stats.latency" class="text-center text-muted mb-2 p-2">Waiting for latency data...</div>
+            <div x-show="!$store.stats.latency" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_latency')"></div>
 
             <!-- Device sections (FIX 6/7: compact clickable cards; rich detail moved to modal.
                  Both Emulated + Actual render the same compact card via ONE shared
@@ -1632,7 +1630,7 @@
                                     </template>
                                     <div class="dmc-foot">
                                         <code class="dmc-addr" x-text="dev.device_id"></code>
-                                        <span class="dmc-link">View diagnostics
+                                        <span class="dmc-link"><span x-text="$t('diag.view_diagnostics')"></span>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
                                         </span>
                                     </div>
@@ -1643,32 +1641,32 @@
                 </div>
             </template>
             <!-- Message Statistics + MQTT Broker side by side (FIX 8 + FIX 10) -->
-            <div class="section-title">Message Statistics &amp; MQTT</div>
+            <div class="section-title" x-text="$t('diag.message_statistics_mqtt')"></div>
             <div class="msg-mqtt-grid mb-2">
                 <!-- Message Statistics compact card (top 6 + View all) -->
                 <div class="card msg-stats-card">
                     <div class="mstat-head">
-                        <span class="mstat-title">Message Statistics</span>
-                        <span class="mstat-sub"><span x-text="msgTypeCount"></span> types &middot; top 6</span>
+                        <span class="mstat-title" x-text="$t('diag.message_statistics')"></span>
+                        <span class="mstat-sub" x-text="$t('diag.types_top', { count: msgTypeCount })"></span>
                     </div>
                     <div class="mstat-col-head">
-                        <span>Message Type</span>
-                        <span class="mstat-col-right"><span class="mstat-cw-count">Count &middot; Rate</span><span class="mstat-cw-last">Last seen</span></span>
+                        <span x-text="$t('diag.message_type')"></span>
+                        <span class="mstat-col-right"><span class="mstat-cw-count" x-text="$t('diag.count_rate')"></span><span class="mstat-cw-last" x-text="$t('diag.last_seen')"></span></span>
                     </div>
                     <template x-if="msgTypeCount === 0">
-                        <div class="text-center text-muted py-3">Waiting for data...</div>
+                        <div class="text-center text-muted py-3" x-text="$t('diag.waiting_data')"></div>
                     </template>
                     <template x-for="m in msgStatsTop()" :key="m.name || m.id">
                         <div class="mstat-row">
                             <span class="mstat-type" x-text="msgLabel(m)"></span>
                             <span class="mstat-row-right">
-                                <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="(m.count || 0).toLocaleString()"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
+                                <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="$n(m.count || 0)"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
                                 <span class="mstat-cw-last mstat-last" x-text="msgLastSeen(m)"></span>
                             </span>
                         </div>
                     </template>
                     <button type="button" class="mstat-viewall" @click="openMsgModal()">
-                        View all <span x-text="msgTypeCount"></span> types
+                        <span x-text="$t('diag.view_all_types', { count: msgTypeCount })"></span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
                     </button>
                 </div>
@@ -1676,27 +1674,24 @@
                 <!-- MQTT Broker card -->
                 <div class="card mqtt-card">
                     <div class="mqtt-head">
-                        <span class="mqtt-title">MQTT Broker</span>
+                        <span class="mqtt-title" x-text="$t('diag.mqtt_broker')"></span>
                         <span class="mqtt-status" :class="!mqtt.enabled ? 'is-off' : (mqtt.connected ? 'is-on' : 'is-warn')">
                             <span class="mqtt-status-dot"></span>
-                            <span x-text="!mqtt.enabled ? 'Disabled' : (mqtt.connected ? 'Connected' : (mqtt.state || 'Disconnected'))"></span>
+                            <span x-text="!mqtt.enabled ? $t('common.disabled') : (mqtt.connected ? $t('common.connected') : (mqtt.state || $t('common.disconnected')))"></span>
                         </span>
                     </div>
-                    <p class="text-muted text-xs mt-0 mb-1" x-show="!mqtt.enabled">
-                        MQTT is disabled. Start the server with <code>--mqtt-enabled</code> and broker options to
-                        publish equipment state and accept commands.
-                    </p>
+                    <p class="text-muted text-xs mt-0 mb-1" x-show="!mqtt.enabled" x-html="$t('diag.mqtt_disabled_hint_html')"></p>
                     <div class="mqtt-kv" x-show="mqtt.enabled">
-                        <div class="mqtt-row"><span>Broker</span><span class="mqtt-val mqtt-mono"><span x-text="(mqtt.broker_host || '--') + ':' + (mqtt.broker_port || '')"></span><span class="text-muted text-2xs" x-show="mqtt.tls"> · TLS</span></span></div>
-                        <div class="mqtt-row"><span>Client ID</span><span class="mqtt-val" x-text="mqtt.client_id || '--'"></span></div>
-                        <div class="mqtt-row"><span>Topic prefix</span><span class="mqtt-val" x-text="mqtt.topic_prefix || '--'"></span></div>
-                        <div class="mqtt-row"><span>Home Assistant</span><span class="mqtt-val" x-text="mqtt.home_assistant_enabled ? ('discovery on · ' + (mqtt.ha_discovery_prefix || '')) : 'off'"></span></div>
-                        <div class="mqtt-row mqtt-row-top"><span>Published</span><span class="mqtt-val mqtt-num" x-text="(mqtt.published ?? 0).toLocaleString()"></span></div>
-                        <div class="mqtt-row"><span>Queue depth</span><span class="mqtt-val mqtt-num" x-text="mqtt.queue_depth ?? 0"></span></div>
-                        <div class="mqtt-row"><span>Dropped</span><span class="mqtt-val mqtt-num" x-text="mqtt.dropped ?? 0"></span></div>
-                        <div class="mqtt-row"><span>Reconnects</span><span class="mqtt-val mqtt-num" x-text="mqtt.reconnect_attempts ?? 0"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.broker')"></span><span class="mqtt-val mqtt-mono"><span x-text="(mqtt.broker_host || '--') + ':' + (mqtt.broker_port || '')"></span><span class="text-muted text-2xs" x-show="mqtt.tls"> · TLS</span></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.client_id')"></span><span class="mqtt-val" x-text="mqtt.client_id || '--'"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.topic_prefix')"></span><span class="mqtt-val" x-text="mqtt.topic_prefix || '--'"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.home_assistant')"></span><span class="mqtt-val" x-text="mqtt.home_assistant_enabled ? $t('diag.discovery_on', { prefix: mqtt.ha_discovery_prefix || '' }) : $t('common.off_lc')"></span></div>
+                        <div class="mqtt-row mqtt-row-top"><span x-text="$t('diag.published')"></span><span class="mqtt-val mqtt-num" x-text="$n(mqtt.published ?? 0)"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.queue_depth')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.queue_depth ?? 0"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.dropped')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.dropped ?? 0"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.reconnects')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.reconnect_attempts ?? 0"></span></div>
                         <template x-if="mqtt.last_error">
-                            <div class="mqtt-row"><span>Last error</span><span class="mqtt-val" x-text="mqtt.last_error"></span></div>
+                            <div class="mqtt-row"><span x-text="$t('diag.last_error')"></span><span class="mqtt-val" x-text="mqtt.last_error"></span></div>
                         </template>
                     </div>
                 </div>
@@ -1704,15 +1699,15 @@
 
             <!-- Log Levels summary card + Configure modal (FIX 9) -->
             <div class="log-levels-head">
-                <div class="section-title" style="margin:0">Log Levels</div>
+                <div class="section-title" style="margin:0" x-text="$t('diag.log_levels')"></div>
                 <button type="button" class="log-configure-btn" @click="openLogModal()" :disabled="!logLevelsLoaded">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h11M4 18h6"/></svg>
-                    Configure
+                    <span x-text="$t('diag.configure')"></span>
                 </button>
             </div>
             <div x-show="logLevelsLoaded" class="card log-summary-card mb-2" @click="openLogModal()">
                 <div class="logsum-global">
-                    <span class="logsum-global-label">Global level</span>
+                    <span class="logsum-global-label" x-text="$t('diag.global_level')"></span>
                     <span class="logsum-global-val">
                         <span class="logsum-dot" :style="`background:${logLevelColor(globalLevel || _majorityLevel())}`"></span>
                         <span x-text="logGlobalLabel"></span>
@@ -1720,7 +1715,7 @@
                 </div>
                 <template x-if="logHasOverrides">
                     <div class="logsum-overrides">
-                        <div class="logsum-over-label">Overrides <span class="logsum-over-count" x-text="logOverrideCount"></span></div>
+                        <div class="logsum-over-label"><span x-text="$t('diag.overrides')"></span> <span class="logsum-over-count" x-text="logOverrideCount"></span></div>
                         <div class="logsum-over-chips">
                             <template x-for="o in logOverrides()" :key="o[0]">
                                 <span class="logsum-chip"><span class="logsum-chip-ch" x-text="o[0]"></span><span class="logsum-chip-lvl" :style="`color:${logLevelColor(o[1])}`" x-text="o[1]"></span></span>
@@ -1729,30 +1724,30 @@
                     </div>
                 </template>
                 <template x-if="!logHasOverrides">
-                    <div class="logsum-none">All channels inherit the global level.</div>
+                    <div class="logsum-none" x-text="$t('diag.all_inherit')"></div>
                 </template>
             </div>
-            <div x-show="!logLevelsLoaded" class="text-center text-muted mb-2 p-2">Loading log levels...</div>
+            <div x-show="!logLevelsLoaded" class="text-center text-muted mb-2 p-2" x-text="$t('diag.loading_log_levels')"></div>
 
             <!-- Serial Recording (FIX 11: record chip + status + captures/ prefix input + bytes box) -->
-            <div class="section-title">Serial Recording</div>
+            <div class="section-title" x-text="$t('diag.serial_recording')"></div>
             <div class="card recording-card mb-2">
                 <div class="rec-top">
                     <span class="rec-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg></span>
                     <div class="rec-desc">
-                        <div class="rec-title">Capture bus traffic</div>
-                        <div class="rec-sub">Record raw RS-485 frames to a .cap file for offline analysis.</div>
+                        <div class="rec-title" x-text="$t('diag.capture_bus')"></div>
+                        <div class="rec-sub" x-text="$t('diag.record_sub')"></div>
                     </div>
                     <span class="badge rec-status" :class="recording.recording ? 'badge-freq' : 'badge-status-off'"
-                          x-text="recording.recording ? 'Recording' : 'Idle'"></span>
+                          x-text="recording.recording ? $t('diag.recording') : $t('diag.idle')"></span>
                     <button type="button" class="rec-toggle"
                             :disabled="recordingBusy || (!recording.recording && !recordingFilename)"
                             @click="recording.recording ? stopRecording() : startRecording()"
-                            x-text="recording.recording ? 'Stop' : 'Record'"></button>
+                            x-text="recording.recording ? $t('diag.stop') : $t('diag.record')"></button>
                 </div>
                 <div class="rec-fields">
                     <div class="rec-field-file">
-                        <label class="rec-field-label">Capture file</label>
+                        <label class="rec-field-label" x-text="$t('diag.capture_file')"></label>
                         <div class="rec-input-wrap" :class="{ 'is-disabled': recording.recording }">
                             <span class="rec-input-prefix">captures/</span>
                             <input type="text" class="rec-input"
@@ -1760,26 +1755,26 @@
                                    :disabled="recording.recording"
                                    spellcheck="false"
                                    placeholder="capture.cap"
-                                   aria-label="Capture file name">
+                                   :aria-label="$t('diag.capture_file_aria')">
                         </div>
                     </div>
                     <div class="rec-field-bytes">
-                        <label class="rec-field-label">Bytes written</label>
+                        <label class="rec-field-label" x-text="$t('diag.bytes_written')"></label>
                         <div class="rec-bytes-box" :class="{ 'is-active': recording.bytes > 0 }" x-text="formatBytes(recording.bytes)"></div>
                     </div>
                 </div>
                 <div class="rec-hint">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
-                    The recording is in the replayable recorder format and can be dropped straight into <code>test/fixtures/</code>.
+                    <span x-html="$t('diag.rec_hint_html')"></span>
                 </div>
             </div>
 
             <!-- Matter Status -->
             <!-- Stats connection indicator -->
             <div class="text-muted text-center mt-2 text-2xs">
-                Stats WebSocket:
+                <span x-text="$t('diag.stats_ws')"></span>
                 <span class="connection-dot connection-dot-sm" :class="$store.ws.statsConnected ? 'connected' : 'disconnected'"></span>
-                <span x-text="$store.ws.statsConnected ? 'Connected' : 'Disconnected'"></span>
+                <span x-text="$store.ws.statsConnected ? $t('common.connected') : $t('common.disconnected')"></span>
             </div>
 
             <!-- ===== Device-detail modal (FIX 6/7) ===== -->
@@ -1798,7 +1793,7 @@
                             <template x-if="selectedDevice()?.operating_state">
                                 <span class="badge" :class="stateClass(selectedDevice().operating_state)" x-text="selectedDevice().operating_state"></span>
                             </template>
-                            <button type="button" class="diag-modal-close" @click="closeModal()" aria-label="Close">
+                            <button type="button" class="diag-modal-close" @click="closeModal()" :aria-label="$t('common.close')">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                             </button>
                         </div>
@@ -1824,14 +1819,14 @@
                             <template x-if="selectedDevice()?.device_type === 'SpasideRemote' && spasideForDevice(selectedDevice())">
                                 <div class="diag-modal-section">
                                     <div class="diag-modal-section-title">
-                                        Observed Button Mapping
-                                        <span class="dmc-role" style="margin-left:8px">Read-only</span>
+                                        <span x-text="$t('diag.observed_button_mapping')"></span>
+                                        <span class="dmc-role" style="margin-left:8px" x-text="$t('common.read_only')"></span>
                                     </div>
                                     <div class="spaside-indicators" x-show="selectedDevice()?.led_image_seen" style="margin-bottom:12px">
-                                        <span class="emu-kv-key">Indicators</span>
+                                        <span class="emu-kv-key" x-text="$t('diag.indicators')"></span>
                                         <template x-for="(state, i) in (selectedDevice()?.leds || [])" :key="i">
                                             <span class="badge" :class="spasideLedBadgeClass(state)"
-                                                  :title="'Indicator ' + (i+1) + ': ' + state" x-text="i+1"></span>
+                                                  :title="$t('diag.indicator_state', { n: i+1, state: state })" x-text="i+1"></span>
                                         </template>
                                     </div>
                                     <div class="spaside-keypad">
@@ -1844,20 +1839,20 @@
                                                             <button class="spaside-key-press"
                                                                     :disabled="!b.pressable || spasideBusy"
                                                                     @click="b.pressable && pressSpasideButton(selectedDevice().device_id, b.index)"
-                                                                    :title="b.pressable ? ('Press key ' + b.index) : 'Observed remote — its button cannot be pressed'">
+                                                                    :title="b.pressable ? $t('diag.press_key', { n: b.index }) : $t('diag.observed_remote_no_press')">
                                                                 <span class="spaside-key-index" x-text="b.index"></span>
-                                                                <span class="spaside-key-fn" x-text="b.function || 'Unassigned'"></span>
+                                                                <span class="spaside-key-fn" x-text="b.function || $t('diag.unassigned')"></span>
                                                                 <span class="spaside-key-pending" x-show="b.pending" x-text="'→ ' + b.requested"></span>
                                                             </button>
                                                             <button class="spaside-key-edit"
                                                                     :disabled="!b.assignable || spasideBusy || spasideAvailableFunctions.length === 0"
                                                                     @click="toggleSpasideEdit(selectedDevice().device_id, b.index)"
-                                                                    aria-label="Program key">&#9881;</button>
+                                                                    :aria-label="$t('diag.program_key')">&#9881;</button>
                                                             <div class="spaside-key-editor"
                                                                  x-show="spasideEditKey === spasideEditId(selectedDevice().device_id, b.index)" x-cloak>
                                                                 <select class="settings-input spaside-fn-select" :disabled="spasideBusy"
                                                                         @change="setSpasideAssignment(b.switch, b.button, $event.target.value)">
-                                                                    <option value="" x-text="b.function ? 'Change function…' : 'Pick a function…'"></option>
+                                                                    <option value="" x-text="b.function ? $t('diag.change_function') : $t('diag.pick_function')"></option>
                                                                     <template x-for="fn in spasideAvailableFunctions" :key="fn">
                                                                         <option :value="fn" :selected="fn === b.function" x-text="fn"></option>
                                                                     </template>
@@ -1875,7 +1870,7 @@
                             <!-- Recent commands -->
                             <template x-if="recentCommands(selectedDevice()).length">
                                 <div class="diag-modal-section">
-                                    <div class="diag-modal-section-title">Recent Commands</div>
+                                    <div class="diag-modal-section-title" x-text="$t('diag.recent_commands')"></div>
                                     <div class="diag-cmd-list">
                                         <template x-for="(cmd, ci) in recentCommands(selectedDevice())" :key="ci">
                                             <div class="diag-cmd-row">
@@ -1892,7 +1887,7 @@
                             <!-- Panel screen -->
                             <template x-if="hasScreen(selectedDevice())">
                                 <div class="diag-modal-section">
-                                    <div class="diag-modal-section-title">Panel Screen &middot; <span style="color:var(--accent)" x-text="screenTitle(selectedDevice())"></span></div>
+                                    <div class="diag-modal-section-title"><span x-text="$t('diag.panel_screen')"></span> &middot; <span style="color:var(--accent)" x-text="screenTitle(selectedDevice())"></span></div>
                                     <div class="diag-screen">
                                         <template x-for="(line, idx) in screenLines(selectedDevice())" :key="idx">
                                             <div class="diag-screen-line" :class="{ 'is-hl': isHighlighted(selectedDevice(), idx) }">
@@ -1906,7 +1901,7 @@
 
                             <!-- Raw diagnostics -->
                             <div class="diag-modal-section">
-                                <div class="diag-modal-section-title">Raw Diagnostics</div>
+                                <div class="diag-modal-section-title" x-text="$t('diag.raw_diagnostics')"></div>
                                 <div class="diag-raw">
                                     <template x-for="rw in rawRows(selectedDevice())" :key="rw.k">
                                         <div class="diag-raw-row"><span class="diag-raw-k" x-text="rw.k"></span><span class="diag-raw-v" x-text="rw.v"></span></div>
@@ -1927,18 +1922,18 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h11M4 18h6"/></svg>
                             </span>
                             <div class="diag-modal-titles">
-                                <div class="diag-modal-name">Log Levels</div>
-                                <div class="diag-modal-addr">Per-channel verbosity &middot; applied live</div>
+                                <div class="diag-modal-name" x-text="$t('diag.log_levels')"></div>
+                                <div class="diag-modal-addr" x-text="$t('diag.log_modal_sub')"></div>
                             </div>
-                            <button type="button" class="diag-modal-close" @click="closeLogModal()" aria-label="Close">
+                            <button type="button" class="diag-modal-close" @click="closeLogModal()" :aria-label="$t('common.close')">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                             </button>
                         </div>
                         <div class="diag-modal-body">
                             <div class="log-global-box">
                                 <div class="log-global-box-head">
-                                    <span class="log-global-box-title">Global level</span>
-                                    <span class="log-global-box-sub">All channels inherit this unless overridden</span>
+                                    <span class="log-global-box-title" x-text="$t('diag.global_level')"></span>
+                                    <span class="log-global-box-sub" x-text="$t('diag.global_inherit_sub')"></span>
                                 </div>
                                 <div class="log-seg">
                                     <template x-for="lvl in severityLevels" :key="lvl">
@@ -1948,9 +1943,9 @@
                                 </div>
                             </div>
                             <div class="log-filter-row">
-                                <input type="text" class="log-search" x-model="logSearch" placeholder="Search channels…">
-                                <button type="button" class="log-filter-btn" :class="{ active: logFilter === 'all' }" @click="logFilter = 'all'">All</button>
-                                <button type="button" class="log-filter-btn" :class="{ active: logFilter === 'overrides' }" @click="logFilter = 'overrides'">Overrides <span x-text="logOverrideCount"></span></button>
+                                <input type="text" class="log-search" x-model="logSearch" :placeholder="$t('diag.search_channels')">
+                                <button type="button" class="log-filter-btn" :class="{ active: logFilter === 'all' }" @click="logFilter = 'all'" x-text="$t('common.all')"></button>
+                                <button type="button" class="log-filter-btn" :class="{ active: logFilter === 'overrides' }" @click="logFilter = 'overrides'"><span x-text="$t('diag.overrides')"></span> <span x-text="logOverrideCount"></span></button>
                             </div>
                             <div class="log-chan-list">
                                 <template x-for="[ch, lvl] in logFilteredChannels()" :key="ch">
@@ -1963,18 +1958,18 @@
                                             </template>
                                         </div>
                                         <button type="button" class="log-chan-reset" :class="{ 'is-active': logIsOverride(ch) }"
-                                                :disabled="!logIsOverride(ch)" @click="resetChannelLevel(ch)" title="Reset to global">
+                                                :disabled="!logIsOverride(ch)" @click="resetChannelLevel(ch)" :title="$t('diag.reset_to_global')">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
                                         </button>
                                     </div>
                                 </template>
                                 <template x-if="logFilteredChannels().length === 0">
-                                    <div class="text-center text-muted" style="padding:24px;font-size:13px">No channels match.</div>
+                                    <div class="text-center text-muted" style="padding:24px;font-size:13px" x-text="$t('diag.no_channels_match')"></div>
                                 </template>
                             </div>
                             <template x-if="logHasOverrides">
                                 <div class="log-reset-all-row">
-                                    <button type="button" class="log-reset-all" @click="resetAllLogs()">Reset all to global</button>
+                                    <button type="button" class="log-reset-all" @click="resetAllLogs()" x-text="$t('diag.reset_all_to_global')"></button>
                                 </div>
                             </template>
                         </div>
@@ -1991,30 +1986,30 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20v-6M11 20V8M17 20v-11"/></svg>
                             </span>
                             <div class="diag-modal-titles">
-                                <div class="diag-modal-name">Message Statistics</div>
-                                <div class="diag-modal-addr"><span x-text="msgTypeCount"></span> message types &middot; live</div>
+                                <div class="diag-modal-name" x-text="$t('diag.message_statistics')"></div>
+                                <div class="diag-modal-addr" x-text="$t('diag.types_live', { count: msgTypeCount })"></div>
                             </div>
-                            <button type="button" class="diag-modal-close" @click="closeMsgModal()" aria-label="Close">
+                            <button type="button" class="diag-modal-close" @click="closeMsgModal()" :aria-label="$t('common.close')">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                             </button>
                         </div>
                         <div class="diag-modal-body">
-                            <input type="text" class="log-search mb-1" style="width:100%" x-model="msgSearch" placeholder="Search message types…">
+                            <input type="text" class="log-search mb-1" style="width:100%" x-model="msgSearch" :placeholder="$t('diag.search_message_types')">
                             <div class="mstat-col-head" style="position:sticky;top:0">
-                                <span>Message Type</span>
-                                <span class="mstat-col-right"><span class="mstat-cw-count">Count &middot; Rate</span><span class="mstat-cw-last">Last seen</span></span>
+                                <span x-text="$t('diag.message_type')"></span>
+                                <span class="mstat-col-right"><span class="mstat-cw-count" x-text="$t('diag.count_rate')"></span><span class="mstat-cw-last" x-text="$t('diag.last_seen')"></span></span>
                             </div>
                             <template x-for="m in msgStatsFiltered()" :key="m.name || m.id">
                                 <div class="mstat-row">
                                     <span class="mstat-type" x-text="msgLabel(m)"></span>
                                     <span class="mstat-row-right">
-                                        <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="(m.count || 0).toLocaleString()"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
+                                        <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="$n(m.count || 0)"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
                                         <span class="mstat-cw-last mstat-last" x-text="msgLastSeen(m)"></span>
                                     </span>
                                 </div>
                             </template>
                             <template x-if="msgStatsFiltered().length === 0">
-                                <div class="text-center text-muted" style="padding:24px;font-size:13px">No message types match.</div>
+                                <div class="text-center text-muted" style="padding:24px;font-size:13px" x-text="$t('diag.no_types_match')"></div>
                             </template>
                         </div>
                     </div>
@@ -2025,7 +2020,7 @@
         <!-- ====== TRENDS VIEW (WS2) ====== -->
         <div class="trends-view" x-show="route === 'trends'" x-cloak x-data="trendsView()" x-effect="if (route === 'trends') onShown()">
             <div class="trends-head">
-                <div class="section-title" style="margin:0">Trends</div>
+                <div class="section-title" style="margin:0" x-text="$t('trends.title')"></div>
                 <div class="trends-ranges" x-show="available">
                     <template x-for="r in ranges" :key="r.label">
                         <button class="trends-range-btn" :class="{ active: rangeSeconds === r.seconds }" @click="setRange(r.seconds)" x-text="r.label"></button>
@@ -2038,8 +2033,8 @@
                     <span class="trends-empty-icon" aria-hidden="true">
                         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/><path d="M2 2l20 20"/></svg>
                     </span>
-                    <div class="trends-empty-title">History recording is disabled</div>
-                    <div class="trends-empty-text">No history database is configured, so trend samples aren't being stored. Start the server with a history database (<code>--history-db &lt;path&gt;</code>) to record temperatures, water chemistry and equipment runtime over time.</div>
+                    <div class="trends-empty-title" x-text="$t('trends.history_disabled')"></div>
+                    <div class="trends-empty-text" x-html="$t('trends.history_disabled_text_html')"></div>
                     <div class="trends-empty-pill">/api/history/series · 503 Service Unavailable</div>
                 </div>
             </template>
@@ -2065,7 +2060,7 @@
 
                     <div class="trends-pickers">
                         <div class="trends-group" x-show="groupSeries('temp').length">
-                            <div class="trends-group-label">Temperatures</div>
+                            <div class="trends-group-label" x-text="$t('trends.temperatures')"></div>
                             <div class="trends-chips">
                                 <template x-for="s in groupSeries('temp')" :key="s.key">
                                     <button class="trends-chip" :class="{ on: selected[s.key] }" @click="toggleSeries(s.key)">
@@ -2078,7 +2073,7 @@
                         </div>
 
                         <div class="trends-group" x-show="groupSeries('chem').length">
-                            <div class="trends-group-label">Water chemistry</div>
+                            <div class="trends-group-label" x-text="$t('trends.water_chemistry')"></div>
                             <div class="trends-chips">
                                 <template x-for="s in groupSeries('chem')" :key="s.key">
                                     <button class="trends-chip" :class="{ on: selected[s.key] }" @click="toggleSeries(s.key)">
@@ -2091,7 +2086,7 @@
                         </div>
 
                         <div class="trends-group" x-show="groupSeries('device').length || inactiveCount">
-                            <div class="trends-group-label">Equipment runtime</div>
+                            <div class="trends-group-label" x-text="$t('trends.equipment_runtime')"></div>
                             <div class="trends-chips">
                                 <template x-for="s in groupSeries('device')" :key="s.key">
                                     <button class="trends-chip" :class="{ on: selected[s.key] }" @click="toggleSeries(s.key)">
@@ -2100,11 +2095,11 @@
                                     </button>
                                 </template>
                                 <button class="trends-inactive-btn" x-show="inactiveCount" @click="toggleInactive()"
-                                        x-text="showInactive ? 'Hide inactive' : ('Show inactive (' + inactiveCount + ')')"></button>
+                                        x-text="showInactive ? $t('trends.hide_inactive') : $t('trends.show_inactive', { count: inactiveCount })"></button>
                             </div>
                         </div>
 
-                        <span class="text-muted text-xs" x-show="series.length === 0 && !loading">No series recorded yet.</span>
+                        <span class="text-muted text-xs" x-show="series.length === 0 && !loading" x-text="$t('trends.no_series')"></span>
                     </div>
                 </div>
             </template>
@@ -2114,15 +2109,15 @@
         <div x-show="route === 'schedules'" x-cloak x-data="schedulesView()" x-effect="if (route === 'schedules') onShown()">
             <!-- Header: title + List/Timeline toggle + New schedule (reachable from both views) -->
             <div class="sched-header">
-                <div class="section-title">Schedules</div>
+                <div class="section-title" x-text="$t('sched.title')"></div>
                 <div class="sched-header-actions">
                     <div class="sched-view-toggle">
-                        <button :class="{ active: view === 'list' }" @click="setView('list')">List</button>
-                        <button :class="{ active: view === 'timeline' }" @click="setView('timeline')">Timeline</button>
+                        <button :class="{ active: view === 'list' }" @click="setView('list')" x-text="$t('sched.list')"></button>
+                        <button :class="{ active: view === 'timeline' }" @click="setView('timeline')" x-text="$t('sched.timeline')"></button>
                     </div>
                     <button class="sched-new-btn" @click="newSchedule()" :disabled="monitorOnly || !appAvailable">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                        New schedule
+                        <span x-text="$t('sched.new')"></span>
                     </button>
                 </div>
             </div>
@@ -2134,8 +2129,8 @@
                 <span class="sched-empty-icon sched-empty-icon-muted">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v16H3zM3 9h18M8 3v4M16 3v4"/></svg>
                 </span>
-                <div class="sched-empty-title">App scheduler disabled</div>
-                <div class="sched-empty-text">The app scheduler is not running. Start the server with a schedules file (<code>--schedules-file</code>) to create time-based actions.</div>
+                <div class="sched-empty-title" x-text="$t('sched.disabled_title')"></div>
+                <div class="sched-empty-text" x-html="$t('sched.disabled_text_html')"></div>
                 <div class="sched-empty-pill">GET /api/schedules · 503 Service Unavailable</div>
             </div>
 
@@ -2147,7 +2142,7 @@
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>
                 </span>
                 <div class="sched-conflict-body">
-                    <div class="sched-conflict-count" x-text="conflicts.length + (conflicts.length === 1 ? ' schedule conflicts' : ' schedules conflict') + ' with a controller program'"></div>
+                    <div class="sched-conflict-count" x-text="$tn('sched.conflicts', conflicts.length)"></div>
                     <div class="sched-conflict-list">
                         <template x-for="cf in conflicts" :key="cf.key">
                             <div class="sched-conflict-item"><span x-text="cf.name"></span> — <span x-text="cf.conflictMsg"></span></div>
@@ -2165,14 +2160,14 @@
                         <div class="sched-row" :class="{ 'sched-row-conflict': e.conflict, 'sched-row-disabled': !e.enabled }">
                             <div class="sched-time-col">
                                 <div class="sched-time" :class="{ 'sched-time-controller': e.owner === 'controller' }" x-text="fmtMin(e.start)"></div>
-                                <div class="sched-time-end" x-show="e.owner === 'controller' && e.end !== null" x-text="'to ' + fmtMin(e.end)"></div>
+                                <div class="sched-time-end" x-show="e.owner === 'controller' && e.end !== null" x-text="$t('sched.to_time', { time: fmtMin(e.end) })"></div>
                             </div>
                             <div class="sched-divider"></div>
                             <div class="sched-main">
                                 <div class="sched-name">
                                     <span x-text="e.name"></span>
-                                    <span class="sched-owner-tag" :class="e.owner === 'controller' ? 'tag-controller' : 'tag-app'" x-text="e.owner === 'controller' ? 'Controller' : 'App'"></span>
-                                    <span class="sched-conflict-flag" x-show="e.conflict" :title="e.conflictMsg">Conflict</span>
+                                    <span class="sched-owner-tag" :class="e.owner === 'controller' ? 'tag-controller' : 'tag-app'" x-text="e.owner === 'controller' ? $t('sched.owner_controller') : $t('sched.owner_app')"></span>
+                                    <span class="sched-conflict-flag" x-show="e.conflict" :title="e.conflictMsg" x-text="$t('sched.conflict')"></span>
                                 </div>
                                 <div class="sched-meta">
                                     <span x-text="daySummary(e.days)"></span> · <span x-text="e.summary"></span>
@@ -2180,19 +2175,19 @@
                                 <div class="sched-row-conflict-msg" x-show="e.conflict && e.conflictMsg" x-cloak x-text="e.conflictMsg"></div>
                             </div>
                             <div class="sched-actions" x-show="e.owner === 'app'">
-                                <button type="button" class="sched-switch" :class="{ on: e.enabled }" @click="toggleEnabled(e.raw)" :disabled="monitorOnly" :title="e.enabled ? 'Enabled' : 'Disabled'" role="switch" :aria-checked="e.enabled">
+                                <button type="button" class="sched-switch" :class="{ on: e.enabled }" @click="toggleEnabled(e.raw)" :disabled="monitorOnly" :title="e.enabled ? $t('sched.enabled') : $t('sched.disabled')" role="switch" :aria-checked="e.enabled">
                                     <span class="sched-switch-knob"></span>
                                 </button>
-                                <button type="button" class="sched-icon-btn" @click="editSchedule(e.raw)" :disabled="monitorOnly" title="Edit" aria-label="Edit">
+                                <button type="button" class="sched-icon-btn" @click="editSchedule(e.raw)" :disabled="monitorOnly" :title="$t('common.edit')" :aria-label="$t('common.edit')">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
                                 </button>
-                                <button type="button" class="sched-icon-btn" @click="remove(e.raw)" :disabled="monitorOnly" title="Delete" aria-label="Delete">
+                                <button type="button" class="sched-icon-btn" @click="remove(e.raw)" :disabled="monitorOnly" :title="$t('common.delete')" :aria-label="$t('common.delete')">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
                                 </button>
                             </div>
                             <div class="sched-readonly" x-show="e.owner === 'controller'">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                                Read-only
+                                <span x-text="$t('common.read_only')"></span>
                             </div>
                         </div>
                     </template>
@@ -2202,18 +2197,16 @@
                         <span class="sched-empty-icon sched-empty-icon-accent">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
                         </span>
-                        <div class="sched-empty-title">No schedules yet</div>
-                        <div class="sched-empty-text">Automate heating, filtration and lighting by time of day. Create your first schedule to get started.</div>
+                        <div class="sched-empty-title" x-text="$t('sched.none_yet_title')"></div>
+                        <div class="sched-empty-text" x-text="$t('sched.none_yet_text')"></div>
                     </div>
 
                     <!-- controller status note -->
                     <div class="sched-note" x-show="controllerPending" x-cloak>
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
-                        Controller programs not captured yet — the controller's built-in schedules appear here once decoded from the bus.
+                        <span x-text="$t('sched.controller_pending')"></span>
                     </div>
-                    <div class="sched-note sched-note-muted" x-show="controllerUnsupported" x-cloak>
-                        This controller doesn't expose its built-in programs.
-                    </div>
+                    <div class="sched-note sched-note-muted" x-show="controllerUnsupported" x-cloak x-text="$t('sched.controller_unsupported')"></div>
                 </div>
             </div>
 
@@ -2225,7 +2218,7 @@
                     </template>
                 </div>
 
-                <p class="sched-timeline-empty" x-show="timelineRows.length === 0 && !loading">Nothing scheduled on this day.</p>
+                <p class="sched-timeline-empty" x-show="timelineRows.length === 0 && !loading" x-text="$t('sched.nothing_today')"></p>
 
                 <template x-if="timelineRows.length > 0">
                     <div class="sched-timeline-body">
@@ -2255,47 +2248,47 @@
                                 <span class="sched-axis-tick sched-axis-mid" style="left:50%">12:00</span>
                                 <span class="sched-axis-tick sched-axis-mid" style="left:75%">18:00</span>
                                 <span class="sched-axis-tick sched-axis-end" style="right:0">24:00</span>
-                                <span class="sched-axis-now" x-show="showNow" :style="`left:${nowLeft}`" x-cloak>now</span>
+                                <span class="sched-axis-now" x-show="showNow" :style="`left:${nowLeft}`" x-cloak x-text="$t('sched.now')"></span>
                             </div>
                         </div>
                     </div>
                 </template>
 
                 <div class="sched-legend">
-                    <span><span class="lg-swatch lg-controller"></span>Controller program (on→off)</span>
-                    <span><span class="lg-swatch lg-app"></span>App action (point in time)</span>
-                    <span><span class="lg-swatch lg-conflict"></span>Conflict</span>
+                    <span><span class="lg-swatch lg-controller"></span><span x-text="$t('sched.legend_controller')"></span></span>
+                    <span><span class="lg-swatch lg-app"></span><span x-text="$t('sched.legend_app')"></span></span>
+                    <span><span class="lg-swatch lg-conflict"></span><span x-text="$t('sched.legend_conflict')"></span></span>
                 </div>
 
                 <p class="sched-note" x-show="controllerPending" x-cloak>
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
-                    Controller programs not shown — reading them is not wired up yet.
+                    <span x-text="$t('sched.timeline_pending')"></span>
                 </p>
             </div>
 
             <!-- ===== EDIT / NEW FORM ===== -->
             <div x-show="editing !== null" x-cloak class="sched-form-card">
                 <div class="sched-form-head">
-                    <span class="sched-form-title" x-text="editing === 'new' ? 'New schedule' : 'Edit schedule'"></span>
-                    <button type="button" class="sched-form-close" @click="cancel()" aria-label="Close">
+                    <span class="sched-form-title" x-text="editing === 'new' ? $t('sched.form_new') : $t('sched.form_edit')"></span>
+                    <button type="button" class="sched-form-close" @click="cancel()" :aria-label="$t('common.close')">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                     </button>
                 </div>
                 <div class="sched-form-body">
                     <div class="sched-form-row-name">
                         <div class="sched-field">
-                            <span class="sched-field-label">Name</span>
-                            <input type="text" x-model="form.name" class="sched-input" placeholder="e.g. Morning filtration">
+                            <span class="sched-field-label" x-text="$t('sched.name')"></span>
+                            <input type="text" x-model="form.name" class="sched-input" :placeholder="$t('sched.name_placeholder')">
                         </div>
                         <label class="sched-enabled-inline">
-                            <span>Enabled</span>
+                            <span x-text="$t('sched.enabled')"></span>
                             <button type="button" class="sched-switch" :class="{ on: form.enabled }" @click="form.enabled = !form.enabled" role="switch" :aria-checked="form.enabled">
                                 <span class="sched-switch-knob"></span>
                             </button>
                         </label>
                     </div>
                     <div class="sched-field">
-                        <span class="sched-field-label">Days</span>
+                        <span class="sched-field-label" x-text="$t('sched.days')"></span>
                         <div class="sched-days">
                             <template x-for="d in days" :key="d.bit">
                                 <button type="button" class="sched-day-chip" :class="{ active: hasDay(d.bit) }" @click="toggleDay(d.bit)" x-text="d.label"></button>
@@ -2304,11 +2297,11 @@
                     </div>
                     <div class="sched-form-row-time">
                         <div class="sched-field">
-                            <span class="sched-field-label">Time</span>
+                            <span class="sched-field-label" x-text="$t('sched.time')"></span>
                             <input type="time" x-model="form.time" class="sched-input">
                         </div>
                         <div class="sched-field">
-                            <span class="sched-field-label">Action</span>
+                            <span class="sched-field-label" x-text="$t('sched.action')"></span>
                             <select x-model="form.actionType" class="sched-input">
                                 <template x-for="a in actionTypes" :key="a.value">
                                     <option :value="a.value" x-text="a.label"></option>
@@ -2317,22 +2310,22 @@
                         </div>
                     </div>
                     <div class="sched-field" x-show="isButtonAction(form.actionType)">
-                        <span class="sched-field-label">Target device</span>
+                        <span class="sched-field-label" x-text="$t('sched.target_device')"></span>
                         <select x-model="form.target" class="sched-input">
                             <template x-for="b in buttons" :key="b"><option :value="b" x-text="b"></option></template>
                         </select>
                     </div>
                     <div class="sched-field" x-show="form.actionType === 'circulation_mode'">
-                        <span class="sched-field-label">Mode</span>
-                        <input type="text" x-model="form.target" class="sched-input" placeholder="e.g. Pool">
+                        <span class="sched-field-label" x-text="$t('sched.mode')"></span>
+                        <input type="text" x-model="form.target" class="sched-input" :placeholder="$t('sched.mode_placeholder')">
                     </div>
                     <div class="sched-field" x-show="isValueAction(form.actionType)">
-                        <span class="sched-field-label">Value</span>
+                        <span class="sched-field-label" x-text="$t('sched.value')"></span>
                         <input type="number" x-model.number="form.value" class="sched-input">
                     </div>
                     <div class="sched-form-actions">
-                        <button type="button" class="sched-form-cancel" @click="cancel()">Cancel</button>
-                        <button type="button" class="sched-form-save" @click="save()" :disabled="monitorOnly">Save schedule</button>
+                        <button type="button" class="sched-form-cancel" @click="cancel()" x-text="$t('common.cancel')"></button>
+                        <button type="button" class="sched-form-save" @click="save()" :disabled="monitorOnly" x-text="$t('sched.save')"></button>
                     </div>
                 </div>
             </div>
@@ -2343,23 +2336,23 @@
         <!-- ====== SETTINGS VIEW ====== -->
         <div x-show="route === 'settings'" x-cloak x-data="settingsView()">
 
-            <div class="section-title mt-2">Settings</div>
+            <div class="section-title mt-2" x-text="$t('settings.title')"></div>
 
             <!-- Appearance (client-side prefs) -->
             <div class="card mb-2 settings-card">
-                <div class="card-header">Appearance</div>
+                <div class="card-header" x-text="$t('settings.appearance')"></div>
                 <div class="card-body">
-                    <p class="settings-card-desc">Stored in this browser only.</p>
-                    <div class="settings-group-label">Theme</div>
+                    <p class="settings-card-desc" x-text="$t('settings.stored_browser')"></p>
+                    <div class="settings-group-label" x-text="$t('settings.theme')"></div>
                     <div class="settings-field">
-                        <div class="seg-toggle" role="group" aria-label="Theme">
-                            <button type="button" class="seg-option" :class="{ active: !$store.theme.isDark }" @click="if ($store.theme.isDark) $store.theme.toggle()">Light</button>
-                            <button type="button" class="seg-option" :class="{ active: $store.theme.isDark }" @click="if (!$store.theme.isDark) $store.theme.toggle()">Dark</button>
+                        <div class="seg-toggle" role="group" :aria-label="$t('settings.theme')">
+                            <button type="button" class="seg-option" :class="{ active: !$store.theme.isDark }" @click="if ($store.theme.isDark) $store.theme.toggle()" x-text="$t('settings.light')"></button>
+                            <button type="button" class="seg-option" :class="{ active: $store.theme.isDark }" @click="if (!$store.theme.isDark) $store.theme.toggle()" x-text="$t('settings.dark')"></button>
                         </div>
                     </div>
-                    <div class="settings-group-label">Accent</div>
+                    <div class="settings-group-label" x-text="$t('settings.accent')"></div>
                     <div class="settings-field">
-                        <div class="accent-swatches" role="group" aria-label="Accent colour">
+                        <div class="accent-swatches" role="group" :aria-label="$t('settings.accent_aria')">
                             <template x-for="opt in $store.accent.options" :key="opt">
                                 <button type="button" class="accent-swatch" :class="{ active: $store.accent.name === opt }"
                                         :data-accent-swatch="opt" @click="$store.accent.set(opt)"
@@ -2369,7 +2362,17 @@
                                 </button>
                             </template>
                         </div>
-                        <span class="settings-hint">Applied instantly and remembered on this device.</span>
+                        <span class="settings-hint" x-text="$t('settings.accent_hint')"></span>
+                    </div>
+                    <div class="settings-group-label" x-text="$t('settings.language')"></div>
+                    <div class="settings-field">
+                        <select class="settings-input" :aria-label="$t('settings.language')"
+                                @change="$store.i18n.setLocale($event.target.value)">
+                            <template x-for="loc in $store.i18n.locales" :key="loc.code">
+                                <option :value="loc.code" :selected="loc.code === $store.i18n.locale" x-text="loc.name"></option>
+                            </template>
+                        </select>
+                        <span class="settings-hint" x-text="$t('settings.language_hint')"></span>
                     </div>
                 </div>
             </div>
@@ -2377,41 +2380,41 @@
             <!-- System Preferences -->
             <div class="card mb-2 settings-card">
                 <div class="card-header card-header-split">
-                    <span>System Preferences</span>
+                    <span x-text="$t('settings.system_prefs')"></span>
                     <div class="settings-card-actions">
-                        <span class="badge badge-good" x-show="savedFlash" x-cloak>Saved ✓</span>
-                        <button class="sched-new-btn" @click="saveServerPrefs()">Save</button>
+                        <span class="badge badge-good" x-show="savedFlash" x-cloak x-text="$t('settings.saved')"></span>
+                        <button class="sched-new-btn" @click="saveServerPrefs()" x-text="$t('common.save')"></button>
                     </div>
                 </div>
                 <div class="card-body">
-                    <p class="settings-card-desc">Stored on the server and applied live — no restart, shared across devices.</p>
+                    <p class="settings-card-desc" x-text="$t('settings.server_stored')"></p>
                     <div class="settings-grid">
                         <div class="settings-field">
-                            <label for="pref-units">Temperature units</label>
+                            <label for="pref-units" x-text="$t('settings.temp_units')"></label>
                             <select id="pref-units" x-model="prefs.temperature_units" class="settings-input">
-                                <option value="Celsius">Celsius</option>
-                                <option value="Fahrenheit">Fahrenheit</option>
+                                <option value="Celsius" x-text="$t('settings.celsius')"></option>
+                                <option value="Fahrenheit" x-text="$t('settings.fahrenheit')"></option>
                             </select>
                         </div>
                         <div class="settings-field">
-                            <label for="pref-retention">Retention <span class="settings-unit">days</span></label>
+                            <label for="pref-retention"><span x-text="$t('settings.retention')"></span> <span class="settings-unit" x-text="$t('settings.days_unit')"></span></label>
                             <input id="pref-retention" type="number" min="1" x-model.number="prefs.retention_days" class="settings-input">
-                            <span class="settings-hint">How long recorded trends are kept before purging.</span>
+                            <span class="settings-hint" x-text="$t('settings.retention_hint')"></span>
                         </div>
                         <div class="settings-field">
-                            <label for="pref-salt">Salt-low threshold <span class="settings-unit">ppm</span></label>
+                            <label for="pref-salt"><span x-text="$t('settings.salt_low')"></span> <span class="settings-unit" x-text="$t('settings.ppm_unit')"></span></label>
                             <input id="pref-salt" type="number" min="0" max="6000" x-model.number="prefs.salt_low_ppm" class="settings-input">
-                            <span class="settings-hint">Warn when salt falls below this. Set 0 to disable.</span>
+                            <span class="settings-hint" x-text="$t('settings.salt_low_hint')"></span>
                         </div>
                         <div class="settings-field">
-                            <label for="pref-comms">Comms-loss timeout <span class="settings-unit">seconds</span></label>
+                            <label for="pref-comms"><span x-text="$t('settings.comms_timeout')"></span> <span class="settings-unit" x-text="$t('settings.seconds_unit')"></span></label>
                             <input id="pref-comms" type="number" min="1" x-model.number="prefs.comms_timeout_seconds" class="settings-input">
-                            <span class="settings-hint">Raise a fault if no protocol message decodes for this long.</span>
+                            <span class="settings-hint" x-text="$t('settings.comms_timeout_hint')"></span>
                         </div>
                         <div class="settings-field settings-field-full">
-                            <label for="pref-webhook">Alert webhook URL <span class="settings-unit">optional</span></label>
+                            <label for="pref-webhook"><span x-text="$t('settings.webhook')"></span> <span class="settings-unit" x-text="$t('settings.optional')"></span></label>
                             <input id="pref-webhook" type="text" x-model="prefs.webhook_url" class="settings-input" placeholder="https://example.com/hook">
-                            <span class="settings-hint">Optional. POST alert transitions to this http/https URL; blank disables.</span>
+                            <span class="settings-hint" x-text="$t('settings.webhook_hint')"></span>
                         </div>
                     </div>
                     <p class="trends-error" x-show="prefsError" x-cloak x-text="prefsError"></p>
@@ -2421,20 +2424,20 @@
             <!-- Device Names -->
             <div class="card mb-2 settings-card">
                 <div class="card-header card-header-split">
-                    <span>Device Names</span>
+                    <span x-text="$t('settings.device_names')"></span>
                     <div class="settings-card-actions" x-show="deviceButtons().length > 0">
-                        <span class="badge badge-good" x-show="savedFlash" x-cloak>Saved ✓</span>
-                        <button class="sched-new-btn" @click="saveLabels()">Save</button>
+                        <span class="badge badge-good" x-show="savedFlash" x-cloak x-text="$t('settings.saved')"></span>
+                        <button class="sched-new-btn" @click="saveLabels()" x-text="$t('common.save')"></button>
                     </div>
                 </div>
                 <div class="card-body">
-                    <p class="settings-card-desc">Friendly dashboard names for auxiliaries. Blank keeps the original; the underlying control name (commands, MQTT, Home Assistant) is unchanged.</p>
+                    <p class="settings-card-desc" x-text="$t('settings.device_names_desc')"></p>
                     <label class="settings-toggle-row">
                         <div class="settings-toggle-text">
-                            <div class="settings-toggle-title">Show aux id alongside names</div>
-                            <div class="settings-toggle-sub">Suffix each name with its protocol id — e.g. "Pool Light (Aux5)"</div>
+                            <div class="settings-toggle-title" x-text="$t('settings.show_aux_id')"></div>
+                            <div class="settings-toggle-sub" x-text="$t('settings.show_aux_id_sub')"></div>
                         </div>
-                        <input type="checkbox" class="settings-switch" x-model="showAuxIdInLabel" @change="saveShowAuxId()" aria-label="Show aux id alongside names">
+                        <input type="checkbox" class="settings-switch" x-model="showAuxIdInLabel" @change="saveShowAuxId()" :aria-label="$t('settings.show_aux_id')">
                     </label>
                     <template x-if="deviceButtons().length > 0">
                         <div class="settings-name-grid">
@@ -2447,22 +2450,22 @@
                             </template>
                         </div>
                     </template>
-                    <p class="settings-hint" x-show="deviceButtons().length === 0">No devices discovered yet.</p>
+                    <p class="settings-hint" x-show="deviceButtons().length === 0" x-text="$t('settings.no_devices')"></p>
                 </div>
             </div>
 
             <!-- Chemistry Target Ranges -->
-            <div class="section-title mt-2">Chemistry Target Ranges</div>
-            <p class="text-muted mb-1 text-xs">The shaded band shows each gauge's Good / Okay / Bad zones. Type to adjust the thresholds — saved to this browser and synced to the server.</p>
+            <div class="section-title mt-2" x-text="$t('settings.chem_ranges')"></div>
+            <p class="text-muted mb-1 text-xs" x-text="$t('settings.chem_ranges_desc')"></p>
             <div class="settings-chem-grid">
                 <template x-for="gauge in gauges" :key="gauge.key">
                     <div class="card">
                         <div class="card-body">
                             <div class="settings-gauge-header">
                                 <strong x-text="gauge.label" class="settings-gauge-title"></strong>
-                                <button class="settings-reset-btn" @click="resetGauge(gauge.key)">Reset</button>
+                                <button class="settings-reset-btn" @click="resetGauge(gauge.key)" x-text="$t('common.reset')"></button>
                             </div>
-                            <div class="chem-target-line"><span class="chem-target-dot" aria-hidden="true"></span>Target <strong x-text="chemGoodLabel(gauge.key)"></strong></div>
+                            <div class="chem-target-line"><span class="chem-target-dot" aria-hidden="true"></span><span x-text="$t('settings.target')"></span> <strong x-text="chemGoodLabel(gauge.key)"></strong></div>
                             <div class="chem-zone-bar" aria-hidden="true">
                                 <template x-for="(z, i) in chemZones(gauge.key)" :key="i">
                                     <div class="chem-zone-seg" :style="`width:${z.pct}%;background:${z.color}`"></div>
@@ -2472,11 +2475,11 @@
                                 <template x-for="tier in ['good', 'okay', 'bad']" :key="tier">
                                     <div class="chem-tier-row">
                                         <span class="chem-tier-dot" :style="`background:${tier === 'good' ? 'var(--good)' : (tier === 'okay' ? 'var(--warn)' : 'var(--bad)')}`" aria-hidden="true"></span>
-                                        <span class="chem-tier-label" x-text="tier.charAt(0).toUpperCase() + tier.slice(1)"></span>
-                                        <input type="number" class="settings-input" :step="gauge.step" :aria-label="tier + ' minimum'"
+                                        <span class="chem-tier-label" x-text="$t('tier.' + tier)"></span>
+                                        <input type="number" class="settings-input" :step="gauge.step" :aria-label="$t('settings.tier_min_aria', { tier: $t('tier.' + tier) })"
                                                :value="values[gauge.key][tier + 'Min']" @change="updateValue(gauge.key, tier + 'Min', $event.target.value)">
                                         <span class="chem-tier-sep">&#x2013;</span>
-                                        <input type="number" class="settings-input" :step="gauge.step" :aria-label="tier + ' maximum'"
+                                        <input type="number" class="settings-input" :step="gauge.step" :aria-label="$t('settings.tier_max_aria', { tier: $t('tier.' + tier) })"
                                                :value="values[gauge.key][tier + 'Max']" @change="updateValue(gauge.key, tier + 'Max', $event.target.value)">
                                     </div>
                                 </template>
@@ -2488,40 +2491,40 @@
             </div>
 
             <!-- Smart Home (Matter) -->
-            <div class="section-title mt-2">Smart Home (Matter)</div>
+            <div class="section-title mt-2" x-text="$t('settings.smart_home')"></div>
             <div class="card mb-2 matter-card">
                 <div class="matter-head">
-                    <span class="matter-title">Matter Bridge</span>
+                    <span class="matter-title" x-text="$t('settings.matter_bridge')"></span>
                     <span class="badge"
                           :class="!matter.enabled ? 'badge-status-off' : (matter.paired ? 'badge-freq' : (matter.running ? 'badge-status-warn' : 'badge-status-off'))"
-                          x-text="!matter.enabled ? 'Disabled' : (matter.paired ? ('Paired (' + (matter.fabrics ?? 0) + ')') : (matter.running ? 'Ready to pair' : 'Starting'))"></span>
+                          x-text="!matter.enabled ? $t('common.disabled') : (matter.paired ? $t('settings.paired', { count: matter.fabrics ?? 0 }) : (matter.running ? $t('settings.ready_to_pair') : $t('status.starting')))"></span>
                 </div>
-                <p class="settings-card-desc">Expose pool equipment to Matter-compatible smart-home ecosystems (Apple Home, Google Home, Alexa, SmartThings).</p>
+                <p class="settings-card-desc" x-text="$t('settings.matter_desc')"></p>
                 <template x-if="!matter.enabled">
                     <div class="settings-unavailable">
                         <span class="settings-unavailable-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 3l18 18M10.7 5.1A9 9 0 0 1 18.9 13M5.1 10.7A9 9 0 0 0 13 18.9"/></svg></span>
-                        <div><div class="settings-unavailable-title">Matter disabled</div><div class="settings-unavailable-sub">On by default; it was opted out with <code>--matter false</code>.</div></div>
+                        <div><div class="settings-unavailable-title" x-text="$t('settings.matter_disabled')"></div><div class="settings-unavailable-sub" x-html="$t('settings.matter_disabled_sub_html')"></div></div>
                     </div>
                 </template>
                 <template x-if="matter.enabled &amp;&amp; matter.reachable === false">
                     <div class="settings-unavailable">
                         <span class="settings-unavailable-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg></span>
-                        <div><div class="settings-unavailable-title">Sidecar not answering</div><div class="settings-unavailable-sub">The Matter bridge is enabled but not responding yet. Pairing details appear once it's ready.</div></div>
+                        <div><div class="settings-unavailable-title" x-text="$t('settings.sidecar_na')"></div><div class="settings-unavailable-sub" x-text="$t('settings.sidecar_na_sub')"></div></div>
                     </div>
                 </template>
                 <template x-if="matter.enabled &amp;&amp; matter.running">
                     <div class="matter-body">
                         <div class="matter-info">
-                            <div class="matter-kv"><span>Sidecar</span><span x-text="matter.running ? 'Running' : 'Not running'"></span></div>
-                            <div class="matter-kv"><span>Paired fabrics</span><span x-text="matter.fabrics ?? 0"></span></div>
-                            <div class="matter-kv" x-show="matter.node_id"><span>Node ID</span><span x-text="matter.node_id"></span></div>
-                            <div class="matter-kv" x-show="matter.vendor_id"><span>Vendor ID</span><span x-text="matter.vendor_id"></span></div>
-                            <div class="matter-kv" x-show="matter.spec_version"><span>Spec</span><span x-text="matter.spec_version"></span></div>
+                            <div class="matter-kv"><span x-text="$t('settings.sidecar')"></span><span x-text="matter.running ? $t('common.running') : $t('settings.not_running')"></span></div>
+                            <div class="matter-kv"><span x-text="$t('settings.paired_fabrics')"></span><span x-text="matter.fabrics ?? 0"></span></div>
+                            <div class="matter-kv" x-show="matter.node_id"><span x-text="$t('settings.node_id')"></span><span x-text="matter.node_id"></span></div>
+                            <div class="matter-kv" x-show="matter.vendor_id"><span x-text="$t('settings.vendor_id')"></span><span x-text="matter.vendor_id"></span></div>
+                            <div class="matter-kv" x-show="matter.spec_version"><span x-text="$t('settings.spec')"></span><span x-text="matter.spec_version"></span></div>
                         </div>
                         <template x-if="!matter.paired &amp;&amp; matter.qr_payload">
                             <div class="matter-qr-panel">
-                                <div x-ref="matterQr" class="matter-qr" aria-label="Matter commissioning QR code"></div>
-                                <div class="matter-qr-label">Scan to commission</div>
+                                <div x-ref="matterQr" class="matter-qr" :aria-label="$t('settings.matter_qr_aria')"></div>
+                                <div class="matter-qr-label" x-text="$t('settings.scan_to_commission')"></div>
                                 <div class="matter-qr-code" x-text="matter.manual_code || '--'"></div>
                             </div>
                         </template>
@@ -2530,32 +2533,32 @@
             </div>
 
             <!-- Profiling -->
-            <div class="section-title mt-2">Profiling</div>
+            <div class="section-title mt-2" x-text="$t('settings.profiling')"></div>
             <div class="card mb-2 matter-card">
                 <div class="matter-head">
-                    <span class="matter-title">Performance Profiler</span>
+                    <span class="matter-title" x-text="$t('settings.perf_profiler')"></span>
                     <span class="badge" :class="profiling.running ? 'badge-freq' : 'badge-status-off'"
-                          x-text="!profiling.enabled ? 'Disabled' : (profiling.running ? 'Running' : 'Paused')"></span>
+                          x-text="!profiling.enabled ? $t('common.disabled') : (profiling.running ? $t('common.running') : $t('common.paused'))"></span>
                 </div>
-                <p class="settings-card-desc">Frame and zone-level performance capture, streamed live to an attached profiler. Adds minor overhead while running.</p>
+                <p class="settings-card-desc" x-text="$t('settings.profiling_desc')"></p>
                 <template x-if="!profiling.enabled">
                     <div class="settings-unavailable">
                         <span class="settings-unavailable-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 3l18 18M10.7 5.1A9 9 0 0 1 18.9 13M5.1 10.7A9 9 0 0 0 13 18.9"/></svg></span>
-                        <div><div class="settings-unavailable-title">Profiling unavailable</div><div class="settings-unavailable-sub">No profiler backend compiled in. Rebuild with Tracy, Intel VTune or AMD uProf support (<code>ENABLE_PROFILING=ON</code>).</div></div>
+                        <div><div class="settings-unavailable-title" x-text="$t('settings.profiling_na')"></div><div class="settings-unavailable-sub" x-html="$t('settings.profiling_na_sub_html')"></div></div>
                     </div>
                 </template>
                 <template x-if="profiling.enabled">
                     <div>
-                        <div class="prof-label">Backend</div>
+                        <div class="prof-label" x-text="$t('settings.backend')"></div>
                         <div class="prof-backends">
                             <template x-for="b in profiling.available" :key="b">
                                 <button type="button" class="prof-backend-btn" :class="{ active: b === profiling.backend }" :disabled="profilingBusy" @click="selectProfilingBackend(b)" x-text="b"></button>
                             </template>
                         </div>
                         <div class="prof-controls">
-                            <button type="button" class="btn btn-sm" :disabled="profilingBusy || profiling.running" @click="startProfiling()">Resume</button>
-                            <button type="button" class="btn btn-sm btn-secondary" :disabled="profilingBusy || !profiling.running" @click="stopProfiling()">Pause</button>
-                            <span class="prof-state" x-text="profiling.running ? ('Capturing on ' + (profiling.backend || '--')) : 'Paused'"></span>
+                            <button type="button" class="btn btn-sm" :disabled="profilingBusy || profiling.running" @click="startProfiling()" x-text="$t('settings.resume')"></button>
+                            <button type="button" class="btn btn-sm btn-secondary" :disabled="profilingBusy || !profiling.running" @click="stopProfiling()" x-text="$t('settings.pause')"></button>
+                            <span class="prof-state" x-text="profiling.running ? $t('settings.capturing_on', { backend: profiling.backend || '--' }) : $t('common.paused')"></span>
                         </div>
                     </div>
                 </template>
@@ -2565,29 +2568,29 @@
         <!-- ====== ABOUT VIEW ====== -->
         <div x-show="route === 'about'" x-cloak x-data="aboutView()">
 
-            <div class="section-title mt-2">Software Information</div>
+            <div class="section-title mt-2" x-text="$t('about.software_info')"></div>
             <div class="card mb-2">
                 <div class="card-body">
                     <dl class="info-grid">
-                        <dt>Application</dt>
+                        <dt x-text="$t('about.application')"></dt>
                         <dd x-text="$store.pool.projectName || 'Aqualink Automate'"></dd>
 
-                        <dt>Version</dt>
+                        <dt x-text="$t('about.version')"></dt>
                         <dd x-text="$store.pool.softwareVersion"></dd>
 
-                        <dt>Description</dt>
+                        <dt x-text="$t('about.description')"></dt>
                         <dd x-text="$store.pool.projectDescription || '--'"></dd>
 
-                        <dt>Git Commit</dt>
+                        <dt x-text="$t('about.git_commit')"></dt>
                         <dd>
                             <code x-text="shortCommit"></code>
-                            <span x-show="$store.pool.gitUncommitted" class="badge badge-warn ml-1">uncommitted changes</span>
+                            <span x-show="$store.pool.gitUncommitted" class="badge badge-warn ml-1" x-text="$t('about.uncommitted')"></span>
                         </dd>
 
-                        <dt>Commit Date</dt>
+                        <dt x-text="$t('about.commit_date')"></dt>
                         <dd x-text="$store.pool.gitDate || '--'"></dd>
 
-                        <dt>Homepage</dt>
+                        <dt x-text="$t('about.homepage')"></dt>
                         <dd>
                             <a x-show="safeHomepage" :href="safeHomepage" x-text="safeHomepage" target="_blank" rel="noopener noreferrer"></a>
                             <span x-show="!safeHomepage" class="text-muted">--</span>
@@ -2596,7 +2599,7 @@
                 </div>
             </div>
 
-            <div class="section-title">Equipment Information</div>
+            <div class="section-title" x-text="$t('about.equipment_info')"></div>
             <div class="card mb-2">
                 <div class="card-body">
                     <dl class="info-grid" x-show="$store.pool.equipmentVersion.length > 0">
@@ -2607,7 +2610,7 @@
                             </div>
                         </template>
                     </dl>
-                    <p x-show="$store.pool.equipmentVersion.length === 0" class="text-muted">No equipment version information available</p>
+                    <p x-show="$store.pool.equipmentVersion.length === 0" class="text-muted" x-text="$t('about.no_equipment_info')"></p>
                 </div>
             </div>
 
@@ -2620,11 +2623,15 @@
         <template x-for="toast in $store.toast.items" :key="toast.id">
             <div class="toast" :class="'toast-' + toast.level" x-transition.opacity>
                 <span x-text="toast.message"></span>
-                <button class="toast-dismiss" @click="$store.toast.dismiss(toast.id)" aria-label="Dismiss">&times;</button>
+                <button class="toast-dismiss" @click="$store.toast.dismiss(toast.id)" :aria-label="$t('common.dismiss')">&times;</button>
             </div>
         </template>
     </div>
 
+    <!-- I18n: English catalog first (synchronous fallback), then the runtime.
+         Must precede every store/component/view script. -->
+    <script src="/i18n/en.js"></script>
+    <script src="/scripts/i18n.js"></script>
     <!-- Store scripts -->
     <script src="/scripts/auth.js"></script>
     <script src="/scripts/prefs-sync.js"></script>

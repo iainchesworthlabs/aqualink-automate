@@ -44,6 +44,7 @@ Concurrency is keyed on the PR number (or the ref for branch pushes) with `cance
 | `build-and-test` | Per-OS matrix (see [_build.yml](#_buildyml)) | Calls `_build.yml` with no packaging. Configures, builds, and runs the full test suite on Linux, Windows, and macOS. |
 | `e2e-ui` | Linux | Builds only the app binary, then runs the Playwright UI suite four times — once per mode. |
 | `matter-bridge` | Linux | Node job in `matter-bridge/`: `npm ci`, typecheck (including the matter.js bridge), build, and unit tests. |
+| `i18n-catalogs` | `ubuntu-latest` | Runs `scripts/check-i18n-keys.ps1`: every key referenced in web-UI code exists in `en.js`, and every shipped locale catalog has exact key + placeholder parity with English (see `docs/i18n.md`). Part of the `ci-status` aggregate. |
 | `version-check` | `ubuntu-latest` | PR-into-`main` only. Compares what `git describe` resolves on the PR head versus the base. **Blocking at the job level** — when the resolved version is unchanged it emits `::error::` and `exit 1`, failing the job. It is, however, intentionally excluded from the `ci-status` aggregator's `needs` list, so a failed `version-check` does not by itself fail the aggregated `ci-status` required check. |
 | `docker-verify` | Linux | Builds the `ci` and `runtime` Docker targets, smoke-tests the runtime image with `--version`, and asserts the Matter sidecar is bundled. |
 

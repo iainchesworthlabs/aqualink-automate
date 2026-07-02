@@ -36,7 +36,9 @@ async function expectLiveDashboard(page: Page) {
   const saltCard = page
     .locator('.gauge-card')
     .filter({ has: page.locator('.gauge-label', { hasText: 'Salt' }) });
-  await expect(saltCard.locator('.chem-dial-num')).toHaveText(/3200/, { timeout: 15_000 });
+  // i18n number formatter groups thousands per locale ("3,200" in en) — tolerate
+  // an optional grouping separator (comma / dot / whitespace incl. nbsp via \s).
+  await expect(saltCard.locator('.chem-dial-num')).toHaveText(/3[\s,.]?200/, { timeout: 15_000 });
 }
 
 // The SWG (chlorinator) control card is present in this fixture and gated on

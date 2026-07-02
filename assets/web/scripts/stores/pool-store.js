@@ -12,7 +12,7 @@
  *   /api/version            → { software_version: { name, version, description, homepage }, git_info: { ... } }
  *
  * WebSocket payload mapping:
- *   TemperatureUpdate → { pool_temp, spa_temp, air_temp }  (string values from Localised formatter)
+ *   TemperatureUpdate → { pool_temp, spa_temp, air_temp }  ({celsius, fahrenheit} objects, same shape as REST)
  *   ChemistryUpdate   → { ph, orp, salt_level }            (numeric values)
  *   SystemStatusChange → serialised IStatus
  *   ButtonStateChange  → { button_id, status, label? }
@@ -47,7 +47,9 @@ const CIRCULATION_CONFIRM_MAX_ATTEMPTS = 7;
 
 // Normalise the several system-status vocabularies (REST 'operational',
 // WS SystemStatusChange status_type like 'Normal'/'Initializing', and the
-// initial 'unknown') down to one human-readable label for display.
+// initial 'unknown') down to one canonical token. The token is compared
+// against in templates (e.g. `systemStatus === 'Operational'`); the
+// translated display text comes from the systemStatusLabel getter.
 function _normaliseSystemStatus(raw) {
     switch (String(raw || '').toLowerCase()) {
         case 'operational':
@@ -69,9 +71,33 @@ function _normaliseSystemStatus(raw) {
 
 document.addEventListener('alpine:init', () => {
     Alpine.store('pool', {
-        poolTemp: '--',
-        spaTemp: '--',
-        airTemp: '--',
+        // Temperatures hold the RAW wire value ({celsius, fahrenheit} object,
+        // or legacy string); the poolTemp/spaTemp/airTemp getters below format
+        // for display at read time, so a locale or display-units change
+        // re-renders every consumer reactively.
+        _poolTempRaw: null,
+        _spaTempRaw: null,
+        _airTempRaw: null,
+
+        // Server display-units preference ('Celsius' | 'Fahrenheit'), loaded
+        // with the initial data and updated when Settings saves it.
+        displayUnits: 'Celsius',
+
+        get poolTemp() { return this._displayTemp(this._poolTempRaw); },
+        get spaTemp() { return this._displayTemp(this._spaTempRaw); },
+        get airTemp() { return this._displayTemp(this._airTempRaw); },
+
+        _displayTemp(raw) {
+            if (raw == null) return '--';
+            return window.AquaI18n.formatTemperature(raw, this.displayUnits);
+        },
+
+        // Setpoints hold the raw wire value too; these getters are the single
+        // display path for the ~8 call sites that previously rebuilt
+        // "x.x °C" strings inline.
+        get poolSetpointDisplay() { return typeof this.poolSetpoint === 'object' ? this._displayTemp(this.poolSetpoint) : this.poolSetpoint; },
+        get spaSetpointDisplay() { return typeof this.spaSetpoint === 'object' ? this._displayTemp(this.spaSetpoint) : this.spaSetpoint; },
+
         poolSetpoint: '--',
         poolSetpoint2: '--',   // POOLSP2 / panel "TEMP2" maintenance setpoint (single-body systems)
         poolHeater2Enabled: null,   // POOLHT2 / panel "TEMP2" maintenance heating enabled (read-only)
@@ -94,6 +120,15 @@ document.addEventListener('alpine:init', () => {
         chlorinatorStatus: '--',
         chlorinatorHealth: '--',
 
+        // Translated display text for the chlorinator health enum name; an
+        // unknown value falls back to the raw name with underscores spaced.
+        get chlorinatorHealthLabel() {
+            const h = this.chlorinatorHealth;
+            if (!h || h === '--') return '';
+            const key = window.AquaUI.swgHealthKey(h);
+            return key ? window.AquaI18n.t(key) : String(h).replace(/_/g, ' ');
+        },
+
         // Per-value timestamps for freshness tracking
         _timestamps: {},
         _stalenessThreshold: 60,  // seconds
@@ -105,6 +140,18 @@ document.addEventListener('alpine:init', () => {
         bodies: [],
         commandStates: {},   // { [buttonId|'setpoint:pool'|'setpoint:spa'|'circulation']: { state, timer } }
         systemStatus: 'Unknown',
+
+        // Translated display text for the canonical systemStatus token; falls
+        // back to the raw token for values with no catalog entry.
+        get systemStatusLabel() {
+            const key = {
+                'Operational': 'status.operational',
+                'Starting': 'status.starting',
+                'Service Mode': 'status.service_mode',
+                'Unknown': 'common.unknown',
+            }[this.systemStatus];
+            return key ? window.AquaI18n.t(key) : this.systemStatus;
+        },
         equipmentVersion: [],
         softwareVersion: '--',
         gitCommit: '',
@@ -138,14 +185,26 @@ document.addEventListener('alpine:init', () => {
             await Promise.all([
                 this._fetchEquipment(),
                 this._fetchButtons(),
-                this._fetchVersion()
+                this._fetchVersion(),
+                this._fetchDisplayUnits()
             ]);
         },
 
-        _formatTemp(val) {
-            if (val == null) return '--';
-            if (typeof val === 'object' && val.celsius != null) return Math.round(val.celsius) + '\u00B0C';
-            return String(val);
+        // Fetch the display-units preference (best-effort: 401/offline keeps
+        // the Celsius default; Settings updates it live on save). Requires a
+        // session — /api/preferences is prefs.self-gated — so an anonymous/guest
+        // visitor keeps the default instead of firing a first-paint 401 (D7).
+        async _fetchDisplayUnits() {
+            const authed = window.AqualinkAuth && window.AqualinkAuth.token && window.AqualinkAuth.token();
+            if (!authed) { return; }
+            try {
+                const resp = await fetch('/api/preferences');
+                if (!resp.ok) return;
+                const p = await resp.json();
+                if (p.temperature_units === 'Celsius' || p.temperature_units === 'Fahrenheit') {
+                    this.displayUnits = p.temperature_units;
+                }
+            } catch (_) { /* keep default */ }
         },
 
         _touch(field) {
@@ -169,11 +228,12 @@ document.addEventListener('alpine:init', () => {
                 const data = await resp.json();
                 if (!data || Object.keys(data).length === 0) return;
 
-                // Temperatures
+                // Temperatures — store the raw wire values; display formatting
+                // happens in the poolTemp/spaTemp/airTemp getters.
                 if (data.temperatures) {
-                    this.poolTemp = this._formatTemp(data.temperatures.pool);
-                    this.spaTemp = this._formatTemp(data.temperatures.spa);
-                    this.airTemp = this._formatTemp(data.temperatures.air);
+                    this._poolTempRaw = data.temperatures.pool ?? this._poolTempRaw;
+                    this._spaTempRaw = data.temperatures.spa ?? this._spaTempRaw;
+                    this._airTempRaw = data.temperatures.air ?? this._airTempRaw;
                     if (data.temperatures.pool_setpoint) this.poolSetpoint = data.temperatures.pool_setpoint;
                     if (data.temperatures.pool_setpoint_2) this.poolSetpoint2 = data.temperatures.pool_setpoint_2;
                     if (data.temperatures.pool_heater_2_enabled != null) this.poolHeater2Enabled = data.temperatures.pool_heater_2_enabled;
@@ -213,8 +273,8 @@ document.addEventListener('alpine:init', () => {
                     } else {
                         // Back-compat: build fields from flat keys
                         const fields = [];
-                        if (data.version.model_number) fields.push({ label: 'Model', value: data.version.model_number });
-                        if (data.version.fw_revision) fields.push({ label: 'Revision', value: data.version.fw_revision });
+                        if (data.version.model_number) fields.push({ label: window.AquaI18n.t('about.model'), value: data.version.model_number });
+                        if (data.version.fw_revision) fields.push({ label: window.AquaI18n.t('about.revision'), value: data.version.fw_revision });
                         this.equipmentVersion = fields;
                     }
                 }
@@ -243,7 +303,7 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 console.error('Failed to fetch equipment:', e);
-                Alpine.store('toast').show('Failed to load equipment data', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.load_equipment_failed'), 'error');
             }
         },
 
@@ -260,7 +320,7 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 console.error('Failed to fetch buttons:', e);
-                Alpine.store('toast').show('Failed to load equipment controls', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.load_controls_failed'), 'error');
             }
             this.buttonsLoading = false;
         },
@@ -286,7 +346,7 @@ document.addEventListener('alpine:init', () => {
                 if (data.uptime_seconds != null) sys.uptimeSeconds = data.uptime_seconds;
             } catch (e) {
                 console.error('Failed to fetch version:', e);
-                Alpine.store('toast').show('Failed to load version info', 'warn');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.load_version_failed'), 'warn');
             }
         },
 
@@ -297,9 +357,9 @@ document.addEventListener('alpine:init', () => {
             switch (msg.type) {
                 case 'TemperatureUpdate':
                     if (msg.payload) {
-                        if (msg.payload.pool_temp != null) { this.poolTemp = this._formatTemp(msg.payload.pool_temp); this._touch('poolTemp'); }
-                        if (msg.payload.spa_temp != null) { this.spaTemp = this._formatTemp(msg.payload.spa_temp); this._touch('spaTemp'); }
-                        if (msg.payload.air_temp != null) { this.airTemp = this._formatTemp(msg.payload.air_temp); this._touch('airTemp'); }
+                        if (msg.payload.pool_temp != null) { this._poolTempRaw = msg.payload.pool_temp; this._touch('poolTemp'); }
+                        if (msg.payload.spa_temp != null) { this._spaTempRaw = msg.payload.spa_temp; this._touch('spaTemp'); }
+                        if (msg.payload.air_temp != null) { this._airTempRaw = msg.payload.air_temp; this._touch('airTemp'); }
                         if (msg.payload.pool_setpoint != null) this.poolSetpoint = msg.payload.pool_setpoint;
                         if (msg.payload.pool_setpoint_2 != null) this.poolSetpoint2 = msg.payload.pool_setpoint_2;
                         if (msg.payload.pool_heater_2_enabled != null) this.poolHeater2Enabled = msg.payload.pool_heater_2_enabled;
@@ -389,7 +449,7 @@ document.addEventListener('alpine:init', () => {
                 timer = setTimeout(() => {
                     if (this.commandStates[key]?.state === 'sending') {
                         console.warn(`Command '${key}' timed out after ${sendingTimeoutMs}ms`);
-                        Alpine.store('toast').show('Command timed out — no confirmation received from the controller', 'warn');
+                        Alpine.store('toast').show(window.AquaI18n.t('toast.command_timeout'), 'warn');
                         this.commandStates = { ...this.commandStates, [key]: { state: 'timedout', timer: this._scheduleClear(key) } };
                     }
                 }, sendingTimeoutMs);
@@ -438,7 +498,7 @@ document.addEventListener('alpine:init', () => {
                     // controller not ready), not a UI fault — warn, don't error.
                     console.warn(`Setpoint change rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(key, 'rejected');
-                    Alpine.store('toast').show(`Setpoint change failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.setpoint_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -460,25 +520,28 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     console.warn(`Setpoint change for '${target}' was not applied:`, targetResult);
                     this._setCommandState(key, 'rejected');
-                    Alpine.store('toast').show('Setpoint change was not applied by the controller', 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.setpoint_not_applied'), 'error');
                 }
             } catch (e) {
                 console.error('Failed to adjust setpoint:', e);
                 this._setCommandState(key, 'rejected');
-                Alpine.store('toast').show('Setpoint change failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.setpoint_failed_conn'), 'error');
             }
         },
 
         // Best-effort extraction of a human-readable failure reason from a
-        // non-ok response (structured JSON {error|message} or plain text),
-        // falling back to the HTTP status text.
+        // non-ok response. Structured errors ({error, code, params} —
+        // docs/i18n.md) translate via the error.<code> catalog entry; legacy
+        // JSON {error|message} or plain text pass through, falling back to
+        // the HTTP status text.
         async _readErrorReason(resp) {
             try {
                 const text = await resp.text();
                 if (text) {
                     try {
                         const j = JSON.parse(text);
-                        if (j && (j.error || j.message)) return String(j.error || j.message);
+                        const translated = window.AquaI18n.apiError(j, null);
+                        if (translated) return String(translated);
                     } catch (_) { /* not JSON — use raw text */ }
                     return text;
                 }
@@ -503,7 +566,7 @@ document.addEventListener('alpine:init', () => {
                     // controller not ready), not a UI fault — warn, don't error.
                     console.warn(`Command for button '${id}' rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(id, 'rejected');
-                    Alpine.store('toast').show(`Command failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.command_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -521,7 +584,7 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 console.error('Failed to toggle button:', e);
                 this._setCommandState(id, 'rejected');
-                Alpine.store('toast').show('Command failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.command_failed_conn'), 'error');
             }
         },
 
@@ -551,7 +614,7 @@ document.addEventListener('alpine:init', () => {
                     const reason = await this._readErrorReason(resp);
                     console.warn(`Spa mode change rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(key, 'rejected');
-                    Alpine.store('toast').show(`Spa mode change failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.spa_mode_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -562,7 +625,7 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 console.error('Failed to toggle spa mode:', e);
                 this._setCommandState(key, 'rejected');
-                Alpine.store('toast').show('Spa mode change failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.spa_mode_failed_conn'), 'error');
             }
         },
 
@@ -630,7 +693,7 @@ document.addEventListener('alpine:init', () => {
                     const reason = await this._readErrorReason(resp);
                     console.warn(`Heater command for '${button.label}' rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(id, 'rejected');
-                    Alpine.store('toast').show(`Heater command failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.heater_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -641,7 +704,7 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 console.error('Failed to set heater mode:', e);
                 this._setCommandState(id, 'rejected');
-                Alpine.store('toast').show('Heater command failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.heater_failed_conn'), 'error');
             }
         }
     });
