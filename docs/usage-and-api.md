@@ -206,6 +206,41 @@ both into one timeline. Writing controller schedules is not yet supported.
 | GET | `/api/auth/check` | `200` `{"authenticated":true}` | Only reached when already authorized or auth is disabled; the routing layer answers `401` upstream otherwise. |
 | GET | `/api/auth/me` | `200` JSON | The resolved subject for the calling request: `posture` (`"disabled"`/`"enabled"`), `id`, `authenticated`, `provider`, `groups[]`, `entitlements[]` — the SPA's single source of truth for gating affordances (enforcement stays server-side). Declares **no entitlement requirement**, so with `--auth-mode enabled` an anonymous/guest caller can always probe its own scope. With auth-mode disabled the subject is root-anonymous and `entitlements` is empty (everything is permitted by posture, so nothing is enumerated). |
 
+#### Sessions (Slice 2)
+
+These routes exist only when `--auth-mode enabled`. They are the local-account login flow; all four declare **no entitlement requirement** (they are how a subject acquires or drops a credential), so the router gate is open — enforcement is by the credential in the body.
+
+| Method | Path | Entitlement | Behaviour |
+|---|---|---|---|
+| POST | `/api/auth/login` | open | Verify `{username, password}`; on success return `{access_token, refresh_token, session_id, token_type:"Bearer"}`. `401` on bad credentials; `429` (`Retry-After: 900`) when the account is locked out after repeated failures. Argon2id runs off the kernel thread. |
+| POST | `/api/auth/refresh` | open | Exchange `{refresh_token}` for a fresh `{access_token, refresh_token}` pair (single-use rotation). `401` when invalid/expired, or when a rotated-out token is replayed (the session is then revoked). |
+| POST | `/api/auth/logout` | open (`everywhere` needs auth) | Revoke the session for `{refresh_token}`; always answers `204` (never discloses whether the token was live). With `{"everywhere":true}` it revokes **every** session for the caller and bumps `tokver` — this variant requires an authenticated subject (`401` otherwise). |
+| POST | `/api/auth/setup` | open | First-run only: create the first administrator from `{username, password}` when the user store is empty. `201` on success; `403` once setup has already been completed (self-sealing); `400` on a weak password (min 12) or missing fields. |
+
+### Administration
+
+These routes exist only when `--auth-mode enabled`. Most require the `system.admin` entitlement; the self-service exceptions (own password, own sessions) are gated on `prefs.self` — i.e. simply being authenticated — with the admin-vs-self distinction enforced in-handler. A denied request answers `401` when anonymous and `403` when authenticated-but-unentitled.
+
+| Method | Path | Entitlement | Behaviour |
+|---|---|---|---|
+| GET | `/api/users` | `system.admin` | List local accounts (id, username, groups, direct entitlements, disabled, tokver; never the password hash). |
+| POST | `/api/users` | `system.admin` | Create an account from `{username, password, groups?, direct_entitlements?}`. `400` weak password / unknown entitlements; `409` duplicate username. |
+| GET | `/api/users/{user_id}` | `system.admin` | Fetch one account record. `404` unknown. |
+| PUT | `/api/users/{user_id}` | `system.admin` | Partial update of `username`/`groups`/`direct_entitlements`/`disabled`. A grant change bumps `tokver`; `disabled:true` also revokes every session. `409` on duplicate username or last-admin protection. |
+| DELETE | `/api/users/{user_id}` | `system.admin` | Delete the account, revoke its sessions, forget its per-user prefs (audit retained). `409` for the last enabled admin. |
+| PUT | `/api/users/{user_id}/password` | `prefs.self` | Set a password. An admin may set anyone's; any other subject only their own (`403` otherwise). On success bumps `tokver` and revokes every session. `400` if under 12 chars. |
+| GET | `/api/groups` | `system.admin` | List groups (name, entitlements, `built_in`). |
+| POST | `/api/groups` | `system.admin` | Upsert a group by name from `{name, entitlements}`. A change bumps every member's `tokver`. `400` on unknown/malformed entitlements. |
+| DELETE | `/api/groups/{group_name}` | `system.admin` | Delete a non-built-in group (members' `tokver` bumped). `404` unknown; `409` built-in. |
+| GET | `/api/entitlements` | `system.admin` | List the known entitlement-action vocabulary (`{"actions":[...]}`) so the UI can enumerate what is assignable. |
+| GET | `/api/apikeys` | `system.admin` | List API-key metadata (id, label, entitlements, expiry, last-used, revoked); never the secret. |
+| POST | `/api/apikeys` | `system.admin` | Create an entitlement-scoped key from `{label, entitlements, expiry_unix?}`. The `201` body carries the **shown-once** `secret` (`aak_...`) plus a `warning`. `400` missing label / bad entitlements. |
+| DELETE | `/api/apikeys/{key_id}` | `system.admin` | Revoke a key (stays listed as revoked). `404` unknown. |
+| GET | `/api/sessions` | `prefs.self` | List active refresh-token sessions. An admin sees every session; any other subject only their own. |
+| DELETE | `/api/sessions/{session_id}` | `prefs.self` | Revoke one session ("log out that browser"). An admin may revoke any; any other subject only their own — a non-owned id answers `404` (indistinguishable from unknown, so ids are not enumerable). |
+
+**Preferences are per-user.** When the identity system is on and the caller is authenticated, `GET`/`PUT /api/preferences` becomes subject-aware. The per-user fields — `temperature_units`, `theme`, `accent`, and `chemistry_bands` — are stored per account and synced server-side; a `GET` returns the live global defaults with the caller's overrides layered on top. Every other field is a **system/admin** preference (alert thresholds, history retention, label overrides, spa-switch mapping, …) and a `PUT` touching one requires `system.admin` (`403` otherwise). An anonymous caller (or auth-mode disabled) reaches none of the per-user machinery — the whole document is global, and the SPA keeps an anonymous visitor's units/theme/accent choices in `localStorage`.
+
 ## Key request and response examples
 
 ### GET /api/equipment

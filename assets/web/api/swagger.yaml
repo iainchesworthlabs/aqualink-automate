@@ -265,6 +265,185 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Log in with a username and password
+      description: >
+        Verifies a local account and, on success, issues a short-lived access
+        JWT plus a rotating refresh token. Available only when `--auth-mode
+        enabled`. Declares no entitlement requirement — this is how a subject
+        acquires a credential. The password is verified with argon2id off the
+        kernel thread; an unknown username is verified against a decoy hash so
+        response timing does not reveal whether the account exists. Failed
+        attempts are counted per account and lock the account out after a
+        threshold.
+      operationId: authLogin
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+            example:
+              username: alice
+              password: a-long-enough-password
+      responses:
+        '200':
+          description: Authenticated; the session credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  session_id: { type: string }
+                  token_type: { type: string, enum: [Bearer] }
+              example:
+                access_token: "eyJhbGciOi..."
+                refresh_token: "art_..."
+                session_id: "2b0e9d3f-5a67-4c1d-9e8f-7a6b5c4d3e2f"
+                token_type: Bearer
+        '400': { description: Missing or non-string username/password }
+        '401': { description: Invalid username or password }
+        '405': { description: Method not allowed (POST required) }
+        '429':
+          description: >
+            The account is locked out after too many failed attempts; retry
+            after the window (Retry-After header).
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Exchange a refresh token for a fresh token pair
+      description: >
+        Rotates the (single-use) refresh token and mints a new access token.
+        Available only when `--auth-mode enabled`. Declares no entitlement
+        requirement — the refresh token IS the credential. Replaying a
+        rotated-out token is treated as theft: the whole session is revoked and
+        the reuse is audited.
+      operationId: authRefresh
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+            example:
+              refresh_token: "art_..."
+      responses:
+        '200':
+          description: A fresh access token and rotated refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  token_type: { type: string, enum: [Bearer] }
+              example:
+                access_token: "eyJhbGciOi..."
+                refresh_token: "art_..."
+                token_type: Bearer
+        '400': { description: Missing or non-string refresh_token }
+        '401': { description: Invalid/expired session, or a revoked (reused) token }
+        '405': { description: Method not allowed (POST required) }
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Log out a session (or every session)
+      description: >
+        Revokes the session identified by the presented refresh token. Always
+        answers 204 — it never discloses whether the token was live. With
+        `{"everywhere": true}` it revokes every session for the authenticated
+        caller and bumps the token version so outstanding access tokens die
+        too; that variant requires an authenticated subject. Available only
+        when `--auth-mode enabled`.
+      operationId: authLogout
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+                everywhere:
+                  type: boolean
+                  description: Revoke every session for the authenticated caller
+            example:
+              refresh_token: "art_..."
+      responses:
+        '204': { description: Logged out (whether or not the token was live) }
+        '400': { description: Missing or non-string refresh_token }
+        '401': { description: everywhere logout requested without an authenticated subject }
+        '405': { description: Method not allowed (POST required) }
+
+  /api/auth/setup:
+    post:
+      tags:
+        - Authentication
+      summary: Create the first administrator (first-run setup)
+      description: >
+        Self-sealing first-run setup: creates the first administrator when the
+        user store is empty. Once any user exists it answers 403 and is gone
+        for good, so it can never mint a second admin. Available only when
+        `--auth-mode enabled`. The password is hashed with argon2id off the
+        kernel thread and must satisfy the policy (at least 12 characters).
+      operationId: authSetup
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+            example:
+              username: admin
+              password: a-long-enough-password
+      responses:
+        '201':
+          description: The first administrator was created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id: { type: string }
+                  username: { type: string }
+              example:
+                user_id: "0f8fad5b-d9cb-469f-a165-70867728950e"
+                username: admin
+        '400': { description: Missing fields, empty username, or a password under 12 characters }
+        '403': { description: Setup has already been completed }
+        '405': { description: Method not allowed (POST required) }
+
   /api/users:
     get:
       tags: [Administration]
