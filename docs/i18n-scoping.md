@@ -32,6 +32,15 @@
 > switch knobs/toast slide, and time-axis geometry pinned LTR (docs/i18n.md
 > "RTL layout"). The alerts-dropdown narrow-viewport clipping turned out to be
 > pre-existing in BOTH directions and is tracked separately.
+>
+> **Reconciliation 2026-07-03: Phase 4 is implemented** on `feat/i18n-phase4` —
+> a vendored Noto Sans Arabic variable woff2 (Arabic `unicode-range` slice only,
+> so it acts as a per-glyph fallback behind the Latin brand faces) plus a named
+> Japanese system-font stack under `html[lang='ja']`. Deviates from the plan in
+> one respect: the "optional" vendored Noto subset was taken up for Arabic so the
+> rendered face is consistent across platforms instead of whatever `system-ui`
+> resolves to; CJK stays on named system faces. See docs/i18n.md "Fonts and
+> scripts".
 
 ## Goal
 
