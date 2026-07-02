@@ -64,6 +64,9 @@ test.describe('i18n runtime', () => {
     await page.goto('/#settings');
     // The picker lives in Settings → Appearance; switching re-renders every binding.
     await page.locator('.settings-card select.settings-input').first().selectOption('de');
+    // A live switch loads the catalog asynchronously — wait for it to register
+    // before reading it (the swap into the DOM is reactive and follows).
+    await page.waitForFunction(() => !!(window as any).AquaI18n.catalogs.de);
     const deDashboard = await page.evaluate(() => (window as any).AquaI18n.catalogs.de['nav.dashboard']);
     await expect(page.locator('.nav-link').first()).toHaveText(deDashboard);
     await expect(page.locator('html')).toHaveAttribute('lang', 'de');
@@ -164,6 +167,7 @@ test.describe('i18n guard rails', () => {
         '[data-i18n-exempt]',
         '.nav-brand', '.login-title',                       // brand
         '.heater-label', '.eq-control-label', '.other-equip-label', // device labels (API)
+        '.settings-name-field',                             // Device Names card: canonical device labels
         '.sched-name', '.sched-trk-label', '.sched-meta',   // schedule/device names + summaries incl. targets
         '.sched-conflict-item', '.sched-row-conflict-msg',  // embed device names
         '.dmc-name', '.dmc-addr', '.dmc-summary', '.diag-modal-summary', // device diagnostics data
