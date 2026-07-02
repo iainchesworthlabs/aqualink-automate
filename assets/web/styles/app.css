@@ -405,6 +405,149 @@ nav .nav-controls {
 
 .login-submit:disabled { opacity: 0.6; cursor: default; }
 .login-error { color: #ef4444; font-size: 0.8rem; margin-top: 0.75rem; }
+.login-hint {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.75rem;
+    text-align: left;
+    margin: -0.4rem 0 0.6rem;
+}
+
+/* ---- Account overlay (Wave A) ------------------------------------------- */
+.account-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.8);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+}
+
+.account-card {
+    width: min(440px, 96vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.account-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.account-title { font-size: 1.15rem; margin: 0; color: var(--text-primary); }
+
+.account-close {
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+}
+.account-close:hover { color: var(--text-primary); }
+
+.account-section {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.account-section:last-child { border-bottom: none; }
+
+.account-subhead {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #94a3b8);
+    margin: 0 0 0.75rem;
+}
+
+.account-identity { display: flex; align-items: center; gap: 0.85rem; }
+
+.account-avatar {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.account-username { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+
+.account-groups { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+.account-group-chip {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted, #94a3b8);
+}
+
+.account-btn {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm, 8px);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.account-btn:disabled { opacity: 0.6; cursor: default; }
+.account-btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.account-btn-danger { background: #ef4444; }
+
+.account-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.account-ok { color: var(--good, #22c55e); font-size: 0.8rem; margin-top: 0.6rem; }
+.account-muted { color: var(--text-muted, #94a3b8); font-size: 0.85rem; }
+
+.account-session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.account-session {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+}
+.account-session-device { font-size: 0.9rem; color: var(--text-primary); }
+.account-session-meta { font-size: 0.75rem; color: var(--text-muted, #94a3b8); margin-top: 0.15rem; }
+.account-revoke {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.7rem;
+    background: none;
+    color: #ef4444;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.account-revoke:hover { border-color: #ef4444; }
 
 /* ---- Trends view (WS2) -------------------------------------------------- */
 .trends-head {
