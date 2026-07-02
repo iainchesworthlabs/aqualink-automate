@@ -52,6 +52,17 @@ async function loginViaCard(page: Page, user: string, pass: string, remember = f
 
 test.describe.serial('UI authentication (identity system)', () => {
   test('first-run setup wizard creates the admin and lands on the live dashboard', async ({ page }) => {
+    // Guard: no protected endpoint should be fetched (and 401) before the
+    // session is ready. Eager view init() calls that fire pre-login are the
+    // classic source of first-paint 401 console noise — the settings view now
+    // defers its load until auth:ready.
+    const unauthorized: string[] = [];
+    page.on('response', (r) => {
+      if (r.status() === 401 && /\/api\/(preferences|diagnostics\/(matter|profiling))/.test(r.url())) {
+        unauthorized.push(`${r.status()} ${new URL(r.url()).pathname}`);
+      }
+    });
+
     await page.goto('/');
 
     // Empty user store -> the setup wizard is shown (not the login card): it asks
@@ -77,6 +88,11 @@ test.describe.serial('UI authentication (identity system)', () => {
 
     // Setup auto-logs-in -> overlay hides, the live dashboard renders.
     await expectLiveDashboard(page);
+
+    // No protected endpoint was fetched before the session was ready (the
+    // post-login fetches carry the token and return 200, so any 401 here means
+    // a view fetched too early).
+    expect(unauthorized, `unexpected pre-auth 401s: ${unauthorized.join(', ')}`).toHaveLength(0);
   });
 
   test('wrong password shows the indistinguishable error; correct password signs in', async ({ page }) => {

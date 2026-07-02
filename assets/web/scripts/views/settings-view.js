@@ -73,7 +73,21 @@ function settingsView() {
         _matterQrPayload: null,
 
         // Alpine auto-calls init() on the component.
-        async init() {
+        init() {
+            // These endpoints (preferences, matter, profiling) require auth
+            // under the identity system. Defer the initial load until the
+            // session is ready (authorised, or posture disabled) so a first
+            // paint before login does not fire 401s. If already ready — e.g.
+            // navigating here after login — load immediately.
+            const auth = window.Alpine && Alpine.store('auth');
+            if (auth && !auth.ready) {
+                window.addEventListener('auth:ready', () => this._loadInitial(), { once: true });
+            } else {
+                this._loadInitial();
+            }
+        },
+
+        async _loadInitial() {
             this.fetchMatter();
             this.fetchProfiling();
             try {
