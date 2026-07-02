@@ -300,6 +300,7 @@
         'diag.switch_n': 'Schalter {n}',
         'diag.msg_id': 'ID {id}',
         'diag.mixed': 'Gemischt',
+        'diag.rate_per_s': '{value}/s',
 
         // ---- Diagnostics device cards -----------------------------------------------
         'devcard.role_onetouch': 'OneTouch-Menücontroller',
@@ -526,6 +527,10 @@
         'time.seconds_ago': 'vor {n} s',
         'time.minutes_ago': 'vor {n} min',
         'time.hours_ago': 'vor {n} h',
+        'time.abbr_seconds': '{n} s',
+        'time.abbr_minutes': '{n} min',
+        'time.abbr_hours': '{n} h',
+        'time.abbr_days': '{n} d',
 
         // ---- Alerts (frontend labels for backend condition keys) -------------------------------
         'alert.chlorinator_fault': 'Chlorinator-Fehler',

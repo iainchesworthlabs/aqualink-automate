@@ -299,6 +299,7 @@
         'diag.switch_n': 'スイッチ {n}',
         'diag.msg_id': 'ID {id}',
         'diag.mixed': '混在',
+        'diag.rate_per_s': '{value}/秒',
 
         // ---- Diagnostics device cards -----------------------------------------------
         'devcard.role_onetouch': 'OneTouch メニューコントローラー',
@@ -525,6 +526,10 @@
         'time.seconds_ago': '{n}秒前',
         'time.minutes_ago': '{n}分前',
         'time.hours_ago': '{n}時間前',
+        'time.abbr_seconds': '{n}秒',
+        'time.abbr_minutes': '{n}分',
+        'time.abbr_hours': '{n}時間',
+        'time.abbr_days': '{n}日',
 
         // ---- Alerts (frontend labels for backend condition keys) -------------------------------
         'alert.chlorinator_fault': '塩素発生器の障害',

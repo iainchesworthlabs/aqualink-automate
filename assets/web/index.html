@@ -786,9 +786,9 @@
                             <span class="latency-window-pill"
                                   x-text="$t('diag.last_window', { window: (($store.stats.latency?.[cat.key]?.window_secs)
                                         ? (($store.stats.latency[cat.key].window_secs % 60 === 0)
-                                            ? ($store.stats.latency[cat.key].window_secs / 60) + 'm'
-                                            : $store.stats.latency[cat.key].window_secs + 's')
-                                        : '15m') })"></span>
+                                            ? $t('time.abbr_minutes', { n: $store.stats.latency[cat.key].window_secs / 60 })
+                                            : $t('time.abbr_seconds', { n: $store.stats.latency[cat.key].window_secs }))
+                                        : $t('time.abbr_minutes', { n: 15 })) })"></span>
                         </div>
                         <div class="latency-pct-grid">
                             <div class="latency-pct">

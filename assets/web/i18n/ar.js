@@ -299,6 +299,7 @@
         'diag.switch_n': 'المفتاح {n}',
         'diag.msg_id': 'المعرّف {id}',
         'diag.mixed': 'مختلط',
+        'diag.rate_per_s': '{value}/ث',
 
         // ---- Diagnostics device cards -----------------------------------------------
         'devcard.role_onetouch': 'وحدة تحكم قوائم OneTouch',
@@ -525,6 +526,10 @@
         'time.seconds_ago': 'منذ {n} ث',
         'time.minutes_ago': 'منذ {n} د',
         'time.hours_ago': 'منذ {n} س',
+        'time.abbr_seconds': '{n} ث',
+        'time.abbr_minutes': '{n} د',
+        'time.abbr_hours': '{n} س',
+        'time.abbr_days': '{n} ي',
 
         // ---- Alerts (frontend labels for backend condition keys) -------------------------------
         'alert.chlorinator_fault': 'عطل جهاز الكلورة',

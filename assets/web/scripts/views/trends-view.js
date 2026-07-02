@@ -24,12 +24,14 @@ const _trends = { data: {}, geom: null, hoverIdx: null, bound: false };
 // spelled out here as a literal stack (matches --font-ui / 'Hanken Grotesk').
 const TREND_FONT = "\"Hanken Grotesk\", system-ui, sans-serif";
 
+// Labels resolve through the i18n catalog at render time (see the `ranges`
+// getter) — duration abbreviations differ per language ("7d" vs "٧ ي" vs "7日").
 const TREND_RANGES = [
-    { label: '1h', seconds: 3600 },
-    { label: '6h', seconds: 21600 },
-    { label: '24h', seconds: 86400 },
-    { label: '7d', seconds: 604800 },
-    { label: '30d', seconds: 2592000 },
+    { n: 1, unitKey: 'time.abbr_hours', seconds: 3600 },
+    { n: 6, unitKey: 'time.abbr_hours', seconds: 21600 },
+    { n: 24, unitKey: 'time.abbr_hours', seconds: 86400 },
+    { n: 7, unitKey: 'time.abbr_days', seconds: 604800 },
+    { n: 30, unitKey: 'time.abbr_days', seconds: 2592000 },
 ];
 
 // Stable colours for the well-known analog series, tied to the reskin design
@@ -117,7 +119,9 @@ function trendsView() {
         showInactive: false,
         selected: {},        // key -> bool
         rangeSeconds: 86400,
-        ranges: TREND_RANGES,
+        get ranges() {
+            return TREND_RANGES.map((r) => ({ ...r, label: window.AquaI18n.t(r.unitKey, { n: r.n }) }));
+        },
         _loaded: false,
         _model: [],          // full model incl. hidden/inactive
 

@@ -44,17 +44,18 @@ function _handlePollFailure(key, resp, err) {
 function diagnosticsView() {
     return {
         windowSeconds: 60,
-        // Getter so the "All" label re-resolves on a locale switch; the numeric
-        // abbreviations are locale-neutral.
+        // Getter so the labels re-resolve on a locale switch (duration
+        // abbreviations differ per language: "1m" vs "١ د" vs "1分").
         get windowOptions() {
+            const t = window.AquaI18n.t;
             return [
-                { label: '1s', value: 1 },
-                { label: '5s', value: 5 },
-                { label: '10s', value: 10 },
-                { label: '30s', value: 30 },
-                { label: '1m', value: 60 },
-                { label: '5m', value: 300 },
-                { label: window.AquaI18n.t('common.all'), value: 0 }
+                { label: t('time.abbr_seconds', { n: 1 }), value: 1 },
+                { label: t('time.abbr_seconds', { n: 5 }), value: 5 },
+                { label: t('time.abbr_seconds', { n: 10 }), value: 10 },
+                { label: t('time.abbr_seconds', { n: 30 }), value: 30 },
+                { label: t('time.abbr_minutes', { n: 1 }), value: 60 },
+                { label: t('time.abbr_minutes', { n: 5 }), value: 300 },
+                { label: t('common.all'), value: 0 }
             ];
         },
 
@@ -847,7 +848,7 @@ function diagnosticsView() {
             return rows.filter(m => (m.name || ('ID ' + m.id)).toLowerCase().includes(q));
         },
         msgLabel(m) { return m.name || window.AquaI18n.t('diag.msg_id', { id: m.id }); },
-        msgRate(m) { return (m.frequency || 0).toFixed(2) + '/s'; },
+        msgRate(m) { return window.AquaI18n.t('diag.rate_per_s', { value: (m.frequency || 0).toFixed(2) }); },
         msgLastSeen(m) { return m.lastSeen ? new Date(m.lastSeen).toLocaleTimeString() : '--'; },
 
         // ---- Log-levels modal -----------------------------------------------------
