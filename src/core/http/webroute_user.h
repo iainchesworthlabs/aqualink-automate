@@ -10,6 +10,8 @@
 #include "auth/user_store.h"
 #include "interfaces/iwebroute.h"
 
+namespace AqualinkAutomate::Preferences { class UserPreferencesStore; }
+
 namespace AqualinkAutomate::HTTP
 {
 	inline constexpr char USER_ROUTE_URL[] = "/api/users/{user_id}";
@@ -28,7 +30,9 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_User : public Interfaces::IWebRoute<USER_ROUTE_URL>
 	{
 	public:
-		WebRoute_User(Auth::UserStore& users, Auth::GroupStore& groups, Auth::SessionService& session_service, Auth::SessionStore& sessions, Auth::AuditLog& audit);
+		// user_prefs (nullable): when present, a deleted user's per-user
+		// preference overrides are forgotten too (auth-mode on).
+		WebRoute_User(Auth::UserStore& users, Auth::GroupStore& groups, Auth::SessionService& session_service, Auth::SessionStore& sessions, Auth::AuditLog& audit, Preferences::UserPreferencesStore* user_prefs = nullptr);
 
 	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
@@ -50,6 +54,7 @@ namespace AqualinkAutomate::HTTP
 		Auth::SessionService& m_SessionService;
 		Auth::SessionStore& m_Sessions;
 		Auth::AuditLog& m_Audit;
+		Preferences::UserPreferencesStore* m_UserPrefs;
 	};
 
 }

@@ -112,6 +112,7 @@
 
 // Core — preferences (user/admin settings)
 #include "preferences/preferences_service.h"
+#include "preferences/user_preferences_store.h"
 #include "http/webroute_preferences.h"
 
 // Core — equipment cache (instant dashboard on restart)
@@ -686,6 +687,11 @@ int main(int argc, char* argv[])
 			// (same collision, and same fix, as `Alerting` further down).
 			namespace Auth = AqualinkAutomate::Auth;
 
+			// Per-user preferences overrides (docs/auth-redesign.md §8); shares
+			// the auth state dir and is injected into the preferences route so a
+			// logged-in caller reads/writes their own units/theme/accent/bands.
+			std::shared_ptr<Preferences::UserPreferencesStore> user_preferences_store{};
+
 			std::shared_ptr<Auth::UserStore> auth_users{};
 			std::shared_ptr<Auth::GroupStore> auth_group_store{};
 			std::shared_ptr<Auth::SessionStore> auth_sessions{};
@@ -733,6 +739,7 @@ int main(int argc, char* argv[])
 
 					auth_users = std::make_shared<Auth::UserStore>(Auth::UserStore::Load(auth_state_dir / "users.json"));
 					auth_group_store = std::make_shared<Auth::GroupStore>(Auth::GroupStore::Load(auth_state_dir / "groups.json"));
+					user_preferences_store = std::make_shared<Preferences::UserPreferencesStore>(Preferences::UserPreferencesStore::Load(auth_state_dir / "user_preferences.json"));
 					auth_sessions = std::make_shared<Auth::SessionStore>(Auth::SessionStore::Load(auth_state_dir / "sessions.json"));
 					auth_api_keys = std::make_shared<Auth::ApiKeyStore>(Auth::ApiKeyStore::Load(auth_state_dir / "api-keys.json"));
 
@@ -871,7 +878,7 @@ int main(int argc, char* argv[])
 				// The admin/user-management surface (docs/auth-redesign.md §6-§7):
 				// users, groups, entitlement vocabulary, API keys and sessions.
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Users>(*auth_users, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
-				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_User>(*auth_users, *auth_group_store, *auth_session_service, *auth_sessions, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_User>(*auth_users, *auth_group_store, *auth_session_service, *auth_sessions, *auth_audit, user_preferences_store.get()));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_UserPassword>(*auth_users, *auth_group_store, *auth_sessions, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Groups>(*auth_group_store, *auth_users, *auth_audit));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Group>(*auth_group_store, *auth_users, *auth_audit));
@@ -915,7 +922,7 @@ int main(int argc, char* argv[])
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_HealthDetailed>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_History>(history_service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Metrics>(hub_locator));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Preferences>(preferences_service));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Preferences>(preferences_service, user_preferences_store));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedule>(scheduler_service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedules>(scheduler_service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedules>(controller_schedule_store));

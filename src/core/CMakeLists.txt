@@ -236,6 +236,7 @@ target_sources(
 	options/validators/profiler_type_validator.cpp
 	options/validators/severity_level_validator.cpp
 	preferences/preferences_service.cpp
+	preferences/user_preferences_store.cpp
 	profiling/noop_profiler.cpp
 	profiling/profiling.cpp
 	profiling/profiling_controller.cpp

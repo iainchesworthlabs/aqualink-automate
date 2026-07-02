@@ -19,6 +19,7 @@ target_sources(
 	unit/http/test_access_enforcement.cpp
 	unit/http/test_http_admin_routes.cpp
 	unit/http/test_http_auth_routes.cpp
+	unit/http/test_http_preferences_subject.cpp
 	unit/http/test_http_diagnostics_options_redaction.cpp
 	unit/http/test_routing_authz.cpp
 	unit/auth/test_entitlement.cpp
@@ -91,6 +92,7 @@ target_sources(
 	unit/options/test_options_serial.cpp
 	unit/options/test_options_validators.cpp
 	unit/preferences/test_preferences_service.cpp
+	unit/preferences/test_user_preferences_store.cpp
 	unit/scheduling/test_controller_schedule.cpp
 	unit/scheduling/test_schedule.cpp
 	unit/scheduling/test_scheduler_service.cpp

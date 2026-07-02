@@ -9,17 +9,19 @@
 #include "http/server/server_fields.h"
 #include "http/webroute_admin_helpers.h"
 #include "http/webroute_user.h"
+#include "preferences/user_preferences_store.h"
 #include "profiling/factories/profiling_unit_factory.h"
 
 namespace AqualinkAutomate::HTTP
 {
 
-	WebRoute_User::WebRoute_User(Auth::UserStore& users, Auth::GroupStore& groups, Auth::SessionService& session_service, Auth::SessionStore& sessions, Auth::AuditLog& audit) :
+	WebRoute_User::WebRoute_User(Auth::UserStore& users, Auth::GroupStore& groups, Auth::SessionService& session_service, Auth::SessionStore& sessions, Auth::AuditLog& audit, Preferences::UserPreferencesStore* user_prefs) :
 		m_Users(users),
 		m_Groups(groups),
 		m_SessionService(session_service),
 		m_Sessions(sessions),
-		m_Audit(audit)
+		m_Audit(audit),
+		m_UserPrefs(user_prefs)
 	{
 	}
 
@@ -193,9 +195,15 @@ namespace AqualinkAutomate::HTTP
 			return MakeJsonResponse(req, StatusForStoreError(error), nlohmann::json{ { "error", error } }.dump());
 		}
 
-		// Deletion semantics (§6): refresh sessions revoked; audit retained,
-		// keyed by the (now former) user id.
+		// Deletion semantics (§6): refresh sessions revoked and per-user
+		// preference overrides forgotten; audit retained, keyed by the (now
+		// former) user id.
 		m_Sessions.RevokeAllForUser(user_id);
+
+		if (nullptr != m_UserPrefs)
+		{
+			m_UserPrefs->Forget(user_id);
+		}
 
 		m_Audit.Record(MakeAdminAuditEvent(Routing::CurrentSubject().Id, "auth.user_deleted", "user", user_id, Routing::CurrentPeerIp()));
 
