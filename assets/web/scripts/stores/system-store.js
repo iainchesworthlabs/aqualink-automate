@@ -45,7 +45,7 @@ document.addEventListener('alpine:init', () => {
         },
         get startedAt() {
             if (!this.serverStartTime) return '';
-            try { return new Date(this.serverStartTime).toLocaleString(); } catch (_) { return this.serverStartTime; }
+            try { return window.AquaI18n.formatDateTime(this.serverStartTime); } catch (_) { return this.serverStartTime; }
         },
 
         get state() {
@@ -141,7 +141,7 @@ document.addEventListener('alpine:init', () => {
                         sourceName: p.source_name,
                         sourceType: p.source_type || '',
                         statusType: p.status_type,
-                        lastSeen: new Date().toLocaleTimeString()
+                        lastSeen: window.AquaI18n.formatTime(new Date())
                     };
                     if (idx !== -1) {
                         this.deviceStatuses[idx] = entry;

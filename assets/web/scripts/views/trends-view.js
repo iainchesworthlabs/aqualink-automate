@@ -83,15 +83,20 @@ function _displayName(s) {
     return _titleCase(s.key.replace(/^[^/]+\//, '').replace(/\/state$/, ''));
 }
 
-// Per-series value formatting for the readout / stats / chips.
+// Per-series value formatting for the readout / stats / chips. Digits follow
+// the active locale; temperatures follow the display-units preference.
 function _fmt(key, unit, v) {
+    const n = window.AquaI18n.formatNumber;
     if (v == null || Number.isNaN(v)) return '—';
-    if (key === 'chem/salt_ppm' || unit === 'ppm') return Math.round(v).toLocaleString() + ' ppm';
-    if (key === 'chem/ph' || unit === 'pH') return v.toFixed(2);
-    if (key === 'chem/orp' || unit === 'mV') return Math.round(v) + ' mV';
-    if (key === 'swg/percent' || unit === '%') return Math.round(v) + '%';
-    if (key.startsWith('temp/') || unit === 'C') return v.toFixed(1) + '°C';
-    return v.toFixed(1);
+    if (key === 'chem/salt_ppm' || unit === 'ppm') return n(Math.round(v)) + ' ppm';
+    if (key === 'chem/ph' || unit === 'pH') return n(v, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (key === 'chem/orp' || unit === 'mV') return n(Math.round(v)) + ' mV';
+    if (key === 'swg/percent' || unit === '%') return n(Math.round(v)) + '%';
+    // Temperatures stay °C here regardless of the display-units preference:
+    // the chart's axis/scaling is Celsius, and a °F readout against a °C axis
+    // would disagree. Converting the whole chart is a follow-up.
+    if (key.startsWith('temp/') || unit === 'C') return n(v, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '°C';
+    return n(v, { maximumFractionDigits: 1 });
 }
 
 function _cssVar(name, fallback) {

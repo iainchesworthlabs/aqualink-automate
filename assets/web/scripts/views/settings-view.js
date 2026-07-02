@@ -188,6 +188,9 @@ function settingsView() {
 
         // ---- Server-backed preferences ----
         async saveServerPrefs() {
+            // Push the units into the pool store immediately so every
+            // temperature display flips without waiting for a refetch.
+            if (this.$store.pool) { this.$store.pool.displayUnits = this.prefs.temperature_units; }
             await this._putPrefs({
                 temperature_units: this.prefs.temperature_units,
                 alert: {
