@@ -19,6 +19,13 @@
 > number entities follow `Temperature_DisplayUnits` with discovery republish). Sensors
 > deliberately stay °C (HA self-converts sensors — the "should still be honest" note
 > below was half-right). Trends chart stays °C pending a chart-wide conversion.
+>
+> **Reconciliation 2026-07-03: Phase 2 is implemented** on `feat/i18n-phase2` —
+> HTTP errors carry `{error, code, params}` (additive; `error` stays the English
+> string, deviating from the plan's error-object shape for API compatibility),
+> alert WS/webhook payloads carry structured `params` next to `detail`, and the
+> UI translates both from `error.<code>` / `alert_detail.<condition>` catalog
+> entries. See docs/i18n.md "Structured errors and alerts".
 
 ## Goal
 

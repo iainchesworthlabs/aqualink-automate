@@ -72,14 +72,22 @@ namespace AqualinkAutomate::Preferences
 
 	bool PreferencesService::ApplyJson(const nlohmann::json& json, std::string& error)
 	{
+		std::string ignored_code;
+		return ApplyJson(json, error, ignored_code);
+	}
+
+	bool PreferencesService::ApplyJson(const nlohmann::json& json, std::string& error, std::string& error_code)
+	{
 		if (!m_Hub)
 		{
 			error = "preferences hub unavailable";
+			error_code = "prefs_hub_unavailable";
 			return false;
 		}
 		if (!json.is_object())
 		{
 			error = "preferences must be a JSON object";
+			error_code = "prefs_not_object";
 			return false;
 		}
 
@@ -99,12 +107,14 @@ namespace AqualinkAutomate::Preferences
 			if (!json["temperature_units"].is_string())
 			{
 				error = "temperature_units must be 'Celsius' or 'Fahrenheit'";
+				error_code = "invalid_temperature_units";
 				return false;
 			}
 			auto parsed = magic_enum::enum_cast<Kernel::TemperatureUnits>(json["temperature_units"].get<std::string>());
 			if (!parsed.has_value())
 			{
 				error = "temperature_units must be 'Celsius' or 'Fahrenheit'";
+				error_code = "invalid_temperature_units";
 				return false;
 			}
 			units = parsed.value();
@@ -118,6 +128,7 @@ namespace AqualinkAutomate::Preferences
 				if (!a["salt_low_ppm"].is_number_integer() || a["salt_low_ppm"].get<std::int64_t>() < 0 || a["salt_low_ppm"].get<std::int64_t>() > 6000)
 				{
 					error = "alert.salt_low_ppm must be 0..6000";
+					error_code = "invalid_salt_low_ppm";
 					return false;
 				}
 				salt = a["salt_low_ppm"].get<std::uint32_t>();
@@ -127,6 +138,7 @@ namespace AqualinkAutomate::Preferences
 				if (!a["comms_timeout_seconds"].is_number_integer() || a["comms_timeout_seconds"].get<std::int64_t>() <= 0)
 				{
 					error = "alert.comms_timeout_seconds must be greater than 0";
+					error_code = "invalid_comms_timeout";
 					return false;
 				}
 				comms = a["comms_timeout_seconds"].get<std::uint32_t>();
@@ -136,12 +148,14 @@ namespace AqualinkAutomate::Preferences
 				if (!a["webhook_url"].is_string())
 				{
 					error = "alert.webhook_url must be empty or an absolute http/https URL";
+					error_code = "invalid_webhook_url";
 					return false;
 				}
 				const auto url = a["webhook_url"].get<std::string>();
 				if (!url.empty() && !IsValidWebhookUrl(url))
 				{
 					error = "alert.webhook_url must be empty or an absolute http/https URL";
+					error_code = "invalid_webhook_url";
 					return false;
 				}
 				webhook = url;
@@ -156,6 +170,7 @@ namespace AqualinkAutomate::Preferences
 				if (!h["retention_days"].is_number_integer() || h["retention_days"].get<std::int64_t>() <= 0)
 				{
 					error = "history.retention_days must be greater than 0";
+					error_code = "invalid_retention_days";
 					return false;
 				}
 				retention = h["retention_days"].get<std::uint32_t>();
@@ -167,6 +182,7 @@ namespace AqualinkAutomate::Preferences
 			if (!json["label_overrides"].is_object())
 			{
 				error = "label_overrides must be an object of canonical->display strings";
+				error_code = "invalid_label_overrides";
 				return false;
 			}
 			for (const auto& [canonical, display] : json["label_overrides"].items())
@@ -174,6 +190,7 @@ namespace AqualinkAutomate::Preferences
 				if (!display.is_string())
 				{
 					error = "label_overrides values must be strings";
+					error_code = "invalid_label_overrides";
 					return false;
 				}
 			}
@@ -185,6 +202,7 @@ namespace AqualinkAutomate::Preferences
 			if (!json["show_aux_id_in_label"].is_boolean())
 			{
 				error = "show_aux_id_in_label must be a boolean";
+				error_code = "invalid_show_aux_id";
 				return false;
 			}
 			show_aux_id = json["show_aux_id_in_label"].get<bool>();
@@ -195,6 +213,7 @@ namespace AqualinkAutomate::Preferences
 			if (!json["ui"].is_object())
 			{
 				error = "ui must be an object";
+				error_code = "invalid_ui";
 				return false;
 			}
 			// Shallow-merge at the top level so independent UI features (e.g.
@@ -222,6 +241,7 @@ namespace AqualinkAutomate::Preferences
 			if (!json["spa_switch_buttons"].is_object())
 			{
 				error = "spa_switch_buttons must be an object of \"switch:button\"->function strings";
+				error_code = "invalid_spa_switch_buttons";
 				return false;
 			}
 			for (const auto& [key, function] : json["spa_switch_buttons"].items())
@@ -229,6 +249,7 @@ namespace AqualinkAutomate::Preferences
 				if (!function.is_string())
 				{
 					error = "spa_switch_buttons values must be strings";
+					error_code = "invalid_spa_switch_buttons";
 					return false;
 				}
 			}

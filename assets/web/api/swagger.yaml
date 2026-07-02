@@ -59,11 +59,17 @@ info:
     `active_body`/`bodies[].id` are body-of-water ids (`Pool`, `Spa`, `Shared`).
     The `AlertTransition` payload (fault-detection alerts) is
     `{ "condition": <string>, "state": "raised"|"cleared", "ts": <unix-seconds>,
-    "detail": <string> }`, where `condition` is one of `chlorinator_fault`,
-    `chlorinator_warning`, `salt_low`, `service_mode`, `serial_comms_loss`.
+    "detail": <string>, "params": <object, optional> }`, where `condition` is one
+    of `chlorinator_fault`, `chlorinator_warning`, `salt_low`, `service_mode`,
+    `serial_comms_loss`. `detail` is the human-readable ENGLISH description
+    (stable contract); `params` carries the structured values behind it — e.g.
+    `{"salt_ppm": 2400, "threshold_ppm": 2700}` for `salt_low` or
+    `{"health": "Warning_LowSalt"}` for the chlorinator conditions — so
+    consumers (the web UI's translated alerts, automations) can act on the data
+    without parsing prose. The same shape is POSTed by the alert webhook.
     `chlorinator_warning` covers the cell warnings (no flow, low/high salt, clean
     cell, low/high voltage/current, low temperature); the specific warning is
-    named in `detail`.
+    named in `detail` and carried as the raw enum name in `params.health`.
   version: 1.0.0
   contact:
     name: Aqualink Automate
@@ -1724,6 +1730,30 @@ paths:
 
 components:
   schemas:
+    ApiError:
+      type: object
+      description: >
+        Structured error body returned by JSON endpoints on 4xx/5xx (additive
+        contract): `error` is the stable human-readable ENGLISH message,
+        `code` is a stable snake_case identifier the web UI maps to a
+        translated message (catalog key `error.<code>`, see docs/i18n.md),
+        and `params` carries any values that translation interpolates
+        (omitted when empty). New codes must be added to every locale
+        catalog (enforced by the i18n-catalogs CI job).
+      required: [error, code]
+      properties:
+        error:
+          type: string
+          description: Human-readable English message (stable API contract).
+          example: "Setpoint 'pool' out of range"
+        code:
+          type: string
+          description: Stable snake_case error identifier.
+          example: setpoint_out_of_range
+        params:
+          type: object
+          description: Values behind the message, for translation/automation.
+          example: { target: pool, min: -10, max: 50 }
     VersionInfo:
       type: object
       properties:

@@ -211,8 +211,13 @@ function settingsView() {
                     body: JSON.stringify(payload),
                 });
                 if (!resp.ok) {
+                    // Structured error body ({error, code, params} — docs/i18n.md):
+                    // show the translated message for the code when we have one.
                     let detail = '';
-                    try { detail = await resp.text(); } catch (_) { /* ignore */ }
+                    try {
+                        const data = await resp.json();
+                        detail = window.AquaI18n.apiError(data, '');
+                    } catch (_) { /* non-JSON body */ }
                     this.prefsError = window.AquaI18n.t('settings.save_failed_status', { status: resp.status }) + (detail ? ': ' + detail : '');
                     return;
                 }
@@ -264,7 +269,7 @@ function settingsView() {
                 });
                 const data = await resp.json().catch(() => ({}));
                 if (resp.ok) { this.profiling = data; Alpine.store('toast').show(okMessage, 'info'); }
-                else { Alpine.store('toast').show(data.error || failMessage, 'error'); }
+                else { Alpine.store('toast').show(window.AquaI18n.apiError(data, failMessage), 'error'); }
             } catch (e) { Alpine.store('toast').show(failMessage, 'error'); }
             finally { this.profilingBusy = false; }
         },

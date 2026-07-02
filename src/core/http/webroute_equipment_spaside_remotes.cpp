@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "http/webroute_equipment_spaside_remotes.h"
+#include "http/server/make_response.h"
 #include "http/server/server_fields.h"
 #include "logging/logging.h"
 #include "preferences/preferences_service.h"
@@ -24,16 +25,6 @@ namespace AqualinkAutomate::HTTP
 
 	namespace
 	{
-		HTTP::Response MakeJsonResponse(const HTTP::Request& req, HTTP::Status code, const std::string& body)
-		{
-			HTTP::Response resp{ code, req.version() };
-			resp.set(boost::beast::http::field::server, ServerFields::Server());
-			resp.set(boost::beast::http::field::content_type, ContentTypes::APPLICATION_JSON);
-			resp.keep_alive(req.keep_alive());
-			resp.body() = body;
-			resp.prepare_payload();
-			return resp;
-		}
 	}
 
 	WebRoute_Equipment_SpasideRemotes::WebRoute_Equipment_SpasideRemotes(Kernel::HubLocator& hub_locator, std::shared_ptr<Preferences::PreferencesService> preferences_service) :
@@ -60,7 +51,7 @@ namespace AqualinkAutomate::HTTP
 			return HandlePost(req);
 
 		default:
-			return MakeJsonResponse(req, HTTP::Status::method_not_allowed, R"({"error":"Method not allowed. Use GET or POST."})");
+			return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET or POST.", {{"allowed", "GET, POST"}});
 		}
 	}
 
@@ -214,7 +205,7 @@ namespace AqualinkAutomate::HTTP
 		if (!m_Controller)
 		{
 			LogWarning(Channel::Web, "Spa-side remote command requested but no controller is available (dev-mode/replay?)");
-			return MakeJsonResponse(req, HTTP::Status::service_unavailable, R"({"error":"Spa-side remote control is not available in this mode"})");
+			return MakeErrorResponse(req, HTTP::Status::service_unavailable, "spaside_unavailable", "Spa-side remote control is not available in this mode");
 		}
 
 		try
@@ -223,7 +214,7 @@ namespace AqualinkAutomate::HTTP
 
 			if (!body.contains("action") || !body["action"].is_string())
 			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, R"json({"error":"Request must contain a string 'action' ('press' or 'assign')"})json");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_action_required", "Request must contain a string 'action' ('press' or 'assign')");
 			}
 
 			const auto action = body["action"].get<std::string>();
@@ -232,18 +223,18 @@ namespace AqualinkAutomate::HTTP
 			{
 				if (!body.contains("address") || !body["address"].is_number_unsigned())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'press' requires an unsigned integer 'address'"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_press_requires_address", "'press' requires an unsigned integer 'address'");
 				}
 				if (!body.contains("button") || !body["button"].is_number_unsigned())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'press' requires an unsigned integer 'button'"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_press_requires_button", "'press' requires an unsigned integer 'button'");
 				}
 
 				const auto address_value = body["address"].get<std::uint64_t>();
 				const auto button_value = body["button"].get<std::uint64_t>();
 				if ((address_value > 0xFF) || (button_value > 0xFF))
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'address' and 'button' must each fit in a single byte"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_byte_range", "'address' and 'button' must each fit in a single byte");
 				}
 
 				const auto address = static_cast<uint8_t>(address_value);
@@ -256,14 +247,14 @@ namespace AqualinkAutomate::HTTP
 					return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
 
 				case Interfaces::ISpasideRemoteController::PressResult::RemoteNotFound:
-					return MakeJsonResponse(req, HTTP::Status::not_found, R"({"error":"No spa-side remote at that address"})");
+					return MakeErrorResponse(req, HTTP::Status::not_found, "spaside_remote_not_found", "No spa-side remote at that address");
 
 				case Interfaces::ISpasideRemoteController::PressResult::NotEmulated:
-					return MakeJsonResponse(req, HTTP::Status::conflict, R"({"error":"That spa-side remote is a real device we only observe; it cannot be actuated"})");
+					return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_remote_observed_only", "That spa-side remote is a real device we only observe; it cannot be actuated");
 
 				case Interfaces::ISpasideRemoteController::PressResult::InvalidButton:
 				default:
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"json({"error":"'button' is out of range for that remote (1..button_count)"})json");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_button_out_of_range", "'button' is out of range for that remote (1..button_count)");
 				}
 			}
 
@@ -274,7 +265,7 @@ namespace AqualinkAutomate::HTTP
 					!body.contains("button") || !body["button"].is_number_unsigned() ||
 					!body.contains("function") || !body["function"].is_string())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'assign' requires unsigned 'switch', unsigned 'button', and string 'function'"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_assign_requires_fields", "'assign' requires unsigned 'switch', unsigned 'button', and string 'function'");
 				}
 
 				const auto switch_value = body["switch"].get<std::uint64_t>();
@@ -282,7 +273,7 @@ namespace AqualinkAutomate::HTTP
 				const auto function = body["function"].get<std::string>();
 				if ((switch_value > 0xFF) || (button_value > 0xFF))
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'switch' and 'button' must each fit in a single byte"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_byte_range", "'switch' and 'button' must each fit in a single byte");
 				}
 
 				const auto sw = static_cast<uint8_t>(switch_value);
@@ -301,22 +292,22 @@ namespace AqualinkAutomate::HTTP
 					return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
 
 				case Interfaces::ISpasideRemoteController::AssignResult::InvalidRequest:
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Invalid switch/button/function for assignment"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_assign_invalid", "Invalid switch/button/function for assignment");
 
 				case Interfaces::ISpasideRemoteController::AssignResult::Busy:
-					return MakeJsonResponse(req, HTTP::Status::conflict, R"({"error":"A controller operation is in progress; retry shortly"})");
+					return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_controller_busy", "A controller operation is in progress; retry shortly");
 
 				case Interfaces::ISpasideRemoteController::AssignResult::NotAvailable:
 				default:
-					return MakeJsonResponse(req, HTTP::Status::service_unavailable, R"({"error":"No controller can program spa-switch assignments on this system"})");
+					return MakeErrorResponse(req, HTTP::Status::service_unavailable, "spaside_no_programmer", "No controller can program spa-switch assignments on this system");
 				}
 			}
 
-			return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"'action' must be 'press' or 'assign'"})");
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_invalid_action", "'action' must be 'press' or 'assign'");
 		}
 		catch (const nlohmann::json::exception&)
 		{
-			return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Invalid JSON in request body"})");
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
 		}
 	}
 

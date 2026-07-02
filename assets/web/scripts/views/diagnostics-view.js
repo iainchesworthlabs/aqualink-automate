@@ -463,7 +463,7 @@ function diagnosticsView() {
                     this._applySpasideData(data);
                     Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_pressed', { n: button }), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.spaside_press_failed'), 'error');
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.spaside_press_failed')), 'error');
                 }
             } catch (e) {
                 Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_press_failed'), 'error');
@@ -506,7 +506,7 @@ function diagnosticsView() {
                     this.spasideEditKey = null;
                     Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_programming', { sw, btn, fn }), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.spaside_program_failed'), 'error');
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.spaside_program_failed')), 'error');
                 }
             } catch (e) {
                 Alpine.store('toast').show(window.AquaI18n.t('toast.spaside_program_failed'), 'error');
@@ -603,7 +603,7 @@ function diagnosticsView() {
                     this.recording = data;
                     Alpine.store('toast').show(window.AquaI18n.t('toast.recording_started'), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.recording_start_failed'), 'error');
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.recording_start_failed')), 'error');
                 }
             } catch (e) {
                 Alpine.store('toast').show(window.AquaI18n.t('toast.recording_start_failed'), 'error');
@@ -626,7 +626,7 @@ function diagnosticsView() {
                     this.recording = data;
                     Alpine.store('toast').show(window.AquaI18n.t('toast.recording_stopped'), 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || window.AquaI18n.t('toast.recording_stop_failed'), 'error');
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.recording_stop_failed')), 'error');
                 }
             } catch (e) {
                 Alpine.store('toast').show(window.AquaI18n.t('toast.recording_stop_failed'), 'error');
@@ -649,7 +649,7 @@ function diagnosticsView() {
                     this.profiling = data;
                     Alpine.store('toast').show(okMessage, 'info');
                 } else {
-                    Alpine.store('toast').show(data.error || failMessage, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, failMessage), 'error');
                 }
             } catch (e) {
                 Alpine.store('toast').show(failMessage, 'error');

@@ -125,20 +125,7 @@ document.addEventListener('alpine:init', () => {
         get chlorinatorHealthLabel() {
             const h = this.chlorinatorHealth;
             if (!h || h === '--') return '';
-            const key = {
-                'Ok': 'swg_health.ok',
-                'TurningOff': 'swg_health.turning_off',
-                'Warning_NoFlow': 'swg_health.no_flow',
-                'Warning_LowSalt': 'swg_health.low_salt',
-                'Warning_HighSalt': 'swg_health.high_salt',
-                'Warning_HighCurrent': 'swg_health.high_current',
-                'Warning_CleanCell': 'swg_health.clean_cell',
-                'Warning_LowVoltage': 'swg_health.low_voltage',
-                'Warning_LowTemperature': 'swg_health.low_temperature',
-                'Error_CheckPCB': 'swg_health.check_pcb',
-                'GeneralFault': 'swg_health.general_fault',
-                'Unknown': 'common.unknown',
-            }[String(h)];
+            const key = window.AquaUI.swgHealthKey(h);
             return key ? window.AquaI18n.t(key) : String(h).replace(/_/g, ' ');
         },
 
@@ -539,15 +526,18 @@ document.addEventListener('alpine:init', () => {
         },
 
         // Best-effort extraction of a human-readable failure reason from a
-        // non-ok response (structured JSON {error|message} or plain text),
-        // falling back to the HTTP status text.
+        // non-ok response. Structured errors ({error, code, params} —
+        // docs/i18n.md) translate via the error.<code> catalog entry; legacy
+        // JSON {error|message} or plain text pass through, falling back to
+        // the HTTP status text.
         async _readErrorReason(resp) {
             try {
                 const text = await resp.text();
                 if (text) {
                     try {
                         const j = JSON.parse(text);
-                        if (j && (j.error || j.message)) return String(j.error || j.message);
+                        const translated = window.AquaI18n.apiError(j, null);
+                        if (translated) return String(translated);
                     } catch (_) { /* not JSON — use raw text */ }
                     return text;
                 }

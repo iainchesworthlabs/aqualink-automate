@@ -22,5 +22,20 @@ namespace AqualinkAutomate::HTTP
 		return MakeResponse(req, code, ContentTypes::APPLICATION_JSON, std::move(body));
 	}
 
+	Response MakeErrorResponse(const Request& req, Status code, std::string_view error_code, std::string_view message, const nlohmann::json& params)
+	{
+		nlohmann::json body{
+			{ "error", message },
+			{ "code", error_code }
+		};
+
+		if (params.is_object() && !params.empty())
+		{
+			body["params"] = params;
+		}
+
+		return MakeJsonResponse(req, code, body.dump());
+	}
+
 }
 // namespace AqualinkAutomate::HTTP

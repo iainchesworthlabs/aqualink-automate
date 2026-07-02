@@ -58,7 +58,7 @@ namespace AqualinkAutomate::HTTP
 
 			// Alerting (WS3): broadcast each fault-condition transition to clients.
 			m_AlertSlot = m_EquipmentHub->AlertTransitionSignal.connect(
-				[this](const std::string& condition, bool raised, std::int64_t ts, const std::string& detail)
+				[this](const std::string& condition, bool raised, std::int64_t ts, const std::string& detail, const nlohmann::json& params)
 				{
 					if (m_Connections.empty())
 					{
@@ -72,6 +72,14 @@ namespace AqualinkAutomate::HTTP
 						{ "ts", ts },
 						{ "detail", detail }
 					};
+
+					// Structured values behind the detail prose (additive; absent
+					// when the transition carries none) — the UI builds translated
+					// alert text from condition + params (docs/i18n.md).
+					if (params.is_object() && !params.empty())
+					{
+						alert_payload["params"] = params;
+					}
 					auto payload = std::make_shared<const std::string>(HTTP::WebSocket_Event(WebSocket_EventTypes::AlertTransition, alert_payload).Payload());
 					zone->Value(payload->size());
 					Broadcast(payload);

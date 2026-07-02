@@ -823,7 +823,7 @@ int main(int argc, char* argv[])
 		// UI sink (always): broadcast every transition to /ws/equipment clients.
 		alert_monitor.AddSink([equipment_hub](const Alerting::AlertTransition& transition)
 		{
-			equipment_hub->AlertTransitionSignal(transition.condition, transition.raised, transition.ts, transition.detail);
+			equipment_hub->AlertTransitionSignal(transition.condition, transition.raised, transition.ts, transition.detail, transition.params);
 		});
 
 		// Webhook sink (always added; a no-op while the preference URL is empty).
