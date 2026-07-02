@@ -33,7 +33,10 @@
     --radius-xl: 1.5rem;
     --transition: 0.2s ease;
     --grid-color: rgba(0, 0, 0, 0.06);
-    --font-family: 'Hanken Grotesk', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Per-glyph fallback: Latin renders from the brand faces; Arabic-script
+       glyphs fall through to the vendored Noto Sans Arabic (its @font-face is
+       unicode-range-limited to Arabic); everything else lands on system-ui. */
+    --font-family: 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html.dark {
@@ -69,13 +72,22 @@ html.dark {
    each view is migrated; new surfaces use the tokens below.
    ============================================================================ */
 :root {
-    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif;
-    --font-ui: 'Hanken Grotesk', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     --radius-card: 22px;
     --radius-row: 16px;
     --radius-chip: 11px;
     --content-max: 1180px;
+}
+
+/* CJK: name the platform Japanese faces explicitly so kana/kanji render on a
+   consistent, high-quality face on every OS (Latin still comes from the brand
+   faces via per-glyph fallback). system-ui remains the final net. */
+html[lang='ja'] {
+    --font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
 }
 
 :root[data-theme="dark"],
