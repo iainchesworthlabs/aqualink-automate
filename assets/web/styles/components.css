@@ -19,7 +19,7 @@
 
 .summary-accent {
     position: absolute;
-    left: 0;
+    inset-inline-start: 0;
     top: 0;
     bottom: 0;
     width: 4px;
@@ -356,7 +356,7 @@ html.dark .gauge-card {
     cursor: pointer;
     transition: all 0.15s ease;
     min-height: 64px;
-    text-align: left;
+    text-align: start;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     font-family: inherit;
@@ -443,7 +443,7 @@ html.dark .gauge-card {
 .eq-switch-knob {
     position: absolute;
     top: 2px;
-    left: 2px;
+    inset-inline-start: 2px;
     width: 20px;
     height: 20px;
     border-radius: 50%;
@@ -510,7 +510,7 @@ html.dark .gauge-card {
     font-weight: 600;
     color: var(--text-primary);
     min-width: 38px;
-    text-align: right;
+    text-align: end;
 }
 
 .swg-actions {
@@ -867,7 +867,7 @@ html.dark .gauge-card {
     font-family: inherit;
     color: inherit;
     width: 100%;
-    text-align: left;
+    text-align: start;
     box-shadow: var(--shadow-sm);
     transition: background var(--transition), border-color var(--transition);
 }
@@ -1067,10 +1067,10 @@ html.dark .gauge-card {
 }
 
 .expandable-value {
-    margin-left: auto;
+    margin-inline-start: auto;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    margin-right: 0.5rem;
+    margin-inline-end: 0.5rem;
 }
 
 .expandable-chevron {
@@ -1173,7 +1173,7 @@ html.dark .gauge-card {
 .heater-temp {
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    margin-left: auto;
+    margin-inline-start: auto;
 }
 
 .heater-setpoint {
@@ -1264,7 +1264,7 @@ html.dark .gauge-card {
     border-radius: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    margin-left: auto;
+    margin-inline-start: auto;
 }
 
 .emu-running-dot {
@@ -1364,8 +1364,8 @@ html.dark .gauge-card {
 .emu-line-num {
     color: var(--text-muted);
     min-width: 1.5em;
-    text-align: right;
-    margin-right: 0.4rem;
+    text-align: end;
+    margin-inline-end: 0.4rem;
     user-select: none;
     opacity: 0.5;
 }
@@ -1537,17 +1537,17 @@ html.dark .gauge-card {
 .spaside-key {
     position: relative;
     border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
+    border-inline-start: 3px solid var(--border-color);
     border-radius: var(--radius-sm);
     background: var(--bg-primary);
 }
 
 .spaside-key.is-assigned {
-    border-left-color: var(--accent);
+    border-inline-start-color: var(--accent);
 }
 
 .spaside-key.is-pending {
-    border-left-color: var(--gauge-warn);
+    border-inline-start-color: var(--gauge-warn);
 }
 
 .spaside-key-press {
@@ -1560,7 +1560,7 @@ html.dark .gauge-card {
     background: transparent;
     border: none;
     border-radius: var(--radius-sm);
-    text-align: left;
+    text-align: start;
     color: var(--text-primary);
     cursor: pointer;
 }
@@ -1605,7 +1605,7 @@ html.dark .gauge-card {
 .spaside-key-edit {
     position: absolute;
     top: 0.25rem;
-    right: 0.25rem;
+    inset-inline-end: 0.25rem;
     width: 1.4rem;
     height: 1.4rem;
     display: flex;
@@ -1732,7 +1732,7 @@ html.dark .card { border-color: var(--border); }
 .summary-accent { width: 3px; border-radius: 99px; top: 18px; bottom: 18px; }
 .summary-accent--pool { background: var(--accent); }
 .summary-accent--spa  { background: var(--spa); }
-.summary-section-body { padding-left: 4px; }
+.summary-section-body { padding-inline-start: 4px; }
 .summary-label {
     font-family: var(--font-ui);
     font-size: 11px;
@@ -1790,7 +1790,7 @@ html.dark .gauge-card { border-color: var(--border); }
 /* --- SWG card ------------------------------------------------------------ */
 .swg-target { display: flex; align-items: center; gap: 12px; margin: 14px 0 12px; }
 .swg-target-label { font: 600 11px/1 var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); }
-.swg-target-value { font: 600 14px/1 var(--font-display); color: var(--text); font-variant-numeric: tabular-nums; margin-left: auto; }
+.swg-target-value { font: 600 14px/1 var(--font-display); color: var(--text); font-variant-numeric: tabular-nums; margin-inline-start: auto; }
 .swg-slider { flex: 1; accent-color: var(--accent); }
 .swg-actions { display: flex; align-items: center; gap: 8px; }
 .swg-set-btn, .swg-boost-btn {
@@ -1980,10 +1980,10 @@ main input[type="range"] { accent-color: var(--accent); }
     border-radius: 13px; box-shadow: var(--shadow-lg); color: var(--text);
     font-family: var(--font-ui); animation: toastIn .22s ease;
 }
-.toast-info    { border-left: 3px solid var(--accent); }
-.toast-success { border-left: 3px solid var(--good); }
-.toast-warn    { border-left: 3px solid var(--warn); }
-.toast-error   { border-left: 3px solid var(--bad); }
+.toast-info    { border-inline-start: 3px solid var(--accent); }
+.toast-success { border-inline-start: 3px solid var(--good); }
+.toast-warn    { border-inline-start: 3px solid var(--warn); }
+.toast-error   { border-inline-start: 3px solid var(--bad); }
 .toast-dismiss { color: var(--text-faint); }
 
 /* --- Spinner ------------------------------------------------------------- */
@@ -2004,7 +2004,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .detail-kv > .kv-row:last-child,
 .detail-kv > div:last-child .kv-row:last-child { border-bottom: none; }
 .kv-k { font-family: var(--font-ui); font-size: 13px; color: var(--text-dim); }
-.kv-v { font-family: var(--font-display); font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+.kv-v { font-family: var(--font-display); font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; text-align: end; }
 
 /* --- Settings: Appearance (theme toggle + accent picker) ----------------- */
 .seg-toggle { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface-3); border-radius: 99px; border: 1px solid var(--border); }
@@ -2105,7 +2105,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .sched-switch.on { background: var(--accent); border-color: var(--accent); }
 .sched-switch:disabled { opacity: .5; cursor: default; }
 .sched-switch-knob {
-    position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%;
+    position: absolute; top: 2px; inset-inline-start: 2px; width: 20px; height: 20px; border-radius: 50%;
     background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
     transition: transform .26s cubic-bezier(.34,1.4,.5,1);
 }
@@ -2189,7 +2189,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .sched-timeline-empty { padding: 50px 0; text-align: center; font-size: 14px; color: var(--text-faint); }
 .sched-timeline-body { display: flex; flex-direction: column; gap: 16px; }
 .sched-trk-row { display: flex; align-items: center; gap: 16px; }
-.sched-trk-label { width: 120px; flex: none; color: var(--text-dim); font: 600 13px/1.2 var(--font-ui); text-align: right; }
+.sched-trk-label { width: 120px; flex: none; color: var(--text-dim); font: 600 13px/1.2 var(--font-ui); text-align: end; }
 .sched-trk { position: relative; flex: 1; height: 38px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
 .sched-bar {
     position: absolute; top: 5px; bottom: 5px; border-radius: 6px;
@@ -2262,7 +2262,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .trends-ro-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; }
 .trends-ro-sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
 .trends-ro-name { color: var(--text-dim); }
-.trends-ro-val { margin-left: auto; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.trends-ro-val { margin-inline-start: auto; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .trends-ro-on { color: var(--good); }
 .trends-ro-off { color: var(--text-faint); }
 
@@ -2373,7 +2373,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .setpoint-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
 .setpoint-row:last-child { border-bottom: none; }
 .setpoint-row-label { font: 600 14px/1 var(--font-ui); color: var(--text); }
-.setpoint-feedback { margin-left: auto; display: inline-flex; gap: 6px; }
+.setpoint-feedback { margin-inline-start: auto; display: inline-flex; gap: 6px; }
 .setpoint-stepper { display: inline-flex; align-items: center; gap: 12px; }
 .setpoint-row-value { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; min-width: 74px; text-align: center; }
 
@@ -2424,7 +2424,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 28px; }
 .settings-field-full { grid-column: 1 / -1; }
 .settings-grid .settings-input { width: 100%; }
-.settings-field > label .settings-unit { text-transform: none; font-weight: 500; margin-left: 4px; }
+.settings-field > label .settings-unit { text-transform: none; font-weight: 500; margin-inline-start: 4px; }
 @media (max-width: 620px) { .settings-grid { grid-template-columns: 1fr; } }
 
 /* --- Settings: Device Names — aux-id toggle row + 3-column name grid ----- */
@@ -2433,7 +2433,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .settings-toggle-title { font-weight: 600; font-size: 13.5px; color: var(--text); }
 .settings-toggle-sub { font-size: 12.5px; color: var(--text-faint); margin-top: 3px; }
 .settings-switch { appearance: none; -webkit-appearance: none; flex: none; width: 42px; height: 24px; border-radius: 99px; background: var(--surface-3); border: 1px solid var(--border-strong); position: relative; cursor: pointer; transition: background .2s, border-color .2s; }
-.settings-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .22s cubic-bezier(.34,1.4,.5,1); }
+.settings-switch::after { content: ''; position: absolute; top: 2px; inset-inline-start: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .22s cubic-bezier(.34,1.4,.5,1); }
 .settings-switch:checked { background: var(--accent); border-color: var(--accent); }
 .settings-switch:checked::after { transform: translateX(18px); }
 .settings-name-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 20px; }
@@ -2639,8 +2639,8 @@ main input[type="range"] { accent-color: var(--accent); }
     background: var(--surface-1);
 }
 .mstat-col-right { display: flex; }
-.mstat-cw-count { width: 110px; text-align: right; }
-.mstat-cw-last  { width: 80px; text-align: right; }
+.mstat-cw-count { width: 110px; text-align: end; }
+.mstat-cw-last  { width: 80px; text-align: end; }
 .mstat-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 4px; border-bottom: 1px solid var(--border); font-size: 14px;
@@ -2674,7 +2674,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .mqtt-row { display: flex; justify-content: space-between; gap: 12px; }
 .mqtt-row > span:first-child { color: var(--text-faint); }
 .mqtt-row-top { border-top: 1px solid var(--border); padding-top: 14px; }
-.mqtt-val { font-weight: 500; color: var(--text); text-align: right; }
+.mqtt-val { font-weight: 500; color: var(--text); text-align: end; }
 .mqtt-mono { font-family: var(--font-display); font-weight: 500; font-size: 12.5px; }
 .mqtt-num { font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; }
 
@@ -2787,7 +2787,7 @@ main input[type="range"] { accent-color: var(--accent); }
     padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13.5px;
 }
 .diag-modal-kv-k { color: var(--text-faint); }
-.diag-modal-kv-v { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; word-break: break-word; }
+.diag-modal-kv-v { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; text-align: end; word-break: break-word; }
 
 .diag-cmd-list { display: flex; flex-direction: column; gap: 8px; }
 .diag-cmd-row {
@@ -2801,7 +2801,7 @@ main input[type="range"] { accent-color: var(--accent); }
 .diag-cmd-outcome { font: 600 11px/1 var(--font-ui); padding: 4px 9px; border-radius: 99px; }
 .diag-cmd-outcome.ok { background: var(--accent-soft); color: var(--good); }
 .diag-cmd-outcome.err { background: oklch(0.68 0.16 25 / .18); color: var(--bad); }
-.diag-cmd-age { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; min-width: 58px; text-align: right; }
+.diag-cmd-age { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; min-width: 58px; text-align: end; }
 
 .diag-screen {
     background: var(--bg); border: 1px solid var(--border); border-radius: 13px;
@@ -2809,7 +2809,7 @@ main input[type="range"] { accent-color: var(--accent); }
     font-size: 12.5px; line-height: 1.8; color: var(--text-dim); overflow: auto;
 }
 .diag-screen-line { display: flex; gap: 14px; white-space: pre; }
-.diag-screen-num { color: var(--text-faint); opacity: .5; width: 18px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+.diag-screen-num { color: var(--text-faint); opacity: .5; width: 18px; text-align: end; flex: none; font-variant-numeric: tabular-nums; }
 .diag-screen-line.is-hl { color: var(--accent); }
 .diag-raw {
     background: var(--bg); border: 1px solid var(--border); border-radius: 13px;
@@ -2818,7 +2818,7 @@ main input[type="range"] { accent-color: var(--accent); }
 }
 .diag-raw-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }
 .diag-raw-k { color: var(--text-faint); flex: none; }
-.diag-raw-v { color: var(--text-dim); text-align: right; word-break: break-word; }
+.diag-raw-v { color: var(--text-dim); text-align: end; word-break: break-word; }
 
 /* Log modal internals */
 .log-global-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
@@ -2872,4 +2872,39 @@ main input[type="range"] { accent-color: var(--accent); }
 }
 @media (max-width: 640px) {
     .device-cards { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   RTL direction fixes (docs/i18n.md, Phase 3)
+
+   The stylesheets use logical properties throughout, so flex/grid layout
+   and inline spacing mirror automatically under <html dir="rtl">. The
+   rules below cover what logical properties CANNOT express.
+   ===================================================================== */
+
+/* Switch knobs travel toward inline-end; transforms are physical, so the
+   travel is negative-X in RTL. Distances mirror the LTR rules exactly. */
+[dir='rtl'] .eq-switch.on .eq-switch-knob { transform: translateX(-18px); }
+[dir='rtl'] .sched-switch.on .sched-switch-knob { transform: translateX(-18px); }
+[dir='rtl'] .settings-switch:checked::after { transform: translateX(-18px); }
+
+/* Toasts anchor at the inline-end corner (see .toast-container); the
+   entry animation slides in from that side. */
+@keyframes toastSlideInRtl {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+[dir='rtl'] .toast { animation-name: toastSlideInRtl; }
+
+/* Time-axis GEOMETRY keeps physical left-to-right layout regardless of the
+   UI direction: the JS positions bars/markers with left-based percentages,
+   and time axes conventionally read left-to-right even in RTL locales
+   (same as the canvas charts, which are inherently physical). Only the
+   geometry elements are pinned — the surrounding cards, day chips, legends
+   and row labels mirror normally. */
+.sched-trk,
+.sched-axis,
+.trends-chart-card,
+.bw-chart {
+    direction: ltr;
 }
