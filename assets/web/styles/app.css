@@ -1395,10 +1395,17 @@ nav.app-nav .theme-toggle.active { color: var(--accent); border-color: var(--acc
 nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad); }
 
 /* --- Alerts dropdown ----------------------------------------------------- */
-.alerts-wrap { position: relative; display: inline-flex; }
+/* The dropdown is NOT anchored to the bell: at narrow widths the nav wraps
+   (where depends on the locale's label lengths) and the bell can end up near
+   the inline-start edge, where a 320px bell-anchored panel would overflow the
+   viewport. Instead it anchors to .nav-inner and hangs below the nav at its
+   inline-end, which is viewport-safe at every width in both LTR and RTL. */
+nav .nav-inner { position: relative; }
+.alerts-wrap { display: inline-flex; }
+.alerts-bell { position: relative; } /* anchors .alerts-badge */
 .alerts-badge {
     position: absolute;
-    top: -5px; right: -5px;
+    top: -5px; inset-inline-end: -5px;
     min-width: 16px; height: 16px;
     padding: 0 4px;
     border-radius: 99px;
@@ -1409,7 +1416,8 @@ nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad
 }
 .alerts-dropdown {
     position: absolute;
-    top: 44px; right: 0;
+    top: calc(100% + 10px);
+    inset-inline-end: 24px; /* aligns with .nav-inner's inline padding */
     z-index: 120;
     width: 320px;
     background: var(--surface-1);
@@ -1441,6 +1449,14 @@ nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad
 .alerts-dd-title  { font: 600 13px/1.3 var(--font-ui); color: var(--text); }
 .alerts-dd-detail { font: 500 12px/1.35 var(--font-ui); color: var(--text-dim); margin-top: 2px; }
 .alerts-dd-foot   { padding: 10px 16px; font: 500 11.5px/1.4 var(--font-ui); color: var(--text-faint); background: var(--surface-2); }
+
+/* On small screens stretch the dropdown into a full-width sheet below the nav. */
+@media (max-width: 820px) {
+    .alerts-dropdown {
+        inset-inline: 12px;
+        width: auto;
+    }
+}
 
 /* --- Banners ------------------------------------------------------------- */
 .startup-banner, .service-banner {

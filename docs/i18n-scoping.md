@@ -136,6 +136,11 @@ maintainer-specific assumption.
 - Targeted fixes for the known breakers: alerts dropdown anchor, toast container corner, alerts
   badge position, schedule-timeline axis padding, `margin-left: auto` right-aligners, trends
   hover readout.
+  - *Reconciled 2026-07-03:* the alerts dropdown anchor and alerts badge position are done —
+    `.alerts-dropdown` now anchors to `.nav-inner` via `inset-inline-end` (full-width sheet
+    below the nav at narrow widths, so it can never overflow the viewport when the nav wraps),
+    and `.alerts-badge` uses `inset-inline-end` anchored to `.alerts-bell`. The remaining
+    breakers in this list are still open.
 - Numerals/percent widths in the timeline: keep LTR numerals inside RTL text via
   `unicode-bidi`/`dir="ltr"` islands where needed.
 - Playwright RTL smoke test (load with an RTL locale, assert `dir`, screenshot key views).
