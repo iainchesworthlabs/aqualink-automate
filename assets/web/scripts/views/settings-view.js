@@ -88,8 +88,18 @@ function settingsView() {
         },
 
         async _loadInitial() {
-            this.fetchMatter();
-            this.fetchProfiling();
+            const auth = window.Alpine && Alpine.store('auth');
+            // Matter + profiling are diagnostics.view surfaces; only fetch them
+            // when the subject may see diagnostics (an anonymous guest usually
+            // cannot — skip to avoid a pointless 401).
+            if (!auth || auth.can('diagnostics.view')) {
+                this.fetchMatter();
+                this.fetchProfiling();
+            }
+            // Per-user server preferences require a session (prefs.self). A guest
+            // has none, so keep the localStorage first-paint values (D7) and skip
+            // the server round-trip entirely.
+            if (auth && !auth.authenticated) { return; }
             try {
                 const resp = await fetch('/api/preferences');
                 if (!resp.ok) { return; }

@@ -92,14 +92,19 @@
         </symbol>
     </svg>
 
-    <!-- ====== AUTH OVERLAY (Wave A: first-run setup + login) ====== -->
+    <!-- ====== AUTH OVERLAY (first-run setup + login; dismissible for guests) ====== -->
     <div class="login-overlay" x-show="$store.auth.showLogin" x-cloak
-         x-data="{ username: '', password: '', confirm: '', remember: false,
-                   min: 12,
+         @keydown.escape.window="if ($store.auth.canDismissLogin) $store.auth.showLogin = false"
+         @click.self="if ($store.auth.canDismissLogin) $store.auth.showLogin = false"
+         x-data="{ username: '', password: '', confirm: '', remember: false, pin: '', min: 12,
                    get setupValid() { return this.password.length >= this.min && this.password === this.confirm && this.username.trim().length > 0; },
                    submitSetup() { $store.auth.setup(this.username.trim(), this.password); },
-                   submitLogin() { $store.auth.login(this.username.trim(), this.password, this.remember); } }">
+                   submitLogin() { $store.auth.login(this.username.trim(), this.password, this.remember); },
+                   submitPin() { $store.auth.loginWithPin(this.pin).then((ok) => { if (ok) this.pin = ''; }); } }">
         <div class="login-card">
+            <!-- Guests opened this from "Sign in"; let them back out to the dashboard. -->
+            <button class="login-close" type="button" x-show="$store.auth.canDismissLogin" x-cloak
+                    @click="$store.auth.showLogin = false" aria-label="Continue as guest">&times;</button>
             <svg class="login-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                 <path d="M16 3C16 3 6 15 6 21a10 10 0 0020 0C26 15 16 3 16 3z" fill="#0ea5e9"/>
             </svg>
@@ -150,6 +155,19 @@
                         </button>
                         <p class="login-error" x-show="$store.auth.error" x-cloak x-text="$store.auth.error" role="alert"></p>
                     </form>
+
+                    <!-- KIOSK PIN: quick elevation on a shared wall tablet. -->
+                    <div class="login-pin" x-show="$store.auth.kioskEnabled" x-cloak>
+                        <div class="login-divider"><span>or use a PIN</span></div>
+                        <form @submit.prevent="submitPin()">
+                            <input class="login-input" type="password" inputmode="numeric" autocomplete="off"
+                                   placeholder="Kiosk PIN" x-model="pin" aria-label="Kiosk PIN">
+                            <button class="login-pin-submit" type="submit" :disabled="$store.auth.busy || pin.length === 0">
+                                <span x-show="!$store.auth.busy">Enter PIN</span>
+                                <span x-show="$store.auth.busy" x-cloak>Checking…</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </template>
         </div>
@@ -757,6 +775,64 @@
                     </div>
                 </section>
 
+                <!-- ===== KIOSK TAB ===== -->
+                <section role="tabpanel" x-show="tab === 'kiosk'" x-data="adminKioskView()"
+                         x-effect="if (open && tab === 'kiosk') ensureLoaded()">
+                    <div class="admin-section-head">
+                        <h3 class="admin-subhead">Kiosk PIN</h3>
+                        <div class="admin-section-actions">
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
+                        </div>
+                    </div>
+
+                    <p class="admin-guest-note" style="display:block">
+                        A kiosk PIN lets a shared wall tablet quick-elevate an anonymous visitor into a chosen
+                        group by typing a short PIN — no username needed. Pair it with the group whose scope the
+                        tablet should have (the <strong>Guest</strong> group is the usual choice).
+                    </p>
+
+                    <div class="admin-panel">
+                        <div class="admin-kiosk-status">
+                            <span class="admin-badge" :class="enabled ? 'admin-badge-builtin' : 'admin-badge-off'"
+                                  x-text="enabled ? 'Enabled' : 'Disabled'"></span>
+                            <span x-show="enabled" x-cloak class="text-muted">
+                                elevates to <strong x-text="targetGroup"></strong>
+                            </span>
+                        </div>
+
+                        <label class="admin-field">
+                            <span class="admin-field-label">Target group</span>
+                            <select class="login-input" x-model="formGroup" aria-label="Kiosk target group">
+                                <template x-for="g in groups" :key="g">
+                                    <option :value="g" x-text="g"></option>
+                                </template>
+                            </select>
+                        </label>
+
+                        <label class="admin-field">
+                            <span class="admin-field-label">PIN (min 4 characters)</span>
+                            <input class="login-input" type="password" inputmode="numeric" autocomplete="off"
+                                   x-model="pin" aria-label="Kiosk PIN">
+                        </label>
+                        <label class="admin-field">
+                            <span class="admin-field-label">Confirm PIN</span>
+                            <input class="login-input" type="password" inputmode="numeric" autocomplete="off"
+                                   x-model="confirmPin" aria-label="Confirm kiosk PIN">
+                        </label>
+                        <p class="login-hint" x-show="pin.length > 0 && pin.length < minPin" x-cloak>PIN must be at least 4 characters.</p>
+                        <p class="login-hint" x-show="confirmPin.length > 0 && pin !== confirmPin" x-cloak>PINs do not match.</p>
+
+                        <div class="admin-section-actions">
+                            <button class="account-btn admin-btn-inline" @click="save()" :disabled="!pinValid || saving"
+                                    x-text="enabled ? 'Replace PIN' : 'Set PIN'"></button>
+                            <button class="account-btn account-btn-danger admin-btn-inline" @click="disable()"
+                                    x-show="enabled" x-cloak :disabled="saving">Disable</button>
+                            <span class="account-ok" x-show="okFlash" x-cloak>Saved ✓</span>
+                        </div>
+                        <p class="login-error" x-show="error" x-cloak x-text="error" role="alert"></p>
+                    </div>
+                </section>
+
             </div>
         </div>
     </div>
@@ -852,6 +928,9 @@
                         title="Account" aria-label="Account">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </button>
+                <!-- Guest status pill (identity system on, browsing anonymously) -->
+                <span class="guest-pill" x-show="$store.auth.isGuest" x-cloak
+                      title="You are viewing as a guest — sign in for full access">Guest</span>
                 <!-- Sign in (identity system on, not authenticated) -->
                 <button class="theme-toggle" x-show="$store.auth.isEnabled && !$store.auth.authenticated" x-cloak
                         @click="$store.auth.showLogin = true"
@@ -1071,16 +1150,22 @@
                     <div class="swg-target">
                         <span class="swg-target-label">Target</span>
                         <input type="range" min="0" max="100" step="5" class="swg-slider"
-                               x-model.number="target" @input="touched = true" :disabled="busy"
+                               x-model.number="target" @input="touched = true"
+                               :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
                                aria-label="Target output percentage">
                         <span class="swg-target-value" x-text="target + '%'"></span>
                     </div>
                     <div class="swg-actions">
-                        <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed">Set</button>
-                        <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
-                                :disabled="busy" :aria-pressed="boost">Boost</button>
-                        <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity>Set&nbsp;&#x2713;</span>
-                        <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity>Failed</span>
+                        <template x-if="$store.auth.can('equipment.control.chlorinator')">
+                            <div class="swg-actions-inner">
+                                <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed">Set</button>
+                                <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
+                                        :disabled="busy" :aria-pressed="boost">Boost</button>
+                                <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity>Set&nbsp;&#x2713;</span>
+                                <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity>Failed</span>
+                            </div>
+                        </template>
+                        <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak>Sign in to adjust</span>
                     </div>
                 </div>
             </div>
@@ -1094,9 +1179,10 @@
                             <div class="heater-row card" x-data="equipmentButton()">
                                 <div class="heater-row-inner">
                                     <button class="heater-toggle"
-                                            :class="{ active: isActive(button), 'cmd-sending': cmdState(button) === 'sending', 'cmd-flash-ok': cmdState(button) === 'applied', 'cmd-flash-bad': cmdState(button) === 'rejected' || cmdState(button) === 'timedout' }"
+                                            :class="{ active: isActive(button), 'is-locked': !$store.auth.can('equipment.control.heater'), 'cmd-sending': cmdState(button) === 'sending', 'cmd-flash-ok': cmdState(button) === 'applied', 'cmd-flash-bad': cmdState(button) === 'rejected' || cmdState(button) === 'timedout' }"
                                             :aria-pressed="isActive(button)"
-                                            :aria-label="'Toggle ' + button.label"
+                                            :disabled="!$store.auth.can('equipment.control.heater')"
+                                            :aria-label="'Toggle ' + button.label + (!$store.auth.can('equipment.control.heater') ? ' (sign in to control)' : '')"
                                             @click="$store.pool.setHeaterMode(button, !isActive(button))">
                                         <span x-text="isActive(button) ? 'On' : 'Off'"></span>
                                     </button>
@@ -1136,16 +1222,22 @@
                 <template x-for="button in controlButtons()" :key="button.id">
                     <button class="eq-control"
                             x-data="equipmentButton()"
-                            :class="{ active: isActive(button), 'cmd-sending': cmdState(button) === 'sending', 'cmd-flash-ok': cmdState(button) === 'applied', 'cmd-flash-bad': cmdState(button) === 'rejected' || cmdState(button) === 'timedout' }"
+                            :class="{ active: isActive(button), 'is-locked': !$store.auth.can('equipment.control.aux', button.id), 'cmd-sending': cmdState(button) === 'sending', 'cmd-flash-ok': cmdState(button) === 'applied', 'cmd-flash-bad': cmdState(button) === 'rejected' || cmdState(button) === 'timedout' }"
                             :aria-pressed="isActive(button)"
-                            :aria-label="(button.display_label || button.label) + ' — ' + statusLabel(button)"
+                            :disabled="!$store.auth.can('equipment.control.aux', button.id)"
+                            :aria-label="(button.display_label || button.label) + ' — ' + statusLabel(button) + (!$store.auth.can('equipment.control.aux', button.id) ? ' (sign in to control)' : '')"
                             @click="toggle(button)">
                         <svg class="eq-control-icon" aria-hidden="true" viewBox="0 0 24 24"><use :href="'#icon-' + iconKey(button)"></use></svg>
                         <span class="eq-control-body">
                             <span class="eq-control-label" x-text="button.display_label || button.label"></span>
                             <span class="eq-control-status" x-text="statusLabel(button)"></span>
                         </span>
-                        <span class="eq-switch" :class="{ on: isActive(button) }" aria-hidden="true">
+                        <!-- Locked affordance for guests / unentitled subjects. -->
+                        <span class="eq-lock" x-show="!$store.auth.can('equipment.control.aux', button.id)" x-cloak
+                              title="Sign in to control this device" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </span>
+                        <span class="eq-switch" x-show="$store.auth.can('equipment.control.aux', button.id)" :class="{ on: isActive(button) }" aria-hidden="true">
                             <span class="eq-switch-knob"></span>
                         </span>
                         <!-- Command feedback -->
@@ -2563,6 +2655,7 @@
     <script src="/scripts/views/admin-users-view.js"></script>
     <script src="/scripts/views/admin-groups-view.js"></script>
     <script src="/scripts/views/admin-apikeys-view.js"></script>
+    <script src="/scripts/views/admin-kiosk-view.js"></script>
     <!-- App init -->
     <script src="/scripts/app.js"></script>
     <!-- Progressive Web App: register the service worker -->

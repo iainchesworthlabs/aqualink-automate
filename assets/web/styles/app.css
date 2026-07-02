@@ -355,6 +355,7 @@ nav .nav-controls {
 }
 
 .login-card {
+    position: relative;
     width: min(360px, 90vw);
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -362,6 +363,96 @@ nav .nav-controls {
     padding: 2rem;
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Dismiss control — only rendered for guests, who may back out to the dashboard. */
+.login-close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radius-sm, 8px);
+}
+.login-close:hover { color: var(--text-primary); background: var(--surface-3, rgba(255,255,255,0.06)); }
+
+/* Kiosk PIN entry on the login card. */
+.login-pin { margin-top: 0.5rem; }
+.login-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.9rem 0;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.75rem;
+}
+.login-divider::before,
+.login-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+.login-pin-submit {
+    background: var(--surface-3, rgba(255,255,255,0.06));
+    color: var(--text-primary);
+}
+
+/* Admin kiosk tab form layout. */
+.admin-field { display: block; margin-bottom: 0.75rem; text-align: left; }
+.admin-field-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 0.3rem;
+}
+.admin-kiosk-status {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+/* "Guest" status pill next to the header Sign-in affordance. */
+.guest-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--accent, #0ea5e9);
+    background: var(--accent-soft, rgba(14,165,233,0.12));
+    border: 1px solid var(--accent, #0ea5e9);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    margin-right: 0.35rem;
+}
+
+/* Locked control affordances for guests / unentitled subjects. The disabled
+   attribute already blocks interaction; these cues make it legible. */
+.eq-control.is-locked,
+.heater-toggle.is-locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.eq-control .eq-lock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #94a3b8);
+    margin-left: auto;
+}
+.eq-control .eq-lock svg { width: 18px; height: 18px; }
+.swg-locked-note {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    font-style: italic;
 }
 
 .login-logo { width: 56px; height: 56px; margin-bottom: 0.5rem; }
@@ -391,7 +482,8 @@ nav .nav-controls {
     margin-bottom: 1rem;
 }
 
-.login-submit {
+.login-submit,
+.login-pin-submit {
     width: 100%;
     padding: 0.6rem;
     background: var(--accent);
@@ -403,7 +495,8 @@ nav .nav-controls {
     font-size: 0.95rem;
 }
 
-.login-submit:disabled { opacity: 0.6; cursor: default; }
+.login-submit:disabled,
+.login-pin-submit:disabled { opacity: 0.6; cursor: default; }
 .login-error { color: #ef4444; font-size: 0.8rem; margin-top: 0.75rem; }
 .login-hint {
     color: var(--text-muted, #94a3b8);

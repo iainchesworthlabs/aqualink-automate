@@ -165,6 +165,12 @@
 
         if (!api) { return origFetch(input, init); }
 
+        // Whether this request carried (or could refresh) a session. A guest
+        // browsing anonymously has neither; a 401 for them is an ordinary
+        // "not entitled" answer on a subject-scoped endpoint, NOT a dead
+        // session — so it must not trigger the teardown/redirect below.
+        const hadCred = !!accessToken || !!readRefresh();
+
         const firstInit = accessToken ? withBearer(init, input) : init;
 
         return origFetch(input, firstInit).then((resp) => {
@@ -176,8 +182,13 @@
             // missing).  Attempt exactly ONE silent refresh, then replay once.
             return refreshAccessToken().then((ok) => {
                 if (!ok) {
-                    clearTokens();
-                    window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+                    // Only tear the session down if there was one. For an
+                    // anonymous guest (no credential) a 401 is expected on
+                    // endpoints outside the Guest scope; surface it quietly.
+                    if (hadCred) {
+                        clearTokens();
+                        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+                    }
                     return resp; // Surface the original 401 to the caller.
                 }
                 const replayInit = withBearer(init, input);
@@ -194,6 +205,7 @@ document.addEventListener('alpine:init', () => {
         ready: false,          // authorised OR posture disabled -> the app may run
         authenticated: false,  // a valid credential was presented
         setupRequired: false,  // posture enabled AND the user store is empty
+        kioskEnabled: false,   // kiosk PIN elevation is configured (offer PIN entry)
 
         // Resolved identity (from /api/auth/me)
         id: '',
@@ -208,6 +220,22 @@ document.addEventListener('alpine:init', () => {
 
         // Convenience for markup gating.
         get isEnabled() { return this.posture === 'enabled'; },
+
+        // True when an anonymous visitor is browsing under the Guest scope:
+        // identity system on, no session, past first-run setup, and the app has
+        // resolved far enough to run (the Guest scope granted at least
+        // equipment.view — otherwise `check()` shows the login wall instead).
+        // Drives the "viewing as guest" affordances and lets the login overlay
+        // be dismissed back to the guest dashboard.
+        get isGuest() {
+            return this.posture === 'enabled' && !this.authenticated
+                && !this.setupRequired && this.ready;
+        },
+
+        // The login overlay may be closed only when doing so leaves the visitor
+        // somewhere usable — i.e. the guest dashboard. A hard login wall
+        // (nothing viewable anonymously) and first-run setup are not dismissible.
+        get canDismissLogin() { return this.isGuest; },
 
         /**
          * Mirror the server's entitlement-selector semantics so the UI can gate
@@ -240,6 +268,7 @@ document.addEventListener('alpine:init', () => {
             this.posture = me.posture === 'enabled' ? 'enabled' : 'disabled';
             this.authenticated = !!me.authenticated;
             this.setupRequired = !!me.setup_required;
+            this.kioskEnabled = !!me.kiosk_enabled;
             this.id = me.id || '';
             this.provider = me.provider || '';
             this.groups = Array.isArray(me.groups) ? me.groups : [];
@@ -278,7 +307,29 @@ document.addEventListener('alpine:init', () => {
                     return true;
                 }
 
-                // Enabled but not authenticated -> setup wizard or login card.
+                // Enabled but not authenticated. First-run setup is a hard gate:
+                // no anonymous browsing until an administrator exists.
+                if (this.setupRequired) {
+                    this.showLogin = true;
+                    this.ready = false;
+                    return false;
+                }
+
+                // Guest mode (docs/auth-redesign.md D3): an anonymous visitor
+                // resolves to the built-in Guest group. Guest browsing "turns on"
+                // exactly when the admin has granted the Guest scope at least read
+                // access — /api/auth/me already carries the Guest entitlements, so
+                // can('equipment.view') is the switch. When granted, boot the app
+                // as a guest (the header "Sign in" affordance elevates to a full
+                // session); otherwise fall back to the login wall so an empty
+                // Guest scope behaves exactly like "login required".
+                if (this.can('equipment.view')) {
+                    this.showLogin = false;
+                    this.ready = true;
+                    window.dispatchEvent(new CustomEvent('auth:ready'));
+                    return true;
+                }
+
                 this.showLogin = true;
                 this.ready = false;
                 return false;
@@ -363,6 +414,49 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // Kiosk PIN elevation: exchange a PIN for a session in the admin-
+        // configured target group. A kiosk is a shared terminal, so the session
+        // is deliberately NOT "remembered" (refresh token dies with the tab).
+        async loginWithPin(pin) {
+            this.error = '';
+            this.busy = true;
+            try {
+                const resp = await window.fetch('/api/auth/pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin }),
+                });
+
+                if (resp.status === 200) {
+                    const data = await resp.json();
+                    window.AqualinkAuth.setTokens(data.access_token, data.refresh_token, false);
+                    const ok = await this.check();
+                    if (!ok) {
+                        window.AqualinkAuth.clearTokens();
+                        this.error = 'Sign-in failed. Please try again.';
+                    }
+                    return ok;
+                }
+
+                if (resp.status === 429) {
+                    const retry = resp.headers.get('Retry-After');
+                    const secs = retry ? parseInt(retry, 10) : 0;
+                    this.error = secs
+                        ? `Too many attempts. Try again in ${secs} second${secs === 1 ? '' : 's'}.`
+                        : 'Too many attempts. Please try again later.';
+                    return false;
+                }
+
+                this.error = 'Incorrect PIN.';
+                return false;
+            } catch (_) {
+                this.error = 'Network error — please try again.';
+                return false;
+            } finally {
+                this.busy = false;
+            }
+        },
+
         // Sign out THIS session: best-effort revoke server-side, then drop tokens
         // and return to the login card.
         async logout() {
@@ -394,6 +488,11 @@ document.addEventListener('alpine:init', () => {
         },
 
         // Local teardown shared by both sign-out paths and by auth:unauthorized.
+        // After dropping the session we re-resolve identity: under guest mode a
+        // signed-out user lands on the Guest dashboard (if the Guest scope grants
+        // read access) rather than a dead end. check() re-fetches /api/auth/me
+        // anonymously and sets ready / showLogin accordingly; if it resolves to
+        // guest browsing we reconnect the equipment socket (now anonymous).
         _localSignOut() {
             window.AqualinkAuth.clearTokens();
             this.authenticated = false;
@@ -406,18 +505,24 @@ document.addEventListener('alpine:init', () => {
                 Alpine.store('ws').disconnectEquipment();
                 Alpine.store('ws').disconnectStats();
             } catch (_) { /* ws store may not be ready */ }
+
+            this.check().then((ok) => {
+                if (ok && !this.authenticated) {
+                    // Dropped to guest browsing — bring the live socket back up.
+                    try { Alpine.store('ws').connectEquipment(); } catch (_) { /* ws not ready */ }
+                }
+            });
         },
     });
 
     // The fetch wrapper fires this after a refresh attempt failed: the session is
-    // dead.  Drop any residual state and surface the login card.
+    // dead. Re-resolve identity — under guest mode this drops to the Guest
+    // dashboard when the Guest scope allows it, else surfaces the login wall.
     window.addEventListener('auth:unauthorized', () => {
         const store = Alpine.store('auth');
         if (!store) return;
         // Only meaningful under the identity system; a disabled posture never
         // 401s a normal request.
-        store.authenticated = false;
-        store.ready = false;
-        store.showLogin = true;
+        store._localSignOut();
     });
 });

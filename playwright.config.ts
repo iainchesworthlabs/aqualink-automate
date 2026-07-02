@@ -119,9 +119,9 @@ export default defineConfig({
   // would run admin.spec first (alphabetical), seeding the store and breaking
   // auth.spec's wizard assertion.
   testMatch: (AUTH_MODE || AUTH_TOKEN)
-    ? ['**/auth.spec.ts', '**/admin.spec.ts']
+    ? ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts']
     : (HISTORY_DB ? ['**/trends.spec.ts'] : (SCHEDULES_FILE ? ['**/schedules.spec.ts'] : undefined)),
-  testIgnore: (AUTH_MODE || AUTH_TOKEN || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts'],
+  testIgnore: (AUTH_MODE || AUTH_TOKEN || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts'],
   // Replay is deterministic but the UI is global mutable state behind one backend;
   // run serially so command-button tests don't race each other's optimistic updates.
   fullyParallel: false,

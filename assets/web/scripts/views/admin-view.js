@@ -14,13 +14,14 @@
 function adminView() {
     return {
         open: false,
-        tab: 'users',   // 'users' | 'groups' | 'entitlements' | 'apikeys'
+        tab: 'users',   // 'users' | 'groups' | 'entitlements' | 'apikeys' | 'kiosk'
 
         tabs: [
             { id: 'users', label: 'Users' },
             { id: 'groups', label: 'Groups' },
             { id: 'entitlements', label: 'Entitlements' },
             { id: 'apikeys', label: 'API keys' },
+            { id: 'kiosk', label: 'Kiosk' },
         ],
 
         // Entitlements reference tab state (read-only vocabulary listing).
