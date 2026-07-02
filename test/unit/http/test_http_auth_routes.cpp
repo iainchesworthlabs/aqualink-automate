@@ -344,4 +344,47 @@ BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_SetupRefusedOnceUsersExist, AuthRoutesFi
 	BOOST_CHECK(boost::beast::http::status::forbidden == Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/setup", { { "username", "intruder" }, { "password", "another-long-password" } })).result());
 }
 
+//-----------------------------------------------------------------------------
+// REGRESSION: both session-minting POSTs must return a WELL-FORMED response,
+// never crash the process.  A dangling-reference wiring defect once freed the
+// SessionService/UserStore/AuditLog/OffloadPool the login and setup routes hold
+// by reference before the server serviced any request (the owning shared_ptrs
+// were declared one brace-scope too deep in main(), so they died at the end of
+// the web-settings block while the routes lived on in the global router).  The
+// first POST to either endpoint then dereferenced freed heap and segfaulted,
+// even though GET /api/auth/me — which only holds a COPY of the users handle —
+// was unaffected.  These cases pin the complete documented response shape of
+// both minting endpoints when driven through the production deferred dispatcher.
+//-----------------------------------------------------------------------------
+
+BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_LoginPostReturnsWellFormedResponse_Regression, AuthRoutesFixture)
+{
+	// POST /api/auth/login against the PERSISTED admin (the exact crash repro):
+	// the response must parse cleanly and carry the full token envelope.
+	const auto resp = Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/login", { { "username", "alice" }, { "password", "correct-horse-battery" } }));
+
+	BOOST_REQUIRE(boost::beast::http::status::ok == resp.result());
+
+	const auto body = BodyOf(resp);
+	BOOST_REQUIRE_MESSAGE(!body.is_discarded(), "login response body was not well-formed JSON");
+	BOOST_CHECK(!body.value("access_token", "").empty());
+	BOOST_CHECK(!body.value("refresh_token", "").empty());
+	BOOST_CHECK(!body.value("session_id", "").empty());
+	BOOST_CHECK_EQUAL(body.value("token_type", ""), "Bearer");
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_SetupPostReturnsWellFormedResponse_Regression, FirstRunFixture)
+{
+	// POST /api/auth/setup on an EMPTY store (the other crash repro): a
+	// well-formed 201 identifying the freshly created first administrator.
+	const auto resp = Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/setup", { { "username", "owner" }, { "password", "a-long-enough-password" } }));
+
+	BOOST_REQUIRE(boost::beast::http::status::created == resp.result());
+
+	const auto body = BodyOf(resp);
+	BOOST_REQUIRE_MESSAGE(!body.is_discarded(), "setup response body was not well-formed JSON");
+	BOOST_CHECK(!body.value("user_id", "").empty());
+	BOOST_CHECK_EQUAL(body.value("username", ""), "owner");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

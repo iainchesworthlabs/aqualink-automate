@@ -650,27 +650,6 @@ int main(int argc, char* argv[])
 
 		auto web_settings_result = settings.Get<Options::Web::WebSettings>();
 
-		// Identity-system ownership handles.  These MUST share http_server's
-		// (application) lifetime: the auth routes registered on the server below
-		// capture RAW references into these objects (SessionService&, UserStore&,
-		// AuditLog&, OffloadPool&, ...), and the server keeps serving requests from
-		// the frame loop far below.  They are only POPULATED inside the
-		// `if (web_settings_result)` block; declaring them there too would free the
-		// whole stack at that block's close while the routes still point at it -> a
-		// use-after-free crash on the first login/setup POST.  Declared BEFORE
-		// http_server so they are torn down AFTER it (the server stops serving
-		// first).  Fully-qualified: the `Auth` short alias is not introduced until
-		// inside the block below.
-		std::shared_ptr<AqualinkAutomate::Preferences::UserPreferencesStore> user_preferences_store{};
-		std::shared_ptr<AqualinkAutomate::Auth::UserStore> auth_users{};
-		std::shared_ptr<AqualinkAutomate::Auth::GroupStore> auth_group_store{};
-		std::shared_ptr<AqualinkAutomate::Auth::SessionStore> auth_sessions{};
-		std::shared_ptr<AqualinkAutomate::Auth::ApiKeyStore> auth_api_keys{};
-		std::shared_ptr<AqualinkAutomate::Auth::JwtCodec> auth_codec{};
-		std::shared_ptr<AqualinkAutomate::Auth::AuditLog> auth_audit{};
-		std::shared_ptr<AqualinkAutomate::Utility::OffloadPool> auth_offload{};
-		std::shared_ptr<AqualinkAutomate::Auth::SessionService> auth_session_service{};
-
 		std::unique_ptr<HTTP::HttpServer> http_server;
 		std::unique_ptr<HTTP::HttpServer> https_server;
 		boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls_server);
