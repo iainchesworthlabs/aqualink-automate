@@ -11,6 +11,7 @@
 #include "formatters/beast_stringview_formatter.h"
 #include "http/server/http_server.h"
 #include "http/server/routing/routing.h"
+#include "http/server/websocket_timeouts.h"
 #include "http/server/responses/response_404.h"
 #include "logging/logging.h"
 #include "profiling/factories/profiler_factory.h"
@@ -351,9 +352,11 @@ namespace AqualinkAutomate::HTTP
 
 		const bool dispatched = WithWsStream([self = shared_from_this(), &req, offered_aqualink](auto& ws)
 			{
-				ws.set_option(
-					boost::beast::websocket::stream_base::timeout::suggested(
-						boost::beast::role_type::server));
+				// Explicit keepalive policy (not suggested(server)): the equipment
+				// channel is change-driven and can idle for minutes, and Beast's
+				// suggested 300s profile pings too late to stop reverse proxies
+				// from severing the quiet connection. See websocket_timeouts.h.
+				ws.set_option(WebSocketServerTimeout());
 
 				// Echo the negotiated subprotocol when the client offered `aqualink`.
 				ws.set_option(boost::beast::websocket::stream_base::decorator(
