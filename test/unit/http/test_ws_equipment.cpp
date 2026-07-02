@@ -93,13 +93,18 @@ BOOST_AUTO_TEST_CASE(Test_WebsocketRoutes_WsEquipment_WebSocket_TemperatureEvent
 		BOOST_CHECK(wse1_json_payload.is_null());
 	}
 
+	// Temperatures ride as raw dual-unit objects ({celsius, fahrenheit}),
+	// matching the REST /api/equipment shape. Regression: the old path emitted
+	// pre-formatted strings with the unit HARDCODED to Celsius, ignoring the
+	// Temperature_DisplayUnits preference (docs/i18n.md \u2014 display formatting
+	// is the frontend's job).
 	{
 		auto config_event_temp = std::make_shared<Kernel::DataHub_ConfigEvent_Temperature>();
 		BOOST_REQUIRE(nullptr != config_event_temp);
 		Utility::TemperatureStringConverter pool_temp("Pool        90`F");
 		config_event_temp->PoolTemp(pool_temp().value()); // Make sure to use the right separator character --> `
 		HTTP::WebSocket_Event wse2(config_event_temp);
-	
+
 		BOOST_CHECK_EQUAL(HTTP::WebSocket_EventTypes::TemperatureUpdate, wse2.Type());
 		auto wse2_string = wse2.Payload();
 		auto wse2_json = nlohmann::json::parse(wse2_string);
@@ -107,8 +112,8 @@ BOOST_AUTO_TEST_CASE(Test_WebsocketRoutes_WsEquipment_WebSocket_TemperatureEvent
 		auto wse2_json_payload = wse2_json["payload"];
 		BOOST_CHECK_EQUAL("TemperatureUpdate", wse2_json_type);
 		BOOST_CHECK(wse2_json["payload"].contains("pool_temp"));
-		BOOST_CHECK(wse2_json["payload"]["pool_temp"].is_string());
-		// BOOST_CHECK_EQUAL("90\u00B0F", wse2_json["payload"]["pool_temp"]); // Make sure to use the right separator character --> \u00B0
+		BOOST_CHECK(wse2_json["payload"]["pool_temp"].is_object());
+		BOOST_CHECK_EQUAL(90.0, wse2_json["payload"]["pool_temp"]["fahrenheit"].get<double>());
 	}
 
 	{
@@ -126,14 +131,15 @@ BOOST_AUTO_TEST_CASE(Test_WebsocketRoutes_WsEquipment_WebSocket_TemperatureEvent
 		auto wse3_json_payload = wse3_json["payload"];
 		BOOST_CHECK_EQUAL("TemperatureUpdate", wse3_json_type);
 		BOOST_CHECK(wse3_json["payload"].contains("pool_temp"));
-		BOOST_CHECK(wse3_json["payload"]["pool_temp"].is_string());
-		BOOST_CHECK("21\u00B0C" == wse3_json["payload"]["pool_temp"]); // Make sure to use the right separator character --> \u00B0
+		BOOST_CHECK(wse3_json["payload"]["pool_temp"].is_object());
+		BOOST_CHECK_EQUAL(21.0, wse3_json["payload"]["pool_temp"]["celsius"].get<double>());
+		BOOST_CHECK_EQUAL(69.8, wse3_json["payload"]["pool_temp"]["fahrenheit"].get<double>());
 		BOOST_CHECK(wse3_json["payload"].contains("spa_temp"));
-		BOOST_CHECK(wse3_json["payload"]["spa_temp"].is_string());
-		BOOST_CHECK("39\u00B0C" == wse3_json["payload"]["spa_temp"]); // Make sure to use the right separator character --> \u00B0
+		BOOST_CHECK(wse3_json["payload"]["spa_temp"].is_object());
+		BOOST_CHECK_EQUAL(39.0, wse3_json["payload"]["spa_temp"]["celsius"].get<double>());
 		BOOST_CHECK(wse3_json["payload"].contains("air_temp"));
-		BOOST_CHECK(wse3_json["payload"]["air_temp"].is_string());
-		BOOST_CHECK("16\u00B0C" == wse3_json["payload"]["air_temp"]); // Make sure to use the right separator character --> \u00B0
+		BOOST_CHECK(wse3_json["payload"]["air_temp"].is_object());
+		BOOST_CHECK_EQUAL(16.0, wse3_json["payload"]["air_temp"]["celsius"].get<double>());
 	}
 }
 

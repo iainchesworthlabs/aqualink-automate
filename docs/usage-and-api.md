@@ -513,7 +513,7 @@ These are the fields the UI consumes from each frame's `payload`:
 
 | Event type | Payload fields |
 |---|---|
-| `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` |
+| `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` — each a raw dual-unit object `{celsius, fahrenheit}` (same shape as REST `/api/equipment`; display formatting is the frontend's job, see `docs/i18n.md`) |
 | `ChemistryUpdate` | `ph`, `orp`, `salt_level` |
 | `ButtonStateChange` | `button_id`, `status`, `label` (optional) |
 | `SystemStateUpdate` | `state`, `pool_configuration`, `equipment_mode` |
