@@ -187,7 +187,7 @@ both into one timeline. Writing controller schedules is not yet supported.
 | Method | Path | Success | Other codes |
 |---|---|---|---|
 | GET | `/api/preferences` | `200` JSON | `503` when the service is unavailable. |
-| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. |
+| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. The opaque `ui` object merges shallowly at its top level (a `ui.*` value of null deletes that key) so independent UI features never clobber each other's keys. |
 
 ### Metrics
 
