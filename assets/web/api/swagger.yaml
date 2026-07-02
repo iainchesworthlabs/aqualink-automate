@@ -198,6 +198,71 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get the resolved subject for the calling request
+      description: >
+        Returns the identity the request resolved to — the global identity-system
+        posture (`--auth-mode`), the subject id, whether the caller is
+        authenticated, the credential provider, group memberships, and the
+        effective entitlements — so a client (the SPA) can gate its affordances
+        (lock icons, hidden admin navigation) from one source of truth. The
+        server-side policy engine remains the actual enforcement point.
+
+        When `--auth-mode enabled`, this route deliberately declares no
+        entitlement requirement: an anonymous/guest caller can always ask
+        "who am I and what may I do?" (the answer being the Guest scope).
+        With auth-mode disabled the subject is root-anonymous and
+        `entitlements` is empty — everything is permitted by posture, so
+        entitlements are not enumerated. The documented `401` occurs only under
+        the legacy shared-token model (auth-mode disabled with an API auth token
+        configured), where this route is bearer-gated like every other route.
+      operationId: getAuthMe
+      responses:
+        '200':
+          description: The resolved subject
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posture:
+                    type: string
+                    enum: [disabled, enabled]
+                    description: Global identity-system posture (--auth-mode)
+                  id:
+                    type: string
+                    description: Stable subject identity ("anonymous" when unauthenticated)
+                  authenticated:
+                    type: boolean
+                    description: True only when a valid credential was presented and verified
+                  provider:
+                    type: string
+                    enum: [Anonymous, Local, ApiKey, Oidc, Proxy, KioskPin]
+                    description: The credential source the subject was resolved from
+                  groups:
+                    type: array
+                    items:
+                      type: string
+                    description: Group memberships (the anonymous subject carries Guest when auth-mode is enabled)
+                  entitlements:
+                    type: array
+                    items:
+                      type: string
+                    description: Effective entitlements, sorted and deterministic (the same shape as the JWT `ent` claim)
+              example:
+                posture: enabled
+                id: anonymous
+                authenticated: false
+                provider: Anonymous
+                groups:
+                  - Guest
+                entitlements: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/health:
     get:
       tags:

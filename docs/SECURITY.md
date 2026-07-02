@@ -73,6 +73,27 @@ Key points:
 
 To require TLS for the API itself and pick certificates, see the `--cert`, `--cert-key`, and related flags in the [Configuration reference](configuration.md).
 
+### Identity system (`--auth-mode`)
+
+The shared-token gate above is being superseded by a full identity system (design: [auth-redesign.md](auth-redesign.md)). **What exists today is Slice 1 — the substrate**: subject resolution, the entitlement vocabulary and policy engine, JWT signing-key management, the `GET /api/auth/me` probe, and the audit channel. **Login and user management arrive in a later slice** — the app cannot yet issue tokens itself (only the test harness mints them), so `--auth-mode enabled` is currently for development and integration testing, not a production login flow.
+
+Postures (`--auth-mode`, default `disabled`; see the [Configuration reference](configuration.md)):
+
+- **`disabled` (default)** — no identity resolution; every policy decision is Permit. Behaviour is exactly the historical model described above, including the optional shared bearer token (`--api-auth-token`).
+- **`enabled`** — every request is resolved to a *subject* (from a Bearer JWT, or anonymous) and each route's declared entitlement is checked by the policy engine (ABAC, default deny). An **anonymous request resolves to the built-in Guest group**, which starts with **no entitlements** — deny-by-default until guest scope is granted (guest-scope administration arrives in a later slice). The legacy `--api-auth-token` shared-token check is then **superseded**: bearer credentials are interpreted by the subject resolver (as a JWT) rather than compared against the shared token (the legacy token folds in as a bootstrap API key in a later slice). The Origin allow-list and CSRF-header checks continue to apply unchanged.
+
+Enforcement semantics with `--auth-mode enabled`:
+
+- A denied request answers **`401 Unauthorized`** when the subject is **anonymous** (logging in could elevate it) and **`403 Forbidden`** when the subject is **authenticated but not entitled**.
+- The non-enumeration rule is retained: an unauthenticated probe of an **unknown `/api/*` path** answers `401` (not `404`), so the route surface cannot be mapped without credentials.
+- `GET /api/auth/me` deliberately declares **no entitlement requirement**, so an anonymous/guest caller can always ask "who am I and what may I do?" — see [Usage and API](usage-and-api.md).
+
+Supporting infrastructure shipped with Slice 1:
+
+- **Trusted-proxy client identity.** `X-Forwarded-For` is honoured **only** when the connecting peer is inside a configured trusted-proxy CIDR (`SecurityConfig::TrustedProxyCidrs` in the routing layer); from any other source the header is ignored, so an untrusted client can neither spoof its way out of a rate-limit bucket nor put someone else into one. The CLI flag to configure the trusted CIDRs arrives with the forwarded-auth (proxy) slice; until then the list is empty and `X-Forwarded-For` is always ignored.
+- **JWT signing keys.** Session tokens are signed with keys held in `jwt-signing.key` inside the auth state directory — `--auth-state-dir`, or by default an `auth/` subdirectory of the platform's secure state directory (the same owner-only `0700` fallback chain as the generated TLS key). The key file itself is written `0600`. Each key carries a `kid` stamped into the token header; rotation installs a fresh active key while keeping the previous one valid, so tokens issued just before a rotation still verify during their lifetime.
+- **Audit channel.** A dedicated `Audit` logging channel with an OS-native sink — syslog on POSIX (picked up by journald on systemd distributions), the Windows Event Log on Windows — plus a structured JSONL audit file in the state directory (owner-only, size-rotated; it feeds the future in-app audit viewer and is the durable trail when no OS sink is available). Auditable events (control actions with their policy decision, login success/failure, lockouts, token/key issuance and revocation, entitlement/group changes) begin flowing as the credential flows land in the later slices.
+
 ## Policy adoption
 
 This security policy is adapted from common open-source practice. Aqualink Automate is licensed under the GNU General Public License v3 (see [LICENSE.txt](https://github.com/iainchesworth/aqualink-automate/blob/main/LICENSE.txt)).

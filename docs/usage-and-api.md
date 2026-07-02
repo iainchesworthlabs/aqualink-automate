@@ -80,6 +80,10 @@ Two further hardening layers are built into the routing layer but are **not curr
 
 **Security:** A token over plain HTTP travels in cleartext. Pair `--api-auth-token` with HTTPS (see the TLS options in the [Configuration reference](configuration.md)) whenever the server is reachable beyond `localhost`.
 
+### Identity system (`--auth-mode`) — Slice 1
+
+Beyond the shared token, an opt-in identity system is being introduced (design: [auth-redesign.md](auth-redesign.md); enforcement model: [SECURITY.md](SECURITY.md)). With `--auth-mode enabled`, every request resolves to a *subject*, and each route declares the **entitlement action** it requires — drawn from the v1 vocabulary in [auth-redesign.md §4](auth-redesign.md) (`equipment.view`, the `equipment.control.*` family, `schedules.view`/`schedules.edit`, `diagnostics.view`, `prefs.self`, `system.admin`) — which a default-deny policy engine checks on every request; routes with per-resource grain (e.g. `POST /api/equipment/buttons/{button_id}`) are checked against the specific resource id in the path, so selector-scoped grants like `equipment.control.aux:AUX3` are enforced by the router. A denied request answers `401` when the subject is anonymous and `403` when it is authenticated but not entitled; an unknown `/api/*` path still answers `401` for an unauthenticated subject (no route enumeration). When `--auth-mode enabled`, the legacy `--api-auth-token` shared-token check is superseded — bearer credentials are interpreted by the subject resolver instead. **Slice 1 is the substrate only**: login and user management arrive in a later slice, so today tokens can only be minted by the test harness and anonymous callers carry the empty (deny-by-default) Guest scope.
+
 ## HTTP API conventions
 
 - **Base paths.** Application routes live under `/api`. Two endpoints are exceptions: `GET /metrics` lives at the **root** (not under `/api`), and the web UI / static assets are served from `/`.
@@ -200,6 +204,7 @@ both into one timeline. Writing controller schedules is not yet supported.
 | Method | Path | Success | Notes |
 |---|---|---|---|
 | GET | `/api/auth/check` | `200` `{"authenticated":true}` | Only reached when already authorized or auth is disabled; the routing layer answers `401` upstream otherwise. |
+| GET | `/api/auth/me` | `200` JSON | The resolved subject for the calling request: `posture` (`"disabled"`/`"enabled"`), `id`, `authenticated`, `provider`, `groups[]`, `entitlements[]` — the SPA's single source of truth for gating affordances (enforcement stays server-side). Declares **no entitlement requirement**, so with `--auth-mode enabled` an anonymous/guest caller can always probe its own scope. With auth-mode disabled the subject is root-anonymous and `entitlements` is empty (everything is permitted by posture, so nothing is enumerated). |
 
 ## Key request and response examples
 
