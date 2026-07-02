@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 
+#include <boost/signals2.hpp>
 #include <nlohmann/json.hpp>
 
 #include "interfaces/ihub.h"
@@ -30,6 +31,13 @@ namespace AqualinkAutomate::Kernel
 
 	public:
 		TemperatureUnits Temperature_DisplayUnits{ TemperatureUnits::Celsius };
+
+		// Fired by PreferencesService when Temperature_DisplayUnits changes.
+		// The typed fields are read live, so most consumers need nothing —
+		// this exists for consumers with PUBLISHED artefacts derived from the
+		// preference (e.g. the HA discovery setpoint number entities), which
+		// must refresh when it flips.
+		mutable boost::signals2::signal<void()> DisplayUnitsChangedSignal;
 
 		std::uint32_t AlertSaltLowPpm{ 2600 };
 		std::uint32_t AlertCommsTimeoutSeconds{ 60 };

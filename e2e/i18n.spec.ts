@@ -124,6 +124,50 @@ test.describe('i18n runtime', () => {
   });
 });
 
+test.describe('locale-aware value formatting (Phase 1)', () => {
+  test('formatting helpers follow the active locale, including pinned Arabic digits', async ({ page }) => {
+    await page.goto('/');
+    const r = await page.evaluate(async () => {
+      const api = (window as any).AquaI18n;
+      const store = (window as any).Alpine.store('i18n');
+      const en = {
+        number: api.formatNumber(1234.5, { maximumFractionDigits: 1 }),
+        tempC: api.formatTemperature({ celsius: 28, fahrenheit: 82.4 }, 'Celsius'),
+        tempF: api.formatTemperature({ celsius: 28, fahrenheit: 82.4 }, 'Fahrenheit'),
+        placeholder: api.formatTemperature('--', 'Celsius'),
+      };
+      await store.setLocale('ar');
+      const ar = { number: api.formatNumber(30) };
+      await store.setLocale('en');
+      localStorage.removeItem('locale');
+      return { en, ar };
+    });
+    expect(r.en.number).toBe('1,234.5');
+    expect(r.en.tempC).toContain('28');
+    expect(r.en.tempC).toContain('°C');
+    expect(r.en.tempF).toContain('82.4');
+    expect(r.en.tempF).toContain('°F');
+    expect(r.en.placeholder).toBe('--');
+    expect(r.ar.number).toBe('٣٠'); // Eastern Arabic-Indic digits (registry numberLocale pin)
+  });
+
+  test('the temperature display-units preference flows from the server to the UI', async ({ page, request }) => {
+    const put = await request.put('/api/preferences', { data: { temperature_units: 'Fahrenheit' } });
+    expect(put.ok()).toBeTruthy();
+    try {
+      await page.goto('/');
+      // fetchInitial loads the preference asynchronously with the equipment data.
+      await page.waitForFunction(() => (window as any).Alpine.store('pool').displayUnits === 'Fahrenheit');
+      const formatted = await page.evaluate(() =>
+        (window as any).Alpine.store('pool')._displayTemp({ celsius: 28, fahrenheit: 82.4 }));
+      expect(formatted).toContain('°F');
+    } finally {
+      // Restore for the rest of the suite (the backend keeps prefs in memory).
+      await request.put('/api/preferences', { data: { temperature_units: 'Celsius' } });
+    }
+  });
+});
+
 test.describe('i18n guard rails', () => {
   test('no missing catalog keys anywhere in the UI', async ({ page }) => {
     const missing: string[] = [];

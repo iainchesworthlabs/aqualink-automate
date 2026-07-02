@@ -236,6 +236,7 @@ namespace AqualinkAutomate::Preferences
 		}
 
 		// Commit + persist.
+		const bool units_changed = (m_Hub->Temperature_DisplayUnits != units);
 		m_Hub->Temperature_DisplayUnits = units;
 		m_Hub->AlertSaltLowPpm = salt;
 		m_Hub->AlertCommsTimeoutSeconds = comms;
@@ -247,6 +248,13 @@ namespace AqualinkAutomate::Preferences
 		m_Hub->SpaSwitchButtons = std::move(spa_switch_buttons);
 
 		Save();
+
+		// After commit+persist so subscribers reading the hub see the new value.
+		if (units_changed)
+		{
+			m_Hub->DisplayUnitsChangedSignal();
+		}
+
 		return true;
 	}
 

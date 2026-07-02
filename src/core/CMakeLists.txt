@@ -170,7 +170,6 @@ target_sources(
 	kernel/device_graph/device_graph_filter_by_trait.cpp 
 	logging/formatters/logging_formatters.cpp
 	kernel/device_graph/device_graph_types.cpp
-	localisation/translations_and_units_formatter.cpp 
 	logging/global_logger.cpp
 	logging/logging.cpp
 	logging/logging_attributes.cpp

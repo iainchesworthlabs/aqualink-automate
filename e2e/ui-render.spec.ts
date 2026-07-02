@@ -32,8 +32,10 @@ test('dashboard renders the replayed AquaRite salt reading (3200 ppm)', async ({
   await expect(saltCard).toBeVisible();
 
   // The replayed PPM (3200) must appear once the WS/REST feed has been applied.
-  // The redesigned dial splits it into a numeric node and a unit node.
-  await expect(saltCard.locator('.chem-dial-num')).toHaveText(/3200/, { timeout: 15_000 });
+  // The redesigned dial splits it into a numeric node and a unit node; the
+  // number renders with locale digit grouping ("3,200" in the en test locale
+  // — see docs/i18n.md value formatting).
+  await expect(saltCard.locator('.chem-dial-num')).toHaveText(/3,?200/, { timeout: 15_000 });
   await expect(saltCard.locator('.chem-dial-unit')).toHaveText(/ppm/i);
 });
 

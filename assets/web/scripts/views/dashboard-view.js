@@ -19,7 +19,7 @@ function dashboardView() {
         get lastUpdateText() {
             const lu = Alpine.store('pool').lastUpdate;
             if (!lu) return '';
-            return lu.toLocaleTimeString();
+            return window.AquaI18n.formatTime(lu);
         },
 
         ageText(field) {

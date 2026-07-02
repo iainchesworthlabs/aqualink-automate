@@ -247,7 +247,7 @@
                         <span class="summary-label" x-text="$t('common.pool')"></span>
                         <span class="summary-temp" x-text="poolTempDisplay"></span>
                         <span class="summary-setpoint" x-show="$store.pool.poolSetpoint !== '--'"
-                              x-text="$t('dash.set_value', { value: (typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.poolSetpoint) })"></span>
+                              x-text="$t('dash.set_value', { value: $store.pool.poolSetpointDisplay })"></span>
                     </div>
                 </div>
 
@@ -259,7 +259,7 @@
                         <span class="summary-label" x-text="$t('common.spa')"></span>
                         <span class="summary-temp" x-text="spaTempDisplay"></span>
                         <span class="summary-setpoint" x-show="$store.pool.spaSetpoint !== '--'"
-                              x-text="$t('dash.set_value', { value: (typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.spaSetpoint) })"></span>
+                              x-text="$t('dash.set_value', { value: $store.pool.spaSetpointDisplay })"></span>
                     </div>
                 </div>
                 </template>
@@ -343,8 +343,7 @@
                         </span>
                         <div class="setpoint-stepper">
                             <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', -0.5)">&minus;</button>
-                            <span class="setpoint-row-value"
-                                  x-text="typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.poolSetpoint"></span>
+                            <span class="setpoint-row-value" x-text="$store.pool.poolSetpointDisplay"></span>
                             <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', 0.5)">+</button>
                         </div>
                     </div>
@@ -357,8 +356,7 @@
                         </span>
                         <div class="setpoint-stepper">
                             <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', -0.5)">&minus;</button>
-                            <span class="setpoint-row-value"
-                                  x-text="typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.spaSetpoint"></span>
+                            <span class="setpoint-row-value" x-text="$store.pool.spaSetpointDisplay"></span>
                             <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', 0.5)">+</button>
                         </div>
                     </div>
@@ -390,11 +388,11 @@
                                         x-show="numericValue !== null" :stroke="statusColor" :stroke-dasharray="valueDash"></circle>
                             </svg>
                             <div class="chem-dial-center">
-                                <span class="chem-dial-num" :style="`color:${statusColor}`" x-text="numericValue === null ? '--' : numericValue.toFixed(cfg.decimals)"></span>
+                                <span class="chem-dial-num" :style="`color:${statusColor}`" x-text="numericValue === null ? '--' : $nf(numericValue, cfg.decimals)"></span>
                                 <span class="chem-dial-unit" x-text="(cfg.unit || '').trim()"></span>
                             </div>
                         </div>
-                        <div class="chem-dial-range" x-text="cfg.min + ' – ' + cfg.max"></div>
+                        <div class="chem-dial-range" x-text="$n(cfg.min) + ' – ' + $n(cfg.max)"></div>
                     </div>
                 </template>
 
@@ -413,7 +411,7 @@
                         <input type="range" min="0" max="100" step="5" class="swg-slider"
                                x-model.number="target" @input="touched = true" :disabled="busy"
                                :aria-label="$t('dash.target_aria')">
-                        <span class="swg-target-value" x-text="target + '%'"></span>
+                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
                     </div>
                     <div class="swg-actions">
                         <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
@@ -450,8 +448,8 @@
                                           x-text="statusLabel(button)"></span>
                                     <span class="heater-temp" x-text="button.label.toLowerCase().includes('spa') ? $store.pool.spaTemp : $store.pool.poolTemp"></span>
                                     <span class="heater-setpoint text-muted" x-text="button.label.toLowerCase().includes('spa')
-                                        ? (typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.spaSetpoint)
-                                        : (typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' \u00B0C') : $store.pool.poolSetpoint)"></span>
+                                        ? $store.pool.spaSetpointDisplay
+                                        : $store.pool.poolSetpointDisplay"></span>
                                 </div>
                                 <!-- Command feedback -->
                                 <span class="cmd-badge cmd-applied" x-show="cmdState(button) === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
@@ -534,11 +532,11 @@
                     <div class="card-header" x-text="$t('detail.temperatures')"></div>
                     <div class="detail-kv">
                         <div class="kv-row"><span class="kv-k" x-text="$t('common.pool')"></span><span class="kv-v" x-text="$store.pool.poolTemp"></span></div>
-                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.pool_setpoint')"></span><span class="kv-v" x-text="typeof $store.pool.poolSetpoint === 'object' ? ($store.pool.poolSetpoint.celsius?.toFixed(1) + ' °C') : $store.pool.poolSetpoint"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.pool_setpoint')"></span><span class="kv-v" x-text="$store.pool.poolSetpointDisplay"></span></div>
                         <template x-if="$store.pool.hasDualBody">
                             <div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('common.spa')"></span><span class="kv-v" x-text="$store.pool.spaTemp"></span></div>
-                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.spa_setpoint')"></span><span class="kv-v" x-text="typeof $store.pool.spaSetpoint === 'object' ? ($store.pool.spaSetpoint.celsius?.toFixed(1) + ' °C') : $store.pool.spaSetpoint"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.spa_setpoint')"></span><span class="kv-v" x-text="$store.pool.spaSetpointDisplay"></span></div>
                             </div>
                         </template>
                         <div class="kv-row"><span class="kv-k" x-text="$t('common.air')"></span><span class="kv-v" x-text="$store.pool.airTemp"></span></div>
@@ -549,13 +547,13 @@
                 <div class="card detail-card">
                     <div class="card-header" x-text="$t('detail.water_chemistry')"></div>
                     <div class="detail-kv">
-                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.ph')"></span><span class="kv-v" x-text="$store.pool.ph"></span></div>
-                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.orp')"></span><span class="kv-v" x-text="$store.pool.orp === '--' ? '--' : ($store.pool.orp + ' mV')"></span></div>
-                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.salt')"></span><span class="kv-v" x-text="$store.pool.saltPpm === '--' ? '--' : ($store.pool.saltPpm + ' ppm')"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.ph')"></span><span class="kv-v" x-text="$store.pool.ph === '--' ? '--' : $n($store.pool.ph)"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.orp')"></span><span class="kv-v" x-text="$store.pool.orp === '--' ? '--' : ($n($store.pool.orp) + ' mV')"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.salt')"></span><span class="kv-v" x-text="$store.pool.saltPpm === '--' ? '--' : ($n($store.pool.saltPpm) + ' ppm')"></span></div>
                         <template x-if="$store.pool.chlorinatorPresent">
                             <div>
-                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_output')"></span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($store.pool.swgGeneratingPercent + ' %')"></span></div>
-                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v" x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($store.pool.swgSetpointPercent + ' %')"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_output')"></span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($n($store.pool.swgGeneratingPercent) + ' %')"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v" x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($n($store.pool.swgSetpointPercent) + ' %')"></span></div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_health')"></span><span class="kv-v" x-text="$store.pool.chlorinatorHealthLabel || $store.pool.chlorinatorHealth"></span></div>
                             </div>
                         </template>
@@ -671,11 +669,11 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.read_1s_avg')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.bandwidthRead?.average_utilisation_1sec || 0).toFixed(2) + '%'"></div>
+                    <div class="stat-card-value" x-text="$nf($store.stats.bandwidthRead?.average_utilisation_1sec || 0, 2) + '%'"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.write_1s_avg')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.bandwidthWrite?.average_utilisation_1sec || 0).toFixed(2) + '%'"></div>
+                    <div class="stat-card-value" x-text="$nf($store.stats.bandwidthWrite?.average_utilisation_1sec || 0, 2) + '%'"></div>
                 </div>
             </div>
 
@@ -688,12 +686,12 @@
                             <button type="button" class="bw-legend-item" :class="{ 'is-off': !bwRead }"
                                     :aria-pressed="bwRead" @click="toggleBw('read')" :title="$t('diag.toggle_read_series')">
                                 <span class="bw-legend-swatch bw-swatch-read"></span><span x-text="$t('diag.read')"></span>
-                                <strong x-text="($store.stats.bandwidthRead?.average_utilisation_1sec || 0).toFixed(1) + '%'"></strong>
+                                <strong x-text="$nf($store.stats.bandwidthRead?.average_utilisation_1sec || 0, 1) + '%'"></strong>
                             </button>
                             <button type="button" class="bw-legend-item" :class="{ 'is-off': !bwWrite }"
                                     :aria-pressed="bwWrite" @click="toggleBw('write')" :title="$t('diag.toggle_write_series')">
                                 <span class="bw-legend-swatch bw-swatch-write"></span><span x-text="$t('diag.write')"></span>
-                                <strong x-text="($store.stats.bandwidthWrite?.average_utilisation_1sec || 0).toFixed(1) + '%'"></strong>
+                                <strong x-text="$nf($store.stats.bandwidthWrite?.average_utilisation_1sec || 0, 1) + '%'"></strong>
                             </button>
                         </div>
                     </div>
@@ -747,27 +745,27 @@
             <div x-show="$store.stats.messageErrors" class="stat-cards mb-2">
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.checksum')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.checksum_failures ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.checksum_failures ?? 0)"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.deserialize')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.deserialization_failures ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.deserialization_failures ?? 0)"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.invalid_packet')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.invalid_packet_format ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.invalid_packet_format ?? 0)"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.generator')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.generator_failures ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.generator_failures ?? 0)"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.overlapping')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.overlapping_packets ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.overlapping_packets ?? 0)"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.buffer_overflow')"></div>
-                    <div class="stat-card-value" x-text="($store.stats.messageErrors?.buffer_overflows ?? 0).toLocaleString()"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.messageErrors?.buffer_overflows ?? 0)"></div>
                 </div>
             </div>
             <div x-show="!$store.stats.messageErrors" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_errors')"></div>
@@ -813,7 +811,7 @@
                             </div>
                             <div class="latency-pct">
                                 <div class="latency-pct-k" x-text="$t('diag.samples')"></div>
-                                <div class="latency-pct-v latency-pct-dim" x-text="($store.stats.latency?.[cat.key]?.sample_count || 0).toLocaleString()"></div>
+                                <div class="latency-pct-v latency-pct-dim" x-text="$n($store.stats.latency?.[cat.key]?.sample_count || 0)"></div>
                             </div>
                             <div class="latency-pct">
                                 <div class="latency-pct-k" x-text="$t('diag.cum_mean')"></div>
@@ -910,7 +908,7 @@
                         <div class="mstat-row">
                             <span class="mstat-type" x-text="msgLabel(m)"></span>
                             <span class="mstat-row-right">
-                                <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="(m.count || 0).toLocaleString()"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
+                                <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="$n(m.count || 0)"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
                                 <span class="mstat-cw-last mstat-last" x-text="msgLastSeen(m)"></span>
                             </span>
                         </div>
@@ -936,7 +934,7 @@
                         <div class="mqtt-row"><span x-text="$t('diag.client_id')"></span><span class="mqtt-val" x-text="mqtt.client_id || '--'"></span></div>
                         <div class="mqtt-row"><span x-text="$t('diag.topic_prefix')"></span><span class="mqtt-val" x-text="mqtt.topic_prefix || '--'"></span></div>
                         <div class="mqtt-row"><span x-text="$t('diag.home_assistant')"></span><span class="mqtt-val" x-text="mqtt.home_assistant_enabled ? $t('diag.discovery_on', { prefix: mqtt.ha_discovery_prefix || '' }) : $t('common.off_lc')"></span></div>
-                        <div class="mqtt-row mqtt-row-top"><span x-text="$t('diag.published')"></span><span class="mqtt-val mqtt-num" x-text="(mqtt.published ?? 0).toLocaleString()"></span></div>
+                        <div class="mqtt-row mqtt-row-top"><span x-text="$t('diag.published')"></span><span class="mqtt-val mqtt-num" x-text="$n(mqtt.published ?? 0)"></span></div>
                         <div class="mqtt-row"><span x-text="$t('diag.queue_depth')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.queue_depth ?? 0"></span></div>
                         <div class="mqtt-row"><span x-text="$t('diag.dropped')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.dropped ?? 0"></span></div>
                         <div class="mqtt-row"><span x-text="$t('diag.reconnects')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.reconnect_attempts ?? 0"></span></div>
@@ -1253,7 +1251,7 @@
                                 <div class="mstat-row">
                                     <span class="mstat-type" x-text="msgLabel(m)"></span>
                                     <span class="mstat-row-right">
-                                        <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="(m.count || 0).toLocaleString()"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
+                                        <span class="mstat-cw-count mstat-nums"><span class="mstat-count" x-text="$n(m.count || 0)"></span><span class="mstat-rate" x-text="msgRate(m)"></span></span>
                                         <span class="mstat-cw-last mstat-last" x-text="msgLastSeen(m)"></span>
                                     </span>
                                 </div>

@@ -672,18 +672,20 @@ function diagnosticsView() {
         },
 
         formatBytes(bytes) {
-            if (!bytes || bytes === 0) return '0 B';
+            const n = window.AquaI18n.formatNumber;
+            if (!bytes || bytes === 0) return n(0) + ' B';
             const k = 1024;
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            return n(parseFloat((bytes / Math.pow(k, i)).toFixed(2))) + ' ' + sizes[i];
         },
 
         formatMicros(us) {
+            const n = window.AquaI18n.formatNumber;
             if (us == null) return '--';
-            if (us < 1000) return us.toFixed(0) + ' \u00B5s';
-            if (us < 1000000) return (us / 1000).toFixed(2) + ' ms';
-            return (us / 1000000).toFixed(2) + ' s';
+            if (us < 1000) return n(us, { maximumFractionDigits: 0 }) + ' \u00B5s';
+            if (us < 1000000) return n(us / 1000, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ms';
+            return n(us / 1000000, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' s';
         },
 
         utilColor(val) {
@@ -849,7 +851,7 @@ function diagnosticsView() {
         },
         msgLabel(m) { return m.name || window.AquaI18n.t('diag.msg_id', { id: m.id }); },
         msgRate(m) { return window.AquaI18n.t('diag.rate_per_s', { value: (m.frequency || 0).toFixed(2) }); },
-        msgLastSeen(m) { return m.lastSeen ? new Date(m.lastSeen).toLocaleTimeString() : '--'; },
+        msgLastSeen(m) { return m.lastSeen ? window.AquaI18n.formatTime(m.lastSeen) : '--'; },
 
         // ---- Log-levels modal -----------------------------------------------------
         openLogModal() { this.logSearch = ''; this.logFilter = 'all'; this.logModalOpen = true; },

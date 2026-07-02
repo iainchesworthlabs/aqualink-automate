@@ -12,7 +12,7 @@
  *   /api/version            → { software_version: { name, version, description, homepage }, git_info: { ... } }
  *
  * WebSocket payload mapping:
- *   TemperatureUpdate → { pool_temp, spa_temp, air_temp }  (string values from Localised formatter)
+ *   TemperatureUpdate → { pool_temp, spa_temp, air_temp }  ({celsius, fahrenheit} objects, same shape as REST)
  *   ChemistryUpdate   → { ph, orp, salt_level }            (numeric values)
  *   SystemStatusChange → serialised IStatus
  *   ButtonStateChange  → { button_id, status, label? }
@@ -71,9 +71,33 @@ function _normaliseSystemStatus(raw) {
 
 document.addEventListener('alpine:init', () => {
     Alpine.store('pool', {
-        poolTemp: '--',
-        spaTemp: '--',
-        airTemp: '--',
+        // Temperatures hold the RAW wire value ({celsius, fahrenheit} object,
+        // or legacy string); the poolTemp/spaTemp/airTemp getters below format
+        // for display at read time, so a locale or display-units change
+        // re-renders every consumer reactively.
+        _poolTempRaw: null,
+        _spaTempRaw: null,
+        _airTempRaw: null,
+
+        // Server display-units preference ('Celsius' | 'Fahrenheit'), loaded
+        // with the initial data and updated when Settings saves it.
+        displayUnits: 'Celsius',
+
+        get poolTemp() { return this._displayTemp(this._poolTempRaw); },
+        get spaTemp() { return this._displayTemp(this._spaTempRaw); },
+        get airTemp() { return this._displayTemp(this._airTempRaw); },
+
+        _displayTemp(raw) {
+            if (raw == null) return '--';
+            return window.AquaI18n.formatTemperature(raw, this.displayUnits);
+        },
+
+        // Setpoints hold the raw wire value too; these getters are the single
+        // display path for the ~8 call sites that previously rebuilt
+        // "x.x °C" strings inline.
+        get poolSetpointDisplay() { return typeof this.poolSetpoint === 'object' ? this._displayTemp(this.poolSetpoint) : this.poolSetpoint; },
+        get spaSetpointDisplay() { return typeof this.spaSetpoint === 'object' ? this._displayTemp(this.spaSetpoint) : this.spaSetpoint; },
+
         poolSetpoint: '--',
         poolSetpoint2: '--',   // POOLSP2 / panel "TEMP2" maintenance setpoint (single-body systems)
         poolHeater2Enabled: null,   // POOLHT2 / panel "TEMP2" maintenance heating enabled (read-only)
@@ -174,14 +198,22 @@ document.addEventListener('alpine:init', () => {
             await Promise.all([
                 this._fetchEquipment(),
                 this._fetchButtons(),
-                this._fetchVersion()
+                this._fetchVersion(),
+                this._fetchDisplayUnits()
             ]);
         },
 
-        _formatTemp(val) {
-            if (val == null) return '--';
-            if (typeof val === 'object' && val.celsius != null) return Math.round(val.celsius) + '\u00B0C';
-            return String(val);
+        // Fetch the display-units preference (best-effort: 401/offline keeps
+        // the Celsius default; Settings updates it live on save).
+        async _fetchDisplayUnits() {
+            try {
+                const resp = await fetch('/api/preferences');
+                if (!resp.ok) return;
+                const p = await resp.json();
+                if (p.temperature_units === 'Celsius' || p.temperature_units === 'Fahrenheit') {
+                    this.displayUnits = p.temperature_units;
+                }
+            } catch (_) { /* keep default */ }
         },
 
         _touch(field) {
@@ -205,11 +237,12 @@ document.addEventListener('alpine:init', () => {
                 const data = await resp.json();
                 if (!data || Object.keys(data).length === 0) return;
 
-                // Temperatures
+                // Temperatures — store the raw wire values; display formatting
+                // happens in the poolTemp/spaTemp/airTemp getters.
                 if (data.temperatures) {
-                    this.poolTemp = this._formatTemp(data.temperatures.pool);
-                    this.spaTemp = this._formatTemp(data.temperatures.spa);
-                    this.airTemp = this._formatTemp(data.temperatures.air);
+                    this._poolTempRaw = data.temperatures.pool ?? this._poolTempRaw;
+                    this._spaTempRaw = data.temperatures.spa ?? this._spaTempRaw;
+                    this._airTempRaw = data.temperatures.air ?? this._airTempRaw;
                     if (data.temperatures.pool_setpoint) this.poolSetpoint = data.temperatures.pool_setpoint;
                     if (data.temperatures.pool_setpoint_2) this.poolSetpoint2 = data.temperatures.pool_setpoint_2;
                     if (data.temperatures.pool_heater_2_enabled != null) this.poolHeater2Enabled = data.temperatures.pool_heater_2_enabled;
@@ -333,9 +366,9 @@ document.addEventListener('alpine:init', () => {
             switch (msg.type) {
                 case 'TemperatureUpdate':
                     if (msg.payload) {
-                        if (msg.payload.pool_temp != null) { this.poolTemp = this._formatTemp(msg.payload.pool_temp); this._touch('poolTemp'); }
-                        if (msg.payload.spa_temp != null) { this.spaTemp = this._formatTemp(msg.payload.spa_temp); this._touch('spaTemp'); }
-                        if (msg.payload.air_temp != null) { this.airTemp = this._formatTemp(msg.payload.air_temp); this._touch('airTemp'); }
+                        if (msg.payload.pool_temp != null) { this._poolTempRaw = msg.payload.pool_temp; this._touch('poolTemp'); }
+                        if (msg.payload.spa_temp != null) { this._spaTempRaw = msg.payload.spa_temp; this._touch('spaTemp'); }
+                        if (msg.payload.air_temp != null) { this._airTempRaw = msg.payload.air_temp; this._touch('airTemp'); }
                         if (msg.payload.pool_setpoint != null) this.poolSetpoint = msg.payload.pool_setpoint;
                         if (msg.payload.pool_setpoint_2 != null) this.poolSetpoint2 = msg.payload.pool_setpoint_2;
                         if (msg.payload.pool_heater_2_enabled != null) this.poolHeater2Enabled = msg.payload.pool_heater_2_enabled;

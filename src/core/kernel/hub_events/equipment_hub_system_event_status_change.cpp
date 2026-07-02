@@ -1,7 +1,6 @@
 #include <magic_enum/magic_enum.hpp>
 
 #include "kernel/hub_events/equipment_hub_system_event_status_change.h"
-#include "localisation/translations_and_units_formatter.h"
 
 namespace AqualinkAutomate::Kernel
 {

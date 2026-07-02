@@ -240,6 +240,7 @@ namespace AqualinkAutomate::Mqtt
 		auto data_hub = hub_locator.TryFind<Kernel::DataHub>();
 		auto equipment_hub = hub_locator.TryFind<Kernel::EquipmentHub>();
 		auto statistics_hub = hub_locator.TryFind<Kernel::StatisticsHub>();
+		auto preferences_hub = hub_locator.TryFind<Kernel::PreferencesHub>();
 
 		m_CommandDispatcher = hub_locator.TryFind<Interfaces::ICommandDispatcher>();
 
@@ -263,17 +264,24 @@ namespace AqualinkAutomate::Mqtt
 			LogError(Channel::Mqtt, "ICommandDispatcher not found via locator; MQTT integration degraded (inbound control commands will be rejected)");
 		}
 
-		ConnectHubs(data_hub, equipment_hub, statistics_hub);
+		if (!preferences_hub)
+		{
+			LogError(Channel::Mqtt, "PreferencesHub not found via locator; MQTT integration degraded (HA setpoint entities stay Celsius regardless of the display-units preference)");
+		}
+
+		ConnectHubs(data_hub, equipment_hub, statistics_hub, preferences_hub);
 	}
 
 	void MqttIntegration::ConnectHubs(
 		const std::shared_ptr<Kernel::DataHub>& data_hub,
 		const std::shared_ptr<Kernel::EquipmentHub>& equipment_hub,
-		const std::shared_ptr<Kernel::StatisticsHub>& statistics_hub)
+		const std::shared_ptr<Kernel::StatisticsHub>& statistics_hub,
+		const std::shared_ptr<Kernel::PreferencesHub>& preferences_hub)
 	{
 		m_DataHub = data_hub;
 		m_EquipmentHub = equipment_hub;
 		m_StatisticsHub = statistics_hub;
+		m_PreferencesHub = preferences_hub;
 
 		if (m_Hub)
 		{
@@ -295,6 +303,23 @@ namespace AqualinkAutomate::Mqtt
 			if (m_HaDiscovery && data_hub)
 			{
 				m_HaDiscovery->ConnectDataHub(data_hub);
+			}
+
+			if (m_HaDiscovery && preferences_hub)
+			{
+				m_HaDiscovery->ConnectPreferencesHub(preferences_hub);
+
+				// The setpoint number entities' declared unit/range follow the
+				// display-units preference, so a change must republish the
+				// (retained) discovery configs for HA to pick it up.
+				m_PrefsUnitsConnection = preferences_hub->DisplayUnitsChangedSignal.connect([this]()
+				{
+					if (m_HaDiscovery)
+					{
+						LogInfo(Channel::Mqtt, "Temperature display units changed; republishing Home Assistant discovery configs");
+						m_HaDiscovery->PublishDiscoveryConfigs();
+					}
+				});
 			}
 
 			// Re-register the device command now that the command dispatcher is available
@@ -536,9 +561,15 @@ namespace AqualinkAutomate::Mqtt
 		// HA number entity handlers: plain text number on setpoint/pool and setpoint/spa.
 		// Both capture dispatch_setpoint's result so the outcome is published and never discarded
 		// (dispatch_setpoint itself also logs the CommandResult, escalating to Warning on failure).
-		auto make_ha_setpoint_handler = [weak_hub, dispatch_setpoint](const std::string& target)
+		//
+		// The incoming value arrives in whatever unit the discovery config declared for the
+		// number entity — the Temperature_DisplayUnits preference (see AddSetpointComponents) —
+		// so it is normalised to the Celsius that dispatch_setpoint expects. Read at command
+		// time, matching the discovery config that a preference change republishes.
+		std::weak_ptr<Kernel::PreferencesHub> weak_prefs = m_PreferencesHub;
+		auto make_ha_setpoint_handler = [weak_hub, dispatch_setpoint, weak_prefs](const std::string& target)
 		{
-			return [weak_hub, dispatch_setpoint, target](const std::string& topic, const nlohmann::json& payload)
+			return [weak_hub, dispatch_setpoint, weak_prefs, target](const std::string& topic, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, std::format("Received HA {} setpoint command", target));
 				try
@@ -551,7 +582,13 @@ namespace AqualinkAutomate::Mqtt
 						return;
 					}
 
-					auto status_str = dispatch_setpoint(target, temperature);
+					auto celsius = temperature;
+					if (auto prefs = weak_prefs.lock(); prefs && (prefs->Temperature_DisplayUnits == Kernel::TemperatureUnits::Fahrenheit))
+					{
+						celsius = (temperature - 32.0) * 5.0 / 9.0;
+					}
+
+					auto status_str = dispatch_setpoint(target, celsius);
 
 					auto response = BuildCommandResponse("setpoint", status_str,
 						{{"target", target}, {"temperature", temperature}});

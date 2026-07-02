@@ -145,6 +145,92 @@
         return lookup(savedLocale() || browserLocale(), key, params);
     };
 
+    // ---- Locale-aware value formatting (docs/i18n.md) ----------------------
+    // All helpers resolve the ACTIVE locale through the Alpine store when it
+    // exists — reading store.locale registers a reactive dependency, so
+    // bindings re-render on a language switch — and honour the registry's
+    // numberLocale pin (e.g. Arabic-Indic digits).
+
+    function activeFormatLocale() {
+        const code = (global.Alpine && Alpine.store('i18n')) ? Alpine.store('i18n').locale : (savedLocale() || browserLocale());
+        const info = localeInfo(code);
+        return (info && info.numberLocale) || code;
+    }
+
+    const fmtCache = {};
+    function cachedFormat(kind, locale, options, factory) {
+        const key = kind + '|' + locale + '|' + JSON.stringify(options || {});
+        return fmtCache[key] || (fmtCache[key] = factory());
+    }
+
+    // Locale-digit number formatting. `options` passes through to
+    // Intl.NumberFormat (e.g. {maximumFractionDigits: 1}).
+    api.formatNumber = function (value, options) {
+        if (value === undefined || value === null || (typeof value === 'number' && !isFinite(value))) return String(value);
+        const locale = activeFormatLocale();
+        try {
+            return cachedFormat('n', locale, options, () => new Intl.NumberFormat(locale, options)).format(value);
+        } catch (_) {
+            return String(value);
+        }
+    };
+
+    // Temperature display honouring the server display-units preference
+    // (units: 'Celsius' | 'Fahrenheit'). Accepts the wire dual-unit object
+    // ({celsius, fahrenheit}), a bare celsius number, or a legacy/unknown
+    // value (returned unchanged, e.g. the '--' placeholder).
+    api.formatTemperature = function (value, units) {
+        let celsius = null, fahrenheit = null;
+        if (value && typeof value === 'object') {
+            if (value.celsius == null && value.fahrenheit == null) return '--';
+            celsius = value.celsius; fahrenheit = value.fahrenheit;
+        } else if (typeof value === 'number' && isFinite(value)) {
+            celsius = value;
+        } else {
+            return value == null ? '--' : String(value);
+        }
+        const useF = (units === 'Fahrenheit');
+        let n = useF ? fahrenheit : celsius;
+        if (n == null) {
+            // Only the other unit arrived: convert rather than showing nothing.
+            n = useF ? (celsius * 9 / 5 + 32) : ((fahrenheit - 32) * 5 / 9);
+        }
+        n = Math.round(n * 10) / 10;
+        const locale = activeFormatLocale();
+        try {
+            // unitDisplay 'short' (not 'narrow'): CLDR's narrow fahrenheit
+            // symbol is a bare '°' with no F, which is ambiguous.
+            return cachedFormat('t', locale, { u: useF }, () => new Intl.NumberFormat(locale, {
+                style: 'unit', unit: useF ? 'fahrenheit' : 'celsius', unitDisplay: 'short', maximumFractionDigits: 1,
+            })).format(n);
+        } catch (_) {
+            return api.formatNumber(n, { maximumFractionDigits: 1 }) + (useF ? '°F' : '°C');
+        }
+    };
+
+    // Time / date-time display in the active locale (not the browser locale).
+    api.formatTime = function (value) {
+        const d = (value instanceof Date) ? value : new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        const locale = activeFormatLocale();
+        try {
+            return cachedFormat('tt', locale, null, () => new Intl.DateTimeFormat(locale, { timeStyle: 'medium' })).format(d);
+        } catch (_) {
+            return d.toLocaleTimeString();
+        }
+    };
+
+    api.formatDateTime = function (value) {
+        const d = (value instanceof Date) ? value : new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        const locale = activeFormatLocale();
+        try {
+            return cachedFormat('dt', locale, null, () => new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'medium' })).format(d);
+        } catch (_) {
+            return d.toLocaleString();
+        }
+    };
+
     // Apply lang/dir as early as possible (pre-Alpine) so fonts/UA behaviour
     // match the resolved locale from the first paint.
     const initialLocale = savedLocale() || browserLocale();
@@ -246,5 +332,8 @@
         // `$t('key', {params})` sugar for templates.
         Alpine.magic('t', () => (key, params) => Alpine.store('i18n').t(key, params));
         Alpine.magic('tn', () => (key, count, params) => Alpine.store('i18n').tn(key, count, params));
+        // Locale-digit numbers: `$n(count)` and fixed-decimals `$nf(value, digits)`.
+        Alpine.magic('n', () => (value, options) => api.formatNumber(value, options));
+        Alpine.magic('nf', () => (value, digits) => api.formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits }));
     });
 })(typeof window !== 'undefined' ? window : globalThis);
