@@ -14,12 +14,14 @@ target_sources(
 	unit/application/test_application_defaults.cpp
 	unit/application/test_secure_runtime_paths.cpp
 	unit/auth/test_audit_log.cpp
+	unit/auth/test_auth_stores.cpp
 	unit/http/test_access_enforcement.cpp
 	unit/http/test_http_diagnostics_options_redaction.cpp
 	unit/http/test_routing_authz.cpp
 	unit/auth/test_entitlement.cpp
 	unit/auth/test_jwt.cpp
 	unit/auth/test_mock_idp.cpp
+	unit/auth/test_password_hasher.cpp
 	unit/auth/test_policy_engine.cpp
 	unit/utility/test_offload_pool.cpp
 	unit/auxillaries/test_jandy_auxillary_id.cpp

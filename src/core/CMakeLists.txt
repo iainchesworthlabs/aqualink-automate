@@ -13,8 +13,13 @@ target_sources(
 	alerting/alert_monitor.cpp
 	alerting/webhook_sink.cpp
 	application/application_defaults.cpp
+	auth/api_key_store.cpp
 	auth/audit_log.cpp
+	auth/auth_store_file.cpp
 	auth/entitlement.cpp
+	auth/group_store.cpp
+	auth/password_hasher.cpp
+	auth/user_store.cpp
 	auth/entitlement_vocabulary.cpp
 	auth/group.cpp
 	auth/jwt_codec.cpp
