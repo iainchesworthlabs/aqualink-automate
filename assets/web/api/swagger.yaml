@@ -234,6 +234,12 @@ paths:
                     type: string
                     enum: [disabled, enabled]
                     description: Global identity-system posture (--auth-mode)
+                  setup_required:
+                    type: boolean
+                    description: True while first-run setup is open (auth-mode enabled + zero users)
+                  kiosk_enabled:
+                    type: boolean
+                    description: True when kiosk PIN elevation is configured (offer PIN entry on the login screen)
                   id:
                     type: string
                     description: Stable subject identity ("anonymous" when unauthenticated)
@@ -443,6 +449,106 @@ paths:
         '400': { description: Missing fields, empty username, or a password under 12 characters }
         '403': { description: Setup has already been completed }
         '405': { description: Method not allowed (POST required) }
+
+  /api/auth/pin:
+    post:
+      tags:
+        - Authentication
+      summary: Kiosk PIN elevation (guest mode)
+      description: >
+        Elevate an anonymous visitor into the admin-configured target group by
+        PIN. On success returns an ordinary session (provider = KioskPin,
+        revocable and session-listed under the `kiosk` subject id). The PIN is
+        verified with argon2id off the kernel thread, timing-equalised against a
+        decoy so a disabled kiosk is indistinguishable, and rate-limited with a
+        lockout. Available only when `--auth-mode enabled`.
+      operationId: authPin
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin]
+              properties:
+                pin: { type: string }
+            example: { pin: "2468" }
+      responses:
+        '200':
+          description: Elevated; a kiosk session in the target group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  session_id: { type: string }
+                  token_type: { type: string, example: Bearer }
+        '400': { description: Missing or malformed pin }
+        '401': { description: Wrong PIN or kiosk not enabled (one indistinguishable error) }
+        '429': { description: Too many attempts; see Retry-After }
+
+  /api/kiosk:
+    get:
+      tags: [Administration]
+      summary: Get kiosk PIN configuration
+      description: >
+        Report whether kiosk PIN elevation is enabled and which group it targets.
+        The PIN and its hash are write-only and never returned. Requires
+        `system.admin`.
+      operationId: kioskGet
+      responses:
+        '200':
+          description: Kiosk status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean }
+                  target_group: { type: string }
+              example: { enabled: true, target_group: Household }
+        '401': { description: Anonymous request }
+        '403': { description: Authenticated but not system.admin }
+    put:
+      tags: [Administration]
+      summary: Set or replace the kiosk PIN
+      description: >
+        Configure kiosk PIN elevation into `target_group`. The PIN (min 4
+        characters) is hashed with argon2id off the kernel thread. Bumps the
+        kiosk token version — invalidating any outstanding kiosk access tokens —
+        and revokes prior kiosk refresh sessions. Requires `system.admin`.
+      operationId: kioskPut
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin, target_group]
+              properties:
+                pin: { type: string }
+                target_group: { type: string }
+            example: { pin: "2468", target_group: Household }
+      responses:
+        '204': { description: The kiosk PIN was set }
+        '400': { description: PIN under 4 characters, or an unknown target group }
+        '401': { description: Anonymous request }
+        '403': { description: Authenticated but not system.admin }
+    delete:
+      tags: [Administration]
+      summary: Disable the kiosk PIN
+      description: >
+        Disable kiosk PIN elevation, clear the stored PIN, and revoke all live
+        kiosk sessions. Requires `system.admin`.
+      operationId: kioskDelete
+      responses:
+        '204': { description: Kiosk PIN elevation disabled }
+        '401': { description: Anonymous request }
+        '403': { description: Authenticated but not system.admin }
 
   /api/users:
     get:

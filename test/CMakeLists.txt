@@ -16,6 +16,7 @@ target_sources(
 	unit/auth/test_audit_log.cpp
 	unit/auth/test_auth_stores.cpp
 	unit/auth/test_bootstrap.cpp
+	unit/auth/test_kiosk.cpp
 	unit/http/test_access_enforcement.cpp
 	unit/http/test_http_admin_routes.cpp
 	unit/http/test_http_auth_routes.cpp

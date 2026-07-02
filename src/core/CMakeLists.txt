@@ -25,6 +25,8 @@ target_sources(
 	auth/group.cpp
 	auth/jwt_codec.cpp
 	auth/jwt_key_store.cpp
+	auth/kiosk_service.cpp
+	auth/kiosk_store.cpp
 	auth/policy_engine.cpp
 	auth/session_service.cpp
 	auth/session_store.cpp
@@ -77,8 +79,10 @@ target_sources(
 	http/webroute_auth_login.cpp
 	http/webroute_auth_logout.cpp
 	http/webroute_auth_me.cpp
+	http/webroute_auth_pin.cpp
 	http/webroute_auth_refresh.cpp
 	http/webroute_auth_setup.cpp
+	http/webroute_kiosk.cpp
 	http/webroute_diagnostics_actualdevices.cpp
 	http/webroute_diagnostics_devices.cpp
 	http/webroute_diagnostics_logging.cpp

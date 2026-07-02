@@ -315,9 +315,17 @@ SonarCloud gate. No slice merges without covering its part of the full-surface m
   **session/device list**, API keys (hashed, shown-once, revocable, entitlement-scoped), legacy-token
   fold-in. Per-user preferences land here (split system/user stores, subject-aware `/api/preferences`,
   theme/accent/units/bands sync). Schedule action-gating (D14). WS lifetime policy.
-- **Slice 3 — Guest mode.** Admin-configured Guest group (deny-by-default), per-aux/per-control grants,
-  anonymous→Guest resolution + login elevation, client- and server-side affordance gating, guest-scope
+- **Slice 3 — Guest mode.** ✅ *Delivered.* Admin-configured Guest group (deny-by-default), per-aux/per-control
+  grants, anonymous→Guest resolution + login elevation, client- and server-side affordance gating, guest-scope
   admin UI, **kiosk PIN** elevation.
+  - Guest browsing "turns on" precisely when the admin grants the Guest group at least `equipment.view`
+    (`/api/auth/me` carries the Guest scope; an empty scope keeps today's login-wall behaviour). The SPA
+    then boots as a guest with a persistent "Sign in" affordance; control affordances render locked
+    (`auth.can(...)`) with the server PDP still the enforcement point.
+  - **Kiosk PIN** (`KioskStore`/`KioskService`, `kiosk.json`): argon2id-hashed PIN → a session in the
+    admin-chosen target group. PIN sessions are ordinary JWTs (`prv=KioskPin`), revocable and session-listed,
+    validated by the resolver against the kiosk store's enabled flag + `TokenVersion` (no user record, no
+    `prefs.self`). Endpoints: `POST /api/auth/pin` (public login), `GET|PUT|DELETE /api/kiosk` (system.admin).
 - **Slice 4 — OIDC / OAuth2 / (external) JWT.** In-app OIDC client (discovery, auth-code + PKCE, JWKS
   validation, redirect), validation of external tokens, group-claim → group → entitlement mapping,
   auto-provision, OIDC settings UI.

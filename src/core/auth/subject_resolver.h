@@ -6,6 +6,7 @@
 #include "auth/api_key_store.h"
 #include "auth/group.h"
 #include "auth/jwt_codec.h"
+#include "auth/kiosk_store.h"
 #include "auth/user_store.h"
 #include "http/server/routing/routing.h"
 
@@ -45,6 +46,7 @@ namespace AqualinkAutomate::Auth
 		std::shared_ptr<JwtCodec> Codec{};
 		std::shared_ptr<UserStore> Users{};       // Null => no tokver/disabled cross-check.
 		std::shared_ptr<ApiKeyStore> ApiKeys{};   // Null => no machine credentials.
+		std::shared_ptr<KioskStore> Kiosk{};      // Null => kiosk-PIN tokens rejected.
 		JwtCodec::NowFn Now{ []() { return std::chrono::system_clock::now(); } };
 	};
 

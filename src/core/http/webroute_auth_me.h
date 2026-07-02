@@ -24,8 +24,11 @@ namespace AqualinkAutomate::HTTP
 		// setup_required (optional): true while first-run setup is still open
 		// (auth-mode enabled + zero users) so the SPA can route straight to the
 		// setup wizard instead of the login form.
-		explicit WebRoute_AuthMe(std::function<bool()> setup_required = {}) :
-			m_SetupRequired(std::move(setup_required))
+		// kiosk_enabled (optional): true when kiosk PIN elevation is configured,
+		// so the login screen can offer PIN entry alongside the password form.
+		explicit WebRoute_AuthMe(std::function<bool()> setup_required = {}, std::function<bool()> kiosk_enabled = {}) :
+			m_SetupRequired(std::move(setup_required)),
+			m_KioskEnabled(std::move(kiosk_enabled))
 		{
 		}
 
@@ -36,6 +39,7 @@ namespace AqualinkAutomate::HTTP
 
 	private:
 		std::function<bool()> m_SetupRequired;
+		std::function<bool()> m_KioskEnabled;
 	};
 
 }

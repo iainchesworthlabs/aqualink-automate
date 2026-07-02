@@ -49,6 +49,8 @@
 #include "auth/group_store.h"
 #include "auth/jwt_codec.h"
 #include "auth/jwt_key_store.h"
+#include "auth/kiosk_service.h"
+#include "auth/kiosk_store.h"
 #include "auth/session_service.h"
 #include "auth/session_store.h"
 #include "auth/subject_resolver.h"
@@ -65,6 +67,7 @@
 #include "http/webroute_auth_login.h"
 #include "http/webroute_auth_logout.h"
 #include "http/webroute_auth_me.h"
+#include "http/webroute_auth_pin.h"
 #include "http/webroute_auth_refresh.h"
 #include "http/webroute_auth_setup.h"
 #include "http/webroute_diagnostics_actualdevices.h"
@@ -91,6 +94,7 @@
 #include "http/webroute_groups.h"
 #include "http/webroute_health.h"
 #include "http/webroute_health_detailed.h"
+#include "http/webroute_kiosk.h"
 #include "http/webroute_metrics.h"
 #include "http/webroute_session.h"
 #include "http/webroute_sessions.h"
@@ -671,6 +675,8 @@ int main(int argc, char* argv[])
 		std::shared_ptr<AqualinkAutomate::Auth::AuditLog> auth_audit{};
 		std::shared_ptr<AqualinkAutomate::Utility::OffloadPool> auth_offload{};
 		std::shared_ptr<AqualinkAutomate::Auth::SessionService> auth_session_service{};
+		std::shared_ptr<AqualinkAutomate::Auth::KioskStore> auth_kiosk{};
+		std::shared_ptr<AqualinkAutomate::Auth::KioskService> auth_kiosk_service{};
 
 		if (web_settings_result)
 		{
@@ -749,6 +755,7 @@ int main(int argc, char* argv[])
 					user_preferences_store = std::make_shared<Preferences::UserPreferencesStore>(Preferences::UserPreferencesStore::Load(auth_state_dir / "user_preferences.json"));
 					auth_sessions = std::make_shared<Auth::SessionStore>(Auth::SessionStore::Load(auth_state_dir / "sessions.json"));
 					auth_api_keys = std::make_shared<Auth::ApiKeyStore>(Auth::ApiKeyStore::Load(auth_state_dir / "api-keys.json"));
+					auth_kiosk = std::make_shared<Auth::KioskStore>(Auth::KioskStore::Load(auth_state_dir / "kiosk.json"));
 
 					// Legacy shared token keeps working as a system.admin machine key.
 					if (web_settings.ApiAuthToken.has_value())
@@ -773,11 +780,17 @@ int main(int argc, char* argv[])
 					auth_session_service = std::make_shared<Auth::SessionService>(
 						auth_users, auth_group_store, auth_sessions, auth_codec, *auth_offload, *auth_audit, Auth::SessionService::Config{});
 
+					// Kiosk PIN elevation (guest mode): shares the offload pool,
+					// codec, group and session stores with local sessions.
+					auth_kiosk_service = std::make_shared<Auth::KioskService>(
+						auth_kiosk, auth_group_store, auth_sessions, auth_codec, *auth_offload, *auth_audit, Auth::KioskService::Config{});
+
 					HTTP::Routing::SetSubjectResolver(Auth::MakeSubjectResolver(Auth::SubjectResolverDeps{
 						.Groups = auth_group_store->SharedRegistry(),
 						.Codec = auth_codec,
 						.Users = auth_users,
-						.ApiKeys = auth_api_keys }));
+						.ApiKeys = auth_api_keys,
+						.Kiosk = auth_kiosk }));
 
 					// Headless first-admin bootstrap (--bootstrap-admin).  The kernel
 					// loop is not running yet, so the synchronous argon2 hash here is
@@ -869,7 +882,9 @@ int main(int argc, char* argv[])
 			}
 
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthCheck>());
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>([users = auth_users]() { return (nullptr != users) && users->Empty(); }));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>(
+				[users = auth_users]() { return (nullptr != users) && users->Empty(); },
+				[kiosk = auth_kiosk]() { return (nullptr != kiosk) && kiosk->Enabled(); }));
 
 			// Session flows exist only under the identity system: with auth-mode
 			// disabled there are no accounts to log into and the routes would
@@ -881,6 +896,11 @@ int main(int argc, char* argv[])
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthRefresh>(*auth_session_service));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogout>(*auth_session_service));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthSetup>(*auth_users, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
+
+				// Kiosk PIN elevation (guest mode, D16): the public PIN-login
+				// endpoint and the system.admin config surface.
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthPin>(*auth_kiosk_service, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Kiosk>(*auth_kiosk_service, io_context.get_executor()));
 
 				// The admin/user-management surface (docs/auth-redesign.md §6-§7):
 				// users, groups, entitlement vocabulary, API keys and sessions.

@@ -216,6 +216,19 @@ These routes exist only when `--auth-mode enabled`. They are the local-account l
 | POST | `/api/auth/refresh` | open | Exchange `{refresh_token}` for a fresh `{access_token, refresh_token}` pair (single-use rotation). `401` when invalid/expired, or when a rotated-out token is replayed (the session is then revoked). |
 | POST | `/api/auth/logout` | open (`everywhere` needs auth) | Revoke the session for `{refresh_token}`; always answers `204` (never discloses whether the token was live). With `{"everywhere":true}` it revokes **every** session for the caller and bumps `tokver` — this variant requires an authenticated subject (`401` otherwise). |
 | POST | `/api/auth/setup` | open | First-run only: create the first administrator from `{username, password}` when the user store is empty. `201` on success; `403` once setup has already been completed (self-sealing); `400` on a weak password (min 12) or missing fields. |
+| POST | `/api/auth/pin` | open | **Kiosk PIN elevation** (guest mode): verify `{pin}` and, on success, return a `{access_token, refresh_token, session_id, token_type:"Bearer"}` session in the admin-configured target group. `401` on a wrong/disabled PIN (one indistinguishable error); `429` (`Retry-After: 900`) when the PIN endpoint is locked out. Argon2id runs off the kernel thread. |
+
+### Guest mode
+
+`/api/auth/me` additionally reports `kiosk_enabled` so the login screen can offer PIN entry. Guest browsing is governed entirely by the built-in **Guest** group's entitlements (edit it via `POST /api/groups`): grant it `equipment.view` to let anonymous visitors reach the dashboard (login-to-elevate stays available); leave it empty for a login wall. Kiosk PIN elevation is configured here:
+
+| Method | Path | Entitlement | Behaviour |
+|---|---|---|---|
+| GET | `/api/kiosk` | `system.admin` | Report `{enabled, target_group}`. The PIN and its hash are write-only and never returned. |
+| PUT | `/api/kiosk` | `system.admin` | Set/replace the PIN from `{pin, target_group}` (argon2id off-thread). Bumps a kiosk `tokver` (invalidating prior kiosk sessions) and revokes their refresh tokens. `400` on a short PIN (min 4) or an unknown target group. `204` on success. |
+| DELETE | `/api/kiosk` | `system.admin` | Disable kiosk PIN elevation, clear the PIN, and revoke all live kiosk sessions. `204`. |
+
+Kiosk sessions are ordinary JWT sessions (`provider = KioskPin`) — revocable and listed in `/api/sessions` under the `kiosk` subject id — but carry no `prefs.self` (a shared terminal has no per-user preferences). The subject resolver validates them against the kiosk store's enabled flag + `tokver` rather than the user store, so disabling the kiosk (or replacing the PIN) drops outstanding kiosk sessions straight back to the Guest scope.
 
 ### Administration
 

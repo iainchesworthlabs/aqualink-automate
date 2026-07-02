@@ -74,6 +74,29 @@ namespace AqualinkAutomate::Auth
 			subject.Groups = claims->Groups;
 			subject.TokenVersion = claims->TokenVersion;
 
+			// Kiosk PIN sessions are NOT user records: validate them against the
+			// kiosk store (still enabled + tokver current, mirroring the user
+			// tokver check) and resolve entitlements from the token's group
+			// snapshot.  No prefs.self — a shared terminal has no "self".
+			if (SubjectProvider::KioskPin == claims->Provider)
+			{
+				if ((nullptr == deps.Kiosk) || !deps.Kiosk->Enabled() || (deps.Kiosk->TokenVersion() != claims->TokenVersion))
+				{
+					return std::nullopt;
+				}
+
+				if (claims->EntitlementsInToken)
+				{
+					subject.Entitlements = EntitlementSet::Parse(claims->Entitlements);
+				}
+				else
+				{
+					subject.Entitlements = deps.Groups->ResolveEffectiveEntitlements({}, subject.Groups);
+				}
+
+				return subject;
+			}
+
 			if (nullptr != deps.Users)
 			{
 				// D15 immediate propagation: logout-all/disable/entitlement change
