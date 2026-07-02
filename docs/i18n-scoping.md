@@ -26,6 +26,12 @@
 > alert WS/webhook payloads carry structured `params` next to `detail`, and the
 > UI translates both from `error.<code>` / `alert_detail.<condition>` catalog
 > entries. See docs/i18n.md "Structured errors and alerts".
+>
+> **Reconciliation 2026-07-03: Phase 3 is implemented** on `feat/i18n-phase3` —
+> the stylesheets converted to logical properties, `[dir='rtl']` overrides for
+> switch knobs/toast slide, and time-axis geometry pinned LTR (docs/i18n.md
+> "RTL layout"). The alerts-dropdown narrow-viewport clipping turned out to be
+> pre-existing in BOTH directions and is tracked separately.
 
 ## Goal
 
