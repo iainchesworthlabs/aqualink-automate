@@ -29,10 +29,14 @@
     // + one entry here. `name` is the language's own name (endonym) — it is
     // deliberately NOT translated, so a user stuck in the wrong language can
     // always find their own. `dir` drives <html dir> ('ltr' | 'rtl').
+    // `numberLocale` (optional) pins the Intl formatting locale when the bare
+    // code's browser default is wrong or inconsistent: bare 'ar' resolves to
+    // Latin digits in some engines, so the Eastern Arabic-Indic numbering
+    // system is requested explicitly via the Unicode 'nu' extension.
     const SUPPORTED_LOCALES = [
         { code: 'en', name: 'English', dir: 'ltr' },
         { code: 'de', name: 'Deutsch', dir: 'ltr' },
-        { code: 'ar', name: 'العربية', dir: 'rtl' },
+        { code: 'ar', name: 'العربية', dir: 'rtl', numberLocale: 'ar-u-nu-arab' },
         { code: 'ja', name: '日本語', dir: 'ltr' },
     ];
 
@@ -76,9 +80,27 @@
         document.documentElement.dir = (info && info.dir) === 'rtl' ? 'rtl' : 'ltr';
     }
 
-    function formatMessage(msg, params) {
-        return msg.replace(/\{(\w+)\}/g, (whole, name) =>
-            (params && params[name] !== undefined && params[name] !== null) ? String(params[name]) : whole);
+    // Number-typed placeholder values render through Intl.NumberFormat so the
+    // digits themselves localize (generic Arabic uses Eastern Arabic-Indic
+    // numerals; German gets its grouping separators). Pre-formatted strings
+    // (e.g. toFixed() output) pass through untouched.
+    const numberFormats = {};
+    function formatNumber(value, locale) {
+        try {
+            const info = localeInfo(locale);
+            const nfLocale = (info && info.numberLocale) || locale;
+            return (numberFormats[nfLocale] || (numberFormats[nfLocale] = new Intl.NumberFormat(nfLocale))).format(value);
+        } catch (_) {
+            return String(value);
+        }
+    }
+
+    function formatMessage(msg, params, locale) {
+        return msg.replace(/\{(\w+)\}/g, (whole, name) => {
+            const v = params ? params[name] : undefined;
+            if (v === undefined || v === null) return whole;
+            return (typeof v === 'number') ? formatNumber(v, locale) : String(v);
+        });
     }
 
     // Plain (non-reactive) lookup used before Alpine exists and as the shared
@@ -96,7 +118,7 @@
             }
             return key;
         }
-        return params ? formatMessage(msg, params) : msg;
+        return params ? formatMessage(msg, params, locale) : msg;
     }
 
     // Inject a catalog <script>; resolves once it has registered (or failed —
