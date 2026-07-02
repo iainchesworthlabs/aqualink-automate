@@ -923,8 +923,8 @@ int main(int argc, char* argv[])
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_History>(history_service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Metrics>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Preferences>(preferences_service, user_preferences_store));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedule>(scheduler_service));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedules>(scheduler_service));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedule>(scheduler_service, data_hub));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedules>(scheduler_service, data_hub));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedules>(controller_schedule_store));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Version>());
 

@@ -65,6 +65,7 @@ namespace AqualinkAutomate::HTTP::Routing
 		SubjectResolver subject_resolver{};
 		Auth::Subject current_subject{ Auth::Subject::Anonymous() };
 		std::string current_peer_ip{};
+		WebSocketRevalidator current_ws_revalidator{};
 
 		Auth::Subject ResolveSubject(const HTTP::Request& req, bool is_websocket_upgrade)
 		{
@@ -476,6 +477,11 @@ namespace AqualinkAutomate::HTTP::Routing
 		return current_peer_ip;
 	}
 
+	WebSocketRevalidator CurrentWebSocketRevalidator()
+	{
+		return current_ws_revalidator;
+	}
+
 	void SetSecurityConfig(SecurityConfig config)
 	{
 		security_config = std::move(config);
@@ -759,6 +765,8 @@ namespace AqualinkAutomate::HTTP::Routing
 
 	std::optional<HTTP::Response> AuthorizeWebSocketUpgrade(const HTTP::Request& req, std::string_view raw_peer_ip)
 	{
+		current_ws_revalidator = WebSocketRevalidator{};   // No stale revalidator survives a rejected upgrade.
+
 		const std::string effective_ip = EffectiveClientIp(req, raw_peer_ip);
 		const std::string_view peer_ip{ effective_ip };
 
@@ -773,12 +781,56 @@ namespace AqualinkAutomate::HTTP::Routing
 		{
 			current_subject = ResolveSubject(req, true);
 
+			Interfaces::AccessRequirement required{};
+
 			if (auto* ws = WS_OnAccept(ToStringView(req.target())); nullptr != ws)
 			{
-				if (auto denial = EvaluateAccess(req, ws->RequiredAccess()); denial.has_value())
+				required = ws->RequiredAccess();
+
+				if (auto denial = EvaluateAccess(req, required, {}); denial.has_value())
 				{
 					return denial;
 				}
+			}
+
+			// Build the revalidator by capturing the connection's bearer
+			// credential + the socket's required access.  Re-resolution reuses
+			// the whole subject-resolution path (JWT verify -> tokver/disabled
+			// cross-check -> API key -> expiry), so revocation and token expiry
+			// reach the live socket on the next poll.
+			if (subject_resolver && required.IsSpecified())
+			{
+				std::string bearer;
+				if (const auto it = req.find(boost::beast::http::field::authorization); it != req.end())
+				{
+					bearer.assign(it->value().data(), it->value().size());
+				}
+
+				const std::string action{ required.Action };
+				const std::string resource_kind{ required.ResourceKind };
+
+				current_ws_revalidator = [bearer = std::move(bearer), action, resource_kind]() -> bool
+				{
+					if (!security_config.AuthModeEnabled || !subject_resolver)
+					{
+						return true;
+					}
+
+					// Re-resolve from a minimal synthesised request carrying only
+					// the captured credential — the resolver reads the bearer.
+					HTTP::Request synth;
+					synth.method(boost::beast::http::verb::get);
+					if (!bearer.empty())
+					{
+						synth.set(boost::beast::http::field::authorization, bearer);
+					}
+
+					const auto subject = subject_resolver(synth, true);
+					const Auth::ResourceRef resource{ .Kind = resource_kind, .Id = {} };
+					const Auth::Environment environment{ .AuthEnabled = true };
+
+					return Auth::Decision::Permit == Auth::PolicyEngine::Decide(subject, action, resource, environment);
+				};
 			}
 		}
 

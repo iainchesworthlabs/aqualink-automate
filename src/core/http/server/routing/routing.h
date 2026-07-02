@@ -124,5 +124,20 @@ namespace AqualinkAutomate::HTTP::Routing
 	/// HTTP error response (401/403/429) that should be written instead of accepting.
 	std::optional<HTTP::Response> AuthorizeWebSocketUpgrade(const HTTP::Request& req, std::string_view peer_ip = {});
 
+	/// A predicate that re-checks whether a still-open WebSocket connection
+	/// remains authorized: the credential re-resolves to an authenticated
+	/// subject (token unexpired, not revoked via tokver, account not disabled)
+	/// that still holds the socket's required entitlement.  The HTTP session
+	/// polls it and closes the connection when it returns false (D15/D2 —
+	/// revocation and expiry reach live sockets, not just new requests).
+	using WebSocketRevalidator = std::function<bool()>;
+
+	/// The revalidator for the upgrade AuthorizeWebSocketUpgrade just permitted
+	/// (empty when auth-mode is off or the upgrade was rejected — the session
+	/// then performs no revalidation).  The HTTP session must read this
+	/// immediately after a successful AuthorizeWebSocketUpgrade, before another
+	/// request is dispatched (same single-threaded validity rule as CurrentSubject).
+	WebSocketRevalidator CurrentWebSocketRevalidator();
+
 }
 // namespace AqualinkAutomate::HTTP::Routing

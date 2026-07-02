@@ -268,6 +268,7 @@ target_sources(
 	protocol/protocol_thread.cpp
 	scheduling/controller_schedule.cpp
 	scheduling/schedule.cpp
+	scheduling/schedule_authorization.cpp
 	scheduling/scheduler_service.cpp
 	serial/serial_initialise.cpp
 	serial/serial_port.cpp	

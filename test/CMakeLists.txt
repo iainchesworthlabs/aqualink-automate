@@ -94,6 +94,7 @@ target_sources(
 	unit/preferences/test_preferences_service.cpp
 	unit/preferences/test_user_preferences_store.cpp
 	unit/scheduling/test_controller_schedule.cpp
+	unit/scheduling/test_schedule_authorization.cpp
 	unit/scheduling/test_schedule.cpp
 	unit/scheduling/test_scheduler_service.cpp
 	unit/startup/test_jandy_revision_capabilities.cpp

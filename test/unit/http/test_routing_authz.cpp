@@ -21,6 +21,7 @@
 #include "auth/jwt_codec.h"
 #include "auth/jwt_key_store.h"
 #include "auth/subject_resolver.h"
+#include "auth/user_store.h"
 #include "http/server/routing/routing.h"
 #include "http/server/server_types.h"
 #include "interfaces/iwebroute.h"
@@ -360,6 +361,55 @@ BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_WebSocketUpgradeGated, AuthModeFixture
 	// Authenticated subject with view: also permitted.
 	auto authed = MakeRequest(boost::beast::http::verb::get, "/ws/test/feed", MintToken({ "equipment.view" }));
 	BOOST_CHECK(!HTTP::Routing::AuthorizeWebSocketUpgrade(authed).has_value());
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_WebSocketRevalidatorClosesOnRevocation, AuthModeFixture)
+{
+	// Re-install the resolver over a user store so tokver revocation applies.
+	auto users = std::make_shared<Auth::UserStore>(Auth::UserStore::Load(Dir / "users.json"));
+
+	std::string error;
+	Auth::UserRecord alice;
+	alice.Username = "alice";
+	alice.PasswordHash = "$argon2id$fake";
+	alice.DirectEntitlements = Auth::EntitlementSet::Parse({ "equipment.view" });
+	BOOST_REQUIRE(users->Create(std::move(alice), error));
+	const auto alice_id = users->FindByUsername("alice")->Id;
+
+	HTTP::Routing::SetSubjectResolver(Auth::MakeSubjectResolver(Auth::SubjectResolverDeps{
+		.Groups = Groups, .Codec = Codec, .Users = users }));
+
+	// Mint a token whose tokver matches the store, then upgrade.
+	Auth::TokenClaims claims;
+	claims.Subject = alice_id;
+	claims.Provider = Auth::SubjectProvider::Local;
+	claims.TokenVersion = users->FindById(alice_id)->TokenVersion;
+	claims.Entitlements = { "equipment.view" };
+	const auto token = Codec->Sign(claims);
+
+	auto req = MakeRequest(boost::beast::http::verb::get, "/ws/test/feed", token);
+	BOOST_REQUIRE(!HTTP::Routing::AuthorizeWebSocketUpgrade(req).has_value());
+
+	// The revalidator captured for this connection currently passes...
+	const auto revalidator = HTTP::Routing::CurrentWebSocketRevalidator();
+	BOOST_REQUIRE(static_cast<bool>(revalidator));
+	BOOST_CHECK(revalidator());
+
+	// ...but after a tokver bump (logout-all / disable / entitlement change),
+	// the same live connection re-checks stale and must be closed.
+	users->BumpTokenVersion(alice_id);
+	BOOST_CHECK(!revalidator());
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_WebSocketRevalidatorEmptyWhenAuthModeOff, AuthModeFixture)
+{
+	// Auth-mode off: no revalidation, sockets live for their natural lifetime.
+	HTTP::Routing::SecurityConfig off;   // AuthModeEnabled defaults false
+	HTTP::Routing::SetSecurityConfig(std::move(off));
+
+	auto req = MakeRequest(boost::beast::http::verb::get, "/ws/test/feed");
+	BOOST_CHECK(!HTTP::Routing::AuthorizeWebSocketUpgrade(req).has_value());
+	BOOST_CHECK(!static_cast<bool>(HTTP::Routing::CurrentWebSocketRevalidator()));
 }
 
 //-----------------------------------------------------------------------------
