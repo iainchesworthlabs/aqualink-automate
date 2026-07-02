@@ -28,12 +28,24 @@ When you touch a subsystem, check (and update if affected) its companion doc:
 | Record/replay, mock harness | `docs/RECORD_REPLAY.md` |
 | Matter bridge, device-ID maps | `docs/MATTER.md` |
 | Jandy/Pentair wire protocol, opcodes, message types | the relevant protocol doc (`docs/to_master_decoding.md`, `docs/iaqualink2_init_handshake.md`, `docs/aqualink_rs_revisions.md`, `docs/alwin32_simulator_protocol.md`) |
+| Web UI text, i18n catalogs, locales (`assets/web/i18n/`, `assets/web/scripts/i18n.js`) | `docs/i18n.md` |
 
 Rules of thumb:
 
 - **Prefer durable anchors over raw line numbers.** Cite symbols, function names, route URLs, option long-names, or section headers — not `file.cpp:NNN`. Bare line numbers drift the moment code is inserted above them and silently rot.
 - **Design/analysis docs are dated snapshots.** `docs/async_migration_*.md` and `docs/cicd-redesign.md` are point-in-time roadmaps. Do **not** trust their file:line citations as current truth; verify against the code before relying on them, and if you reconcile one, anchor it to symbols and date the reconciliation.
 - **Verify before you write.** Confirm a claim against the code (read the source, don't assume) before documenting it. If unsure, mark it explicitly as a hypothesis / pending capture rather than asserting it as fact.
+
+## Web UI Internationalization (i18n)
+
+The web UI is fully internationalized (`docs/i18n.md`). **Never hardcode user-visible text in `assets/web` HTML/JS.** Every string a user can see goes through the translation catalog:
+
+1. Add the key + English value to `assets/web/i18n/en.js` (flat `namespace.key`; placeholders are `{name}`; keys with markup end in `_html`; plurals use `.one`/`.other` via `tn()`).
+2. Bind it: `x-text="$t('ns.key')"` / `:attr="$t('ns.key')"` in templates; `window.AquaI18n.t('ns.key', {...})` in stores/views/components.
+3. Add the translated value to **every** locale catalog (`de.js`, `ar.js`, `ja.js`, …) — CI (`i18n-catalogs` job) fails on missing/extra keys or placeholder mismatches.
+4. Run `pwsh scripts/check-i18n-keys.ps1` locally; `e2e/i18n.spec.ts` additionally fails on any missing-key console warning and on visible text that bypassed the catalog (pseudo-locale scan).
+
+Do NOT translate: device-originated text (aux labels, panel screen lines — RS-485 data), wire enum tokens used in comparisons (map known ones for display via `status.*`/`swg_health.*`), log channels/severities, endpoint paths, brands. Server/device data rendered verbatim in a new element may need that element added to the pseudo-locale scan's exempt list (or a `data-i18n-exempt` attribute).
 
 ## Options / Configuration
 
