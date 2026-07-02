@@ -12,24 +12,26 @@
  * are flagged as conflicts. Mutating controls are disabled in monitor-only mode.
  */
 
+// Labels resolve through the i18n catalog at render time (see the `days` /
+// `actionTypes` getters below) so a locale switch re-renders them.
 const SCHED_DAYS = [
-    { bit: 0, label: 'Mon' },
-    { bit: 1, label: 'Tue' },
-    { bit: 2, label: 'Wed' },
-    { bit: 3, label: 'Thu' },
-    { bit: 4, label: 'Fri' },
-    { bit: 5, label: 'Sat' },
-    { bit: 6, label: 'Sun' },
+    { bit: 0, labelKey: 'day.mon' },
+    { bit: 1, labelKey: 'day.tue' },
+    { bit: 2, labelKey: 'day.wed' },
+    { bit: 3, labelKey: 'day.thu' },
+    { bit: 4, labelKey: 'day.fri' },
+    { bit: 5, labelKey: 'day.sat' },
+    { bit: 6, labelKey: 'day.sun' },
 ];
 
 const SCHED_ACTION_TYPES = [
-    { value: 'button_on', label: 'Turn device ON' },
-    { value: 'button_off', label: 'Turn device OFF' },
-    { value: 'button_toggle', label: 'Toggle device' },
-    { value: 'pool_setpoint', label: 'Pool setpoint' },
-    { value: 'spa_setpoint', label: 'Spa setpoint' },
-    { value: 'chlorinator_percent', label: 'Chlorinator %' },
-    { value: 'circulation_mode', label: 'Circulation mode' },
+    { value: 'button_on', labelKey: 'sched_action.button_on' },
+    { value: 'button_off', labelKey: 'sched_action.button_off' },
+    { value: 'button_toggle', labelKey: 'sched_action.button_toggle' },
+    { value: 'pool_setpoint', labelKey: 'sched_action.pool_setpoint' },
+    { value: 'spa_setpoint', labelKey: 'sched_action.spa_setpoint' },
+    { value: 'chlorinator_percent', labelKey: 'sched_action.chlorinator_percent' },
+    { value: 'circulation_mode', labelKey: 'sched_action.circulation_mode' },
 ];
 
 function _schedDefaultForm() {
@@ -87,8 +89,12 @@ function schedulesView() {
         buttons: [],                 // device labels for the target dropdown
         editing: null,               // null | 'new' | <uuid>
         form: _schedDefaultForm(),
-        days: SCHED_DAYS,
-        actionTypes: SCHED_ACTION_TYPES,
+        get days() {
+            return SCHED_DAYS.map((d) => ({ bit: d.bit, label: window.AquaI18n.t(d.labelKey) }));
+        },
+        get actionTypes() {
+            return SCHED_ACTION_TYPES.map((a) => ({ value: a.value, label: window.AquaI18n.t(a.labelKey) }));
+        },
         view: 'list',                // 'list' | 'timeline'
         timelineDay: 0,              // bit 0..6 (Mon..Sun) shown in the timeline
         _loaded: false,
@@ -138,7 +144,7 @@ function schedulesView() {
                     }
                 } catch (_) { /* dropdown is best-effort */ }
             } catch (e) {
-                this.error = 'Failed to load schedules.';
+                this.error = window.AquaI18n.t('sched.load_failed');
             } finally {
                 this.loading = false;
             }
@@ -148,15 +154,16 @@ function schedulesView() {
         isValueAction(t) { return _schedIsValue(t); },
 
         actionSummary(s) {
+            const t = window.AquaI18n.t;
             const a = s.action || {};
-            if (_schedIsButton(a.type)) { return `${a.type.replace('button_', '')} ${a.target}`; }
-            if (a.type === 'circulation_mode') { return `circulation ${a.target}`; }
+            if (_schedIsButton(a.type)) { return `${t('sched.act_' + a.type.replace('button_', ''))} ${a.target}`; }
+            if (a.type === 'circulation_mode') { return t('sched.summary_circulation', { target: a.target }); }
             return `${a.type} ${a.value}`;
         },
 
         daySummary(mask) {
-            if ((mask & 0x7f) === 0x7f) { return 'Every day'; }
-            return SCHED_DAYS.filter((d) => (mask & (1 << d.bit)) !== 0).map((d) => d.label).join(' ') || '—';
+            if ((mask & 0x7f) === 0x7f) { return window.AquaI18n.t('sched.every_day'); }
+            return SCHED_DAYS.filter((d) => (mask & (1 << d.bit)) !== 0).map((d) => window.AquaI18n.t(d.labelKey)).join(' ') || '—';
         },
 
         // --- unified model -------------------------------------------------
@@ -195,7 +202,12 @@ function schedulesView() {
                     if (this._within(e.start, sp.start, sp.end)) {
                         e.conflict = true;
                         sp.conflict = true;
-                        e.conflictMsg = `Turns ${e.target} ${type === 'button_off' ? 'off' : 'via toggle'} during the controller program (${_schedFmtMin(sp.start)}–${_schedFmtMin(sp.end)}).`;
+                        e.conflictMsg = window.AquaI18n.t('sched.conflict_msg', {
+                            target: e.target,
+                            how: window.AquaI18n.t(type === 'button_off' ? 'sched.conflict_how_off' : 'sched.conflict_how_toggle'),
+                            start: _schedFmtMin(sp.start),
+                            end: _schedFmtMin(sp.end),
+                        });
                     }
                 }
             }
@@ -206,16 +218,16 @@ function schedulesView() {
             for (const c of (this.controller.schedules || [])) {
                 out.push({
                     key: `c:${c.id}`, owner: 'controller', editable: false, kind: 'span',
-                    name: c.name || c.target || '(program)', target: c.target || '',
+                    name: c.name || c.target || window.AquaI18n.t('sched.unnamed_program'), target: c.target || '',
                     days: c.days_of_week || 0, enabled: c.enabled !== false,
                     start: _schedHm(c.on_local), end: _schedHm(c.off_local),
-                    summary: `${c.on_local}–${c.off_local} on`, raw: c, conflict: false,
+                    summary: window.AquaI18n.t('sched.span_summary', { on: c.on_local, off: c.off_local }), raw: c, conflict: false,
                 });
             }
             for (const s of (this.schedules || [])) {
                 out.push({
                     key: `a:${s.uuid}`, owner: 'app', editable: true, kind: 'point',
-                    name: s.name || '(unnamed)', target: this._appTarget(s),
+                    name: s.name || window.AquaI18n.t('sched.unnamed'), target: this._appTarget(s),
                     days: s.days_of_week || 0, enabled: s.enabled !== false,
                     start: _schedHm(s.time_local), end: null,
                     summary: this.actionSummary(s), raw: s, conflict: false,

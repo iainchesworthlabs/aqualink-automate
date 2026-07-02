@@ -47,7 +47,9 @@ const CIRCULATION_CONFIRM_MAX_ATTEMPTS = 7;
 
 // Normalise the several system-status vocabularies (REST 'operational',
 // WS SystemStatusChange status_type like 'Normal'/'Initializing', and the
-// initial 'unknown') down to one human-readable label for display.
+// initial 'unknown') down to one canonical token. The token is compared
+// against in templates (e.g. `systemStatus === 'Operational'`); the
+// translated display text comes from the systemStatusLabel getter.
 function _normaliseSystemStatus(raw) {
     switch (String(raw || '').toLowerCase()) {
         case 'operational':
@@ -94,6 +96,28 @@ document.addEventListener('alpine:init', () => {
         chlorinatorStatus: '--',
         chlorinatorHealth: '--',
 
+        // Translated display text for the chlorinator health enum name; an
+        // unknown value falls back to the raw name with underscores spaced.
+        get chlorinatorHealthLabel() {
+            const h = this.chlorinatorHealth;
+            if (!h || h === '--') return '';
+            const key = {
+                'Ok': 'swg_health.ok',
+                'TurningOff': 'swg_health.turning_off',
+                'Warning_NoFlow': 'swg_health.no_flow',
+                'Warning_LowSalt': 'swg_health.low_salt',
+                'Warning_HighSalt': 'swg_health.high_salt',
+                'Warning_HighCurrent': 'swg_health.high_current',
+                'Warning_CleanCell': 'swg_health.clean_cell',
+                'Warning_LowVoltage': 'swg_health.low_voltage',
+                'Warning_LowTemperature': 'swg_health.low_temperature',
+                'Error_CheckPCB': 'swg_health.check_pcb',
+                'GeneralFault': 'swg_health.general_fault',
+                'Unknown': 'common.unknown',
+            }[String(h)];
+            return key ? window.AquaI18n.t(key) : String(h).replace(/_/g, ' ');
+        },
+
         // Per-value timestamps for freshness tracking
         _timestamps: {},
         _stalenessThreshold: 60,  // seconds
@@ -105,6 +129,18 @@ document.addEventListener('alpine:init', () => {
         bodies: [],
         commandStates: {},   // { [buttonId|'setpoint:pool'|'setpoint:spa'|'circulation']: { state, timer } }
         systemStatus: 'Unknown',
+
+        // Translated display text for the canonical systemStatus token; falls
+        // back to the raw token for values with no catalog entry.
+        get systemStatusLabel() {
+            const key = {
+                'Operational': 'status.operational',
+                'Starting': 'status.starting',
+                'Service Mode': 'status.service_mode',
+                'Unknown': 'common.unknown',
+            }[this.systemStatus];
+            return key ? window.AquaI18n.t(key) : this.systemStatus;
+        },
         equipmentVersion: [],
         softwareVersion: '--',
         gitCommit: '',
@@ -213,8 +249,8 @@ document.addEventListener('alpine:init', () => {
                     } else {
                         // Back-compat: build fields from flat keys
                         const fields = [];
-                        if (data.version.model_number) fields.push({ label: 'Model', value: data.version.model_number });
-                        if (data.version.fw_revision) fields.push({ label: 'Revision', value: data.version.fw_revision });
+                        if (data.version.model_number) fields.push({ label: window.AquaI18n.t('about.model'), value: data.version.model_number });
+                        if (data.version.fw_revision) fields.push({ label: window.AquaI18n.t('about.revision'), value: data.version.fw_revision });
                         this.equipmentVersion = fields;
                     }
                 }
@@ -243,7 +279,7 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 console.error('Failed to fetch equipment:', e);
-                Alpine.store('toast').show('Failed to load equipment data', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.load_equipment_failed'), 'error');
             }
         },
 
@@ -260,7 +296,7 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 console.error('Failed to fetch buttons:', e);
-                Alpine.store('toast').show('Failed to load equipment controls', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.load_controls_failed'), 'error');
             }
             this.buttonsLoading = false;
         },
@@ -286,7 +322,7 @@ document.addEventListener('alpine:init', () => {
                 if (data.uptime_seconds != null) sys.uptimeSeconds = data.uptime_seconds;
             } catch (e) {
                 console.error('Failed to fetch version:', e);
-                Alpine.store('toast').show('Failed to load version info', 'warn');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.load_version_failed'), 'warn');
             }
         },
 
@@ -389,7 +425,7 @@ document.addEventListener('alpine:init', () => {
                 timer = setTimeout(() => {
                     if (this.commandStates[key]?.state === 'sending') {
                         console.warn(`Command '${key}' timed out after ${sendingTimeoutMs}ms`);
-                        Alpine.store('toast').show('Command timed out — no confirmation received from the controller', 'warn');
+                        Alpine.store('toast').show(window.AquaI18n.t('toast.command_timeout'), 'warn');
                         this.commandStates = { ...this.commandStates, [key]: { state: 'timedout', timer: this._scheduleClear(key) } };
                     }
                 }, sendingTimeoutMs);
@@ -438,7 +474,7 @@ document.addEventListener('alpine:init', () => {
                     // controller not ready), not a UI fault — warn, don't error.
                     console.warn(`Setpoint change rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(key, 'rejected');
-                    Alpine.store('toast').show(`Setpoint change failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.setpoint_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -460,12 +496,12 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     console.warn(`Setpoint change for '${target}' was not applied:`, targetResult);
                     this._setCommandState(key, 'rejected');
-                    Alpine.store('toast').show('Setpoint change was not applied by the controller', 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.setpoint_not_applied'), 'error');
                 }
             } catch (e) {
                 console.error('Failed to adjust setpoint:', e);
                 this._setCommandState(key, 'rejected');
-                Alpine.store('toast').show('Setpoint change failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.setpoint_failed_conn'), 'error');
             }
         },
 
@@ -503,7 +539,7 @@ document.addEventListener('alpine:init', () => {
                     // controller not ready), not a UI fault — warn, don't error.
                     console.warn(`Command for button '${id}' rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(id, 'rejected');
-                    Alpine.store('toast').show(`Command failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.command_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -521,7 +557,7 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 console.error('Failed to toggle button:', e);
                 this._setCommandState(id, 'rejected');
-                Alpine.store('toast').show('Command failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.command_failed_conn'), 'error');
             }
         },
 
@@ -551,7 +587,7 @@ document.addEventListener('alpine:init', () => {
                     const reason = await this._readErrorReason(resp);
                     console.warn(`Spa mode change rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(key, 'rejected');
-                    Alpine.store('toast').show(`Spa mode change failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.spa_mode_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -562,7 +598,7 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 console.error('Failed to toggle spa mode:', e);
                 this._setCommandState(key, 'rejected');
-                Alpine.store('toast').show('Spa mode change failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.spa_mode_failed_conn'), 'error');
             }
         },
 
@@ -630,7 +666,7 @@ document.addEventListener('alpine:init', () => {
                     const reason = await this._readErrorReason(resp);
                     console.warn(`Heater command for '${button.label}' rejected (HTTP ${resp.status}):`, reason);
                     this._setCommandState(id, 'rejected');
-                    Alpine.store('toast').show(`Heater command failed — ${reason}`, 'error');
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.heater_failed_reason', { reason }), 'error');
                     return;
                 }
 
@@ -641,7 +677,7 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 console.error('Failed to set heater mode:', e);
                 this._setCommandState(id, 'rejected');
-                Alpine.store('toast').show('Heater command failed — check connection', 'error');
+                Alpine.store('toast').show(window.AquaI18n.t('toast.heater_failed_conn'), 'error');
             }
         }
     });

@@ -118,7 +118,7 @@ document.addEventListener('alpine:init', () => {
         async login() {
             this.error = '';
             const token = (this.token || '').trim();
-            if (!token) { this.error = 'Please enter an access token.'; return; }
+            if (!token) { this.error = window.AquaI18n.t('login.error_empty'); return; }
 
             window.AqualinkAuth.setToken(token, this.remember);
             const ok = await this.check();
@@ -127,7 +127,7 @@ document.addEventListener('alpine:init', () => {
                 window.dispatchEvent(new CustomEvent('auth:ready'));
             } else {
                 window.AqualinkAuth.clearToken();
-                this.error = 'That token was not accepted.';
+                this.error = window.AquaI18n.t('login.error_rejected');
                 this.showLogin = true;
             }
         },

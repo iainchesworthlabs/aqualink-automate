@@ -556,7 +556,7 @@
                             <div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_output')"></span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($store.pool.swgGeneratingPercent + ' %')"></span></div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v" x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($store.pool.swgSetpointPercent + ' %')"></span></div>
-                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_health')"></span><span class="kv-v" x-text="$store.pool.chlorinatorHealth"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_health')"></span><span class="kv-v" x-text="$store.pool.chlorinatorHealthLabel || $store.pool.chlorinatorHealth"></span></div>
                             </div>
                         </template>
                     </div>
@@ -599,7 +599,7 @@
                             <div class="kv-row"><span class="kv-k" x-text="field.label"></span><span class="kv-v" x-text="field.value"></span></div>
                         </template>
                         <div class="kv-row"><span class="kv-k" x-text="$t('detail.state')"></span><span class="kv-v" x-text="$store.system.state"></span></div>
-                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.system_status')"></span><span class="kv-v" x-text="$store.pool.systemStatus"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('detail.system_status')"></span><span class="kv-v" x-text="$store.pool.systemStatusLabel"></span></div>
                         <div class="kv-row" x-show="$store.system.startedAt"><span class="kv-k" x-text="$t('detail.started')"></span><span class="kv-v" x-text="$store.system.startedAt"></span></div>
                         <div class="kv-row" x-show="$store.system.uptime"><span class="kv-k" x-text="$t('detail.uptime')"></span><span class="kv-v" x-text="$store.system.uptime"></span></div>
                     </div>

@@ -37,11 +37,14 @@ function settingsView() {
     }
 
     return {
-        gauges: [
-            { key: 'ph', label: 'pH', step: 0.1 },
-            { key: 'orp', label: 'ORP (mV)', step: 10 },
-            { key: 'salt', label: 'Salt (ppm)', step: 100 }
-        ],
+        get gauges() {
+            const t = window.AquaI18n.t;
+            return [
+                { key: 'ph', label: t('settings.gauge_ph'), step: 0.1 },
+                { key: 'orp', label: t('settings.gauge_orp'), step: 10 },
+                { key: 'salt', label: t('settings.gauge_salt'), step: 100 }
+            ];
+        },
         values,
         errors: {},
 
@@ -141,7 +144,7 @@ function settingsView() {
             const v = this.values[gaugeKey];
             let error = '';
             if (v.goodMin > v.goodMax || v.okayMin > v.okayMax || v.badMin > v.badMax) {
-                error = 'Each tier minimum must be less than or equal to its maximum.';
+                error = window.AquaI18n.t('settings.tier_min_max_error');
             }
             this.errors[gaugeKey] = error;
             return error === '';
@@ -207,13 +210,13 @@ function settingsView() {
                 if (!resp.ok) {
                     let detail = '';
                     try { detail = await resp.text(); } catch (_) { /* ignore */ }
-                    this.prefsError = `Save failed (${resp.status})${detail ? ': ' + detail : ''}`;
+                    this.prefsError = window.AquaI18n.t('settings.save_failed_status', { status: resp.status }) + (detail ? ': ' + detail : '');
                     return;
                 }
                 this.savedFlash = true;
                 setTimeout(() => { this.savedFlash = false; }, 1500);
             } catch (e) {
-                this.prefsError = 'Save failed (network).';
+                this.prefsError = window.AquaI18n.t('settings.save_failed_network');
             }
         },
 
@@ -263,8 +266,8 @@ function settingsView() {
             finally { this.profilingBusy = false; }
         },
 
-        async startProfiling() { await this._postProfiling({ action: 'start' }, 'Profiling resumed', 'Failed to resume profiling'); },
-        async stopProfiling() { await this._postProfiling({ action: 'stop' }, 'Profiling paused', 'Failed to pause profiling'); },
-        async selectProfilingBackend(backend) { if (!backend) return; await this._postProfiling({ action: 'select', backend }, `Profiling backend set to ${backend}`, 'Failed to select backend'); },
+        async startProfiling() { await this._postProfiling({ action: 'start' }, window.AquaI18n.t('toast.profiling_resumed'), window.AquaI18n.t('toast.profiling_resume_failed')); },
+        async stopProfiling() { await this._postProfiling({ action: 'stop' }, window.AquaI18n.t('toast.profiling_paused'), window.AquaI18n.t('toast.profiling_pause_failed')); },
+        async selectProfilingBackend(backend) { if (!backend) return; await this._postProfiling({ action: 'select', backend }, window.AquaI18n.t('toast.profiling_backend_set', { backend }), window.AquaI18n.t('toast.profiling_backend_failed')); },
     };
 }
