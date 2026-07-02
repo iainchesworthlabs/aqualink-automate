@@ -5,6 +5,8 @@
 #include <string>
 #include <string_view>
 
+#include <nlohmann/json.hpp>
+
 namespace AqualinkAutomate::Alerting
 {
 
@@ -62,7 +64,12 @@ namespace AqualinkAutomate::Alerting
 		std::string condition;     // one of ConditionKeys
 		bool raised{ false };      // true = raised, false = cleared
 		std::int64_t ts{ 0 };      // unix seconds (UTC)
-		std::string detail;        // human-readable description
+		std::string detail;        // human-readable ENGLISH description (stable contract)
+		// Structured values behind the detail text (e.g. {"salt_ppm": 2400,
+		// "threshold_ppm": 2700} or {"health": "Warning_LowSalt"}), so consumers
+		// — the web UI's translated alerts, webhook automations — can act on the
+		// data without parsing prose. Empty object when a transition carries none.
+		nlohmann::json params = nlohmann::json::object();
 	};
 
 }
