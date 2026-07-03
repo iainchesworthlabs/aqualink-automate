@@ -11,10 +11,12 @@
 #if defined(_WIN32)
 #include <boost/log/sinks/event_log_backend.hpp>
 #elif !defined(__APPLE__)
-#include <boost/log/sinks/syslog_backend.hpp>
+#include <syslog.h>
+#include <boost/log/sinks/basic_sink_backend.hpp>
 #endif
 
 #include "logging/logging.h"
+#include "logging/logging_attributes.h"
 #include "logging/logging_severity_levels.h"
 #include "logging/sinks/severity_mappings.h"
 #include "logging/sinks/sink_native.h"
@@ -32,33 +34,64 @@ namespace AqualinkAutomate::Logging::Sinks
 		namespace expr = boost::log::expressions;
 
 #if !defined(_WIN32) && !defined(__APPLE__)
-		[[nodiscard]] sinks::syslog::facility ToBoostFacility(SyslogFacility facility) noexcept
+		[[nodiscard]] int ToPosixFacility(SyslogFacility facility) noexcept
 		{
 			switch (facility)
 			{
-			case SyslogFacility::Daemon:   return sinks::syslog::daemon;
-			case SyslogFacility::User:     return sinks::syslog::user;
-			// AuthPriv = LOG_AUTHPRIV: Boost's security1 is facility 10 on Linux (§10.3).
-			case SyslogFacility::AuthPriv: return sinks::syslog::security1;
-			case SyslogFacility::Local0:   return sinks::syslog::local0;
-			case SyslogFacility::Local1:   return sinks::syslog::local1;
-			case SyslogFacility::Local2:   return sinks::syslog::local2;
-			case SyslogFacility::Local3:   return sinks::syslog::local3;
-			case SyslogFacility::Local4:   return sinks::syslog::local4;
-			case SyslogFacility::Local5:   return sinks::syslog::local5;
-			case SyslogFacility::Local6:   return sinks::syslog::local6;
-			case SyslogFacility::Local7:   return sinks::syslog::local7;
+			case SyslogFacility::Daemon:   return LOG_DAEMON;
+			case SyslogFacility::User:     return LOG_USER;
+			case SyslogFacility::AuthPriv: return LOG_AUTHPRIV;
+			case SyslogFacility::Local0:   return LOG_LOCAL0;
+			case SyslogFacility::Local1:   return LOG_LOCAL1;
+			case SyslogFacility::Local2:   return LOG_LOCAL2;
+			case SyslogFacility::Local3:   return LOG_LOCAL3;
+			case SyslogFacility::Local4:   return LOG_LOCAL4;
+			case SyslogFacility::Local5:   return LOG_LOCAL5;
+			case SyslogFacility::Local6:   return LOG_LOCAL6;
+			case SyslogFacility::Local7:   return LOG_LOCAL7;
 			}
 
-			return sinks::syslog::daemon;
+			return LOG_DAEMON;
 		}
 
-		[[nodiscard]] sinks::syslog::level ToBoostLevel(SyslogLevel level) noexcept
+		//
+		// A minimal Boost.Log backend over the POSIX syslog() C API (journald picks it
+		// up on systemd hosts). Deliberately NOT boost::log's stock syslog_backend: the
+		// vcpkg Boost.Log builds ship WITHOUT native-syslog support, so that backend
+		// falls back to a UDP/boost::asio implementation whose process-global asio
+		// service is torn down out of order at exit and corrupts the heap (glibc
+		// aborts; MSVC tolerated it). Calling syslog() directly owns no global asio
+		// state and tears down cleanly. The facility is OR-ed into each syslog() call
+		// (not set process-globally via openlog), so a general daemon sink and the
+		// audit authpriv sink can coexist without clobbering each other's facility.
+		//
+		class NativeSyslogBackend : public boost::log::sinks::basic_formatted_sink_backend<char>
 		{
-			// SyslogLevel's values are defined to match boost::log::sinks::syslog::level
-			// (and the POSIX priorities) exactly — see severity_mappings.h.
-			return static_cast<sinks::syslog::level>(static_cast<int>(level));
-		}
+		public:
+			explicit NativeSyslogBackend(int facility) :
+				m_Facility(facility)
+			{
+				// The ident string must outlive the connection; a string literal has
+				// static storage, so this is safe.
+				::openlog("Aqualink-Automate", LOG_PID | LOG_NDELAY, LOG_DAEMON);
+			}
+
+			~NativeSyslogBackend()
+			{
+				::closelog();
+			}
+
+			void consume(boost::log::record_view const& rec, string_type const& formatted_message)
+			{
+				const auto record_severity = rec[severity].get<Severity>();
+				// SyslogPriorityValue() is the syslog level 0..7 (== LOG_EMERG..LOG_DEBUG);
+				// OR in this sink's facility so it is honoured per-record.
+				::syslog(m_Facility | SyslogPriorityValue(record_severity), "%s", formatted_message.c_str());
+			}
+
+		private:
+			int m_Facility;
+		};
 #elif defined(_WIN32)
 		[[nodiscard]] sinks::event_log::event_type ToBoostEventType(EventType type) noexcept
 		{
@@ -105,18 +138,8 @@ namespace AqualinkAutomate::Logging::Sinks
 
 			auto sink = boost::make_shared<sinks::synchronous_sink<sinks::simple_event_log_backend>>(backend);
 #else
-			auto backend = boost::make_shared<sinks::syslog_backend>(
-				keywords::facility = ToBoostFacility(config.Facility),
-				keywords::use_impl = sinks::syslog::native);
-
-			sinks::syslog::custom_severity_mapping<Severity> mapping("Severity");
-			magic_enum::enum_for_each<Severity>([&mapping](Severity severity)
-				{
-					mapping[severity] = ToBoostLevel(ToSyslogLevel(severity));
-				});
-			backend->set_severity_mapper(mapping);
-
-			auto sink = boost::make_shared<sinks::synchronous_sink<sinks::syslog_backend>>(backend);
+			auto backend = boost::make_shared<NativeSyslogBackend>(ToPosixFacility(config.Facility));
+			auto sink = boost::make_shared<sinks::synchronous_sink<NativeSyslogBackend>>(backend);
 #endif
 
 			sink->set_filter(config.Filter);
