@@ -776,7 +776,7 @@
         'admin.undeletable': 'Undeletable',
         'admin.undeletable_title': 'Built-in groups cannot be deleted',
         'admin.entitlements_for': 'Entitlements — {name}',
-        'admin.guest_note_html': 'The <strong>Guest</strong> group is applied to visitors who are <strong>not signed in</strong>. Access is denied by default — anything you grant here is what an anonymous guest may do.',
+        'admin.guest_note_html': 'The <strong data-i18n-exempt>Guest</strong> group is applied to visitors who are <strong>not signed in</strong>. Access is denied by default — anything you grant here is what an anonymous guest may do.',
         'admin.save_entitlements': 'Save entitlements',
         'admin.delete_group_confirm': 'Delete group {name}? Members lose its entitlements.',
         'admin.delete_group': 'Delete group',
@@ -818,7 +818,7 @@
 
         // Administration — kiosk PIN tab
         'admin.kiosk_pin': 'Kiosk PIN',
-        'admin.kiosk_explainer_html': 'A kiosk PIN lets a shared wall tablet quick-elevate an anonymous visitor into a chosen group by typing a short PIN — no username needed. Pair it with the group whose scope the tablet should have (the <strong>Guest</strong> group is the usual choice).',
+        'admin.kiosk_explainer_html': 'A kiosk PIN lets a shared wall tablet quick-elevate an anonymous visitor into a chosen group by typing a short PIN — no username needed. Pair it with the group whose scope the tablet should have (the <strong data-i18n-exempt>Guest</strong> group is the usual choice).',
         'admin.elevates_to': 'elevates to {group}',
         'admin.target_group': 'Target group',
         'admin.kiosk_target_group_aria': 'Kiosk target group',
