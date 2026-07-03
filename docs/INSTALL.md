@@ -59,7 +59,7 @@ from the [GitHub Releases](https://github.com/iainchesworth/aqualink-automate/re
 
 | Platform | Package types | Notes |
 |----------|---------------|-------|
-| Windows  | `.exe` (NSIS installer), `.zip` | Run the installer, or unzip the portable build anywhere. |
+| Windows  | `.exe` (NSIS installer), `.zip` | Run the installer, or unzip the portable build anywhere. To run it as a managed **Windows service** (auto-start, restart-on-failure, Event Log), from an elevated prompt: `aqualink-automate.exe --install-service --config "C:\ProgramData\Aqualink Automate\aqualink-automate.conf"` (remove with `--uninstall-service`). See [Running as a Windows service](configuration.md#running-as-a-windows-service). |
 | Linux    | `.deb`, `.rpm`, `.tgz` | Built for **`amd64`** and **`arm64`** (Raspberry Pi 3/4/5 and other aarch64 hosts on a 64-bit OS). Pick the package matching your architecture (`dpkg --print-architecture` / `uname -m`), then install the `.deb`/`.rpm` with your package manager or unpack the `.tgz`. |
 | macOS    | `.dmg`, `.tgz` | Open the disk image and drag the app across, or unpack the `.tgz`. |
 

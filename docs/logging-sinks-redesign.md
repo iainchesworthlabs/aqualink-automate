@@ -1,6 +1,6 @@
 # Logging Sinks Redesign — OS-Native Log Delivery
 
-**Status:** Slices 1–3 IMPLEMENTED (2026-07-03) on `claude/unruffled-nightingale-6f0d91` (slice 3 minus the Windows service wrapper + message-table resource, both deferred).
+**Status:** Slices 1–3 IMPLEMENTED (2026-07-03) on `claude/unruffled-nightingale-6f0d91`. The previously-deferred **Windows service wrapper** and **Event Log message-table resource** are now implemented as separate Windows-service work (see docs/configuration.md → "Running as a Windows service").
 
 This document is a dated design snapshot. Verify claims against the code before
 relying on any citation; symbols are used as anchors rather than line numbers.
@@ -105,10 +105,20 @@ removed in favour of this.
   `--unregister-log-source` (platform/windows/log_source_registration.cpp, wired
   through the App options' HandleHelpAndVersion early-exit). Verified on Windows:
   `--help` lists them and unprivileged `--register-log-source` fails gracefully.
-- **Deferred**: the **message-table resource** for fully clean Event Viewer text
-  (a Windows build-machinery addition — mc.exe/rc.exe; events are already readable
-  without it), and the **Windows service wrapper** (SCM/ServiceMain; the
-  `WindowsServiceContext` detection seam already returns false awaiting it).
+- **Message-table resource — DONE (2026-07-03).** `src/core/platform/windows/eventlog/aqualink_eventlog.mc`
+  defines the four event IDs the `simple_event_log_backend` emits (Debug `0x00000100`,
+  Info `0x40000101`, Warning `0x80000102`, Error `0xC0000103`), each body `%1`
+  (passthrough). It is compiled by `mc.exe` and linked into the exe (an `if(WIN32)`
+  custom command in `src/CMakeLists.txt`); `EventMessageFile` already points at the exe,
+  so once the source is registered Event Viewer renders each entry with no generic
+  wrapper (§3.3).
+- **Windows service wrapper — DONE (2026-07-03).** SCM host in
+  `src/core/platform/windows/windows_service.cpp` behind the OS-neutral
+  `Application::RunHosted` facade (`application/service_host.h`; POSIX passthrough in
+  `platform/posix/service_host.cpp`). Service mode sets the `WindowsServiceContext`
+  detection seam true (via an `AppHostHooks` flag → the injected probe in
+  `DetectLogEnvironment`), so the `auto` policy selects the Event Log sink. Installed with
+  `--install-service` / `--uninstall-service` (which also register/unregister the source).
 - Verified locally (Windows): full suite 2307 green; the Linux/macOS backends
   compile only in their CI legs (can't be run on the dev box).
 
@@ -230,7 +240,9 @@ registered it attempts to create
   pre-registered.
 - Even when registration succeeds, Event Viewer renders the classic *"the
   description for Event ID … cannot be found"* wrapper unless the registered
-  message file contains a matching message-table resource.
+  message file contains a matching message-table resource. **Resolved:** the exe now
+  embeds that table (`eventlog/aqualink_eventlog.mc`), so registered events render
+  cleanly.
 
 Registration is an **install-time job** that the packaging does not do (§11).
 

@@ -171,4 +171,24 @@ BOOST_AUTO_TEST_CASE(Detect_NoJournalWhenStreamMismatches, *boost::unit_test::la
 	BOOST_TEST(env.StderrIsTty);
 }
 
+BOOST_AUTO_TEST_CASE(Detect_WindowsServiceContextProbeDrivesEventLogSink, *boost::unit_test::label("unit"))
+{
+	// The seam the Windows service host relies on: RunApplication overrides only the
+	// WindowsServiceContext probe (from AppHostHooks::RunningAsManagedService) and feeds
+	// the result to DetectLogEnvironment(probes). A true probe must set the flag, which
+	// the `auto` policy then resolves to the Console + Event Log (Native) sink pair.
+	EnvironmentProbes probes;
+	probes.StderrIsTty = [] { return false; };
+	probes.GetEnvVar = [](const char*) -> std::optional<std::string> { return std::nullopt; };
+	probes.StatStderr = [] { return std::optional<DevIno>{}; };
+	probes.WindowsServiceContext = [] { return true; };
+
+	const auto env = DetectLogEnvironment(probes);
+	BOOST_TEST(env.WindowsServiceContext);
+
+	const auto sel = ResolveAutoSinks(env, /*have_log_file*/ false, /*journald_available*/ false);
+	BOOST_TEST(sel.Console);
+	BOOST_TEST(sel.Native);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

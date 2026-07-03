@@ -21,8 +21,37 @@ add_executable(aqualink-automate)
 target_sources(
 	aqualink-automate
 	PRIVATE
-	aqualink-automate.cpp 
+	aqualink-automate.cpp
 )
+
+#------------------------------------------------------------------------------
+#
+#  WINDOWS EVENT LOG MESSAGE TABLE
+#  ==============================
+#
+#  Compile the message-table resource (.mc -> mc.exe -> .rc/.bin) and link it into
+#  the executable so Event Viewer renders the runtime Event Log sink's entries
+#  verbatim, with no "The description for Event ID ... cannot be found" wrapper. The
+#  message IDs match Boost.Log's simple_event_log_backend (see the .mc). mc.exe/rc.exe
+#  ship with the Windows SDK and are on PATH in the VS Dev Shell; CMake/MSVC compiles a
+#  .rc added to target_sources and links the resulting resource automatically.
+#
+#------------------------------------------------------------------------------
+
+if(WIN32)
+	set(_aq_mc_in  "${CMAKE_CURRENT_SOURCE_DIR}/core/platform/windows/eventlog/aqualink_eventlog.mc")
+	set(_aq_mc_dir "${CMAKE_CURRENT_BINARY_DIR}/eventlog")
+	add_custom_command(
+		OUTPUT "${_aq_mc_dir}/aqualink_eventlog.rc"
+		BYPRODUCTS "${_aq_mc_dir}/aqualink_eventlog.h" "${_aq_mc_dir}/MSG00409.bin"
+		COMMAND "${CMAKE_COMMAND}" -E make_directory "${_aq_mc_dir}"
+		COMMAND mc.exe -U -h "${_aq_mc_dir}" -r "${_aq_mc_dir}" "${_aq_mc_in}"
+		DEPENDS "${_aq_mc_in}"
+		COMMENT "Compiling Windows Event Log message table (mc.exe)"
+		VERBATIM
+	)
+	target_sources(aqualink-automate PRIVATE "${_aq_mc_dir}/aqualink_eventlog.rc")
+endif()
 
 target_link_libraries(
 	aqualink-automate 

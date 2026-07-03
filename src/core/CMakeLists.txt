@@ -329,11 +329,12 @@ target_sources(
 	platform/windows/log_source_registration.cpp
 	platform/windows/native_log_sink.cpp
 	platform/windows/journald_log_sink.cpp
+	platform/windows/windows_service.cpp
 )
 
 target_compile_definitions(
-	libaqualink-automate 
-	PUBLIC 
+	libaqualink-automate
+	PUBLIC
 	-D_SCL_SECURE_NO_WARNINGS
 	-D_CRT_SECURE_NO_WARNINGS
 	-D_WIN32_WINNT=0x0A00 
@@ -352,6 +353,8 @@ target_link_libraries(
 	comsuppw
 	ole32
 	oleaut32
+	advapi32   # Service Control Manager + Event Log registry (OpenSCManager/CreateService/SetServiceStatus)
+	shell32    # CommandLineToArgvW (compose the service binary path from the process command line)
 )
 endif(WIN32)
 
@@ -365,6 +368,7 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/service_host.cpp
 	platform/linux/physical_serial_port_timeout.cpp
 	platform/linux/native_log_sink.cpp
 	platform/linux/journald_log_sink.cpp
@@ -381,6 +385,7 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/service_host.cpp
 	platform/macos/physical_serial_port_timeout.cpp
 	platform/macos/native_log_sink.cpp
 	platform/macos/journald_log_sink.cpp
