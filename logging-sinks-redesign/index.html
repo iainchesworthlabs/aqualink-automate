@@ -1,0 +1,3753 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.">
+      
+      
+        <meta name="author" content="Iain Chesworth">
+      
+      
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/logging-sinks-redesign/">
+      
+      
+        <link rel="prev" href="../profiling/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Logging sinks - Aqualink Automate</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#logging-sinks-redesign--os-native-log-delivery" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Aqualink Automate" class="md-header__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Aqualink Automate
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Logging sinks
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Aqualink Automate" class="md-nav__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Aqualink Automate
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage-and-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage, HTTP API & WebSocket
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mqtt-home-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MQTT & Home Assistant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MATTER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matter (smart home)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberry-pi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Raspberry Pi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-rs485-connectivity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RS-485 wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-server-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server & hosting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECURITY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../worktrees/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git worktrees
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RECORD_REPLAY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Record / replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-notes-2026-07-03-slice-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation notes (2026-07-03, slice 1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation notes (2026-07-03, slice 1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slice-2-file-sink--json-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 2 (file sink + JSON format)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-3-platform-native-sinks--logging-scoped-service-wrapper-deferred" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 3 (platform-native sinks — logging-scoped; service wrapper deferred)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-current-state-verified-2026-07-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Current state (verified 2026-07-03)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Current state (verified 2026-07-03)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-the-general-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The general sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-the-audit-special-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 The audit special case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-deployment-surfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Deployment surfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-options-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Options surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Gaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-severity-fidelity-is-lost-at-every-boundary-verified-against-boost-191" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Severity fidelity is lost at every boundary (verified against Boost 1.91)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-no-pattern-to-extend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 No pattern to extend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-windows-event-log-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Windows Event Log registration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-synchronous-sinks-on-the-kernel-thread" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Synchronous sinks on the kernel thread
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-missing-capabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Missing capabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Design principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-proposed-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Proposed architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Proposed architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-sinkregistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 SinkRegistry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-console-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Console sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-native-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Native sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-file-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 File sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-environment-detection-and-the-auto-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Environment detection and the auto policy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Environment detection and the auto policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-detections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Detections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-auto-sink-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 auto sink policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-severity-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Severity mappings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-options-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Options surface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Options surface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-interaction-with-existing-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 Interaction with existing options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-per-sink-thresholds--deliberately-omitted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 Per-sink thresholds — deliberately omitted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-bootstrap-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 Bootstrap ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-threading-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Threading model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-audit-trail-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Audit trail policy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Audit trail policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-the-three-destinations-and-which-one-is-authoritative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 The three destinations, and which one is authoritative
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-separation-from-operational-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 Separation from operational logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-posix-facility--log_authpriv-not-log_auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 POSIX facility — LOG_AUTHPRIV, not LOG_AUTH
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-windows--an-honest-asymmetry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 Windows — an honest asymmetry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105-which-school-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 Which school this is
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-packaging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Packaging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Non-goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-implementation-slices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Implementation slices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-test-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Test strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14. Test strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-unit-tests-testunitlogging--new-suite-needs-a-cmakeliststxt-entry-plus-testunitoptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.1 Unit tests (test/unit/logging/ — new suite, needs a CMakeLists.txt entry; plus test/unit/options/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142-integration-tests-environment-gated-skip-cleanly-when-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.2 Integration tests (environment-gated, skip cleanly when unavailable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143-end-to-end-real-process-real-transports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.3 End-to-end (real process, real transports)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#144-coverage-gate-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.4 Coverage-gate note
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-documentation-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Documentation impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Documentation impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-user-facing-docs-published-to-the-docs-site-by-docsyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.1 User-facing docs (published to the docs site by docs.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#152-repo--contributor-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.2 Repo / contributor docs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-work-plan-phases-tasks-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Work plan (phases, tasks, dependencies)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="16. Work plan (phases, tasks, dependencies)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slice-1--fidelity--structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 1 — fidelity + structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-2--file--json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 2 — file + json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-3--optional-natives-independent-lower-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 3 — optional natives (independent, lower priority)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-cutting-do-now-independent-of-the-slices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-cutting, do-now (independent of the slices)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decision-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-end-state-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. End-state matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="17. End-state matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#171-which-sinks-are-live-and-how-each-renders-environment--sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.1 Which sinks are live, and how each renders (environment × sink)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#172-severity--transport-priority-fixed-mapping-all-backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.2 Severity → transport priority (fixed mapping, all backends)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#173-channel--sink-flow-not-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.3 Channel → sink (flow, not routing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#174-what-a-single-record-carries-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.4 What a single record carries, end to end
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-open-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Open decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-notes-2026-07-03-slice-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation notes (2026-07-03, slice 1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation notes (2026-07-03, slice 1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slice-2-file-sink--json-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 2 (file sink + JSON format)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-3-platform-native-sinks--logging-scoped-service-wrapper-deferred" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 3 (platform-native sinks — logging-scoped; service wrapper deferred)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-current-state-verified-2026-07-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Current state (verified 2026-07-03)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Current state (verified 2026-07-03)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-the-general-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The general sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-the-audit-special-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 The audit special case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-deployment-surfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Deployment surfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-options-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Options surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Gaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-severity-fidelity-is-lost-at-every-boundary-verified-against-boost-191" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Severity fidelity is lost at every boundary (verified against Boost 1.91)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-no-pattern-to-extend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 No pattern to extend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-windows-event-log-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Windows Event Log registration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-synchronous-sinks-on-the-kernel-thread" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Synchronous sinks on the kernel thread
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-missing-capabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Missing capabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Design principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-proposed-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Proposed architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Proposed architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-sinkregistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 SinkRegistry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-console-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Console sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-native-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Native sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-file-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 File sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-environment-detection-and-the-auto-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Environment detection and the auto policy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Environment detection and the auto policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-detections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Detections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-auto-sink-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 auto sink policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-severity-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Severity mappings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-options-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Options surface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Options surface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-interaction-with-existing-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 Interaction with existing options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-per-sink-thresholds--deliberately-omitted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 Per-sink thresholds — deliberately omitted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-bootstrap-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 Bootstrap ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-threading-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Threading model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-audit-trail-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Audit trail policy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Audit trail policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-the-three-destinations-and-which-one-is-authoritative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 The three destinations, and which one is authoritative
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-separation-from-operational-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 Separation from operational logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-posix-facility--log_authpriv-not-log_auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 POSIX facility — LOG_AUTHPRIV, not LOG_AUTH
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-windows--an-honest-asymmetry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 Windows — an honest asymmetry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105-which-school-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 Which school this is
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-packaging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Packaging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Non-goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-implementation-slices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Implementation slices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-test-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Test strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14. Test strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-unit-tests-testunitlogging--new-suite-needs-a-cmakeliststxt-entry-plus-testunitoptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.1 Unit tests (test/unit/logging/ — new suite, needs a CMakeLists.txt entry; plus test/unit/options/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142-integration-tests-environment-gated-skip-cleanly-when-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.2 Integration tests (environment-gated, skip cleanly when unavailable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143-end-to-end-real-process-real-transports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.3 End-to-end (real process, real transports)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#144-coverage-gate-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.4 Coverage-gate note
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-documentation-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Documentation impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Documentation impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-user-facing-docs-published-to-the-docs-site-by-docsyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.1 User-facing docs (published to the docs site by docs.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#152-repo--contributor-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.2 Repo / contributor docs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-work-plan-phases-tasks-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Work plan (phases, tasks, dependencies)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="16. Work plan (phases, tasks, dependencies)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slice-1--fidelity--structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 1 — fidelity + structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-2--file--json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 2 — file + json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slice-3--optional-natives-independent-lower-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slice 3 — optional natives (independent, lower priority)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-cutting-do-now-independent-of-the-slices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-cutting, do-now (independent of the slices)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decision-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-end-state-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. End-state matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="17. End-state matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#171-which-sinks-are-live-and-how-each-renders-environment--sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.1 Which sinks are live, and how each renders (environment × sink)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#172-severity--transport-priority-fixed-mapping-all-backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.2 Severity → transport priority (fixed mapping, all backends)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#173-channel--sink-flow-not-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.3 Channel → sink (flow, not routing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#174-what-a-single-record-carries-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.4 What a single record carries, end to end
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-open-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Open decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/logging-sinks-redesign.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="logging-sinks-redesign--os-native-log-delivery">Logging Sinks Redesign — OS-Native Log Delivery<a class="headerlink" href="#logging-sinks-redesign--os-native-log-delivery" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> Slices 1–3 IMPLEMENTED (2026-07-03) on <code>claude/unruffled-nightingale-6f0d91</code>. The previously-deferred <strong>Windows service wrapper</strong> and <strong>Event Log message-table resource</strong> are now implemented as separate Windows-service work (see docs/configuration.md → "Running as a Windows service").</p>
+<p>This document is a dated design snapshot. Verify claims against the code before
+relying on any citation; symbols are used as anchors rather than line numbers.</p>
+<h2 id="implementation-notes-2026-07-03-slice-1">Implementation notes (2026-07-03, slice 1)<a class="headerlink" href="#implementation-notes-2026-07-03-slice-1" title="Permanent link">&para;</a></h2>
+<p>Slice 1 (phases 1A–1E) landed in <code>src/core/logging/sinks/</code> (<code>severity_mappings</code>,
+<code>log_environment</code>, <code>sink_console</code>, <code>sink_registry</code>, <code>sink_filters</code>, <code>sink_native</code>)
+plus the <code>Logging</code> options area and the <code>main</code> activation/shutdown wiring. Full
+test suite green (2296 cases). Deviations from the design above, for accuracy:</p>
+<ul>
+<li><strong>Audit separation mechanism.</strong> Audit records carry an <code>is_audit</code> <strong>source
+  attribute</strong> (added to the audit logger via <code>add_attribute("IsAudit",
+  constant&lt;bool&gt;(true))</code>), and operational sinks are built through the shared
+  <code>MakeOperationalFilter()</code> which excludes it. This is because <strong>Boost.Log
+  evaluates sink filters at record-open time against source attributes only</strong> — a
+  streamed <code>add_value</code> reaches formatters but not filters, so it would have let
+  audit leak. "Leak-proof by construction" (§10.2) therefore means <em>every
+  operational sink is built through the shared excluding filter</em>, not that audit
+  bypasses the core entirely.</li>
+<li><strong>Options namespace.</strong> The options area is C++-namespaced <code>Options::LogSinks</code>
+  (not <code>Options::Logging</code>) to avoid colliding with the <code>AqualinkAutomate::Logging</code>
+  subsystem namespace in <code>main</code>; the user-facing area name stays "Logging".</li>
+<li><strong>Native sink frontend is synchronous for now.</strong> §9 specifies async frontends
+  for native/file; slice 1 ships the native (audit) sink synchronous, matching the
+  prior audit behaviour (audit volume is low, not a hot path). The async frontend
+  is deferred to the file-sink slice, where <code>SinkRegistry::FlushAll()</code> already
+  provides the shutdown drain hook.</li>
+<li><strong><code>docker-verify</code> log assertion deferred.</strong> §14.3's "<code>docker logs</code> shows startup
+  records" needs a replay fixture inside a test image (the runtime image ships
+  none and a real run needs a serial source), so it is deferred. The Linux e2e
+  job runs <code>e2e/logging.spec.ts</code> (picked up automatically by <code>npx playwright
+  test</code>), which covers the real logging path incl. the journald-prefix case.</li>
+<li><strong><code>configuration.md</code> channel list.</strong> Removing <code>Audit</code> from the enum made the
+  pre-existing "18 channels" list correct on this branch; the separately-tracked
+  "add audit → 19" fix was for the old code state and does not apply here.</li>
+</ul>
+<h3 id="slice-2-file-sink--json-format">Slice 2 (file sink + JSON format)<a class="headerlink" href="#slice-2-file-sink--json-format" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>File sink</strong> (<code>sink_file.{h,cpp}</code>): Boost <code>text_file_backend</code> with size rotation</li>
+<li>a bounded collector. Options <code>--log-file</code>, <code>--log-file-max-size</code>,
+  <code>--log-file-max-files</code>, and the <code>file</code> token in <code>--log-sinks</code> (requires
+  <code>--log-file</code>; implied by <code>--log-file</code> under <code>auto</code>). On close Boost does a final
+  rotation of the active file into the kept set (each run's log preserved as a
+  rotated file, bounded by max-files).</li>
+<li><strong>JSON format</strong> (<code>JsonFormatter</code> in <code>logging_formatter</code>): <code>--log-format
+  text|json</code> for the console <strong>and</strong> file sinks (native stays message-only);
+  <code>{ts,severity,channel,message[,file,line]}</code>, file/line only for Trace/Debug.</li>
+<li><strong><code>--log-format</code> argv pre-scan.</strong> <code>main</code> pre-scans argv for <code>--log-format json</code>
+  <em>before</em> <code>Logging::Initialise</code>, so even the pre-options bootstrap console lines
+  are JSON — otherwise a container pipeline would see a few non-JSON startup lines.
+  The authoritative validated parse still happens with the other options.</li>
+<li><strong>File sink is SYNCHRONOUS</strong> (auto_flush), same as console/native — §9's async
+  frontend stays deferred: the correct async teardown is <code>remove_sink → stop →
+  flush</code>, but <code>SinkRegistry</code> owns base <code>sink</code> handles that expose no <code>stop()</code>.
+  Wiring a per-sink drain/stop hook through the registry is the async follow-up.</li>
+<li>Verified: full suite 2305 cases green; runtime smoke confirmed JSON console
+  (incl. the bootstrap line) and a JSON rotating log file. <code>e2e/logging.spec.ts</code>
+  gains the every-line-JSON and file-sink cases (run in Linux CI).</li>
+</ul>
+<h3 id="slice-3-platform-native-sinks--logging-scoped-service-wrapper-deferred">Slice 3 (platform-native sinks — logging-scoped; service wrapper deferred)<a class="headerlink" href="#slice-3-platform-native-sinks--logging-scoped-service-wrapper-deferred" title="Permanent link">&para;</a></h3>
+<p>Scope chosen: the logging natives, deferring the full Windows service wrapper
+(a separate app-lifecycle subsystem, §18.6). Most of this is platform code that
+cannot be verified on the Windows dev box — it compiles in the Linux/macOS CI legs.</p>
+<p><strong>Architecture: OS-native sinks live in <code>platform/&lt;os&gt;/</code>, not behind <code>#ifdef</code> in
+shared sources</strong> (the codebase's platform-isolation convention, wired by
+<code>if(WIN32)/if(LINUX)/if(APPLE)</code>). <code>MakeNativeSink</code> has three implementations —
+<code>platform/windows/native_log_sink.cpp</code> (Event Log), <code>platform/linux/native_log_sink.cpp</code>
+(syslog(3)), <code>platform/macos/native_log_sink.cpp</code> (os_log) — behind one shared
+declaration in <code>sink_native.h</code>. journald is <code>platform/linux/journald_log_sink.cpp</code>
+(the real dlopen impl) plus <code>platform/windows</code> + <code>platform/macos</code> stubs
+(<code>IsJournaldAvailable()==false</code>, <code>MakeJournaldSink()==null</code>), so the shared callers
+(<code>logging_initialise.cpp</code>, <code>main</code>) need no platform <code>#ifdef</code>. The earlier shared
+<code>sink_native.cpp</code>/<code>sink_journald.cpp</code>/<code>sink_oslog.{h,cpp}</code> with inline <code>#if</code> were
+removed in favour of this.</p>
+<ul>
+<li><strong>journald</strong> (<code>sink_journald.{h,cpp}</code>): a custom Boost.Log backend that calls
+  <code>sd_journal_sendv</code> with structured fields (PRIORITY, SYSLOG_IDENTIFIER, MESSAGE,
+  AA_CHANNEL, CODE_FILE/CODE_LINE). <strong>libsystemd is resolved at RUNTIME via
+  <code>dlopen("libsystemd.so.0")</code> + <code>dlsym</code></strong> — neither a build dependency (no
+  <code>libsystemd-dev</code>, no <code>find_package</code>, no link) nor a hard runtime dependency
+  (absent → journald simply unavailable). This avoids the cross-environment
+  build/packaging/container coordination a hard link would force (Dockerfile base +
+  runtime, the Packer runner image, the <code>_build.yml</code> release container, and CPack
+  DEB/RPM deps), and closes the gap where the release container lacked
+  <code>libsystemd-dev</code> and would have shipped <em>without</em> journald at all. Compiled under
+  <code>#if defined(__linux__)</code>. Selection: a <code>journald</code> token and the <code>auto</code> policy
+  (journal-connected + <code>IsJournaldAvailable()</code> → journald instead of console+<code>&lt;N&gt;</code>),
+  with a warn+console fallback otherwise. <code>SinkSelection.Journald</code> +
+  <code>ResolveAutoSinks(..., journald_available)</code>; main passes <code>IsJournaldAvailable()</code>
+  (a cached runtime <code>dlopen</code> probe) so the sink layer stays platform-free.</li>
+<li><strong>macOS os_log</strong> (<code>sink_oslog.{h,cpp}</code>): a custom backend calling
+  <code>os_log_with_type</code> (Severity → os_log_type_t). <code>MakeNativeSink</code> delegates to it
+  on <code>__APPLE__</code> instead of the syslog shim; the syslog helpers are <code>#if</code>-excluded
+  on Apple. Source added via the <code>if(APPLE)</code> block.</li>
+<li><strong>Windows Event Log source registration</strong> (§3.3, §10.4): the runtime Event Log
+  sink now uses <code>registration = event_log::never</code>, so an <strong>unprivileged run no
+  longer throws</strong> and keeps the sink (the core fix — events reach the Application
+  log regardless). One-time elevated registration via <code>--register-log-source</code> /
+  <code>--unregister-log-source</code> (platform/windows/log_source_registration.cpp, wired
+  through the App options' HandleHelpAndVersion early-exit). Verified on Windows:
+  <code>--help</code> lists them and unprivileged <code>--register-log-source</code> fails gracefully.</li>
+<li><strong>Message-table resource — DONE (2026-07-03).</strong> <code>src/core/platform/windows/eventlog/aqualink_eventlog.mc</code>
+  defines the four event IDs the <code>simple_event_log_backend</code> emits (Debug <code>0x00000100</code>,
+  Info <code>0x40000101</code>, Warning <code>0x80000102</code>, Error <code>0xC0000103</code>), each body <code>%1</code>
+  (passthrough). It is compiled by <code>mc.exe</code> and linked into the exe (an <code>if(WIN32)</code>
+  custom command in <code>src/CMakeLists.txt</code>); <code>EventMessageFile</code> already points at the exe,
+  so once the source is registered Event Viewer renders each entry with no generic
+  wrapper (§3.3).</li>
+<li><strong>Windows service wrapper — DONE (2026-07-03).</strong> SCM host in
+  <code>src/core/platform/windows/windows_service.cpp</code> behind the OS-neutral
+  <code>Application::RunHosted</code> facade (<code>application/service_host.h</code>; POSIX passthrough in
+  <code>platform/posix/service_host.cpp</code>). Service mode sets the <code>WindowsServiceContext</code>
+  detection seam true (via an <code>AppHostHooks</code> flag → the injected probe in
+  <code>DetectLogEnvironment</code>), so the <code>auto</code> policy selects the Event Log sink. Installed with
+  <code>--install-service</code> / <code>--uninstall-service</code> (which also register/unregister the source).</li>
+<li>Verified locally (Windows): full suite 2307 green; the Linux/macOS backends
+  compile only in their CI legs (can't be run on the dev box).</li>
+</ul>
+<hr />
+<h2 id="1-motivation">1. Motivation<a class="headerlink" href="#1-motivation" title="Permanent link">&para;</a></h2>
+<p>The auth/authz work added an <code>Audit</code> logging channel whose events are forwarded
+to the platform's native log (syslog on POSIX, the Windows Event Log). Building
+that sink exposed the wider gap: the application has <strong>no sink architecture</strong> —
+one hardcoded console sink for everything, and the audit OS sink hand-built as a
+one-off inside the auth module. There is no way to configure where logs go, no
+file logging, no structured output, and — the sharpest problem — <strong>severity
+information is lost at every OS boundary</strong>, so <code>journalctl -p err</code> and Event
+Viewer level filters see nothing useful.</p>
+<p>The goal: a small, structured pattern for logging sinks that delivers records to
+the <em>right</em> place per environment (interactive terminal, systemd service, Docker
+container, Windows service, macOS), with correct priorities, without changing a
+single <code>LogX()</code> call site.</p>
+<h2 id="2-current-state-verified-2026-07-03">2. Current state (verified 2026-07-03)<a class="headerlink" href="#2-current-state-verified-2026-07-03" title="Permanent link">&para;</a></h2>
+<h3 id="21-the-general-sink">2.1 The general sink<a class="headerlink" href="#21-the-general-sink" title="Permanent link">&para;</a></h3>
+<p><code>Logging::Initialise()</code> (<code>src/core/logging/logging_initialise.cpp</code>) registers
+exactly one sink:</p>
+<ul>
+<li><code>boost::log::sinks::synchronous_sink&lt;text_ostream_backend&gt;</code> writing to
+  <code>std::clog</code> (stderr).</li>
+<li>Formatter: <code>Logging::Formatter</code> (<code>logging_formatter.cpp</code>) — human-readable
+  text; Trace/Debug records additionally render <code>file:line</code>.</li>
+<li>Filter: <code>SeverityFiltering::PerChannelTest</code> — the per-channel runtime
+  severity filter (adjustable live via <code>WebRoute_Diagnostics_Logging</code> and the
+  <code>--loglevel-&lt;channel&gt;</code> developer options).</li>
+<li><code>auto_flush(true)</code> — deliberate, so container log drivers and crash tails see
+  every record immediately.</li>
+</ul>
+<h3 id="22-the-audit-special-case">2.2 The audit special case<a class="headerlink" href="#22-the-audit-special-case" title="Permanent link">&para;</a></h3>
+<p><code>Auth::RegisterAuditOsSink()</code> (<code>src/core/auth/audit_log.cpp</code>) registers a second
+sink when auth is enabled, filtered to <code>Channel::Audit</code> only:</p>
+<ul>
+<li>POSIX: <code>sinks::syslog_backend</code> with <code>facility = syslog::user</code>,
+  <code>use_impl = syslog::native</code> (journald ingests this on systemd distributions).</li>
+<li>Windows: <code>sinks::simple_event_log_backend</code> with
+  <code>log_source = "Aqualink-Automate"</code>.</li>
+<li>Formatter: message text only. <strong>No severity mapper is installed</strong> (see §3.1).</li>
+<li>Registration failures are caught and logged; the JSONL file remains the
+  durable trail.</li>
+</ul>
+<p>Separately, <code>Auth::AuditLog::AppendJsonl</code> writes an owner-only JSONL file into
+the auth state directory with hand-rolled size-based rotation
+(<code>AuditLog::RotateIfNeeded</code>).</p>
+<h3 id="23-deployment-surfaces">2.3 Deployment surfaces<a class="headerlink" href="#23-deployment-surfaces" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Log transport today</th>
+<th>Storage / rotation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>systemd service (<code>packaging/systemd/aqualink-automate.service</code>)</td>
+<td><code>StandardOutput/StandardError=journal</code>, <code>SyslogIdentifier=aqualink-automate</code></td>
+<td>journald owns both — <strong>already native by transport</strong></td>
+</tr>
+<tr>
+<td>Docker (<code>Dockerfile</code> runtime stages, tini + <code>docker-entrypoint.sh</code>)</td>
+<td>stdout/stderr → container log driver</td>
+<td>the driver owns both (json-file, journald, fluentd, …) — <strong>already native by transport</strong></td>
+</tr>
+<tr>
+<td>Interactive terminal (all platforms)</td>
+<td>stderr</td>
+<td>none needed</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>stderr only (no service wrapper exists today)</td>
+<td>none</td>
+</tr>
+<tr>
+<td>macOS (toolchain exists: <code>cmake/toolchains/macos.llvm.toolchain.cmake</code>)</td>
+<td>stderr only</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p>The key observation: on the two primary production surfaces the <em>correct</em>
+OS-native behaviour is <strong>console output, done well</strong> — the platform already owns
+routing, storage, and rotation. What is missing is fidelity (priorities,
+structure), not transport.</p>
+<h3 id="24-options-surface">2.4 Options surface<a class="headerlink" href="#24-options-surface" title="Permanent link">&para;</a></h3>
+<p><code>--debug</code>, <code>--trace</code> (<code>options_app_options.h</code>) and the data-driven
+<code>--loglevel-&lt;channel&gt;</code> set (<code>options_developer_options.cpp</code>). No sink-related
+options exist.</p>
+<h2 id="3-gaps">3. Gaps<a class="headerlink" href="#3-gaps" title="Permanent link">&para;</a></h2>
+<h3 id="31-severity-fidelity-is-lost-at-every-boundary-verified-against-boost-191">3.1 Severity fidelity is lost at every boundary (verified against Boost 1.91)<a class="headerlink" href="#31-severity-fidelity-is-lost-at-every-boundary-verified-against-boost-191" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>journald</strong>: every stderr line is recorded at the stream's default priority
+  (info). <code>journalctl -u aqualink-automate -p err</code> returns nothing even when
+  errors were logged; priority-based monitoring is blind. journald supports the
+  sd-daemon protocol — a <code>&lt;N&gt;</code> prefix per line, N = syslog priority 0–7 — on
+  streams connected via <code>StandardError=journal</code>. We do not emit it. Fixing this
+  requires <strong>no libsystemd dependency</strong>; it is pure formatting.</li>
+<li><strong>syslog (audit sink)</strong>: <code>syslog_backend::consume</code> in Boost.Log sends
+  <strong>every record at <code>syslog::info</code></strong> when no <code>set_severity_mapper</code> is installed
+  (verified in Boost 1.91 <code>libs/log/src/syslog_backend.cpp</code>). Audit denials
+  logged at <code>Notify</code>/<code>Warning</code> land in syslog as informational.</li>
+<li><strong>Windows Event Log</strong>: identical default — <code>basic_simple_event_log_backend::consume</code>
+  falls back to <code>event_log::info</code> without a mapper (verified in
+  <code>libs/log/src/windows/event_log_backend.cpp</code>). Warnings and errors render as
+  <em>Information</em> in Event Viewer.</li>
+<li>Boost's "direct" mappings cannot be used either: our <code>Logging::Severity</code> enum
+  (7 levels including <code>Notify</code>) does not coincide numerically with syslog
+  levels (where 0 = emergency). <strong>Every OS backend needs an explicit
+  <code>custom_severity_mapping</code></strong> (§7).</li>
+</ul>
+<h3 id="32-no-pattern-to-extend">3.2 No pattern to extend<a class="headerlink" href="#32-no-pattern-to-extend" title="Permanent link">&para;</a></h3>
+<p>The audit sink lives in <code>src/core/auth</code>, not the logging layer. A second
+OS-native consumer (e.g. "route <code>Error</code>+ to the Event Log") would be copy-paste.
+Sink registration is add-and-forget: nothing owns the handles, so there is no
+orderly flush/removal at shutdown and tests must thread handles around manually.</p>
+<h3 id="33-windows-event-log-registration">3.3 Windows Event Log registration<a class="headerlink" href="#33-windows-event-log-registration" title="Permanent link">&para;</a></h3>
+<p><code>simple_event_log_backend</code> performs <strong>on-demand HKLM registration</strong>: at
+construction it checks the registry read-only, and if the event source is not
+registered it attempts to create
+<code>HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\&lt;source&gt;</code> with
+<code>EventMessageFile</code> pointing at the current module (verified in Boost 1.91
+<code>windows/event_log_registry.hpp</code>). Consequences:</p>
+<ul>
+<li>An unprivileged first run cannot write HKLM → construction throws → the
+  existing <code>try/catch</code> downgrades to "no OS audit sink". Audit events silently
+  never reach the Event Log for non-admin users unless the source was
+  pre-registered.</li>
+<li>Even when registration succeeds, Event Viewer renders the classic <em>"the
+  description for Event ID … cannot be found"</em> wrapper unless the registered
+  message file contains a matching message-table resource. <strong>Resolved:</strong> the exe now
+  embeds that table (<code>eventlog/aqualink_eventlog.mc</code>), so registered events render
+  cleanly.</li>
+</ul>
+<p>Registration is an <strong>install-time job</strong> that the packaging does not do (§11).</p>
+<h3 id="34-synchronous-sinks-on-the-kernel-thread">3.4 Synchronous sinks on the kernel thread<a class="headerlink" href="#34-synchronous-sinks-on-the-kernel-thread" title="Permanent link">&para;</a></h3>
+<p>All sinks are <code>synchronous_sink</code>, and the application is single-threaded
+cooperative (see <code>kernel-architecture</code>): a slow Event Log or file write stalls
+the main poll loop, which is also servicing the RS-485 protocol. stderr with
+<code>auto_flush</code> is acceptable; heavier backends are not.</p>
+<h3 id="35-missing-capabilities">3.5 Missing capabilities<a class="headerlink" href="#35-missing-capabilities" title="Permanent link">&para;</a></h3>
+<ul>
+<li>No file sink for platforms without a system-logger story (Windows run
+  interactively, macOS under launchd, non-systemd Linux).</li>
+<li>No structured (JSON-lines) console format for container log pipelines
+  (Loki/promtail, CloudWatch, fluentd parse JSON natively).</li>
+<li>No environment awareness — the app cannot distinguish "interactive TTY" from
+  "systemd service" from "redirected/container", so it cannot choose defaults.</li>
+<li>Audit JSONL hand-rolls rotation that <code>sinks::text_file_backend</code> provides
+  (acceptable for now — the audit file has ownership/permission requirements —
+  but the general file sink must not repeat the pattern).</li>
+</ul>
+<h2 id="4-design-principles">4. Design principles<a class="headerlink" href="#4-design-principles" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>The <code>LogX(Channel, message)</code> facade does not change.</strong> No call site is
+   touched. This is sink <em>composition</em> at initialisation time only.</li>
+<li><strong>Model on the profiler facade.</strong> Multiple backends behind one registry,
+   selected by options, no-op safe when unavailable — the same shape as
+   <code>Factory::ProfilerFactory</code> / <code>RegisterAvailableProfilers</code>.</li>
+<li><strong>Where the platform already owns log storage, feed it well — don't compete.</strong>
+   Under systemd and Docker the console <em>is</em> the native path; the job is
+   priority fidelity and optional structure, not new transports.</li>
+<li><strong>Defaults must never double-log or write into a void.</strong> Auto-adding a
+   syslog sink under systemd would record every line twice (journal via stderr</li>
+<li>journal via syslog). Auto-adding syslog in a container without a syslogd
+   writes to a <code>/dev/log</code> that does not exist and the records are silently
+   dropped. Native sinks are therefore <strong>explicit opt-in</strong> on POSIX (§6).</li>
+<li><strong>Explicit severity mappings everywhere.</strong> Boost's defaults are wrong for
+   our enum on every backend (§3.1); mapping tables are part of the sink layer,
+   not left to backend defaults.</li>
+<li><strong>Keep Boost.Log.</strong> Everything required ships in the existing dependency; no
+   new logging library, and no journald/os_log hard dependency (both are
+   optional later increments behind CMake find-modules, mirroring
+   <code>FindVTune</code>/<code>FindUProf</code>).</li>
+</ol>
+<h2 id="5-proposed-architecture">5. Proposed architecture<a class="headerlink" href="#5-proposed-architecture" title="Permanent link">&para;</a></h2>
+<p>New module <code>src/core/logging/sinks/</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>src/core/logging/sinks/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    sink_registry.{h,cpp}        # owns sink handles; add/remove/flush; shutdown hook
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    sink_console.{h,cpp}         # text | json; sd-daemon &lt;N&gt; prefixes when journal-connected
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    sink_native.{h,cpp}          # POSIX syslog / Windows Event Log; explicit severity maps
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    sink_file.{h,cpp}            # boost text_file_backend + rotation collector
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    log_environment.{h,cpp}      # environment detection (TTY / journal / service)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    severity_mappings.{h,cpp}    # Severity -&gt; syslog level / event type tables
+</code></pre></div>
+<h3 id="51-sinkregistry">5.1 <code>SinkRegistry</code><a class="headerlink" href="#51-sinkregistry" title="Permanent link">&para;</a></h3>
+<p>A small owner (namespace-level singleton alongside the existing
+<code>SeverityFiltering</code>, same lifetime pattern) that:</p>
+<ul>
+<li>constructs sinks from a resolved <code>SinkSet</code> (the outcome of options +
+  environment detection),</li>
+<li>holds the <code>boost::shared_ptr&lt;sinks::sink&gt;</code> handles,</li>
+<li>exposes <code>FlushAll()</code> and <code>RemoveAll()</code> — <code>FlushAll()</code> is wired into the
+  graceful-shutdown path (the same path that flushes coverage data on SIGTERM),
+  and <code>RemoveAll()</code> gives tests bounded sink lifetimes (replacing the
+  hand-returned handle from <code>RegisterAuditOsSink</code>, see the comment block in
+  <code>src/core/auth/audit_log.h</code>).</li>
+</ul>
+<p><code>Logging::Initialise()</code> becomes a thin call into the registry:
+<code>Initialise(SinkConfig)</code> where <code>SinkConfig</code> carries the resolved sink set,
+format, and file settings. The current signature (no-arg) remains as an overload
+resolving <code>auto</code> defaults, so early-startup logging (before options are parsed)
+still works — see §8.3.</p>
+<h3 id="52-console-sink">5.2 Console sink<a class="headerlink" href="#52-console-sink" title="Permanent link">&para;</a></h3>
+<p>The existing sink, upgraded:</p>
+<ul>
+<li><strong>Format <code>text</code> (default):</strong> the current <code>Logging::Formatter</code> output,
+  unchanged.</li>
+<li><strong>Format <code>json</code>:</strong> one JSON object per line —
+  <code>{"ts","severity","channel","message","file","line"}</code> (file/line only for
+  Trace/Debug, mirroring the text formatter's rule in <code>Formatter</code>). Built with
+  nlohmann (already a dependency) so escaping is correct. Opt-in via
+  <code>--log-format json</code>; humans stay first.</li>
+<li><strong>journald priority prefixes:</strong> when the process detects its stderr is
+  connected to the journal (§6.1), each record is prefixed with <code>&lt;N&gt;</code> where N
+  is the syslog priority from the mapping table (§7). This is the sd-daemon
+  protocol; journald strips the prefix and records the real priority. Applied
+  in the sink's formatter wrapper, not in <code>Formatter</code> itself, so the text/json
+  body stays identical. Multi-line messages: only the first line carries the
+  record's priority; continuation lines are recorded at the stream default
+  (acceptable — multi-line records are rare; do not attempt per-line
+  re-prefixing).</li>
+<li>Stays <code>synchronous_sink</code> + <code>auto_flush(true)</code> — the rationale in the existing
+  comment block (container pipes, crash tails) is unchanged.</li>
+</ul>
+<h3 id="53-native-sink">5.3 Native sink<a class="headerlink" href="#53-native-sink" title="Permanent link">&para;</a></h3>
+<p>One factory, three platform arms — generalised from <code>RegisterAuditOsSink</code>, which
+moves here (the auth module keeps only the <em>policy</em>, §10):</p>
+<ul>
+<li><strong>Linux / other POSIX:</strong> <code>sinks::syslog_backend</code>, <code>use_impl = native</code>,
+  facility configurable with default <code>daemon</code> for the general sink (the current
+  <code>user</code> is wrong for a service). The audit trail uses a <strong>separate</strong> native
+  sink instance with the <code>security1</code> (<code>LOG_AUTHPRIV</code>) facility — see §10, which
+  owns the audit path; it is not a filtered view of the general sink. Explicit
+  <code>custom_severity_mapping</code> (§7).</li>
+<li><strong>Windows:</strong> <code>sinks::simple_event_log_backend</code>,
+  <code>log_source = "Aqualink-Automate"</code>, explicit <code>custom_event_type_mapping</code>
+  (§7). Construction wrapped in the existing try/catch pattern (HKLM
+  registration can fail unprivileged, §3.3); on failure log one <code>Warning</code> on
+  <code>Channel::Main</code> and continue without it.</li>
+<li><strong>macOS:</strong> the POSIX syslog arm. <code>syslog(3)</code> routes into the unified logging
+  system via the ASL shim, visible in Console.app and <code>log show</code>. A true
+  <code>os_log</code> backend is an optional later increment (§13, slice 3).</li>
+<li><strong>journald (optional, later):</strong> a <code>sd_journal_send</code>-based backend passing
+  structured fields (<code>PRIORITY</code>, <code>SYSLOG_IDENTIFIER</code>, <code>AA_CHANNEL</code>, <code>CODE_FILE</code>,
+  <code>CODE_LINE</code>) — gated on a <code>Findsystemd</code> CMake module exactly like the
+  VTune/uProf finders. Not required for correct behaviour: the <code>&lt;N&gt;</code>-prefix
+  console path already delivers priorities under systemd.</li>
+</ul>
+<p>Frontend: <code>asynchronous_sink</code> with a bounded queue (§9).</p>
+<h3 id="54-file-sink">5.4 File sink<a class="headerlink" href="#54-file-sink" title="Permanent link">&para;</a></h3>
+<p><code>sinks::text_file_backend</code> with:</p>
+<ul>
+<li><code>rotation_size</code> (default 10 MiB) and a <code>file::collector</code> bounding total kept
+  size (default 5 files) — Boost's built-in rotation; <strong>no hand-rolled
+  rotation</strong>.</li>
+<li>Same formatter selection as the console (<code>text</code>/<code>json</code>).</li>
+<li>Default path: none — the sink only exists when <code>--log-file &lt;path&gt;</code> is given.</li>
+<li>Frontend: <code>asynchronous_sink</code> (§9).</li>
+</ul>
+<h2 id="6-environment-detection-and-the-auto-policy">6. Environment detection and the <code>auto</code> policy<a class="headerlink" href="#6-environment-detection-and-the-auto-policy" title="Permanent link">&para;</a></h2>
+<p><code>log_environment.{h,cpp}</code> provides three detections:</p>
+<h3 id="61-detections">6.1 Detections<a class="headerlink" href="#61-detections" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Detection</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Interactive TTY</strong></td>
+<td><code>isatty(STDERR_FILENO)</code> / <code>_isatty(_fileno(stderr))</code></td>
+</tr>
+<tr>
+<td><strong>stderr is the journal</strong></td>
+<td><code>$JOURNAL_STREAM</code> is set by systemd to <code>&lt;dev&gt;:&lt;inode&gt;</code> of the stream it attached; compare against <code>fstat(STDERR_FILENO)</code>. Match ⇒ stderr lands in journald.</td>
+</tr>
+<tr>
+<td><strong>Windows service context</strong></td>
+<td>present only once a service wrapper exists (none today); until then always false. Detection at that point: the service entry sets a flag (preferred over heuristics).</td>
+</tr>
+</tbody>
+</table>
+<p>Container detection (<code>/.dockerenv</code>, <code>/run/.containerenv</code>, cgroup heuristics) is
+<strong>deliberately not needed</strong>: under the policy below, a container resolves to
+"console only" through the default arm, and the JSON format is an explicit
+choice — so nothing depends on knowing "am I in Docker".</p>
+<h3 id="62-auto-sink-policy">6.2 <code>auto</code> sink policy<a class="headerlink" href="#62-auto-sink-policy" title="Permanent link">&para;</a></h3>
+<p><code>--log-sinks auto</code> (the default) resolves to:</p>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Sinks</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stderr is a TTY</td>
+<td><code>console</code> (text)</td>
+<td>interactive use</td>
+</tr>
+<tr>
+<td>stderr is the journal</td>
+<td><code>console</code> (text + <code>&lt;N&gt;</code> prefixes)</td>
+<td>journald owns storage/rotation; adding syslog would <strong>double-log</strong> every record</td>
+</tr>
+<tr>
+<td>Windows service context</td>
+<td><code>native</code> (Event Log) + <code>console</code></td>
+<td>the Event Log is the service-native trail; console keeps <code>sc</code>-attached debugging usable</td>
+</tr>
+<tr>
+<td>anything else (redirect, pipe, container)</td>
+<td><code>console</code> (text)</td>
+<td>the consumer (log driver, redirect target) owns storage; syslog here may write into a nonexistent <code>/dev/log</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Native and file sinks on POSIX are explicit opt-in</strong> (<code>--log-sinks
+console,native</code>, <code>--log-file …</code>) for non-systemd inits (SysV/OpenRC, launchd)
+and users who want them. This keeps <code>auto</code> incapable of double-logging or
+silently dropping records (§4, principle 4).</p>
+<p>The audit trail is a separate subsystem, independent of <code>--log-sinks</code> and not
+part of the sink set resolved here (§10).</p>
+<h2 id="7-severity-mappings">7. Severity mappings<a class="headerlink" href="#7-severity-mappings" title="Permanent link">&para;</a></h2>
+<p>One table in <code>severity_mappings.{h,cpp}</code>, used by every backend and by the
+journald <code>&lt;N&gt;</code> prefix:</p>
+<table>
+<thead>
+<tr>
+<th><code>Logging::Severity</code></th>
+<th>syslog / journald priority</th>
+<th>Windows event type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Trace</code></td>
+<td>7 debug</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Debug</code></td>
+<td>7 debug</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Info</code></td>
+<td>6 info</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Notify</code></td>
+<td>5 notice</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Warning</code></td>
+<td>4 warning</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><code>Error</code></td>
+<td>3 err</td>
+<td>Error</td>
+</tr>
+<tr>
+<td><code>Fatal</code></td>
+<td>2 crit</td>
+<td>Error</td>
+</tr>
+</tbody>
+</table>
+<p>Notes: <code>Notify</code> finally gets its natural syslog analogue (<code>notice</code>); nothing
+maps to 0/1 (emerg/alert are system-wide conditions, not application ones);
+<code>Fatal</code> maps to <code>crit</code>, not <code>emerg</code>. Expressed as <code>boost::log::sinks::syslog::custom_severity_mapping&lt;Severity&gt;</code>
+and <code>event_log::custom_event_type_mapping&lt;Severity&gt;</code> keyed on the existing
+<code>"Severity"</code> attribute.</p>
+<h2 id="8-options-surface">8. Options surface<a class="headerlink" href="#8-options-surface" title="Permanent link">&para;</a></h2>
+<p>A new <code>logging</code> options area following the standard pattern
+(<code>src/core/options/options_logging_options.{h,cpp}</code>, <code>tagLoggingSettings</code>,
+registered in the <code>src/aqualink-automate.cpp</code> pipeline):</p>
+<table>
+<thead>
+<tr>
+<th>Option (= config-file key)</th>
+<th>Values</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>log-sinks</code></td>
+<td><code>auto</code> or CSV of <code>console</code>, <code>native</code>, <code>file</code></td>
+<td><code>auto</code></td>
+<td><code>file</code> requires <code>log-file</code> (dependency check in <code>Validate()</code>)</td>
+</tr>
+<tr>
+<td><code>log-format</code></td>
+<td><code>text</code>, <code>json</code></td>
+<td><code>text</code></td>
+<td>applies to console and file sinks</td>
+</tr>
+<tr>
+<td><code>log-file</code></td>
+<td>path</td>
+<td><em>(unset)</em></td>
+<td>enables the file sink; implies <code>file</code> membership when <code>log-sinks=auto</code></td>
+</tr>
+<tr>
+<td><code>log-file-max-size</code></td>
+<td>bytes</td>
+<td>10 MiB</td>
+<td>rotation threshold</td>
+</tr>
+<tr>
+<td><code>log-file-max-files</code></td>
+<td>count</td>
+<td>5</td>
+<td>collector bound</td>
+</tr>
+<tr>
+<td><code>log-syslog-facility</code></td>
+<td><code>daemon</code>, <code>user</code>, <code>local0</code>–<code>local7</code></td>
+<td><code>daemon</code></td>
+<td>POSIX native sink only</td>
+</tr>
+</tbody>
+</table>
+<p>Validated types get <code>validate()</code> overloads under
+<code>src/core/options/validators/</code> per the established pattern; conflicts (e.g.
+<code>log-file-*</code> without <code>log-file</code>) are checked in <code>Validate()</code>.</p>
+<h3 id="81-interaction-with-existing-options">8.1 Interaction with existing options<a class="headerlink" href="#81-interaction-with-existing-options" title="Permanent link">&para;</a></h3>
+<p><code>--debug</code> / <code>--trace</code> / <code>--loglevel-&lt;channel&gt;</code> keep their meaning: they drive
+the <em>filter</em> (<code>SeverityFiltering</code>), which remains sink-independent. Sinks decide
+<em>where</em>, the filter decides <em>what</em>.</p>
+<h3 id="82-per-sink-thresholds--deliberately-omitted">8.2 Per-sink thresholds — deliberately omitted<a class="headerlink" href="#82-per-sink-thresholds--deliberately-omitted" title="Permanent link">&para;</a></h3>
+<p>v1 has one global filter shared by console/native/file sinks; a per-sink
+threshold (e.g. "Event Log gets Warning+ only") is a plausible v2, and the sink
+filter lambda is where it would slot in. The audit sink is the exception and is
+already channel-filtered.</p>
+<h3 id="83-bootstrap-ordering">8.3 Bootstrap ordering<a class="headerlink" href="#83-bootstrap-ordering" title="Permanent link">&para;</a></h3>
+<p>Today <code>Logging::Initialise()</code> runs <strong>before</strong> options processing so option
+errors are loggable. That stays: startup registers the <code>auto</code>-resolved console
+sink immediately; after options are processed, a reconfiguration step applies
+the resolved <code>SinkConfig</code> (adds native/file sinks, switches format). Console
+records emitted between the two points use the default text format — acceptable,
+and identical to how the profiler handles its post-options activation block.</p>
+<h2 id="9-threading-model">9. Threading model<a class="headerlink" href="#9-threading-model" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Console:</strong> <code>synchronous_sink</code>, <code>auto_flush(true)</code> — unchanged.</li>
+<li><strong>Native + file:</strong> <code>asynchronous_sink</code> with
+  <code>bounded_fifo_queue&lt;256, drop_on_overflow&gt;</code> — a stalled Event Log RPC, DNS
+  hiccup in a remote-syslog future, or slow disk must not block the kernel
+  thread that is also servicing RS-485 (see <code>kernel-architecture</code>; the app is
+  single-threaded cooperative). Drop-on-overflow is correct here: the console
+  sink still records everything, and the audit trail's durability lives in the
+  JSONL file, not the OS sink.</li>
+<li><strong>Shutdown:</strong> <code>SinkRegistry::FlushAll()</code> runs <code>feed_records()</code>/<code>flush()</code> on
+  the async frontends inside the ordered shutdown (before hub teardown), then
+  <code>RemoveAll()</code>. Boost async sinks require an explicit stop before destruction —
+  this is exactly the add-and-forget gap §3.2 calls out.</li>
+</ul>
+<h2 id="10-audit-trail-policy">10. Audit trail policy<a class="headerlink" href="#10-audit-trail-policy" title="Permanent link">&para;</a></h2>
+<p><strong>Design principle: audit is a subsystem, not a log channel.</strong> The
+security audit trail (auth decisions, privileged actions on users/keys/sessions)
+is a different <em>category</em> of data from operational logs — different retention,
+access control, consumers (SIEM / incident response, not a developer tailing
+<code>journalctl</code>), and integrity expectations. The industry standard is to keep the
+two streams <strong>separate</strong> (NIST SP 800-92; PCI-DSS req. 10; CIS Controls), and on
+POSIX the <code>LOG_AUTHPRIV</code> syslog facility exists precisely to route this class of
+event to a restricted-permission file that can be forwarded off-box by facility.</p>
+<p>The current code models audit incoherently — it is <em>both</em> a general
+<code>Logging::Channel</code> riding the shared <code>LogX</code>/sink plumbing <em>and</em> a bespoke extra
+sink (<code>RegisterAuditOsSink</code>). This redesign picks one lane: <strong>audit owns its own
+path and does not flow through the operational sinks at all.</strong></p>
+<h3 id="101-the-three-destinations-and-which-one-is-authoritative">10.1 The three destinations, and which one is authoritative<a class="headerlink" href="#101-the-three-destinations-and-which-one-is-authoritative" title="Permanent link">&para;</a></h3>
+<p><code>Auth::AuditLog::Record()</code> (the single existing entry point) drives all three;
+it no longer calls the general <code>LogX</code> facade:</p>
+<table>
+<thead>
+<tr>
+<th>Destination</th>
+<th>Role</th>
+<th>Integrity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OS-native, forward-capable</strong> — POSIX syslog <code>LOG_AUTHPRIV</code>, or a dedicated Windows Event Log source</td>
+<td><strong>The authoritative copy.</strong> Off-box forwarding (rsyslog/journald → SIEM) is the tamper-resistant path: the app cannot un-send a delivered record.</td>
+<td>high (when forwarded)</td>
+</tr>
+<tr>
+<td><strong>Local append-only JSONL</strong> in the hardened state dir (<code>AuditLog::AppendJsonl</code>)</td>
+<td>Convenience + availability: feeds the in-app audit viewer, survives a SIEM/network outage, and is the fallback when no OS sink registers.</td>
+<td><strong>low</strong> — the app's own uid can rewrite it; explicitly <em>not</em> the integrity anchor</td>
+</tr>
+<tr>
+<td><strong>Dev echo to console</strong> (opt-in, default <strong>off</strong>)</td>
+<td>Local visibility during development / a container with no syslog + no SIEM.</td>
+<td>n/a</td>
+</tr>
+</tbody>
+</table>
+<p>This corrects the earlier framing that called the JSONL "the durable trail." A
+file the process can overwrite is not tamper-resistant against app compromise;
+integrity comes from the forwarded copy, and the JSONL is demoted to
+convenience/fallback. (Hash-chaining or WORM storage would raise local
+integrity, but that is compliance machinery beyond this project's threat model —
+see §12.)</p>
+<h3 id="102-separation-from-operational-logs">10.2 Separation from operational logs<a class="headerlink" href="#102-separation-from-operational-logs" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Audit records <strong>do not</strong> go to the general console/file sinks. That kills the
+  previous double-appearance under systemd (audit riding both console→journal
+  <em>and</em> the syslog sink) and the information-hygiene leak of subject IDs / peer
+  IPs into the general operational stream, which has looser access than
+  <code>auth.log</code>.</li>
+<li>The audit OS sink is registered by the auth bootstrap whenever auth is
+  enabled, <strong>independent of <code>--log-sinks</code></strong> — audit routing is a security
+  property, not a logging preference.</li>
+<li>Consequence for the <code>Channel</code> enum: <code>Audit</code> is <strong>removed from the operational
+  logging channels</strong> (the sink layer never sees it), which makes the separation
+  leak-proof by construction — a new operational sink cannot accidentally carry
+  audit, because audit never enters the shared logging core as a normal channel.
+  The optional dev echo, when enabled (its own toggle, e.g.
+  <code>--audit-console-echo</code>, default off), is the only way audit text reaches the
+  operational console.</li>
+<li><strong>Ripple of removing the enumerator</strong> (mostly free because the per-channel
+  loglevel options are data-driven off the enum via
+  <code>magic_enum::enum_for_each&lt;Logging::Channel&gt;</code>): <code>--loglevel-audit</code> and its
+  entry in <code>--replay-filename</code>'s dependency list <strong>disappear automatically</strong>;
+  the hand-maintained lists need manual edits — <code>LOG_CHANNELS</code> in
+  <code>playwright.config.ts</code> and the channel list in <code>docs/configuration.md</code> (which
+  returns to 18 operational channels, with audit documented separately as a
+  subsystem). Low-stakes: audit is unreleased (it arrives on <code>feat/auth-authz</code>),
+  so <code>--loglevel-audit</code> never shipped. Note the ordering vs the do-now
+  configuration.md fix (§16, cross-cutting): that fix makes the doc say <strong>19</strong>
+  to match <em>today's</em> code; slice 1 then returns it to <strong>18 + audit-subsystem</strong>.
+  Present-tense truth first, then the redesign updates it — sequential, not
+  contradictory.</li>
+</ul>
+<h3 id="103-posix-facility--log_authpriv-not-log_auth">10.3 POSIX facility — <code>LOG_AUTHPRIV</code>, not <code>LOG_AUTH</code><a class="headerlink" href="#103-posix-facility--log_authpriv-not-log_auth" title="Permanent link">&para;</a></h3>
+<p>The audit sink uses the <strong>private</strong> auth facility: Boost's
+<code>sinks::syslog::security1</code> (facility 10 on Linux = <code>LOG_AUTHPRIV</code>), <strong>not</strong>
+<code>security0</code> (facility 4 = <code>LOG_AUTH</code>). <code>AUTHPRIV</code> is the modern choice for
+records that carry identities: distros route it to a restricted-mode file
+(<code>/var/log/auth.log</code> 0640 <code>root:adm</code> on Debian-family; <code>/var/log/secure</code> on
+RHEL) rather than the world-adjacent <code>LOG_AUTH</code> destinations. (The Boost enum's
+numeric value matches the Linux <code>LOG_AUTHPRIV</code> constant; verify per-platform
+before relying on it on non-Linux POSIX.) With the explicit severity mapping
+(§7), audit denials logged at <code>Notify</code>/<code>Warning</code> now carry <code>notice</code>/<code>warning</code>
+priority instead of collapsing to <code>info</code>.</p>
+<h3 id="104-windows--an-honest-asymmetry">10.4 Windows — an honest asymmetry<a class="headerlink" href="#104-windows--an-honest-asymmetry" title="Permanent link">&para;</a></h3>
+<p>The true platform analogue is the Windows <strong>Security</strong> event log, but writing to
+it requires the process to be a registered LSA source — infeasible for an
+ordinary service. So on Windows the audit trail uses a <strong>dedicated Event Log
+source in the Application log</strong>, distinct from the operational source: separation
+in name and queryability, but <em>not</em> the privileged Security log. This is a
+known, documented limitation (see §11 for the install-time source registration),
+not the equal of the POSIX <code>AUTHPRIV</code> story.</p>
+<h3 id="105-which-school-this-is">10.5 Which school this is<a class="headerlink" href="#105-which-school-this-is" title="Permanent link">&para;</a></h3>
+<p>Two defensible models exist: the <strong>classic syslog</strong> approach (separate facility →
+separate file → separate handling, above) and the <strong>modern structured-events</strong>
+approach (one stream, tag audit with a field, route downstream in the pipeline).
+This project chooses classic, because it delivers separation <em>by default</em> on any
+systemd distro with <strong>zero operator configuration</strong> — the right default for a
+self-hosted appliance where the operator may run neither a SIEM nor custom
+rsyslog rules. An operator who prefers the structured-events model can still
+forward-and-route by field; nothing here precludes it.</p>
+<h2 id="11-packaging">11. Packaging<a class="headerlink" href="#11-packaging" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Windows:</strong> register the event source at install time — create
+  <code>HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\Aqualink-Automate</code>
+  with <code>EventMessageFile</code> pointing at a shipped message resource and
+  <code>TypesSupported = 0x07</code>. Without this, unprivileged runs get no Event Log at
+  all (§3.3) and privileged runs render the "description not found" wrapper.
+  The message resource is a minimal message-table DLL (or embedded in the exe)
+  whose IDs match Boost's <code>simple_event_log_backend</code> insertion scheme. Owned by
+  whatever Windows install artifact ships (currently none — this lands together
+  with a future Windows service wrapper; until then the try/catch downgrade
+  stands).</li>
+<li><strong>deb/rpm/systemd:</strong> nothing to add — the unit file's journal routing is
+  already correct, and the <code>&lt;N&gt;</code> prefixes need no packaging support.</li>
+<li><strong>Docker:</strong> nothing to add — stdout/stderr semantics are unchanged;
+  <code>--log-format json</code> is a user choice via CMD/args.</li>
+</ul>
+<h2 id="12-non-goals">12. Non-goals<a class="headerlink" href="#12-non-goals" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Replacing Boost.Log</strong> (spdlog etc.) — everything needed is in the existing
+  dependency.</li>
+<li><strong>A heavy abstraction over Boost.Log's sink API</strong> — the registry is a thin
+  owner; sinks are constructed with plain Boost types.</li>
+<li><strong>JSON console by default</strong> — humans first; pipelines opt in.</li>
+<li><strong>Auto-detecting containers</strong> — made unnecessary by the <code>auto</code> policy (§6.1).</li>
+<li><strong>Per-sink severity thresholds</strong> (§8.2) and <strong>remote syslog (RFC 3164 UDP)</strong> —
+  possible later; the backend supports it (<code>syslog::udp_socket_based</code>), but it
+  needs the async frontend first and has no current demand.</li>
+<li><strong>Changing the audit JSONL <em>format</em></strong> — the on-disk record and its owner-only
+  permissions are unchanged; §10 only reframes its <em>role</em> (convenience/fallback,
+  not the integrity anchor) and stops audit flowing through the operational
+  sinks.</li>
+<li><strong>Local audit integrity hardening</strong> (hash-chaining, append-only/WORM media) —
+  the forwarded copy is the integrity story (§10.1); local tamper-resistance is
+  compliance machinery this threat model does not warrant.</li>
+</ul>
+<h2 id="13-implementation-slices">13. Implementation slices<a class="headerlink" href="#13-implementation-slices" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Slice</th>
+<th>Contents</th>
+<th>Payoff</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1 — fidelity + structure</strong></td>
+<td><code>sinks/</code> module: <code>SinkRegistry</code>, severity-mapping tables, environment detection, journald <code>&lt;N&gt;</code> prefixes, native sink generalised out of <code>audit_log.cpp</code> (with explicit mappings + <code>daemon</code> general / <code>security1</code>=<code>LOG_AUTHPRIV</code> audit facilities), <code>Audit</code> removed from operational channels and given its own path (§10), async frontends, shutdown flush, <code>logging</code> options area (<code>log-sinks</code>, <code>log-syslog-facility</code>)</td>
+<td>fixes every §3.1 fidelity bug; establishes the pattern; audit becomes a separate, forward-capable trail with correct priorities</td>
+</tr>
+<tr>
+<td><strong>2 — file + json</strong></td>
+<td><code>log-file</code> (+ rotation options) via <code>text_file_backend</code>; <code>log-format json</code> for console and file</td>
+<td>non-systemd installs and container pipelines</td>
+</tr>
+<tr>
+<td><strong>3 — optional natives</strong></td>
+<td>journald backend (<code>Findsystemd</code>, structured fields), macOS <code>os_log</code> backend, Windows event-source packaging + service wrapper defaulting</td>
+<td>nice-to-have depth, each independently shippable</td>
+</tr>
+</tbody>
+</table>
+<p>Each slice ships with its tests (§14) and documentation updates (§15) in the
+same change — a sink whose behaviour is untested or undocumented is not done.</p>
+<h2 id="14-test-strategy">14. Test strategy<a class="headerlink" href="#14-test-strategy" title="Permanent link">&para;</a></h2>
+<p>Sinks are I/O boundaries, so the strategy is layered: pure logic gets exhaustive
+unit tests, OS backends get intercepted at the nearest seam we control, and the
+end-to-end layer exercises the <em>real process</em> writing to <em>real transports</em>
+wherever the CI platform allows — with clean skips (not silent passes) where it
+does not.</p>
+<h3 id="141-unit-tests-testunitlogging--new-suite-needs-a-cmakeliststxt-entry-plus-testunitoptions">14.1 Unit tests (<code>test/unit/logging/</code> — new suite, needs a <code>CMakeLists.txt</code> entry; plus <code>test/unit/options/</code>)<a class="headerlink" href="#141-unit-tests-testunitlogging--new-suite-needs-a-cmakeliststxt-entry-plus-testunitoptions" title="Permanent link">&para;</a></h3>
+<p>Testability requirements this imposes on the design (build these in from the
+start, do not retrofit):</p>
+<ul>
+<li>The console sink takes an injectable <code>std::ostream</code> (production passes
+  <code>std::clog</code>; tests pass a <code>std::ostringstream</code>).</li>
+<li><code>DetectLogEnvironment()</code> takes injectable environment/<code>fstat</code> providers;
+  tests force TTY/journal/service states rather than detecting them.</li>
+<li><code>SinkRegistry</code> supports full <code>RemoveAll()</code> teardown so suites are hermetic
+  (generalising the handle-return pattern <code>RegisterAuditOsSink</code> uses today).</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What is asserted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Severity mappings</td>
+<td>Exhaustive over <code>Logging::Severity</code> via <code>magic_enum::enum_for_each</code> — a newly added severity fails the test instead of silently taking a backend default (the exact failure mode §3.1 describes). Both tables: syslog level and Windows event type.</td>
+</tr>
+<tr>
+<td>Environment detection</td>
+<td><code>JOURNAL_STREAM</code> parsing (<code>dev:inode</code>, malformed values, unset), match/mismatch against injected <code>fstat</code> results, TTY and service flags; the full §6.2 <code>auto</code>-resolution truth table.</td>
+</tr>
+<tr>
+<td>Console sink</td>
+<td>Text format golden output; JSON format — every emitted line parses (nlohmann), field set matches §5.2, escaping of quotes/newlines/non-ASCII in messages; <code>&lt;N&gt;</code> prefix present exactly when journal-connected, correct N per severity, multi-line rule (first line only).</td>
+</tr>
+<tr>
+<td>File sink</td>
+<td>In a temp dir: rotation triggers at <code>log-file-max-size</code>; collector enforces <code>log-file-max-files</code>; text/json parity with console.</td>
+</tr>
+<tr>
+<td>SinkRegistry</td>
+<td>Add/flush/remove lifecycle; bootstrap-then-reconfigure (§8.3) does not drop or duplicate records; <code>FlushAll()</code> on an async frontend delivers every queued record before returning (emit N, flush, count N).</td>
+</tr>
+<tr>
+<td><strong>Syslog on the wire</strong></td>
+<td>The key trick: construct the syslog sink with <code>use_impl = udp_socket_based</code> targeting <code>127.0.0.1:&lt;ephemeral&gt;</code> where the test owns the UDP socket, and assert the RFC 3164 <code>PRI</code> field (<code>facility × 8 + severity</code>) for every severity and for both facilities (<code>daemon</code> general, <code>security1</code>=<code>LOG_AUTHPRIV</code> audit). This verifies the real Boost consume path and our mapping end-to-end, cross-platform (it is plain UDP — it runs on the Windows dev build too), without touching the system logger.</td>
+</tr>
+<tr>
+<td>Audit policy</td>
+<td>Audit trail registered whenever auth is on regardless of <code>log-sinks</code>; carries the <code>security1</code> (<code>LOG_AUTHPRIV</code>) facility (assert <code>PRI</code> via the UDP trick); and — the separation guarantee — an audit event does <strong>not</strong> appear on the general console/file sinks (emit an audit record with a <code>std::ostringstream</code> console sink installed, assert it is absent). Generalises the existing audit-sink test in <code>test/unit/auth/</code>.</td>
+</tr>
+<tr>
+<td>Options</td>
+<td>Parsing/validation of the <code>logging</code> area: CSV <code>log-sinks</code> values, <code>file</code>-requires-<code>log-file</code> dependency, <code>log-file-*</code>-without-<code>log-file</code> conflicts, facility enum validation. Config-file keys come free as option long names.</td>
+</tr>
+</tbody>
+</table>
+<p>Windows Event Log's <code>consume</code> path cannot run without a registered event source,
+so at unit level only its mapping table is covered; the consume path is
+integration-gated (§14.2).</p>
+<h3 id="142-integration-tests-environment-gated-skip-cleanly-when-unavailable">14.2 Integration tests (environment-gated, skip cleanly when unavailable)<a class="headerlink" href="#142-integration-tests-environment-gated-skip-cleanly-when-unavailable" title="Permanent link">&para;</a></h3>
+<p>Gated with <code>boost::unit_test::precondition</code> (or a runtime skip that <em>reports</em>
+skipped, never silently passes):</p>
+<ul>
+<li><strong>Windows Event Log round-trip</strong> — requires elevation (HKLM registration,
+  §3.3). Register the source, emit records at each severity through the real
+  sink, read back via the Win32 <code>EvtQuery</code> API filtered on provider
+  <code>Aqualink-Automate</code>, assert the <code>Level</code> of each. GitHub-hosted Windows
+  runners execute elevated, so this runs in any future Windows CI leg; locally
+  it runs in an admin shell and skips otherwise.</li>
+<li><strong>journald ingest (Linux)</strong> — requires a running journald + permission to
+  read it. Emit via the native-syslog audit path, then assert via
+  <code>journalctl SYSLOG_IDENTIFIER=&lt;test identifier&gt; -o json</code> that <code>PRIORITY</code> and
+  <code>SYSLOG_FACILITY</code> match. GitHub-hosted Ubuntu runners have journald;
+  containers typically do not — hence the gate.</li>
+</ul>
+<h3 id="143-end-to-end-real-process-real-transports">14.3 End-to-end (real process, real transports)<a class="headerlink" href="#143-end-to-end-real-process-real-transports" title="Permanent link">&para;</a></h3>
+<p>A new <code>e2e/logging.spec.ts</code> in the existing Playwright suite — no browser
+needed; it uses the suite's app-launch conventions (replay fixture, the
+<code>--replay-filename</code> dependency flag set from <code>playwright.config.ts</code>) but spawns
+its own short-lived app processes and captures their stderr directly:</p>
+<ul>
+<li><strong>Default text format</strong>: launch, capture stderr, assert startup records match
+  the text format and severities/channels render.</li>
+<li><strong>JSON format</strong>: launch with <code>--log-format json</code>, assert <em>every</em> stderr line
+  parses as JSON with the §5.2 field set (a single non-JSON line is a failure —
+  this is the guarantee container pipelines depend on).</li>
+<li><strong>journald prefixes</strong> (Linux runners only): the spec <code>fstat</code>s the read end of
+  the stderr pipe it created and sets <code>JOURNAL_STREAM=&lt;dev&gt;:&lt;inode&gt;</code> in the
+  child's environment — both ends of a pipe share the inode, so the app's own
+  <code>fstat(STDERR_FILENO)</code> matches and the real detection path (not a test flag)
+  activates. Assert <code>&lt;N&gt;</code> prefixes with correct priorities.</li>
+<li><strong>File sink + shutdown flush</strong>: launch with <code>--log-file</code> and a tiny
+  <code>--log-file-max-size</code>, assert the file exists, rotates, and — after SIGTERM —
+  contains the final records (this end-to-ends <code>SinkRegistry::FlushAll()</code> on
+  the async frontend through the real ordered shutdown).</li>
+<li>Processes are stopped with <strong>SIGTERM, never SIGKILL</strong> — same rationale as the
+  <code>gracefulShutdown</code> block in <code>playwright.config.ts</code>: the coverage e2e job
+  (<code>automated-codescanning.yml</code>) only gets <code>.gcda</code> counters from a clean exit.</li>
+</ul>
+<p><strong>CI wiring:</strong></p>
+<ul>
+<li>The <code>e2e</code> job in <code>ci.yml</code> (Linux install tree) picks the spec up
+  automatically; the journald-prefix case runs for real there.</li>
+<li>The <code>docker-verify</code> job's <em>"Verify runtime starts (app)"</em> step gains two
+  assertions: <code>docker logs</code> shows startup records (proves <code>auto_flush</code> through
+  the container pipe end-to-end), and a second short run with
+  <code>--log-format json</code> appended to CMD yields only parseable lines.</li>
+<li>Best-effort systemd leg (optional, Linux CI): <code>sudo systemd-run --wait -p
+  StandardOutput=journal -p SyslogIdentifier=aqualink-e2e &lt;exe&gt; …</code> then assert
+  priorities via <code>journalctl -o json</code>. Runner-fragile; implement with a
+  hard-skip when <code>systemd-run</code> is unavailable and treat as advisory, not
+  required.</li>
+</ul>
+<h3 id="144-coverage-gate-note">14.4 Coverage-gate note<a class="headerlink" href="#144-coverage-gate-note" title="Permanent link">&para;</a></h3>
+<p>The SonarCloud new-code gate merges unit + Playwright-e2e coverage from the
+Linux build. The sink module's POSIX arms are all reachable there: console/json/
+file/registry via unit tests and <code>e2e/logging.spec.ts</code>, the syslog consume path
+via the UDP unit test, journald prefixes via the pipe trick. The only
+Linux-unreachable code is the Windows Event Log arm (<code>#if defined(_WIN32)</code>),
+which is excluded from Linux coverage by preprocessing — so the gate sees no
+uncovered new lines from it. Do not let the file/native sinks land ahead of
+their tests: 8000-line coverage debts are how the PR #50 situation happened.</p>
+<h2 id="15-documentation-impact">15. Documentation impact<a class="headerlink" href="#15-documentation-impact" title="Permanent link">&para;</a></h2>
+<p>Per the repo's doc-accuracy rules (a doc that contradicts the code is a
+defect), each slice updates the docs it invalidates <strong>in the same change</strong>:</p>
+<h3 id="151-user-facing-docs-published-to-the-docs-site-by-docsyml">15.1 User-facing docs (published to the docs site by <code>docs.yml</code>)<a class="headerlink" href="#151-user-facing-docs-published-to-the-docs-site-by-docsyml" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Doc</th>
+<th>Update</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docs/configuration.md</code></td>
+<td>New "Logging" options section: the §8 table (<code>log-sinks</code>, <code>log-format</code>, <code>log-file</code>, <code>log-file-max-size</code>, <code>log-file-max-files</code>, <code>log-syslog-facility</code>), the <code>auto</code> policy table (§6.2), and interaction with <code>--debug</code>/<code>--trace</code>/<code>--loglevel-&lt;channel&gt;</code> (filter vs sink). <strong>Pre-existing defect found while designing this</strong> (fix independently — it does not wait for this feature): the channel list says "18 channels" and omits <code>audit</code> (there are 19), and the worked replay example omits <code>--loglevel-audit</code>, so copy-pasting it fails validation.</td>
+</tr>
+<tr>
+<td><code>docs/SECURITY.md</code></td>
+<td>Audit-trail section (§10): audit is a separate subsystem, not an operational log channel; the OS-native <code>LOG_AUTHPRIV</code> (<code>security1</code>) destination is the <strong>authoritative, forward-capable</strong> copy (events land in restricted <code>auth.log</code>/<code>secure</code> on POSIX), the local JSONL is convenience/fallback (owner-only, <em>not</em> the integrity anchor), audit does not flow to the operational sinks, and the Windows asymmetry (dedicated Application-log source, not the privileged Security log).</td>
+</tr>
+<tr>
+<td><code>docs/INSTALL.md</code></td>
+<td>"Viewing logs" notes: <code>journalctl -u aqualink-automate -p warning</code> now meaningful (slice 1); <code>docker logs</code> + <code>--log-format json</code> for container pipelines (slice 2).</td>
+</tr>
+<tr>
+<td><code>docs/raspberry-pi.md</code></td>
+<td>Check at implementation time — if it walks through log viewing, align the journalctl guidance.</td>
+</tr>
+<tr>
+<td><code>docs/profiling.md</code></td>
+<td>The doc-accuracy table maps the logging facade here; add a short "where records go" subsection linking to this design and the configuration reference.</td>
+</tr>
+<tr>
+<td><code>README.md</code> / <code>CHANGELOG.md</code></td>
+<td>CHANGELOG entry per slice; README only if it enumerates logging among features.</td>
+</tr>
+</tbody>
+</table>
+<p>Explicit non-changes, stated so they are checked rather than forgotten:
+<strong><code>assets/web/api/swagger.yaml</code></strong> — no HTTP routes, schemas, or WS events change
+in v1 (the diagnostics logging route is untouched); <strong>i18n catalogs</strong> — no
+user-visible UI text changes in v1. Both become real work items only if a
+"active sinks" card is ever added to the Diagnostics page (a possible v2, at
+which point the swagger + <code>en.js</code>-plus-every-locale + pseudo-scan rules apply).</p>
+<h3 id="152-repo--contributor-docs">15.2 Repo / contributor docs<a class="headerlink" href="#152-repo--contributor-docs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Doc</th>
+<th>Update</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.claude/skills/backend-observability/SKILL.md</code></td>
+<td>The checked-in skill documents the logging half of observability. Add: the sink layer (registry, sink kinds, <code>auto</code> policy), an "add a sink kind" checklist mirroring the existing "add a Channel" one, and new gotchas (every OS backend needs the explicit severity mapping; async sinks must be flushed via the registry before shutdown; console stream is injectable for tests).</td>
+</tr>
+<tr>
+<td><code>CLAUDE.md</code> doc-accuracy table</td>
+<td>Extend the "Profiling/logging facade" row so sink/option changes also point at <code>docs/configuration.md</code> + <code>docs/SECURITY.md</code>.</td>
+</tr>
+<tr>
+<td><code>docs/logging-sinks-redesign.md</code> (this doc)</td>
+<td>Reconcile + date per slice as it lands; it is a dated snapshot, not living truth.</td>
+</tr>
+<tr>
+<td><code>playwright.config.ts</code></td>
+<td>Comment block documents the launch flags — extend if the logging spec adds conventions others must follow (SIGTERM rule, JOURNAL_STREAM trick).</td>
+</tr>
+</tbody>
+</table>
+<p>Guard rail: the new <code>logging</code> options must <strong>not</strong> be added to
+<code>--replay-filename</code>'s dependency list (<code>options_developer_options.cpp</code>) — that
+list is per-channel log <em>levels</em>, not sinks; accidentally extending it breaks
+every documented replay invocation and the e2e harness.</p>
+<h2 id="16-work-plan-phases-tasks-dependencies">16. Work plan (phases, tasks, dependencies)<a class="headerlink" href="#16-work-plan-phases-tasks-dependencies" title="Permanent link">&para;</a></h2>
+<p>The three slices of §13 decompose into phases. Tests (§14) and docs (§15) are
+<strong>not</strong> separate phases — each phase lands with its own tests and doc updates in
+the same change, or it is not done. Ordering within a slice is by dependency,
+not calendar.</p>
+<h3 id="slice-1--fidelity--structure">Slice 1 — fidelity + structure<a class="headerlink" href="#slice-1--fidelity--structure" title="Permanent link">&para;</a></h3>
+<p>The load-bearing slice: it fixes every §3.1 priority bug, establishes the
+pattern, and separates the audit trail onto its own path (§10). Phases 1A and 1B
+are pure and independent (build them first, in parallel); everything downstream
+depends on them.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Tasks</th>
+<th>Depends on</th>
+<th>Lands with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1A — Severity mappings</strong></td>
+<td><code>severity_mappings.{h,cpp}</code>: <code>Severity → syslog::level</code>, <code>Severity → event_log::event_type</code>, and <code>Severity → &lt;N&gt;</code> priority (§7). Pure functions, no I/O.</td>
+<td>—</td>
+<td>Exhaustive <code>magic_enum</code> mapping unit test (both tables + <code>&lt;N&gt;</code>).</td>
+</tr>
+<tr>
+<td><strong>1B — Environment detection</strong></td>
+<td><code>log_environment.{h,cpp}</code>: <code>isatty</code>, <code>JOURNAL_STREAM</code>+<code>fstat</code> match, service flag — all behind <strong>injectable providers</strong>. <code>ResolveAutoSinks()</code> implements the §6.2 truth table.</td>
+<td>—</td>
+<td>Unit tests: <code>JOURNAL_STREAM</code> parsing edge cases, match/mismatch, full auto-resolution table.</td>
+</tr>
+<tr>
+<td><strong>1C — Console sink + registry</strong></td>
+<td><code>sink_console.{h,cpp}</code> (injectable <code>std::ostream</code>, extract existing <code>Formatter</code> as the text format, <code>&lt;N&gt;</code>-prefix wrapper); <code>sink_registry.{h,cpp}</code> (owns handles, <code>Add</code>/<code>FlushAll</code>/<code>RemoveAll</code>). Refactor <code>logging_initialise.cpp</code> to build the console sink via the registry; keep a no-arg overload for pre-options startup (§8.3).</td>
+<td>1A, 1B</td>
+<td>Unit: console text golden, <code>&lt;N&gt;</code> present iff journal-connected + multi-line rule, registry add/flush/remove lifecycle, bootstrap-then-reconfigure keeps records.</td>
+</tr>
+<tr>
+<td><strong>1D — Native sink + audit separation</strong></td>
+<td><code>sink_native.{h,cpp}</code>: POSIX <code>syslog_backend</code> + Windows <code>simple_event_log_backend</code> arms, each with the explicit mapping from 1A and a configurable facility (<code>daemon</code> general / <code>security1</code>=<code>LOG_AUTHPRIV</code> audit). Move <code>RegisterAuditOsSink</code>’s body here. <strong>Remove <code>Audit</code> from the operational <code>Channel</code> enum</strong> and reroute <code>AuditLog::Record()</code> off the <code>LogX</code> facade onto its own dedicated native sink + JSONL + optional off-by-default dev echo (§10). Async frontend (§9).</td>
+<td>1A, 1C</td>
+<td>Unit: syslog <strong>UDP-wire</strong> PRI test (all severities × both facilities incl. <code>LOG_AUTHPRIV</code>), audit-separation test (audit absent from the general console sink). Integration (gated): Event Log <code>EvtQuery</code> round-trip, journald ingest.</td>
+</tr>
+<tr>
+<td><strong>1E — Options + activation</strong></td>
+<td><code>options_logging_options.{h,cpp}</code> + <code>tagLoggingSettings</code> with <code>log-sinks</code> and <code>log-syslog-facility</code> (slice-1 subset). Wire into <code>aqualink-automate.cpp</code>: early <code>Initialise()</code> (console), then post-options reconfigure applying the resolved <code>SinkConfig</code>; register <code>FlushAll()</code>/<code>RemoveAll()</code> into the ordered shutdown.</td>
+<td>1C (registry), 1B (auto policy)</td>
+<td>Unit: options parse/validate (CSV <code>log-sinks</code>, facility enum, config-file keys as long names).</td>
+</tr>
+<tr>
+<td><strong>1F — E2E + slice-1 docs</strong></td>
+<td><code>e2e/logging.spec.ts</code>: text-format startup capture; journald-prefix case via the <code>JOURNAL_STREAM</code> pipe-inode trick (Linux). <code>docker-verify</code>: assert <code>docker logs</code> shows startup records. Docs: <code>configuration.md</code> logging section, <code>SECURITY.md</code> audit routing, <code>backend-observability</code> skill, <code>CLAUDE.md</code> doc-accuracy row.</td>
+<td>1C–1E</td>
+<td>(is the test/doc phase)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="slice-2--file--json">Slice 2 — file + json<a class="headerlink" href="#slice-2--file--json" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Tasks</th>
+<th>Depends on</th>
+<th>Lands with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>2A — File sink</strong></td>
+<td><code>sink_file.{h,cpp}</code>: <code>text_file_backend</code> + <code>file::collector</code> (size rotation + kept-file bound), async frontend. Options <code>log-file</code>, <code>log-file-max-size</code>, <code>log-file-max-files</code>.</td>
+<td>1C, 1E</td>
+<td>Unit (temp dir): rotation at max-size, collector enforces max-files.</td>
+</tr>
+<tr>
+<td><strong>2B — JSON format</strong></td>
+<td>JSON-lines formatter (nlohmann) shared by console + file; <code>log-format</code> option; <code>auto</code> treats <code>log-file</code> presence as implying the <code>file</code> sink.</td>
+<td>1C, 2A</td>
+<td>Unit: every line parses, §5.2 field set, escaping (quote/newline/non-ASCII).</td>
+</tr>
+<tr>
+<td><strong>2C — E2E + slice-2 docs</strong></td>
+<td><code>e2e/logging.spec.ts</code>: <code>--log-format json</code> every-line-parses; <code>--log-file</code> + tiny max-size rotates and survives SIGTERM flush. <code>docker-verify</code>: a second run with <code>--log-format json</code> yields only parseable lines. Docs: <code>INSTALL.md</code> container-pipeline + log-viewing notes, <code>configuration.md</code> format/file options.</td>
+<td>2A, 2B</td>
+<td>(is the test/doc phase)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="slice-3--optional-natives-independent-lower-priority">Slice 3 — optional natives (independent, lower priority)<a class="headerlink" href="#slice-3--optional-natives-independent-lower-priority" title="Permanent link">&para;</a></h3>
+<p>Each is independently shippable and none blocks slices 1–2.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Tasks</th>
+<th>Depends on</th>
+<th>Lands with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>3A — journald backend</strong></td>
+<td><code>sd_journal_send</code> backend with structured fields (<code>PRIORITY</code>, <code>SYSLOG_IDENTIFIER</code>, <code>AA_CHANNEL</code>, <code>CODE_FILE</code>, <code>CODE_LINE</code>), behind a <code>Findsystemd</code> CMake module (mirrors <code>FindVTune</code>/<code>FindUProf</code>). Optional upgrade over the <code>&lt;N&gt;</code>-prefix path.</td>
+<td>1D</td>
+<td>journald-ingest integration test asserts the structured fields.</td>
+</tr>
+<tr>
+<td><strong>3B — macOS <code>os_log</code></strong></td>
+<td>Native <code>os_log</code> backend replacing the syslog-shim arm on macOS.</td>
+<td>1D</td>
+<td>Gated integration test (<code>log show</code>).</td>
+</tr>
+<tr>
+<td><strong>3C — Windows event source + service</strong></td>
+<td>Message-table resource + install-time HKLM registration (§11), sequenced with a Windows service wrapper that sets the service-context flag (§6.1).</td>
+<td>1D</td>
+<td>Elevated Event Log round-trip becomes unconditional on Windows CI.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cross-cutting-do-now-independent-of-the-slices">Cross-cutting, do-now (independent of the slices)<a class="headerlink" href="#cross-cutting-do-now-independent-of-the-slices" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Fix the stale channel list in <code>configuration.md</code></strong> — says "18 channels",
+  omits <code>audit</code> (there are 19), and the worked replay example omits
+  <code>--loglevel-audit</code> so it fails copy-paste. Pre-existing defect surfaced during
+  design; already tracked separately. Not gated on any slice.</li>
+</ul>
+<h3 id="decision-gates">Decision gates<a class="headerlink" href="#decision-gates" title="Permanent link">&para;</a></h3>
+<p>Two §18 open decisions gate specific phases and should be settled before they
+start (neither blocks 1A–1C):</p>
+<ul>
+<li><strong>1D / 1E</strong>: the general-sink syslog facility (<code>daemon</code> vs <code>user</code>) and the
+  audit dev-echo option name (§18.1, §18.3; the systemd double-record question is
+  now resolved by the audit separation, §18.2).</li>
+<li><strong>2B</strong>: the JSON field schema, if a specific pipeline (Loki/CloudWatch) is the
+  target.</li>
+<li><strong>3C</strong>: predicated on a Windows service wrapper existing at all.</li>
+</ul>
+<h2 id="17-end-state-matrix">17. End-state matrix<a class="headerlink" href="#17-end-state-matrix" title="Permanent link">&para;</a></h2>
+<p>Two mental models to correct first:</p>
+<ol>
+<li><strong>Operational channels do not route to different sinks.</strong> Each of the 18
+   operational <code>Logging::Channel</code> values flows to <em>every active operational
+   sink</em>, gated only by the per-channel severity filter (<code>SeverityFiltering</code>,
+   unchanged). So the operational "sink × channel matrix" is a wall of <em>yes</em>;
+   the real structure is in the environment and severity dimensions.</li>
+<li><strong>Audit is not on that grid at all.</strong> The audit trail (§10) is a separate
+   subsystem with its own destinations (<code>LOG_AUTHPRIV</code> native + JSONL + opt-in
+   dev echo); it does not appear on the operational sinks and is not a
+   <code>Logging::Channel</code>. It is shown below as its own row precisely to make that
+   separation visible.</li>
+</ol>
+<h3 id="171-which-sinks-are-live-and-how-each-renders-environment--sink">17.1 Which sinks are live, and how each renders (environment × sink)<a class="headerlink" href="#171-which-sinks-are-live-and-how-each-renders-environment--sink" title="Permanent link">&para;</a></h3>
+<p><code>--log-sinks auto</code> (default). Explicit <code>--log-sinks …</code> / <code>--log-file …</code> override
+the operational console/native/file columns; the audit row is a separate
+subsystem, independent of <code>--log-sinks</code> (§10).</p>
+<table>
+<thead>
+<tr>
+<th>Environment (auto-detected)</th>
+<th>console</th>
+<th>native (syslog / Event Log)</th>
+<th>file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interactive TTY</td>
+<td>✅ text</td>
+<td>—</td>
+<td>opt-in (<code>--log-file</code>)</td>
+</tr>
+<tr>
+<td>systemd service (<code>JOURNAL_STREAM</code> matches stderr)</td>
+<td>✅ text + <code>&lt;N&gt;</code> priority prefix</td>
+<td>— <em>(syslog would double-log via the journal)</em></td>
+<td>opt-in</td>
+</tr>
+<tr>
+<td>Windows service context</td>
+<td>✅ text</td>
+<td>✅ Event Log</td>
+<td>opt-in</td>
+</tr>
+<tr>
+<td>Container / pipe / redirect (default arm)</td>
+<td>✅ text <em>(or json via <code>--log-format</code>)</em></td>
+<td>— <em>(no syslogd; would drop silently)</em></td>
+<td>opt-in</td>
+</tr>
+<tr>
+<td><strong>Audit trail</strong> (separate subsystem, when auth on)</td>
+<td>— <em>(opt-in dev echo only)</em></td>
+<td>✅ dedicated native sink, <code>security1</code>/<code>LOG_AUTHPRIV</code> (POSIX) or dedicated Application-log source (Windows); the <strong>authoritative, forward-capable</strong> copy</td>
+<td>JSONL always (owner-only, state dir; convenience/fallback, <em>not</em> the integrity anchor)</td>
+</tr>
+</tbody>
+</table>
+<p>The audit row is deliberately <em>not</em> additive to the operational sinks: audit no
+longer flows to the general console/file (§10.2). Threading: console is
+<code>synchronous_sink</code> + <code>auto_flush</code>; native and file are <code>asynchronous_sink</code>
+(bounded, drop-on-overflow), flushed by <code>SinkRegistry::FlushAll()</code> on shutdown
+(§9).</p>
+<h3 id="172-severity--transport-priority-fixed-mapping-all-backends">17.2 Severity → transport priority (fixed mapping, all backends)<a class="headerlink" href="#172-severity--transport-priority-fixed-mapping-all-backends" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><code>Logging::Severity</code></th>
+<th>syslog / journald <code>&lt;N&gt;</code></th>
+<th>Windows event type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Trace</code></td>
+<td>7 debug</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Debug</code></td>
+<td>7 debug</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Info</code></td>
+<td>6 info</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Notify</code></td>
+<td>5 notice</td>
+<td>Information</td>
+</tr>
+<tr>
+<td><code>Warning</code></td>
+<td>4 warning</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><code>Error</code></td>
+<td>3 err</td>
+<td>Error</td>
+</tr>
+<tr>
+<td><code>Fatal</code></td>
+<td>2 crit</td>
+<td>Error</td>
+</tr>
+</tbody>
+</table>
+<p>This is the whole point of slice 1: today every row collapses to <em>info</em> /
+<em>Information</em> on the OS backends (§3.1).</p>
+<h3 id="173-channel--sink-flow-not-routing">17.3 Channel → sink (flow, not routing)<a class="headerlink" href="#173-channel--sink-flow-not-routing" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>console</th>
+<th>native (general)</th>
+<th>native (audit)</th>
+<th>file</th>
+<th>JSONL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>18 operational channels — <code>Main</code>, <code>Web</code>, <code>Mqtt</code>, <code>Serial</code>, <code>Protocol</code>, <code>Messages</code>, <code>Devices</code>, <code>Equipment</code>, <code>Navigation</code>, <code>Scraping</code>, <code>Signals</code>, <code>Options</code>, <code>Platform</code>, <code>Certificates</code>, <code>Coroutines</code>, <code>Developer</code>, <code>Exceptions</code>, <code>Profiling</code></td>
+<td>✅</td>
+<td>✅ <em>(only if native opted in / Windows service)</em></td>
+<td>—</td>
+<td>✅ <em>(if <code>--log-file</code>)</em></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Audit subsystem (<code>AuditLog::Record</code>, not a <code>Channel</code>)</td>
+<td>— <em>(opt-in dev echo)</em></td>
+<td>—</td>
+<td>✅ <em>(always, when auth on)</em></td>
+<td>—</td>
+<td>✅ <em>(always, when auth on)</em></td>
+</tr>
+</tbody>
+</table>
+<p>The operational <code>native (general)</code> "only if …" reflects that this sink is opt-in
+on POSIX and automatic only in the Windows-service arm. The two rows share no
+destination: operational logs never reach the audit sink, and audit never
+reaches the operational console/general-native/file sinks — the leak-proof
+separation of §10.2. Operational rows remain subject to the severity filter
+(these columns mean "eligible to reach this sink", not "bypasses filtering");
+audit has no per-channel filter — it is always recorded when auth is on.</p>
+<h3 id="174-what-a-single-record-carries-end-to-end">17.4 What a single record carries, end to end<a class="headerlink" href="#174-what-a-single-record-carries-end-to-end" title="Permanent link">&para;</a></h3>
+<p><code>LogWarning(Channel::Web, "…")</code> in a systemd deployment, after slice 1:</p>
+<ol>
+<li>Filter check: <code>SeverityFiltering::ShouldLog(Web, Warning)</code> → pass.</li>
+<li>Console sink (text + journal-connected): emits <code>&lt;4&gt;00001234: &lt;Warning&gt; (Web) …</code>.</li>
+<li>journald strips <code>&lt;4&gt;</code>, records <code>PRIORITY=4</code>, <code>SYSLOG_IDENTIFIER=aqualink-automate</code>.</li>
+<li><code>journalctl -u aqualink-automate -p warning</code> now returns it — the capability
+   that does not exist today.</li>
+</ol>
+<h2 id="18-open-decisions">18. Open decisions<a class="headerlink" href="#18-open-decisions" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>General-sink syslog facility</strong> — <code>daemon</code> proposed (current audit code
+   uses <code>user</code>); confirm.</li>
+<li><strong>Audit double-record under systemd</strong> — <strong>resolved</strong> (§10.2): audit no longer
+   flows to the operational console, so it is not double-recorded in the general
+   journal stream. The audit trail reaches the journal <em>once</em>, via its own
+   <code>LOG_AUTHPRIV</code> syslog sink, which journald tags with the auth facility so
+   <code>journalctl SYSLOG_FACILITY=10</code> (and rsyslog <code>auth,authpriv.*</code>) isolate it —
+   the separation the earlier "accepted double-record" note was paying for.
+   Nothing left to confirm here beyond the facility choice below.</li>
+<li><strong>Audit dev echo toggle</strong> — the opt-in <code>--audit-console-echo</code> (§10.2, default
+   off) is the only way audit reaches the operational console. Confirm the
+   option name and that off-by-default is right (it is, for the separation
+   guarantee; on is a dev convenience).</li>
+<li><strong><code>LOG_AUTHPRIV</code> on non-Linux POSIX</strong> — Boost's <code>security1</code> numerically
+   matches Linux <code>LOG_AUTHPRIV</code> (facility 10); on macOS/BSD verify the platform
+   constant before relying on <code>auth.log</code>-style routing (§10.3).</li>
+<li><strong>JSON schema</strong> — the proposed field set (§5.2) is minimal; if a specific
+   pipeline (Loki, CloudWatch) is the target, align field names before slice 2.</li>
+<li><strong>Windows service wrapper</strong> — slice 3 assumes one will exist; the Event Log
+   default (§6.2) and the dedicated audit Application-log source (§10.4) are moot
+   until then. Sequence it with, or after, that work.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

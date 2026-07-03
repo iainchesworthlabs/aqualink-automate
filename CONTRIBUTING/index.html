@@ -18,7 +18,7 @@
         <link rel="prev" href="../SECURITY/">
       
       
-        <link rel="next" href="../releasing/">
+        <link rel="next" href="../i18n/">
       
       
         
@@ -868,6 +868,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Building and testing before you push">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#platform-specific-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform-specific code
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -879,12 +896,96 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Keeping documentation in sync">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#documentation-screenshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation screenshots
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing-translations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing translations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Contributing translations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#improving-an-existing-translation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Improving an existing translation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a language
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1017,6 +1118,34 @@
     
   
     Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
   
 
     
@@ -1216,6 +1345,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Building and testing before you push">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#platform-specific-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform-specific code
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1226,6 +1372,62 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Keeping documentation in sync">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#documentation-screenshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation screenshots
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing-translations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing translations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Contributing translations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#improving-an-existing-translation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Improving an existing translation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a language
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1446,6 +1648,8 @@
 </code></pre></div>
 <p>On Windows the equivalent presets are <code>config-windows-msvc-debug</code>, <code>build-windows-msvc-debug</code>, and <code>test-windows-msvc-debug</code>.</p>
 <p>All tests must pass and your change must include tests covering it. A bug fix must add a regression test that fails before the fix and passes after it.</p>
+<h3 id="platform-specific-code">Platform-specific code<a class="headerlink" href="#platform-specific-code" title="Permanent link">&para;</a></h3>
+<p>The operating system is a CMake decision, not a preprocessor decision. Code that differs by OS goes in <code>src/core/platform/&lt;os&gt;/</code> behind a shared header and is selected by the <code>if(WIN32)/if(LINUX)/if(APPLE)</code> blocks in <code>src/core/CMakeLists.txt</code> — never behind an <code>#ifdef _WIN32</code>/<code>#elif !defined(__APPLE__)</code> in shared code. The full principle, the add-a-platform-function workflow, and the allowed exceptions (compiler/arch/build-feature macros) are in <a href="../platform-isolation/">docs/platform-isolation.md</a>. The <strong>Platform Macros</strong> CI check (<code>scripts/check-os-macros.ps1</code>) blocks a PR that introduces an OS macro into shared code.</p>
 <h2 id="keeping-documentation-in-sync">Keeping documentation in sync<a class="headerlink" href="#keeping-documentation-in-sync" title="Permanent link">&para;</a></h2>
 <p>Documentation is part of the change, not a follow-up. When a pull request alters observable behavior, update the doc that describes it <strong>in the same pull request</strong> — a doc that contradicts the code is treated as a defect in review.</p>
 <p>In particular:</p>
@@ -1456,8 +1660,43 @@
 <li><strong>CI workflows, Packer/runner images, release flow</strong> → update <a href="../ci-cd/">docs/ci-cd.md</a> / <a href="../releasing/">docs/releasing.md</a>.</li>
 <li><strong>Build presets or install steps</strong> → update <a href="../INSTALL/">docs/INSTALL.md</a>.</li>
 <li><strong>Wire-protocol opcodes or message types</strong> → update the relevant protocol doc under <code>docs/</code>.</li>
+<li><strong>Web UI appearance</strong> (layout, theme, navigation, new/renamed views or controls, auth screens, the language list) → regenerate the affected screenshots (see below).</li>
 </ul>
 <p>Prefer durable references (symbols, route URLs, option long-names, section headings) over bare <code>file.cpp:NNN</code> line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (<code>docs/async_migration_*.md</code>, <code>docs/cicd-redesign.md</code>) are dated snapshots — do not treat their line citations as current truth.</p>
+<h3 id="documentation-screenshots">Documentation screenshots<a class="headerlink" href="#documentation-screenshots" title="Permanent link">&para;</a></h3>
+<p>The PNGs in <code>docs/assets/</code> are embedded in the README and the docs (<code>index.md</code>, <code>usage-and-api.md</code>, <code>SECURITY.md</code>, this file) and are held to the same standard as prose: <strong>a screenshot showing a UI that no longer exists is a doc defect.</strong> They are not hand-taken — <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/scripts/capture-doc-screenshots.js"><code>scripts/capture-doc-screenshots.js</code></a> captures every one of them from the real binary replaying the recorded RS-485 fixtures (the same harness as the Playwright e2e suite).</p>
+<p>When your change alters what an embedded screenshot shows, regenerate and commit the affected images in the same pull request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>npx<span class="w"> </span>playwright<span class="w"> </span>install<span class="w"> </span>chromium<span class="w">                      </span><span class="c1"># once</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">AQUALINK_EXE</span><span class="o">=</span>&lt;path-to-built-binary&gt;<span class="w"> </span>node<span class="w"> </span>scripts/capture-doc-screenshots.js
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># or a subset:  ... capture-doc-screenshots.js --only hero,trends</span>
+</code></pre></div>
+<p>When you add a UI surface worth documenting, add a capture to the script rather than committing a one-off manual screenshot — manual captures cannot be regenerated by the next person and rot silently.</p>
+<h2 id="contributing-translations">Contributing translations<a class="headerlink" href="#contributing-translations" title="Permanent link">&para;</a></h2>
+<p>The web UI is fully internationalized: every user-visible string resolves through a per-language catalog, and adding or improving a language never touches C++ or the build system. The full mechanics are in <a href="../i18n/">docs/i18n.md</a>; this section is the contributor workflow. Translation-only pull requests are very welcome — the shipped non-English catalogs were machine-translated and reviewed for structure, so native-speaker improvements are genuinely valuable.</p>
+<p><img alt="The About page lists every shipped language; new locales appear here automatically once registered" src="../assets/webui-about-languages.png" /></p>
+<h3 id="improving-an-existing-translation">Improving an existing translation<a class="headerlink" href="#improving-an-existing-translation" title="Permanent link">&para;</a></h3>
+<p>Catalogs are plain JavaScript files under <code>assets/web/i18n/&lt;code&gt;.js</code> — one flat <code>'namespace.key': 'string'</code> map per language. To improve a translation, edit the <strong>value</strong> (never the key) and open a pull request typed <code>fix(webui)</code>.</p>
+<p>Rules — CI enforces the structural ones:</p>
+<ul>
+<li>Keep every <code>{placeholder}</code> name exactly as it appears in the English value. They are substituted at runtime; the word order around them is yours to change freely.</li>
+<li>Keys ending in <code>_html</code> contain markup: translate the prose, keep the tags and attributes byte-for-byte.</li>
+<li>Plural keys carry CLDR category suffixes (<code>.one</code>, <code>.other</code>); translate each form per your language's plural rules, and do not add or remove suffixes.</li>
+<li>Leave technical tokens untranslated: product names (AquaLink, Home Assistant, MQTT, Matter), protocol terms (RS-485, WebSocket), wire enum values quoted inside error text, and the built-in <code>Guest</code> group name where it names that group.</li>
+<li>Match the file's existing tone and terminology — each catalog keeps a consistent register (e.g. German uses Sie-form; French uses the typographic apostrophe).</li>
+</ul>
+<p>Verify before pushing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>pwsh<span class="w"> </span>scripts/check-i18n-keys.ps1
+</code></pre></div>
+<p>The checker confirms every language carries exactly the English key set and that every placeholder survived translation. The <code>i18n-catalogs</code> CI job runs the same script on every pull request, and the Playwright i18n suite additionally fails on any string that bypasses the catalog.</p>
+<h3 id="adding-a-language">Adding a language<a class="headerlink" href="#adding-a-language" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Copy <code>assets/web/i18n/en.js</code> to <code>assets/web/i18n/&lt;code&gt;.js</code> (lower-case BCP-47 language code), change the registration line's locale code, and translate the values following the rules above.</li>
+<li>Register the locale in <code>SUPPORTED_LOCALES</code> in <code>assets/web/scripts/i18n.js</code> with its own-language name (endonym — deliberately shown untranslated so users can always find their own language) and its text direction (<code>ltr</code>/<code>rtl</code>). Pin <code>numberLocale</code> if the bare code's default numbering system is wrong or inconsistent across engines (see the <code>ar</code> entry).</li>
+<li>If the language uses a script the shipped fonts do not cover, add font coverage per "Fonts and scripts" in <a href="../i18n/">docs/i18n.md</a>: a <code>unicode-range</code>-sliced vendored Noto subset (the Arabic/Hebrew pattern) or a <code>html[lang='xx']</code> system-font stack (the Japanese/Chinese pattern), plus an e2e font-load assertion if vendored.</li>
+<li>Run the checker (above) and the Playwright i18n suite (<code>npx playwright test e2e/i18n.spec.ts</code> — see <a href="../i18n/">docs/i18n.md</a> for the harness prerequisites). The key-parity and zero-missing-key tests pick the new locale up automatically from the registry.</li>
+<li>Open a pull request typed <code>feat(webui)</code>. Nothing else needs wiring: the build packages <code>assets/web</code> recursively, the language picker and the About page render from the registry, and the service worker caches the catalog on first use.</li>
+</ol>
+<p>RTL languages need no extra layout work — the stylesheets use logical properties throughout, and the document direction flips from the registry's <code>dir</code> field. If you spot a component that fails to mirror, that is a bug worth reporting on its own.</p>
 
 
 

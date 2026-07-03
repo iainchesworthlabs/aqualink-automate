@@ -771,6 +771,34 @@
   
   
     <li class="md-nav__item">
+      <a href="i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="releasing/" class="md-nav__link">
         
   
@@ -904,6 +932,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1014,8 +1070,11 @@ service required</strong>.</p>
 RS-485 serial link and exposes it on your own network. It reads status from the
 panel and lets you control it through a built-in Web UI, an HTTP and WebSocket
 API, MQTT (with Home Assistant discovery), and a Matter bridge for Apple Home,
-Google Home, Alexa, and SmartThings. Everything runs on hardware you own;
-nothing is sent to a vendor cloud.</p>
+Google Home, Alexa, and SmartThings. The web UI is available in nine languages
+(with full right-to-left support), and <a href="CONTRIBUTING/#contributing-translations">community translations are easy to
+add</a>. Everything runs on hardware
+you own; nothing is sent to a vendor cloud.</p>
+<p><img alt="The Aqualink Automate web dashboard" src="assets/aqualink-automate-dashboard.png" /></p>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <p>The quickest path is the signed package repositories — install and stay current
 with your system package manager:</p>
@@ -1040,8 +1099,10 @@ for <code>amd64</code> and <code>arm64</code> (Raspberry Pi). The repositories a
 <a href="INSTALL/">Install guide</a>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Before exposing it on your network</p>
-<p>By default the web server binds to <code>127.0.0.1</code> (localhost only) and HTTP
-authentication is off. Review the <a href="SECURITY/">Security guide</a> and the
+<p>By default the web server binds to <code>127.0.0.1</code> (localhost only) and
+authentication is off. Enable the built-in identity system with
+<code>--auth-mode enabled</code> (first-run wizard, users/groups, API keys, guest and
+kiosk access), and review the <a href="SECURITY/">Security guide</a> and the
 <a href="configuration/">Configuration reference</a> first.</p>
 </div>
 <h2 id="where-to-next">Where to next<a class="headerlink" href="#where-to-next" title="Permanent link">&para;</a></h2>

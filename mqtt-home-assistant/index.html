@@ -1058,6 +1058,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../releasing/" class="md-nav__link">
         
   
@@ -1178,6 +1206,34 @@
     
   
     Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
   
 
     
@@ -1930,17 +1986,17 @@
 <tr>
 <td><code>aqualink/command/setpoint</code></td>
 <td>JSON <code>{ "target": "pool"\|"spa", "temperature": &lt;celsius&gt; }</code></td>
-<td>Set a body's temperature.</td>
+<td>Set a body's temperature. Always Celsius (stable API contract).</td>
 </tr>
 <tr>
 <td><code>aqualink/command/setpoint/pool</code></td>
-<td>plain number (degrees C)</td>
-<td>Set the pool setpoint.</td>
+<td>plain number</td>
+<td>Set the pool setpoint. Interpreted in the <code>temperature_units</code> display preference's unit (Celsius by default) — these are the HA number entities' command topics and must match their declared unit.</td>
 </tr>
 <tr>
 <td><code>aqualink/command/setpoint/spa</code></td>
-<td>plain number (degrees C)</td>
-<td>Set the spa setpoint.</td>
+<td>plain number</td>
+<td>Set the spa setpoint. Same unit rule as <code>setpoint/pool</code>.</td>
 </tr>
 <tr>
 <td><code>aqualink/command/chlorinator/percentage</code></td>
@@ -2011,7 +2067,7 @@
 <tr>
 <td>Pool / Spa setpoint</td>
 <td><code>number</code></td>
-<td>min 15, max 41, step 0.5, degC. Command on <code>command/setpoint/{pool,spa}</code>.</td>
+<td>Follows the <code>temperature_units</code> preference: min 15, max 41, step 0.5, °C (default), or min 59, max 106, step 1, °F. Command on <code>command/setpoint/{pool,spa}</code>, interpreted in the declared unit. Changing the preference republishes discovery so HA picks up the new unit/range. (Temperature <em>sensors</em> stay declared °C — their payload is Celsius and HA converts sensors to its own unit system.)</td>
 </tr>
 <tr>
 <td>ORP</td>
@@ -2059,14 +2115,14 @@
 <td><code>device_class: duration</code>, <code>entity_category: diagnostic</code>.</td>
 </tr>
 <tr>
-<td>Alerts (5)</td>
+<td>Alerts (6)</td>
 <td><code>binary_sensor</code></td>
 <td><code>device_class: problem</code>. See below.</td>
 </tr>
 </tbody>
 </table>
 <h3 id="alert-binary-sensors">Alert binary sensors<a class="headerlink" href="#alert-binary-sensors" title="Permanent link">&para;</a></h3>
-<p>Five <code>binary_sensor</code> entities (<code>device_class: problem</code>, <code>payload_on: true</code> / <code>payload_off: false</code>) read the consolidated document at <code>aqualink/alert/state</code>:</p>
+<p>Six <code>binary_sensor</code> entities (<code>device_class: problem</code>, <code>payload_on: true</code> / <code>payload_off: false</code>) read the consolidated document at <code>aqualink/alert/state</code>:</p>
 <table>
 <thead>
 <tr>
@@ -2095,8 +2151,13 @@
 <td><code>serial_comms_loss</code></td>
 <td>Serial Comms Loss</td>
 </tr>
+<tr>
+<td><code>temperature_stale</code></td>
+<td>Temperature Stale</td>
+</tr>
 </tbody>
 </table>
+<p><code>temperature_stale</code> raises when the filter pump is running but the active body's water temperature has not refreshed within <code>--temperature-staleness-threshold</code>; a reading going stale while the pump is off is expected (no flow past the sensor) and never raises.</p>
 <h3 id="dynamic-device-entities">Dynamic device entities<a class="headerlink" href="#dynamic-device-entities" title="Permanent link">&para;</a></h3>
 <p>One entity (or a small set) is published per discovered pool device:</p>
 <table>

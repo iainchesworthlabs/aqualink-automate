@@ -684,6 +684,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../releasing/" class="md-nav__link">
         
   
@@ -1208,6 +1236,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1695,12 +1751,17 @@
 <tr>
 <td><code>e2e-ui</code></td>
 <td>Linux</td>
-<td>Builds only the app binary, then runs the Playwright UI suite four times — once per mode.</td>
+<td>Builds only the app binary, then runs the Playwright UI suite once per mode (see the mode table below).</td>
 </tr>
 <tr>
 <td><code>matter-bridge</code></td>
 <td>Linux</td>
 <td>Node job in <code>matter-bridge/</code>: <code>npm ci</code>, typecheck (including the matter.js bridge), build, and unit tests.</td>
+</tr>
+<tr>
+<td><code>i18n-catalogs</code></td>
+<td><code>ubuntu-latest</code></td>
+<td>Runs <code>scripts/check-i18n-keys.ps1</code>: every key referenced in web-UI code exists in <code>en.js</code>, and every shipped locale catalog has exact key + placeholder parity with English (see <code>docs/i18n.md</code>). Part of the <code>ci-status</code> aggregate.</td>
 </tr>
 <tr>
 <td><code>version-check</code></td>
@@ -1714,7 +1775,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>e2e-ui modes.</strong> The four Playwright runs mirror the modes encoded in <code>playwright.config.ts</code>, selected by environment variable:</p>
+<p><strong>e2e-ui modes.</strong> The Playwright runs mirror the modes encoded in <code>playwright.config.ts</code>, selected by environment variable. The three identity specs each run in their own step because they have incompatible auth-store preconditions (auth.spec needs an empty store for the first-run wizard; admin.spec self-seeds an admin; guest.spec configures the Guest scope), so each must boot against a fresh <code>--auth-state-dir</code>:</p>
 <table>
 <thead>
 <tr>
@@ -1727,12 +1788,22 @@
 <tr>
 <td>default (unauthenticated)</td>
 <td>none</td>
-<td>every spec except auth</td>
+<td>every spec except the identity ones</td>
 </tr>
 <tr>
-<td>auth enabled</td>
-<td><code>AQUALINK_AUTH_TOKEN</code></td>
-<td>token-gated WebSocket auth</td>
+<td>identity — first-run + sessions</td>
+<td><code>AQUALINK_AUTH_MODE=enabled</code>, <code>npx playwright test e2e/auth.spec.ts</code></td>
+<td>setup wizard, login/logout, session management</td>
+</tr>
+<tr>
+<td>identity — admin management</td>
+<td><code>AQUALINK_AUTH_MODE=enabled</code>, <code>npx playwright test e2e/admin.spec.ts</code></td>
+<td>users/groups/entitlements/API-key admin UI</td>
+</tr>
+<tr>
+<td>identity — guest mode + kiosk PIN</td>
+<td><code>AQUALINK_AUTH_MODE=enabled</code>, <code>npx playwright test e2e/guest.spec.ts</code></td>
+<td>anonymous guest browsing, affordance gating, kiosk PIN</td>
 </tr>
 <tr>
 <td>history enabled</td>

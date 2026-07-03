@@ -2,66 +2,82 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/INSTALL/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/MATTER/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/RECORD_REPLAY/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/SECURITY/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://iainchesworth.github.io/aqualink-automate/auth-redesign/</loc>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/ci-cd/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/configuration/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/hardware-rs485-connectivity/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/hardware-server-automation/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://iainchesworth.github.io/aqualink-automate/i18n/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://iainchesworth.github.io/aqualink-automate/logging-sinks-redesign/</loc>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/mqtt-home-assistant/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://iainchesworth.github.io/aqualink-automate/platform-isolation/</loc>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/profiling/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/raspberry-pi/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/releasing/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/usage-and-api/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
     <url>
          <loc>https://iainchesworth.github.io/aqualink-automate/worktrees/</loc>
-         <lastmod>2026-07-02</lastmod>
+         <lastmod>2026-07-03</lastmod>
     </url>
 </urlset>

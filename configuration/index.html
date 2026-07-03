@@ -560,6 +560,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#authentication-and-identity-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication and identity options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mqtt-and-home-assistant-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -655,6 +666,34 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Developer and replay options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#logging-sinks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging sinks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-as-a-windows-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running as a Windows service
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1029,6 +1068,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../releasing/" class="md-nav__link">
         
   
@@ -1149,6 +1216,34 @@
     
   
     Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
   
 
     
@@ -1323,6 +1418,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#authentication-and-identity-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication and identity options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mqtt-and-home-assistant-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1418,6 +1524,34 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Developer and replay options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#logging-sinks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging sinks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-as-a-windows-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running as a Windows service
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1849,6 +1983,58 @@
 <p><strong>API authentication is off by default</strong> (<code>--api-auth-token</code> unset). When you set a token, every API request and the WebSocket upgrade must carry <code>Authorization: Bearer &lt;token&gt;</code> or the server answers <code>HTTP 401</code>. See <a href="../usage-and-api/">usage-and-api.md</a> for how the token is sent on the wire.</p>
 <p><code>--cert</code> and <code>--cert-key</code> are mutually required: set both or neither.</p>
 <p>Conflicts: <code>--disable-http</code> vs <code>--http-port</code>; <code>--disable-https</code> vs each of <code>--https-port</code>, <code>--cert</code>, <code>--cert-key</code>, <code>--cachain-cert</code>. Because the conflict checker <a href="#conflict-and-dependency-matrix">ignores defaulted options</a>, <code>--disable-https</code> is accepted even though <code>--cert</code>/<code>--cert-key</code> carry default values — only an <em>explicit</em> <code>--cert</code> collides with it.</p>
+<h2 id="authentication-and-identity-options">Authentication and identity options<a class="headerlink" href="#authentication-and-identity-options" title="Permanent link">&para;</a></h2>
+<p>The opt-in identity system — subjects, entitlements, and the policy engine (see <a href="../SECURITY/">SECURITY.md</a> for the enforcement model and <a href="../auth-redesign/">auth-redesign.md</a> for the design). Lives in the <code>Authentication</code> settings area. Slice 1 ships the framework only: login and user management arrive in a later slice, so the app cannot yet issue tokens itself.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--auth-mode</code></td>
+<td></td>
+<td>enum</td>
+<td><code>disabled</code></td>
+<td>Identity-system posture: <code>disabled</code> (historical behaviour — no identity resolution, every policy decision is Permit) or <code>enabled</code> (every request resolves to a subject and routes are gated by entitlements; anonymous callers get the deny-by-default Guest group). When <code>enabled</code>, the legacy <code>--api-auth-token</code> shared-token check is superseded — bearer credentials are interpreted by the subject resolver instead.</td>
+</tr>
+<tr>
+<td><code>--auth-state-dir</code></td>
+<td></td>
+<td>string</td>
+<td>none (platform secure state dir)</td>
+<td>Directory for authentication state (JWT signing keys and the user/group/API-key/session/kiosk stores). When unset, an <code>auth/</code> subdirectory of the platform's secure state directory is used (the same fallback chain as the generated TLS key). The directory is prepared owner-only; startup fails if no usable secure directory can be prepared.</td>
+</tr>
+<tr>
+<td><code>--jwt-access-ttl</code></td>
+<td></td>
+<td>uint32</td>
+<td><code>15</code></td>
+<td>Access-token lifetime in minutes. Must be at least 1.</td>
+</tr>
+<tr>
+<td><code>--bootstrap-admin</code></td>
+<td></td>
+<td>string</td>
+<td>none</td>
+<td>Username of a first administrator to create at startup. Only fires when <code>--auth-mode enabled</code> <strong>and</strong> the user store is empty; idempotent (a no-op once any user exists). The password comes from <code>--bootstrap-admin-password-file</code> or <code>AQUALINK_BOOTSTRAP_ADMIN_PASSWORD</code> — never a CLI argument.</td>
+</tr>
+<tr>
+<td><code>--bootstrap-admin-password-file</code></td>
+<td></td>
+<td>string</td>
+<td>none</td>
+<td>File whose first line (newline-terminated) is the bootstrap administrator's password. Used only with <code>--bootstrap-admin</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>An <code>--auth-mode</code> value other than <code>disabled</code>/<code>enabled</code>, or a <code>--jwt-access-ttl</code> of <code>0</code>, fails validation and stops startup.</p>
+<p><strong>Headless first-admin bootstrap.</strong> <code>--bootstrap-admin &lt;username&gt;</code> creates the first administrator without the interactive setup screen — useful for containers and unattended installs. It only acts when <code>--auth-mode enabled</code> and no users exist yet; with any user already on file it is silently a no-op (so a stale flag can never mint a second admin). The password is <strong>never</strong> passed on the command line, where it would be visible in the process table. Instead it is read from the first line of the file named by <code>--bootstrap-admin-password-file</code>, or, if that is unset, from the <code>AQUALINK_BOOTSTRAP_ADMIN_PASSWORD</code> environment variable. If <code>--bootstrap-admin</code> is given but no password can be found from either source, no administrator is created and a startup warning is logged. The password must satisfy the same policy as everywhere else (at least 12 characters).</p>
 <h2 id="mqtt-and-home-assistant-options">MQTT and Home Assistant options<a class="headerlink" href="#mqtt-and-home-assistant-options" title="Permanent link">&para;</a></h2>
 <p>Publishing pool state to an MQTT broker, optionally with Home Assistant auto-discovery. Lives in the <code>MQTT</code> settings area. This is a summary — for the full topic layout, entity types, and discovery payloads, see the <a href="../mqtt-home-assistant/">MQTT and Home Assistant guide</a>.</p>
 <table>
@@ -2392,11 +2578,110 @@
 </tbody>
 </table>
 <p>There is one <code>--loglevel-&lt;channel&gt;</code> option per logging channel. The 18 channels are:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>certificates  coroutines  developer  devices    equipment  exceptions
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>main          messages    mqtt       navigation options    platform
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>profiling     protocol    scraping   serial     signals    web
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>certificates  coroutines  developer   devices     equipment  exceptions
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>main          messages    mqtt        navigation  options     platform
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>profiling     protocol    scraping    serial      signals     web
 </code></pre></div>
 <p>Each takes a severity (case-insensitive): <code>Trace</code>, <code>Debug</code>, <code>Info</code>, <code>Notify</code>, <code>Warning</code>, <code>Error</code>, <code>Fatal</code>. For example <code>--loglevel-protocol Debug</code>.</p>
+<blockquote>
+<p><strong>Audit is not a log channel.</strong> The security audit trail (auth decisions,
+privileged actions) is a separate subsystem, not an operational log channel, so
+there is deliberately no <code>--loglevel-audit</code>. See
+<a href="../SECURITY/">Security → Audit trail</a> for where audit events are routed.</p>
+</blockquote>
+<h3 id="logging-sinks">Logging sinks<a class="headerlink" href="#logging-sinks" title="Permanent link">&para;</a></h3>
+<p>Where operational log records are delivered is configured by the <strong>Logging</strong>
+options. By default (<code>--log-sinks auto</code>) the destination is derived from the run
+environment: an interactive terminal or a container gets the console; under
+systemd the console additionally carries sd-daemon <code>&lt;N&gt;</code> priority prefixes so
+<code>journalctl -u aqualink-automate -p warning</code> works.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--log-sinks</code></td>
+<td>string</td>
+<td><code>auto</code></td>
+<td><code>auto</code> (environment-derived) or a comma-separated list of <code>console</code>, <code>native</code>, <code>file</code>, <code>journald</code>. <code>native</code> adds the OS-native operational sink (syslog on POSIX, the Windows Event Log); <code>file</code> requires <code>--log-file</code>; <code>journald</code> is the structured native journal sink on Linux when libsystemd is present at runtime (elsewhere it falls back to console with priority prefixes). Under <code>auto</code>: <code>--log-file</code> implies the file sink, and under systemd (stderr is the journal) with libsystemd available, <code>journald</code> is used automatically.</td>
+</tr>
+<tr>
+<td><code>--log-syslog-facility</code></td>
+<td>enum</td>
+<td><code>daemon</code></td>
+<td>POSIX syslog facility for the general <code>native</code> sink: <code>daemon</code>, <code>user</code>, <code>local0</code>–<code>local7</code> (case-insensitive). Ignored on Windows. The audit sink always uses <code>authpriv</code> regardless.</td>
+</tr>
+<tr>
+<td><code>--log-format</code></td>
+<td>enum</td>
+<td><code>text</code></td>
+<td>Record format for the <strong>console and file</strong> sinks: <code>text</code> (human) or <code>json</code> (one JSON object per line, for container / SIEM pipelines). The native/syslog sink is always message-only.</td>
+</tr>
+<tr>
+<td><code>--log-file</code></td>
+<td>path</td>
+<td><em>(unset)</em></td>
+<td>Write logs to this file (enables the file sink). Rotated and size-bounded; on shutdown the active file is rotated into the kept set.</td>
+</tr>
+<tr>
+<td><code>--log-file-max-size</code></td>
+<td>bytes</td>
+<td><code>10485760</code> (10 MiB)</td>
+<td>Rotate the log file when it would exceed this many bytes.</td>
+</tr>
+<tr>
+<td><code>--log-file-max-files</code></td>
+<td>count</td>
+<td><code>5</code></td>
+<td>Keep at most this many rotated log files (oldest deleted).</td>
+</tr>
+</tbody>
+</table>
+<p>Examples: <code>--log-sinks console,native --log-syslog-facility local0</code> (console plus
+a syslog <code>local0</code> operational sink); <code>--log-file /var/log/aqualink/app.log
+--log-format json</code> (console <strong>and</strong> a rotating JSON file, since <code>auto</code> adds the
+file sink when a path is given); <code>--log-sinks console --log-format json</code> (JSON to
+the console only, ideal behind a container log driver).</p>
+<p><strong>Platform-native sinks.</strong> On Linux, when <code>libsystemd.so.0</code> is present (it is on any
+systemd host), <code>journald</code> delivers records to the journal with structured fields
+(query with e.g. <code>journalctl AA_CHANNEL=Web</code>), and <code>auto</code> selects it when running
+under systemd. libsystemd is loaded at runtime (<code>dlopen</code>), so it is neither a build
+nor a hard runtime dependency — if it is absent, logging falls back to the console. On macOS the
+native sink uses the unified logging system (<code>os_log</code>; view with Console.app or
+<code>log show</code>). On <strong>Windows</strong>, the Event Log source is registered once, elevated,
+with <code>--register-log-source</code> (and removed with <code>--unregister-log-source</code>); the
+running service never needs elevation because the sink itself does not write the
+registry. <code>--install-service</code> performs this registration too, so a service install is
+clean in one step. The executable embeds a message-table resource matching the sink's
+event IDs, so once the source is registered Event Viewer renders each entry verbatim;
+until that one-time registration, events still appear in the Application log, just
+wrapped in a generic description.</p>
+<h3 id="running-as-a-windows-service">Running as a Windows service<a class="headerlink" href="#running-as-a-windows-service" title="Permanent link">&para;</a></h3>
+<p>On Windows the application can run as a managed service (the analogue of the Linux
+systemd unit): auto-start at boot, survives logoff, restarts on failure, and logs to the
+Windows Event Log. Install it from an <strong>elevated</strong> prompt:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>aqualink-automate.exe --install-service --config &quot;C:\ProgramData\Aqualink Automate\aqualink-automate.conf&quot;
+</code></pre></div>
+<p><code>--install-service</code> registers an auto-starting (delayed) service running as the built-in
+least-privilege <code>NT AUTHORITY\LocalService</code> account, sets restart-on-failure recovery,
+and registers the Event Log source. Any flags you pass alongside <code>--install-service</code>
+(<code>--config</code>, ports, <code>--mqtt-*</code>, …) are <strong>baked into the service command line</strong>, mirroring
+the systemd unit's <code>ExecStart</code> — so that is where the service reads its configuration
+from. If you omit <code>--config</code>, it defaults to
+<code>%ProgramData%\Aqualink Automate\aqualink-automate.conf</code>, creating that folder and a
+starter file. Use <strong>absolute</strong> paths: a service's working directory is <code>System32</code>.</p>
+<p>Manage it with the standard tools — <code>sc start Aqualink-Automate</code> /
+<code>Start-Service Aqualink-Automate</code>, <code>Stop-Service</code>, <code>Get-Service</code>, <code>sc qc Aqualink-Automate</code>
+(shows the baked-in command line) — and remove it with an elevated
+<code>aqualink-automate.exe --uninstall-service</code> (which also removes the Event Log source).
+Run from a normal console (no <code>--install-service</code>) the application behaves exactly as
+before — a foreground process that shuts down cleanly on Ctrl-C.</p>
 <p><strong>Important — the big replay gotcha:</strong> <code>--replay-filename</code> has hard dependencies. A bare <code>--dev-mode --replay-filename file.cap</code> <strong>fails validation</strong>. <code>--replay-filename</code> requires <em>all</em> of:</p>
 <ul>
 <li><code>--dev-mode</code></li>
@@ -2540,50 +2825,50 @@
 <h2 id="worked-examples">Worked examples<a class="headerlink" href="#worked-examples" title="Permanent link">&para;</a></h2>
 <h3 id="remote-serial-over-rfc2217">Remote serial over RFC2217<a class="headerlink" href="#remote-serial-over-rfc2217" title="Permanent link">&para;</a></h3>
 <p>Connect to an Aqualink RS controller through a serial-to-Ethernet bridge, emulating a OneTouch device, with the web UI on all interfaces over plain HTTP:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>aqualink-automate<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--remote-serial-port<span class="w"> </span><span class="m">192</span>.168.1.50:8899<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--rfc2217<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--jandy-device-type<span class="w"> </span>onetouch<span class="w"> </span>--jandy-device-id<span class="w"> </span>0x41<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>--address<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>--disable-https
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>aqualink-automate<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--remote-serial-port<span class="w"> </span><span class="m">192</span>.168.1.50:8899<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--rfc2217<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>--jandy-device-type<span class="w"> </span>onetouch<span class="w"> </span>--jandy-device-id<span class="w"> </span>0x41<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>--address<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span>--disable-https
 </code></pre></div>
 <p>The same thing as a config file:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">remote-serial-port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">192.168.1.50:8899</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">rfc2217</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="na">jandy-device-type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">onetouch</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="na">jandy-device-id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">0x41</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="na">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">0.0.0.0</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="na">disable-https</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="na">remote-serial-port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">192.168.1.50:8899</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">rfc2217</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="na">jandy-device-type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">onetouch</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="na">jandy-device-id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">0x41</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="na">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">0.0.0.0</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="na">disable-https</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>aqualink-automate<span class="w"> </span>--config<span class="w"> </span>config-network.conf
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>aqualink-automate<span class="w"> </span>--config<span class="w"> </span>config-network.conf
 </code></pre></div>
 <h3 id="mqtt-with-home-assistant-discovery">MQTT with Home Assistant discovery<a class="headerlink" href="#mqtt-with-home-assistant-discovery" title="Permanent link">&para;</a></h3>
 <p>Publish to a broker and advertise entities to Home Assistant:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>aqualink-automate<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>--serial-port<span class="w"> </span>/dev/ttyUSB0<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>--mqtt<span class="w"> </span>--mqtt-host<span class="w"> </span><span class="m">192</span>.168.1.100<span class="w"> </span>--mqtt-port<span class="w"> </span><span class="m">1883</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span>--mqtt-username<span class="w"> </span>pool<span class="w"> </span>--mqtt-password<span class="w"> </span>secret<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span>--home-assistant<span class="w"> </span>--ha-discovery-prefix<span class="w"> </span>homeassistant
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>aqualink-automate<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>--serial-port<span class="w"> </span>/dev/ttyUSB0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--mqtt<span class="w"> </span>--mqtt-host<span class="w"> </span><span class="m">192</span>.168.1.100<span class="w"> </span>--mqtt-port<span class="w"> </span><span class="m">1883</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span>--mqtt-username<span class="w"> </span>pool<span class="w"> </span>--mqtt-password<span class="w"> </span>secret<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>--home-assistant<span class="w"> </span>--ha-discovery-prefix<span class="w"> </span>homeassistant
 </code></pre></div>
 <p><strong>Security:</strong> without <code>--mqtt-tls</code>, those credentials cross the network in cleartext. For the full topic and entity reference, see <a href="../mqtt-home-assistant/">mqtt-home-assistant.md</a>.</p>
 <h3 id="developer-replay">Developer replay<a class="headerlink" href="#developer-replay" title="Permanent link">&para;</a></h3>
 <p><code>--replay-filename</code> requires <code>--dev-mode</code>, <code>--profiler</code>, and every <code>--loglevel-&lt;channel&gt;</code>. This invocation passes validation (it mirrors the one the UI end-to-end tests boot with):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>aqualink-automate<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>--dev-mode<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--replay-filename<span class="w"> </span>test/fixtures/sample_session.cap<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span>--profiler<span class="w"> </span>tracy<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>--http-port<span class="w"> </span><span class="m">18080</span><span class="w"> </span>--address<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--disable-https<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span>--doc-root<span class="w"> </span>assets/web<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>--jandy-disable-emulation<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span>--loglevel-certificates<span class="w"> </span>info<span class="w"> </span>--loglevel-coroutines<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span>--loglevel-developer<span class="w"> </span>info<span class="w"> </span>--loglevel-devices<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">  </span>--loglevel-equipment<span class="w"> </span>info<span class="w"> </span>--loglevel-exceptions<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">  </span>--loglevel-main<span class="w"> </span>info<span class="w"> </span>--loglevel-messages<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">  </span>--loglevel-mqtt<span class="w"> </span>info<span class="w"> </span>--loglevel-navigation<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">  </span>--loglevel-options<span class="w"> </span>info<span class="w"> </span>--loglevel-platform<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">  </span>--loglevel-profiling<span class="w"> </span>info<span class="w"> </span>--loglevel-protocol<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">  </span>--loglevel-scraping<span class="w"> </span>info<span class="w"> </span>--loglevel-serial<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">  </span>--loglevel-signals<span class="w"> </span>info<span class="w"> </span>--loglevel-web<span class="w"> </span>info
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>aqualink-automate<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>--dev-mode<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--replay-filename<span class="w"> </span>test/fixtures/sample_session.cap<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>--profiler<span class="w"> </span>tracy<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>--http-port<span class="w"> </span><span class="m">18080</span><span class="w"> </span>--address<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--disable-https<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span>--doc-root<span class="w"> </span>assets/web<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span>--jandy-disable-emulation<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span>--loglevel-certificates<span class="w"> </span>info<span class="w"> </span>--loglevel-coroutines<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">  </span>--loglevel-developer<span class="w"> </span>info<span class="w"> </span>--loglevel-devices<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">  </span>--loglevel-equipment<span class="w"> </span>info<span class="w"> </span>--loglevel-exceptions<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">  </span>--loglevel-main<span class="w"> </span>info<span class="w"> </span>--loglevel-messages<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">  </span>--loglevel-mqtt<span class="w"> </span>info<span class="w"> </span>--loglevel-navigation<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">  </span>--loglevel-options<span class="w"> </span>info<span class="w"> </span>--loglevel-platform<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">  </span>--loglevel-profiling<span class="w"> </span>info<span class="w"> </span>--loglevel-protocol<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">  </span>--loglevel-scraping<span class="w"> </span>info<span class="w"> </span>--loglevel-serial<span class="w"> </span>info<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">  </span>--loglevel-signals<span class="w"> </span>info<span class="w"> </span>--loglevel-web<span class="w"> </span>info
 </code></pre></div>
 <p>Dropping any one <code>--loglevel-&lt;channel&gt;</code>, <code>--profiler</code>, or <code>--dev-mode</code> makes the command fail validation at startup. See <a href="../RECORD_REPLAY/">RECORD_REPLAY.md</a> for recording fixtures and the replay workflow.</p>
 

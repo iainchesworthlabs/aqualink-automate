@@ -1,0 +1,1792 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.">
+      
+      
+        <meta name="author" content="Iain Chesworth">
+      
+      
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/auth-redesign/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Authentication & Authorization Redesign — Scope & Design - Aqualink Automate</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#authentication--authorization-redesign--scope--design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Aqualink Automate" class="md-header__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Aqualink Automate
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Authentication &amp; Authorization Redesign — Scope &amp; Design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Aqualink Automate" class="md-nav__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Aqualink Automate
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage-and-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage, HTTP API & WebSocket
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mqtt-home-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MQTT & Home Assistant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MATTER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matter (smart home)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberry-pi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Raspberry Pi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-rs485-connectivity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RS-485 wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-server-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server & hosting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECURITY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../worktrees/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git worktrees
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RECORD_REPLAY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Record / replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-goals-from-the-requester" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Goals (from the requester)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-decisions-locked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Decisions locked
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-the-three-layer-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. The three-layer model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. The three-layer model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#global-posture-d3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global posture (D3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-authorization-abac-over-entitlements-d5-d9-d10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Authorization: ABAC over entitlements (D5, D9, D10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Authorization: ABAC over entitlements (D5, D9, D10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#entitlements-the-vocabulary--v1-set-confirmed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entitlements (the vocabulary — v1 set, confirmed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subject-attributes--resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subject attributes &amp; resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policy-engine-pdp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy engine (PDP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-gating-d14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule gating (D14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enforcement-change-the-core-refactor--slice-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enforcement change (the core refactor — Slice 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-sessions--tokens-d2-d11-d15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Sessions &amp; tokens (D2, D11, D15)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-identity-providers-d1-d4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Identity providers (D1, D4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-api-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. API keys
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. API keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trust-boundary--integration-channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trust boundary — integration channels
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-preferences-global-vs-per-user-d7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Preferences: global vs per-user (D7)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-ui-surface-d6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. UI surface (D6)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-persistence-audit-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Persistence, audit, config
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Persistence, audit, config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#persistence-layout-d12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Persistence layout (D12)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#audit-d17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit (D17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-surface-newchanged-cli--config-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config surface (new/changed CLI + config keys)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-migration--back-compat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Migration &amp; back-compat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-testing-strategy--full-surface-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Testing strategy — full-surface coverage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Testing strategy — full-surface coverage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mock-idp--provider-harness-test-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mock IdP / provider harness (test-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entitlement-assertions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entitlement assertions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unit-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e2e-matrix-playwright" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E2E matrix (Playwright)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-surface-control-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full-surface control matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docs-to-update-per-claudemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docs to update (per CLAUDE.md)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-slices-delivery-units--d19-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Slices (delivery units — D19 order)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-decision-log--resolved--remaining" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Decision log — resolved &amp; remaining
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/auth-redesign.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="authentication--authorization-redesign--scope--design">Authentication &amp; Authorization Redesign — Scope &amp; Design<a class="headerlink" href="#authentication--authorization-redesign--scope--design" title="Permanent link">&para;</a></h1>
+<p><strong>Branch:</strong> <code>feat/auth-authz</code> (off <code>develop</code>) · <strong>Status:</strong> scoping (2026-07-02, completeness pass done) · <strong>Design snapshot, not yet implemented.</strong></p>
+<p>This document scopes the move from the current single-shared-token model to a multi-mode
+identity + session + authorization system with per-user preferences. It is the north star
+for implementation; verify claims against code before relying on any file citation.</p>
+<hr />
+<h2 id="1-goals-from-the-requester">1. Goals (from the requester)<a class="headerlink" href="#1-goals-from-the-requester" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Auth-disabled mode</strong> — no authentication; every feature anonymously accessible.</li>
+<li><strong>Authenticated mode</strong> — users must log in.</li>
+<li><strong>In-app user management</strong> — local username+password accounts (form login).</li>
+<li><strong>External OIDC/OAuth2</strong> — both a trusted reverse-proxy forward-auth mode <em>and</em> a full in-app OIDC client.</li>
+<li><strong>API keys</strong> — machine credentials for integrations against the HTTP API.</li>
+<li><strong>Guest mode</strong> — when auth is ON, anonymous visitors get an admin-configured guest scope
+   (which aux/controls are available is admin-chosen); logging in elevates.</li>
+<li><strong>Design-language consistency</strong> — build screens with existing <code>assets/web</code> patterns.</li>
+<li><strong>Per-user preferences</strong> — units, dark mode, accent, chemistry bands stored per user, with global defaults.</li>
+</ol>
+<h2 id="2-decisions-locked">2. Decisions locked<a class="headerlink" href="#2-decisions-locked" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Decision</th>
+<th>Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>OIDC delivery</td>
+<td><strong>Both</strong>: trusted-proxy forward-auth <strong>and</strong> full in-app OIDC client</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>Browser session mechanism</td>
+<td><strong>Stateless JWT</strong> (access) + refresh token + server-side revocation/token-version so logout &amp; disable-user work</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>Guest / global posture</td>
+<td><strong>3 postures</strong>: auth OFF = all anonymous; auth ON = anonymous→Guest group, login elevates</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>Local accounts</td>
+<td><strong>Form login</strong>, argon2id-hashed passwords, in-app user CRUD</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>Authorization model</td>
+<td><strong>ABAC over entitlements</strong> — decisions evaluate subject/resource/action/environment attributes; entitlements (claims/scopes) are the primary subject attribute. <strong>No roles</strong>: people → groups → entitlements (+ optional direct entitlements). Guest/Everyone are built-in groups</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>Auth UI design</td>
+<td><strong>Follow existing design language</strong> in <code>assets/web</code></td>
+</tr>
+<tr>
+<td>D7</td>
+<td>Per-user prefs</td>
+<td>Units, theme, accent, chemistry bands — <strong>all per-user</strong>; global defaults remain</td>
+</tr>
+<tr>
+<td>D8</td>
+<td>Dependencies</td>
+<td>libsodium (argon2id) + jwt-cpp + OpenSSL (present) via vcpkg</td>
+</tr>
+<tr>
+<td>D9</td>
+<td>ABAC richness v1</td>
+<td>Entitlement-selector matching + <strong>posture</strong> condition; no admin condition-language in v1 (engine extensible)</td>
+</tr>
+<tr>
+<td>D10</td>
+<td>Assignment</td>
+<td><strong>Groups + optional direct grants</strong>; effective = <code>union(group-derived, direct, provider-claim-derived)</code></td>
+</tr>
+<tr>
+<td>D11</td>
+<td>JWT placement</td>
+<td>Framework <strong>Slice 1</strong>, local issuance <strong>Slice 2</strong>, external OIDC/JWKS validation <strong>Slice 4</strong></td>
+</tr>
+<tr>
+<td>D12</td>
+<td>Store backend</td>
+<td><strong>Atomic JSON files</strong> in secure state dir (parity with prefs/schedules), schema-versioned</td>
+</tr>
+<tr>
+<td>D13</td>
+<td>View granularity</td>
+<td><strong>Binary view in v1</strong> — <code>equipment.view</code> grants all live data; granularity applies to <em>control</em> only. No per-subject WS payload filtering in v1</td>
+</tr>
+<tr>
+<td>D14</td>
+<td>Schedule authz</td>
+<td>Creating/editing a schedule <strong>requires the entitlements for every action it performs</strong> (checked at save). Existing schedules execute as system</td>
+</tr>
+<tr>
+<td>D15</td>
+<td>Grant propagation</td>
+<td><strong>Immediate</strong> — entitlement/group/disable changes bump the user's <code>tokver</code>; next request re-issues or rejects. Effect within one request</td>
+</tr>
+<tr>
+<td>D16</td>
+<td>In-scope extras</td>
+<td><strong>Session/device list</strong> (Slice 2) and <strong>kiosk PIN</strong> (Slice 3). TOTP 2FA + WebAuthn/passkeys = backlog; design must not preclude them</td>
+</tr>
+<tr>
+<td>D17</td>
+<td>Audit destination</td>
+<td>New <strong>Audit logging channel</strong> routed to <strong>OS-native logging</strong> (syslog/journald on Linux, Windows Event Log) + a local structured JSONL file in the state dir (feeds the in-app audit viewer; also the fallback when no OS sink)</td>
+</tr>
+<tr>
+<td>D18</td>
+<td>OIDC secret at rest</td>
+<td>Plain file, 0600, inside the hardened state dir (encryption-at-rest deferred)</td>
+</tr>
+<tr>
+<td>D19</td>
+<td>Slice order</td>
+<td>1 Frameworks → 2 Users/API-keys → <strong>3 Guest mode</strong> → 4 OIDC → 5 Forwarded auth</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Defaults taken</strong> (change if wrong): API keys are entitlement-scoped, hashed at rest, shown once,
+revocable, last-used tracked, <strong>HTTP API only</strong>; legacy <code>--api-auth-token</code> continues to work as a
+bootstrap API key; existing global prefs file auto-migrates; HTTPS hard-required when auth is enabled
+on a non-loopback bind; single OIDC provider in v1.</p>
+<h2 id="3-the-three-layer-model">3. The three-layer model<a class="headerlink" href="#3-the-three-layer-model" title="Permanent link">&para;</a></h2>
+<p>Auth is <strong>not</strong> "5 modes"; it is three orthogonal layers:</p>
+<ol>
+<li><strong>Identity providers</strong> (how a human logs in): <code>local</code> accounts · <code>oidc</code> (in-app) · <code>proxy</code> (forward-auth header).
+   One or more may be enabled; the login screen offers the enabled paths.</li>
+<li><strong>Machine credentials</strong>: API keys, always available when auth is ON, independent of the human login path.
+   The legacy static token folds in here.</li>
+<li><strong>Authorization</strong>: every request resolves to a <strong>subject</strong> (anonymous/Guest, user, or api-key)
+   carrying <strong>entitlements</strong>; a policy engine decides Permit/Deny.</li>
+</ol>
+<p>Per-user preferences = preferences keyed by subject identity, falling back to global defaults.</p>
+<h3 id="global-posture-d3">Global posture (D3)<a class="headerlink" href="#global-posture-d3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Auth OFF</strong> — no identity resolved; subject is "root-anonymous" with all entitlements; per-user prefs disabled (global/localStorage only). This is today's "no token" behavior, made explicit.</li>
+<li><strong>Auth ON</strong> — anonymous request resolves to the <strong>Guest</strong> group (deny-by-default, admin-configured). A valid session/key elevates to that subject's entitlements.</li>
+</ul>
+<h2 id="4-authorization-abac-over-entitlements-d5-d9-d10">4. Authorization: ABAC over entitlements (D5, D9, D10)<a class="headerlink" href="#4-authorization-abac-over-entitlements-d5-d9-d10" title="Permanent link">&para;</a></h2>
+<p><strong>No roles.</strong> Access decisions are made by a policy engine (PDP) that evaluates <strong>attributes</strong> of the
+request: subject, resource, action, and environment. <strong>Entitlements</strong> (structured claims/scopes) are the
+primary subject attribute. Assignment flows <strong>person → group → entitlements</strong> (+ optional direct
+entitlements + provider-claim-derived entitlements). Groups are an <em>assignment convenience</em>, never the
+decision unit — the PDP never branches on a group/role name.</p>
+<h3 id="entitlements-the-vocabulary--v1-set-confirmed">Entitlements (the vocabulary — v1 set, confirmed)<a class="headerlink" href="#entitlements-the-vocabulary--v1-set-confirmed" title="Permanent link">&para;</a></h3>
+<p>Structured scope strings: <code>&lt;domain&gt;.&lt;action&gt;[:&lt;resource-selector&gt;]</code>. Selectors support <code>*</code>. The selector
+syntax allows finer grain later without schema change.</p>
+<ul>
+<li><code>system.admin</code> — manage users, groups, entitlements, API keys, auth config, system prefs</li>
+<li><code>equipment.view</code> — read state, temps, chemistry, history, diagnostics (<strong>binary in v1</strong>, D13)</li>
+<li><code>equipment.control.aux:*</code> / <code>equipment.control.aux:AUX3</code> — all aux, or one specific aux</li>
+<li><code>equipment.control.heater</code> · <code>.setpoints</code> · <code>.circulation</code> · <code>.chlorinator</code> · <code>.iaq</code> · <code>.spaside</code></li>
+<li><code>schedules.view</code> / <code>schedules.edit</code> (subject to D14 action-entitlement gating)</li>
+<li><code>diagnostics.view</code></li>
+<li><code>prefs.self</code> — manage own preferences</li>
+</ul>
+<h3 id="subject-attributes--resolution">Subject attributes &amp; resolution<a class="headerlink" href="#subject-attributes--resolution" title="Permanent link">&para;</a></h3>
+<p>A <strong>subject</strong> carries: identity (<code>sub</code>, or anonymous), <strong>effective entitlements</strong> =
+<code>union(direct, group-derived, provider-claim-derived)</code>, group memberships, provider, <code>authenticated?</code>.
+Effective entitlements are computed at login and <strong>embedded in the JWT</strong> as the <code>ent</code>/<code>scope</code> claim
+(§5) so they are self-describing and directly assertable. Built-in groups: <strong>Everyone</strong> (baseline),
+<strong>Guest</strong> (the anonymous subject's group when auth is ON), <strong>Administrators</strong> (<code>system.admin</code>).</p>
+<h3 id="policy-engine-pdp">Policy engine (PDP)<a class="headerlink" href="#policy-engine-pdp" title="Permanent link">&para;</a></h3>
+<p><code>PolicyEngine.Decide(subject, action, resource, env) → Permit | Deny</code>, <strong>default deny</strong>. A request is
+permitted when the subject holds an entitlement whose action matches and whose <strong>resource-selector
+matches the resource's attributes</strong> (e.g. aux id), subject to the <strong>posture</strong> environment condition
+(extensible to time-of-day, source, etc. later — D9). Decisions are attribute-driven, not name-driven,
+while the common case (a scoped entitlement match) stays cheap.</p>
+<h3 id="schedule-gating-d14">Schedule gating (D14)<a class="headerlink" href="#schedule-gating-d14" title="Permanent link">&para;</a></h3>
+<p>Schedules run as system, so <code>schedules.edit</code> alone would be an escalation path (schedule the heater you
+can't control). Rule: <strong>on save, every action a schedule performs is PDP-checked against the saving
+subject</strong>; save is rejected if any action would be denied. Existing schedules continue to execute.</p>
+<h3 id="enforcement-change-the-core-refactor--slice-1">Enforcement change (the core refactor — Slice 1)<a class="headerlink" href="#enforcement-change-the-core-refactor--slice-1" title="Permanent link">&para;</a></h3>
+<p>Today <code>EvaluateSecurity()</code> is a single all-or-nothing gate in
+<a href="https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/http/server/routing/routing.cpp"><code>routing.cpp</code></a>. New flow:</p>
+<ol>
+<li><strong>Subject resolution</strong> (new middleware): session JWT / API key / proxy header / anonymous → <code>Subject { id, entitlements, groups, attrs }</code>, attached to request context.</li>
+<li><strong>Coarse gate</strong>: keep rate-limit, Origin, CSRF (see §5); rate-limiter gains per-account tracking for login and <strong>trusted-proxy-aware client-IP</strong> (X-Forwarded-For honored only from the configured trusted CIDR — otherwise every client behind a proxy shares one IP bucket).</li>
+<li><strong>Per-route authorization via PDP</strong>: each route declares the <code>(action, resource-descriptor)</code> it needs; the handler resolves resource attributes (e.g. aux id from the path) and calls <code>PolicyEngine.Decide(...)</code>. Extends the per-route <code>RequiresAuthentication()</code> hook in <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/interfaces/iwebroute.h"><code>iwebroute.h</code></a> into a <code>RequiredAccess()</code> (action + resource-kind) concept.</li>
+<li><strong>Response filtering</strong>: control affordances gated client- <strong>and</strong> server-side by PDP decisions. New <strong><code>/api/auth/me</code></strong> returns the resolved subject + effective entitlements so the SPA can gate affordances (lock icons, hidden admin nav) from one source of truth.</li>
+</ol>
+<h2 id="5-sessions--tokens-d2-d11-d15">5. Sessions &amp; tokens (D2, D11, D15)<a class="headerlink" href="#5-sessions--tokens-d2-d11-d15" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Access token</strong>: short-lived JWT (e.g. 15 min), signed with a key in the secure state dir. Carries <code>sub</code>, <code>tokver</code>, <code>iss</code>/<code>aud</code>, and <strong>entitlements as claims/scopes</strong> (<code>ent</code>/<code>scope</code>) — the resolved set (§4) is embedded so authorization is self-describing and directly assertable in tests. OIDC scopes/group-claims and proxy headers map → groups → entitlements; the same claim shape is produced regardless of provider, so the PDP and tests are provider-agnostic.</li>
+<li><strong>Size budget / overflow rule</strong>: large ABAC grants (dozens of per-aux selectors) can approach the ~4KB cookie ceiling. Entitlements-in-token is the fast path; if the encoded set exceeds the budget, the token instead carries groups + an entitlement-set version and the server resolves entitlements from its stores. Both paths tested.</li>
+<li><strong>Refresh token</strong>: longer-lived, opaque, server-recorded; rotates on use; browser transport is a cookie path-scoped to the refresh endpoint.</li>
+<li><strong>Revocation &amp; propagation (D15)</strong>: per-user <code>tokver</code> bumped on logout-all / password change / disable / <strong>any entitlement or group change</strong> → the next request with a stale access token re-validates against the store and silently re-issues (or rejects, if access was revoked). Plus a short refresh denylist. Grant changes take effect within one request despite stateless access tokens.</li>
+<li><strong>Session/device list (D16)</strong>: the refresh-token store records device/user-agent/last-seen per session → "active sessions" view with per-session revoke ("log out that browser").</li>
+<li><strong>Key management</strong>: signing keys carry <code>kid</code>; rotation keeps old + new valid during a grace window. Token validation tolerates bounded clock skew — embedded Pi deployments boot with wrong clocks (no RTC), so validation must behave sanely until NTP sync (documented startup grace).</li>
+<li><strong>Transport</strong>: JWT in <code>Authorization: Bearer</code> for API clients; for browsers, cookie (HttpOnly+Secure+SameSite=Strict) — which <strong>reintroduces CSRF</strong>, mitigated by SameSite + the existing CSRF-header option. WebSocket: browser cookie carries auth (drop the <code>bearer.&lt;token&gt;</code> subprotocol hack for browser sessions) but keep subprotocol for API-key WS clients.</li>
+<li><strong>WebSocket lifetime</strong>: sockets outlive tokens. The server tracks each connection's subject; on <code>tokver</code> bump, revocation, or access-token expiry the socket is closed (policy code) and the client reconnects with fresh credentials.</li>
+<li><strong>HTTPS</strong>: hard-required when auth enabled on non-loopback bind.</li>
+</ul>
+<h2 id="6-identity-providers-d1-d4">6. Identity providers (D1, D4)<a class="headerlink" href="#6-identity-providers-d1-d4" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Local</strong> — argon2id (libsodium) password hashing; login form; user CRUD; group membership; first-run setup screen when no users exist; <code>--bootstrap-admin</code> for headless/container (env/file-sourced secret — see §10).</li>
+<li><strong>Hashing off the kernel thread</strong>: argon2id is deliberately slow; the app's cooperative single-threaded loop also drives RS-485. Password hash/verify runs on a worker offload with async completion — <strong>never inline on the protocol loop</strong>.</li>
+<li><strong>Password lifecycle</strong>: change-own-password; admin reset (no email infra → no self-service forgot-password); minimum length 12 (no composition rules); all sessions invalidated on change (<code>tokver</code>).</li>
+<li><strong>Account lockout</strong>: per-account backoff/lockout on failed logins in addition to per-IP limiting (usernames are enumerable; per-IP alone fails behind proxies).</li>
+<li><strong>Last-admin protection</strong>: cannot delete/disable the last <code>system.admin</code> holder or remove their admin grant.</li>
+<li><strong>Deletion semantics</strong>: delete user → prefs file removed, refresh tokens revoked, audit entries retained (keyed by user-id).</li>
+<li><strong>Bootstrap semantics</strong>: <code>--bootstrap-admin</code> is an idempotent no-op when any user exists.</li>
+<li><strong>OIDC (in-app)</strong> — discovery, authorization-code + PKCE, JWKS validation (OpenSSL), redirect handling; configurable issuer/client-id/secret/redirect; <strong>group/claim → group → entitlements</strong> mapping; auto-provision local user record on first login. v1 bounds: <strong>single provider</strong>; discovery/JWKS cached with a refresh interval; <strong>no RP-initiated logout</strong> (local logout only); document redirect-URI registration for LAN/self-signed deployments.</li>
+<li><strong>Proxy forward-auth</strong> — trust <code>Remote-User</code> / configurable header (+ configurable groups header, e.g. <code>Remote-Groups</code>) <strong>only</strong> when the request arrives from the configured trusted-proxy CIDR; spoofed headers from outside the CIDR are rejected. Map header/group-claim → group → entitlements. The same CIDR governs <code>X-Forwarded-For</code> trust for rate-limiting and audit identity.</li>
+<li><strong>Kiosk PIN (D16, Slice 3)</strong> — wall-tablet quick-elevation: a short admin-configured PIN elevates the anonymous Guest session to a designated group (e.g. "Household"). PIN attempts are rate-limited/locked out like passwords; PIN sessions are ordinary JWT sessions (revocable, listed in the session view).</li>
+</ul>
+<h2 id="7-api-keys">7. API keys<a class="headerlink" href="#7-api-keys" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Generated server-side, <strong>shown once</strong>, stored hashed. Each key carries entitlements (directly or via group), optional expiry, and last-used timestamp. Revocable. Governs the <strong>HTTP API only</strong>. Legacy <code>--api-auth-token</code> = a pre-seeded bootstrap key.</li>
+</ul>
+<h3 id="trust-boundary--integration-channels">Trust boundary — integration channels<a class="headerlink" href="#trust-boundary--integration-channels" title="Permanent link">&para;</a></h3>
+<p>MQTT/Home-Assistant and Matter command paths <strong>bypass the PDP by design</strong>: they are admin-configured
+machine integration channels secured at their own layer (broker credentials/TLS, Matter commissioning).
+This is deliberate and documented in <code>docs/SECURITY.md</code>; anyone who can publish to the command topics or
+operate the commissioned fabric has full control regardless of HTTP-side entitlements.</p>
+<h2 id="8-preferences-global-vs-per-user-d7">8. Preferences: global vs per-user (D7)<a class="headerlink" href="#8-preferences-global-vs-per-user-d7" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Per-user</strong> (server-synced when logged in; localStorage fallback/first-paint for anonymous): temperature units, theme, accent, chemistry display bands.</li>
+<li><strong>System/admin</strong> (global, <code>system.admin</code> only): alert thresholds, salt-low, comms-timeout, webhook URL, history retention, label overrides, spa-switch mapping.</li>
+<li><strong>Model</strong>: split <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/kernel/preferences_hub.h"><code>PreferencesHub</code></a>/<a href="https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/preferences/preferences_service.cpp"><code>PreferencesService</code></a> into a <strong>system</strong> store (existing global file) and a <strong>per-user</strong> store keyed by user id. <code>GET/PUT /api/preferences</code> becomes subject-aware (returns merged global-defaults + user overrides). Theme/accent stores in <code>assets/web/scripts/stores/</code> gain a server-sync path for logged-in users.</li>
+</ul>
+<h2 id="9-ui-surface-d6">9. UI surface (D6)<a class="headerlink" href="#9-ui-surface-d6" title="Permanent link">&para;</a></h2>
+<p>All screens follow the existing <code>assets/web</code> design language (Alpine.js stores + views):</p>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Login</td>
+<td>Provider-aware: local form, "Sign in with <IdP>" (OIDC), auto (proxy); kiosk PIN entry when enabled</td>
+</tr>
+<tr>
+<td>First-run setup</td>
+<td>Wizard when no users exist and auth ON: create first admin</td>
+</tr>
+<tr>
+<td>Account menu</td>
+<td>Current user, change password, active sessions (per-session revoke), logout</td>
+</tr>
+<tr>
+<td>Users &amp; groups admin</td>
+<td>User CRUD, group membership, disable/enable</td>
+</tr>
+<tr>
+<td>Entitlement editor</td>
+<td>Group ↔ entitlement assignment; per-aux picker for <code>equipment.control.aux:</code> selectors; direct grants</td>
+</tr>
+<tr>
+<td>API keys admin</td>
+<td>Create (shown-once), entitlement scope, expiry, last-used, revoke</td>
+</tr>
+<tr>
+<td>Auth settings</td>
+<td>Posture, provider enable, OIDC config, proxy config, kiosk PIN</td>
+</tr>
+<tr>
+<td>Guest scope editor</td>
+<td>What the Guest group may control (deny-by-default; per-control + per-aux)</td>
+</tr>
+<tr>
+<td>Per-user prefs panel</td>
+<td>Units, theme, accent, chemistry bands (existing settings view, made subject-aware)</td>
+</tr>
+<tr>
+<td>Audit viewer</td>
+<td>Filterable list over the local audit file</td>
+</tr>
+</tbody>
+</table>
+<p>Affordance gating is driven by <code>/api/auth/me</code> (lock icons / hidden controls for unentitled actions),
+<strong>always enforced server-side too</strong>. The service worker must <strong>never cache authenticated API responses</strong>
+(verify current network-first SW; add an explicit test).</p>
+<h2 id="10-persistence-audit-config">10. Persistence, audit, config<a class="headerlink" href="#10-persistence-audit-config" title="Permanent link">&para;</a></h2>
+<h3 id="persistence-layout-d12">Persistence layout (D12)<a class="headerlink" href="#persistence-layout-d12" title="Permanent link">&para;</a></h3>
+<p>Reuse <code>SecureRuntimeStateDirectories()</code> / <code>PrepareSecureDirectory()</code> (0700, owner-only, symlink-rejecting).
+All stores are atomic-write JSON with a <strong>schema-version field + migration hook</strong>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>&lt;state-dir&gt;/auth/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  jwt-signing.key            # generated, 0600, kid-tagged; rotation keeps old+new
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  users.json                 # id, username, argon2 hash, groups, direct entitlements, tokver, disabled
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  groups.json                # group → entitlement set (+ built-in Everyone/Guest/Administrators)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  api-keys.json              # id, hash, entitlements/group, expiry, last-used
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  oidc.json                  # issuer/client-id/secret/redirect/group-claim-map (0600 — D18)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  kiosk.json                 # kiosk PIN (hashed) → group mapping
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  sessions/                  # refresh-token records (device/UA/last-seen) + denylist
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>&lt;state-dir&gt;/prefs/
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  global.json                # migrated from current preferences-file
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  users/&lt;uid&gt;.json           # per-user overrides
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>&lt;state-dir&gt;/audit/
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  audit.jsonl                # structured audit log (rotated) — feeds the audit viewer
+</code></pre></div>
+<h3 id="audit-d17">Audit (D17)<a class="headerlink" href="#audit-d17" title="Permanent link">&para;</a></h3>
+<p>New <strong>Audit</strong> channel in the logging facade. Sinks: <strong>OS-native logging</strong> — syslog/journald on
+Linux/POSIX, <strong>Windows Event Log</strong> on Windows — plus the local structured JSONL file (which feeds the
+in-app audit viewer and is the fallback when no OS sink is available). Audited events: <strong>control actions</strong>
+(who did what to which resource, decision) <strong>and auth events</strong> — login success/failure, lockouts,
+token/key issuance + revocation, entitlement/group changes, posture changes.</p>
+<h3 id="config-surface-newchanged-cli--config-keys">Config surface (new/changed CLI + config keys)<a class="headerlink" href="#config-surface-newchanged-cli--config-keys" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>--auth-mode</code> <code>disabled|enabled</code></li>
+<li><code>--auth-provider-local</code> / <code>--auth-provider-oidc</code> / <code>--auth-provider-proxy</code> (enable flags)</li>
+<li>OIDC: <code>--oidc-issuer</code>, <code>--oidc-client-id</code>, <code>--oidc-client-secret</code>, <code>--oidc-redirect-uri</code>, <code>--oidc-group-claim</code></li>
+<li>Proxy: <code>--auth-proxy-header</code>, <code>--auth-proxy-groups-header</code>, <code>--auth-proxy-trusted-cidr</code></li>
+<li><code>--bootstrap-admin</code> (username) + <code>--bootstrap-admin-password-file</code> / env var — <strong>never a bare CLI password</strong> (process-list visible)</li>
+<li><code>--auth-state-dir</code> (override), <code>--jwt-access-ttl</code>, <code>--jwt-refresh-ttl</code></li>
+<li>Retain: <code>--api-auth-token</code> (bootstrap key), <code>--api-allowed-origin</code>, <code>--api-require-csrf-header</code>, <code>--insecure-no-auth</code>, TLS/bind options</li>
+<li><strong>Secret redaction</strong>: any options-dumping surface (e.g. <code>/api/diagnostics/options</code>) must mask secret-typed options (<code>--oidc-client-secret</code>, <code>--api-auth-token</code>, bootstrap password) — Slice 1 requirement.</li>
+<li>Follow the options pipeline in <code>CLAUDE.md</code> (§Options) for each new flag; add tests under <code>test/unit/options/</code>.</li>
+</ul>
+<p>Auth config becomes <strong>partly runtime-managed state</strong> (users/groups/keys/OIDC managed via admin UI), not all CLI.</p>
+<h2 id="11-migration--back-compat">11. Migration &amp; back-compat<a class="headerlink" href="#11-migration--back-compat" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>--api-auth-token</code> set + no users → keep working as a bootstrap API key; no behavior break.</li>
+<li>Existing global preferences file → auto-migrate into <code>prefs/global.json</code>.</li>
+<li>Auth OFF remains the default → existing deployments unchanged until they opt in.</li>
+<li>Auth state is included in backup/restore guidance (documented in <code>docs/configuration.md</code>).</li>
+</ul>
+<h2 id="12-testing-strategy--full-surface-coverage">12. Testing strategy — full-surface coverage<a class="headerlink" href="#12-testing-strategy--full-surface-coverage" title="Permanent link">&para;</a></h2>
+<p>Testing is a first-class deliverable: <strong>every mode, every provider, every subject type must be exercised</strong>,
+with unit + e2e coverage merged into the existing SonarCloud new-coverage gate (unit + Playwright-e2e).</p>
+<h3 id="mock-idp--provider-harness-test-only">Mock IdP / provider harness (test-only)<a class="headerlink" href="#mock-idp--provider-harness-test-only" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Mock OIDC provider fixture</strong> — a test-only in-process server exposing a static discovery document,
+  JWKS, authorization endpoint, and token endpoint, issuing tokens with controllable claims/scopes/groups.
+  Lets the in-app OIDC client (discovery → PKCE → JWKS-verify → claim-map) run deterministically with no
+  network/real IdP. Signing keys are fixtures so JWKS verification is exercised end-to-end.</li>
+<li><strong>Mock trusted-proxy</strong> — inject <code>Remote-User</code>/configured header (and spoof-attempt from an untrusted
+  source, to prove the trusted-CIDR gate rejects it).</li>
+<li><strong>Local</strong> — seeded users/groups fixtures; argon2id verify path exercised (with a fast test cost factor).</li>
+<li>Follow the <code>MockReplayHarness</code> precedent (drive the real stack with synthetic inputs; no hardware/network).</li>
+</ul>
+<h3 id="entitlement-assertions">Entitlement assertions<a class="headerlink" href="#entitlement-assertions" title="Permanent link">&para;</a></h3>
+<p>Because entitlements are embedded as claims (§5), tests assert the <strong>resolved entitlement set</strong> directly on
+the issued token for each provider — proving <code>OIDC scopes/groups → group → entitlements</code>,
+<code>proxy header → group → entitlements</code>, and <code>local user groups + direct grants → entitlements</code> all
+converge on the same shape — plus <strong>PDP decision tests</strong> (attribute-driven Permit/Deny incl. per-aux
+selectors and posture conditions) and <strong>token-overflow-path tests</strong> (entitlements-in-token vs server-resolved).</p>
+<h3 id="unit-coverage">Unit coverage<a class="headerlink" href="#unit-coverage" title="Permanent link">&para;</a></h3>
+<p>Password hashing/verify (off-thread) · JWT sign/verify/expiry/<code>kid</code> rotation/clock-skew/<code>tokver</code> ·
+subject resolution from <strong>each</strong> source (local session, API key, OIDC, proxy, kiosk PIN, anonymous) ·
+PDP evaluation incl. per-aux selectors (allow/deny) · schedule action-gating (D14) · group/entitlement CRUD ·
+lockout + rate-limit (per-account, per-IP, XFF-trusted) · prefs merge (global defaults + per-user overrides) ·
+audit sink routing · secret redaction · every new option + config key.</p>
+<h3 id="e2e-matrix-playwright">E2E matrix (Playwright)<a class="headerlink" href="#e2e-matrix-playwright" title="Permanent link">&para;</a></h3>
+<p>Cross-product of <strong>global posture × provider × entitlement profile</strong>, asserting both allow and deny:</p>
+<table>
+<thead>
+<tr>
+<th>Posture</th>
+<th>Providers</th>
+<th>Subjects to cover</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auth OFF</td>
+<td>—</td>
+<td>anonymous = full access to all features</td>
+</tr>
+<tr>
+<td>Auth ON</td>
+<td>local, OIDC (mock), proxy (mock), kiosk PIN</td>
+<td>Administrators, standard user, guest (deny-by-default + per-aux grant), anonymous→Guest, API key</td>
+</tr>
+</tbody>
+</table>
+<p>Flows: first-run setup; login/logout per provider; login <strong>elevation</strong> from guest (incl. kiosk PIN);
+session expiry + refresh rotation; <strong>immediate grant propagation</strong> (revoke entitlement → next action 403);
+disable-user/logout-all (revocation, incl. WS close); session list + per-session revoke; per-user prefs
+persist &amp; isolate between users; admin user/group/key management; guest per-aux grant reflected in UI
+affordances <strong>and</strong> enforced server-side; SW never serves a cached authenticated API response.</p>
+<h3 id="full-surface-control-matrix">Full-surface control matrix<a class="headerlink" href="#full-surface-control-matrix" title="Permanent link">&para;</a></h3>
+<p>Every control route (buttons/aux, heater, setpoints, circulation, chlorinator, iaq, spaside, schedules,
+diagnostics, users/groups/keys/oidc admin) tested against <strong>every subject type</strong> — asserting the exact
+PDP gate (2xx when entitled, 401/403 when not). This is the "full surface is tested" guarantee:
+a route added without a <code>RequiredAccess()</code> declaration should fail a coverage/enforcement test.</p>
+<h3 id="docs-to-update-per-claudemd">Docs to update (per CLAUDE.md)<a class="headerlink" href="#docs-to-update-per-claudemd" title="Permanent link">&para;</a></h3>
+<p><code>docs/SECURITY.md</code> (auth model + trust boundary), <code>docs/configuration.md</code> (all new flags + backup),
+<code>docs/usage-and-api.md</code> (auth routes + WS), <code>assets/web/api/swagger.yaml</code> (security schemes +
+<code>/api/auth/*</code> incl. <code>/api/auth/me</code>, <code>/api/users</code>, <code>/api/groups</code>, <code>/api/entitlements</code>, <code>/api/apikeys</code>,
+<code>/api/oidc</code>, <code>/api/sessions</code>, <code>/api/audit</code>).</p>
+<h2 id="13-slices-delivery-units--d19-order">13. Slices (delivery units — D19 order)<a class="headerlink" href="#13-slices-delivery-units--d19-order" title="Permanent link">&para;</a></h2>
+<p>Work proceeds slice by slice; <strong>each slice ships its own unit + e2e coverage</strong> (§12) and merges into the
+SonarCloud gate. No slice merges without covering its part of the full-surface matrix.</p>
+<ul>
+<li><strong>Slice 1 — Frameworks / patterns / structural updates.</strong> The ABAC substrate with <strong>no real credential
+  providers yet</strong> (behaviour-preserving: auth OFF = anonymous-all; legacy <code>--api-auth-token</code> still works).</li>
+<li>Subject model + request-context resolution middleware.</li>
+<li>Entitlement vocabulary + group model + PDP (<code>PolicyEngine.Decide</code>) with default-deny + posture condition.</li>
+<li><strong>JWT framework</strong>: signing-key management (<code>kid</code>, rotation, skew), claim schema (<code>ent</code>/<code>scope</code>, size-overflow rule), sign/verify — issuance wired in Slice 2.</li>
+<li>Routing-gate refactor: single gate → per-route <code>RequiredAccess(action, resource-kind)</code> + PDP call; resource-attribute resolution (e.g. aux id) on every control route; <code>/api/auth/me</code>.</li>
+<li>Rate-limiter evolution (per-account hooks, trusted-proxy XFF); secret redaction on options surfaces; Audit channel + sinks; worker-offload pattern for slow crypto.</li>
+<li>Global posture wiring (auth OFF/ON), config scaffolding, and the <strong>mock-IdP + mock-proxy test harness</strong> so every later slice tests against it.</li>
+<li><strong>Slice 2 — User/password + API tokens.</strong> Local accounts (argon2id off-thread), groups + entitlement
+  assignment, first-run setup, form login issuing session JWTs (access+refresh+<code>tokver</code> revocation,
+  immediate propagation), logout/disable-user, password lifecycle + lockout + last-admin protection,
+  <strong>session/device list</strong>, API keys (hashed, shown-once, revocable, entitlement-scoped), legacy-token
+  fold-in. Per-user preferences land here (split system/user stores, subject-aware <code>/api/preferences</code>,
+  theme/accent/units/bands sync). Schedule action-gating (D14). WS lifetime policy.</li>
+<li><strong>Slice 3 — Guest mode.</strong> ✅ <em>Delivered.</em> Admin-configured Guest group (deny-by-default), per-aux/per-control
+  grants, anonymous→Guest resolution + login elevation, client- and server-side affordance gating, guest-scope
+  admin UI, <strong>kiosk PIN</strong> elevation.</li>
+<li>Guest browsing "turns on" precisely when the admin grants the Guest group at least <code>equipment.view</code>
+    (<code>/api/auth/me</code> carries the Guest scope; an empty scope keeps today's login-wall behaviour). The SPA
+    then boots as a guest with a persistent "Sign in" affordance; control affordances render locked
+    (<code>auth.can(...)</code>) with the server PDP still the enforcement point.</li>
+<li><strong>Kiosk PIN</strong> (<code>KioskStore</code>/<code>KioskService</code>, <code>kiosk.json</code>): argon2id-hashed PIN → a session in the
+    admin-chosen target group. PIN sessions are ordinary JWTs (<code>prv=KioskPin</code>), revocable and session-listed,
+    validated by the resolver against the kiosk store's enabled flag + <code>TokenVersion</code> (no user record, no
+    <code>prefs.self</code>). Endpoints: <code>POST /api/auth/pin</code> (public login), <code>GET|PUT|DELETE /api/kiosk</code> (system.admin).</li>
+<li><strong>Slice 4 — OIDC / OAuth2 / (external) JWT.</strong> In-app OIDC client (discovery, auth-code + PKCE, JWKS
+  validation, redirect), validation of external tokens, group-claim → group → entitlement mapping,
+  auto-provision, OIDC settings UI.</li>
+<li><strong>Slice 5 — Forwarded auth (proxy).</strong> Trusted reverse-proxy forward-auth: header extraction
+  (<code>Remote-User</code>/configurable + groups header), trusted-CIDR gate + spoof rejection, header → group →
+  entitlements, XFF-aware rate-limit/audit identity, proxy settings UI.</li>
+<li><strong>Cross-cutting (folded into the relevant slice):</strong> audit events, TLS-required enforcement for auth
+  off-loopback, doc + swagger updates.</li>
+</ul>
+<h2 id="14-decision-log--resolved--remaining">14. Decision log — resolved &amp; remaining<a class="headerlink" href="#14-decision-log--resolved--remaining" title="Permanent link">&para;</a></h2>
+<p><strong>Resolved 2026-07-02 (scoping):</strong> D1–D12 (see §2).
+<strong>Resolved 2026-07-02 (completeness pass):</strong> D13–D19 (see §2), plus: password lifecycle/lockout/last-admin
+(§6), bootstrap secret sourcing (§10), audit scope incl. auth events (§10), MQTT/Matter trust boundary (§7),
+JWT size-overflow rule + key rotation + clock skew (§5), WS lifetime policy (§5), schedule gating (§4),
+<code>/api/auth/me</code> (§4), argon2 off-thread (§6), XFF/proxy-aware rate limiting (§4/§6), secret redaction (§10),
+SW no-cache-auth rule (§9), OIDC v1 bounds (§6), backup guidance (§11).</p>
+<p><strong>Remaining (open):</strong>
+- Verify during Slice 1: exact behavior of <code>/api/diagnostics/options</code> (redaction gap), current SW caching
+  of API responses, availability of an async HTTP client for the OIDC token/JWKS calls (webhook sink may
+  already provide one), and the threading model available for the crypto offload.
+- Backlog (explicitly out of scope, not precluded): TOTP 2FA, WebAuthn/passkeys, granular view filtering,
+  admin-authored ABAC condition rules, multiple OIDC providers, RP-initiated logout, encrypted-at-rest OIDC secret.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

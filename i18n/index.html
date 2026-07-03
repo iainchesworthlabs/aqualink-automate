@@ -12,13 +12,13 @@
         <meta name="author" content="Iain Chesworth">
       
       
-        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/worktrees/">
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/i18n/">
       
       
-        <link rel="prev" href="../ci-cd/">
+        <link rel="prev" href="../CONTRIBUTING/">
       
       
-        <link rel="next" href="../RECORD_REPLAY/">
+        <link rel="next" href="../releasing/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Git worktrees - Aqualink Automate</title>
+        <title>Internationalization (i18n) - Aqualink Automate</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#git-worktrees-and-parallel-development" class="md-skip">
+        <a href="#web-ui-internationalization-i18n" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Git worktrees
+              Internationalization (i18n)
             
           </span>
         </div>
@@ -681,10 +681,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../i18n/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -700,6 +727,125 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#rtl-layout-phase-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RTL layout (Phase 3)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fonts-and-scripts-phase-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fonts and scripts (Phase 4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#value-formatting-phase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Value formatting (Phase 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structured-errors-and-alerts-phase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structured errors and alerts (Phase 2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-deliberately-not-translated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is deliberately NOT translated
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a language
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing--guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing / guard rails
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -765,37 +911,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Git worktrees
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../worktrees/" class="md-nav__link">
         
   
   
@@ -811,136 +930,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Contents
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-worktrees" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why worktrees
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#naming-and-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Naming and layout
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#branch-namespaces" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Branch namespaces
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#creating-a-worktree" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creating a worktree
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-reuse-vcpkg-recipe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The reuse-vcpkg recipe
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#building-and-testing-in-a-worktree" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Building and testing in a worktree
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cleaning-up" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cleaning up
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#parallel-and-multi-agent-orchestration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parallel and multi-agent orchestration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick reference
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1064,10 +1053,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#contents" class="md-nav__link">
+  <a href="#rtl-layout-phase-3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Contents
+        RTL layout (Phase 3)
       
     </span>
   </a>
@@ -1075,10 +1064,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-worktrees" class="md-nav__link">
+  <a href="#fonts-and-scripts-phase-4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why worktrees
+        Fonts and scripts (Phase 4)
       
     </span>
   </a>
@@ -1086,10 +1075,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#naming-and-layout" class="md-nav__link">
+  <a href="#architecture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Naming and layout
+        Architecture
       
     </span>
   </a>
@@ -1097,10 +1086,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#branch-namespaces" class="md-nav__link">
+  <a href="#key-conventions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Branch namespaces
+        Key conventions
       
     </span>
   </a>
@@ -1108,10 +1097,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#creating-a-worktree" class="md-nav__link">
+  <a href="#value-formatting-phase-1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating a worktree
+        Value formatting (Phase 1)
       
     </span>
   </a>
@@ -1119,10 +1108,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-reuse-vcpkg-recipe" class="md-nav__link">
+  <a href="#structured-errors-and-alerts-phase-2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The reuse-vcpkg recipe
+        Structured errors and alerts (Phase 2)
       
     </span>
   </a>
@@ -1130,10 +1119,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#building-and-testing-in-a-worktree" class="md-nav__link">
+  <a href="#what-is-deliberately-not-translated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Building and testing in a worktree
+        What is deliberately NOT translated
       
     </span>
   </a>
@@ -1141,10 +1130,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cleaning-up" class="md-nav__link">
+  <a href="#adding-a-language" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cleaning up
+        Adding a language
       
     </span>
   </a>
@@ -1152,21 +1141,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#parallel-and-multi-agent-orchestration" class="md-nav__link">
+  <a href="#testing--guard-rails" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Parallel and multi-agent orchestration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick reference
+        Testing / guard rails
       
     </span>
   </a>
@@ -1190,7 +1168,7 @@
 
 
   
-    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/worktrees.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/i18n.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1198,172 +1176,235 @@
   
 
 
-<h1 id="git-worktrees-and-parallel-development">Git worktrees and parallel development<a class="headerlink" href="#git-worktrees-and-parallel-development" title="Permanent link">&para;</a></h1>
-<p><em>For contributors and maintainers who run more than one branch at a time on a single machine. This is the source of truth for </em><em>where worktrees live, how they are named, and how to build one cheaply</em><em> without duplicating the ~8 GB vcpkg tree. The branch model and PR rules these worktrees feed into are in <a href="../CONTRIBUTING/">CONTRIBUTING.md</a>; building from source is in <a href="../INSTALL/">INSTALL.md</a>.</em></p>
-<p>You do not need worktrees to contribute. A single checkout with <code>git switch</code> is enough for one change at a time. Reach for a worktree when you want <strong>several branches checked out at once</strong> — reviewing one branch while building another, keeping a long-running build untouched while you start the next task, or fanning work out across parallel agents.</p>
-<h2 id="contents">Contents<a class="headerlink" href="#contents" title="Permanent link">&para;</a></h2>
+<h1 id="web-ui-internationalization-i18n">Web UI internationalization (i18n)<a class="headerlink" href="#web-ui-internationalization-i18n" title="Permanent link">&para;</a></h1>
+<p><em>How the web UI's translation layer works and how to add a language. The
+roadmap and surface analysis live in <a href="../i18n-scoping/">docs/i18n-scoping.md</a>;
+this doc describes what is implemented: the catalog infrastructure, full
+English string extraction, and the shipped locales.</em></p>
+<p><strong>Shipped locales:</strong> English (<code>en</code>, default/fallback), German (<code>de</code>), Spanish
+(<code>es</code>), French (<code>fr</code>), Arabic (<code>ar</code>, RTL), Hebrew (<code>he</code>, RTL), Japanese
+(<code>ja</code>), Simplified Chinese (<code>zh</code>), Yiddish (<code>yi</code>, RTL).</p>
+<h2 id="rtl-layout-phase-3">RTL layout (Phase 3)<a class="headerlink" href="#rtl-layout-phase-3" title="Permanent link">&para;</a></h2>
+<p>The stylesheets use <strong>logical properties</strong> throughout (<code>margin-inline-start</code>,
+<code>inset-inline-end</code>, <code>text-align: start/end</code>, <code>border-inline-start</code>, …), so
+flex/grid layout and spacing mirror automatically under <code>&lt;html dir="rtl"&gt;</code>.
+Keep it that way: <strong>never add physical <code>left</code>/<code>right</code> spacing or alignment to
+<code>assets/web/styles</code></strong> unless it is genuinely direction-neutral (centering
+<code>left: 50% + translateX(-50%)</code>, spinner border accents).</p>
+<p>What logical properties cannot express lives in the clearly-marked RTL
+section at the end of <code>components.css</code>:</p>
 <ul>
-<li><a href="#why-worktrees">Why worktrees</a></li>
-<li><a href="#naming-and-layout">Naming and layout</a></li>
-<li><a href="#branch-namespaces">Branch namespaces</a></li>
-<li><a href="#creating-a-worktree">Creating a worktree</a></li>
-<li><a href="#the-reuse-vcpkg-recipe">The reuse-vcpkg recipe</a></li>
-<li><a href="#building-and-testing-in-a-worktree">Building and testing in a worktree</a></li>
-<li><a href="#cleaning-up">Cleaning up</a></li>
-<li><a href="#parallel-and-multi-agent-orchestration">Parallel and multi-agent orchestration</a></li>
-<li><a href="#quick-reference">Quick reference</a></li>
+<li>Switch-knob travel (<code>translateX</code>) is physical — <code>[dir='rtl']</code> overrides
+  negate the distance for the equipment/schedule/settings switches.</li>
+<li>Toasts slide in from the inline-end corner — an RTL keyframe variant.</li>
+<li><strong>Time-axis geometry is pinned <code>direction: ltr</code></strong> (<code>.sched-trk</code>,
+  <code>.sched-axis</code>, chart cards): the JS positions bars/markers with left-based
+  percentages, and time axes read left→right even in RTL locales. Only the
+  geometry elements are pinned; the surrounding cards, day chips, legends and
+  labels mirror normally.</li>
 </ul>
-<h2 id="why-worktrees">Why worktrees<a class="headerlink" href="#why-worktrees" title="Permanent link">&para;</a></h2>
-<p>A worktree is a second working directory backed by the same <code>.git</code>. Each worktree has its <strong>own</strong> checked-out branch, build directory, and uncommitted changes, but shares history, remotes, and the object store with the main checkout. That makes worktrees ideal for this project:</p>
+<p>Known issue (pre-existing, both directions): the alerts dropdown overflows at
+narrow viewports where the nav wraps — tracked separately.</p>
+<h2 id="fonts-and-scripts-phase-4">Fonts and scripts (Phase 4)<a class="headerlink" href="#fonts-and-scripts-phase-4" title="Permanent link">&para;</a></h2>
+<p>The Latin brand faces (Hanken Grotesk for UI text, Bricolage Grotesque for
+display headings, vendored in <code>assets/web/vendor/fonts/</code>) stay primary in every
+locale. Non-Latin scripts are covered two different ways:</p>
 <ul>
-<li>One in-flight branch per worktree means a build in one never invalidates a build in another — no thrashing a single <code>build/</code> directory.</li>
-<li>Branches stay isolated, so parallel changes in disjoint source areas merge back with few or no conflicts (see <a href="#parallel-and-multi-agent-orchestration">Parallel and multi-agent orchestration</a>).</li>
-<li>The expensive part of a build — the vcpkg dependency tree — can be <strong>shared</strong> from the main checkout rather than rebuilt per worktree (see <a href="#the-reuse-vcpkg-recipe">The reuse-vcpkg recipe</a>).</li>
+<li><strong>Arabic / Hebrew</strong> — vendored <strong>Noto Sans Arabic</strong> and <strong>Noto Sans
+  Hebrew</strong> variable woff2 files (<code>assets/web/vendor/fonts/noto-arabic.woff2</code>,
+  <code>noto-hebrew.woff2</code>, wght 400–700) declared in <code>fonts.css</code> with
+  script-only <code>unicode-range</code>s. Because of the range slices they behave as
+  <strong>per-glyph fallbacks</strong>: they sit after Hanken Grotesk in the shared
+  <code>--font-family</code> / <code>--font-ui</code> / <code>--font-display</code> stacks in <code>app.css</code> and
+  are consulted only for their scripts' codepoints, so Latin text (numbers
+  pinned LTR, brand names, codes) keeps the brand faces even under
+  <code>lang="ar"</code> / <code>lang="he"</code>. This makes both scripts render identically
+  across platforms instead of whatever <code>system-ui</code> resolves to.
+  <strong>Yiddish (<code>yi</code>)</strong> is written entirely within the Hebrew Unicode block
+  (<code>U+0590-05FF</code>), so it needs no font entry of its own — the Hebrew
+  <code>unicode-range</code> slice already covers it since the fallback is codepoint-,
+  not <code>lang</code>-attribute-, driven.</li>
+<li><strong>Japanese / Chinese</strong> — no vendored faces (CJK subsets are megabytes);
+  <code>html[lang='ja']</code> and <code>html[lang='zh']</code> blocks in <code>app.css</code> swap the
+  stacks to named system faces (ja: <code>Hiragino Kaku Gothic ProN</code>,
+  <code>Yu Gothic UI</code>, <code>Meiryo</code>, <code>Noto Sans JP</code>; zh: <code>PingFang SC</code>,
+  <code>Microsoft YaHei</code>, <code>Noto Sans SC</code>) ahead of <code>system-ui</code>, again keeping
+  Hanken Grotesk first for Latin glyphs.</li>
 </ul>
-<h2 id="naming-and-layout">Naming and layout<a class="headerlink" href="#naming-and-layout" title="Permanent link">&para;</a></h2>
-<p>Two rules keep a fleet of worktrees navigable:</p>
-<ol>
-<li>
-<p><strong>Worktrees live in a dedicated root <em>outside</em> the repository, on a disk with room to spare.</strong> Do not nest a worktree inside the main checkout, and avoid a small or restricted volume — a second full debug build is several GB, and exhausting the disk surfaces as opaque linker/exit-code failures rather than a clear error. Pick one root directory and put every worktree under it.</p>
-</li>
-<li>
-<p><strong>The worktree directory name matches the branch's short name.</strong> Keep the directory name and the branch suffix aligned so it is always obvious which directory holds which branch.</p>
-</li>
-</ol>
-<table>
-<thead>
-<tr>
-<th>Placeholder</th>
-<th>Meaning</th>
-<th>Worked example (Windows)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>&lt;worktrees-root&gt;</code></td>
-<td>The dedicated parent directory for all worktrees, outside the repo.</td>
-<td><code>C:\aa-wt</code></td>
-</tr>
-<tr>
-<td><code>&lt;name&gt;</code></td>
-<td>A short task slug, reused for both the directory and the branch suffix.</td>
-<td><code>labels-cache</code></td>
-</tr>
-<tr>
-<td><code>&lt;main-tree&gt;</code></td>
-<td>The path to your primary checkout (this repository).</td>
-<td><code>R:\aqualink-automate</code></td>
-</tr>
-</tbody>
-</table>
-<p>So a worktree for a feature called <code>labels-cache</code> is the directory <code>&lt;worktrees-root&gt;/&lt;name&gt;</code> on branch <code>feat/&lt;name&gt;</code> — for example <code>C:\aa-wt\labels-cache</code> on <code>feat/labels-cache</code>.</p>
-<blockquote>
-<p>The Windows paths above are one maintainer's setup. On Linux or macOS a <code>~/aa-wt</code> root works exactly the same; substitute your own <code>&lt;worktrees-root&gt;</code> and <code>&lt;main-tree&gt;</code> throughout.</p>
-</blockquote>
-<h2 id="branch-namespaces">Branch namespaces<a class="headerlink" href="#branch-namespaces" title="Permanent link">&para;</a></h2>
-<p>Worktree branches follow the same naming as any other branch — see <a href="../CONTRIBUTING/#branch-naming">CONTRIBUTING.md</a> for the authoritative rules. In short, <code>&lt;type&gt;/&lt;name&gt;</code> where <code>&lt;type&gt;</code> is an allowed commit type (<code>feat/</code>, <code>fix/</code>, <code>docs/</code>, <code>ci/</code>, <code>test/</code>, <code>refactor/</code>, <code>chore/</code>, <code>build/</code>, <code>perf/</code>). That naming is checked by a <strong>Branch Name</strong> CI job on every pull request, so name the branch correctly when you create the worktree — a misnamed branch fails CI.</p>
-<p>One namespace is worktree-specific:</p>
+<p>Chart.js does not read CSS custom properties, so <code>trends-view.js</code> repeats the
+UI stack in its <code>TREND_FONT</code> constant — keep it in sync with <code>--font-ui</code> if
+the stacks change.</p>
+<p>Adding a locale in a new script = add a <code>unicode-range</code>-sliced <code>@font-face</code>
+(vendored subset) <strong>or</strong> a <code>html[lang='xx']</code> stack override, plus the e2e
+font-load assertion in <code>e2e/i18n.spec.ts</code> if vendored.</p>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><code>claude/&lt;name&gt;</code></strong> — branches created by Claude Code's own managed worktrees, under the gitignored <code>.claude/worktrees/&lt;name&gt;</code> directory. These are <strong>local scratch</strong> branches, <em>not</em> part of the contribution convention. The assisted change is merged into <code>develop</code> <strong>locally</strong> (a direct merge then push — the normal flow here, and still allowed since <code>develop</code> requires no pull request); the <code>claude/*</code> branch itself is never pushed.</li>
+<li><strong>Catalogs</strong> are plain JS registration files under <code>assets/web/i18n/</code>, one
+  per locale, each assigning a flat <code>"namespace.key" → string</code> map into
+  <code>window.AquaI18n.catalogs.&lt;locale&gt;</code>. English (<code>i18n/en.js</code>) is included
+  statically in <code>index.html</code> before every other app script, so the default and
+  fallback catalog is always available synchronously — no fetch race, no flash
+  of raw keys, works offline. A <strong>saved</strong> non-English locale is loaded
+  synchronously at boot too (parser-blocking <code>document.write</code> from the
+  runtime), so a returning user's first paint — including any boot-time toast
+  — is already in their language. Catalogs for locales <em>switched to</em> during a
+  session load on demand via <code>&lt;script&gt;</code> injection and swap in reactively.</li>
+<li><strong>Runtime</strong> is <code>assets/web/scripts/i18n.js</code>: the locale registry
+  (<code>SUPPORTED_LOCALES</code>), an Alpine store (<code>$store.i18n</code>), the <code>$t('key',
+  {params})</code> / <code>$tn('key', count)</code> template magics, and <code>window.AquaI18n.t()</code>
+  for plain-function call sites (stores, views, components). Lookup order:
+  active locale → English → the key itself (with a one-time console warning,
+  so a missed extraction is visible in dev tools).</li>
+<li><strong>Locale resolution</strong>: explicit user choice (Settings → Appearance →
+  Language) is stored in <code>localStorage</code> (instant boot) and mirrored to the
+  server under <code>preferences.ui.locale</code> (cross-device; the server value wins on
+  conflict). A user who never chose follows <code>navigator.language</code>. <code>&lt;html
+  lang&gt;</code> and <code>&lt;html dir&gt;</code> track the active locale; locales registered with
+  <code>dir: 'rtl'</code> flip the document direction (Arabic, Hebrew, and Yiddish ship
+  as RTL — see "RTL layout" above for the logical-properties pass that makes
+  it work).</li>
+<li><strong><code>/api/preferences</code> <code>ui</code> merge</strong>: the opaque <code>ui</code> object merges shallowly
+  at its top level on PUT, so <code>ui.locale</code> and <code>ui.chemistryBands</code> (written by
+  independent frontend features) never clobber each other; a top-level null
+  deletes the key. See <code>assets/web/api/swagger.yaml</code> and
+  <code>TestSuite_PreferencesService/ApplyJson_UiMergesTopLevelKeys</code>.</li>
 </ul>
-<p>Because branch naming is enforced on pull requests (the <strong>Branch Name</strong> required check), a <code>claude/*</code> head <strong>cannot open a PR and cannot merge through GitHub</strong>. If you want a pull request rather than a local merge, recreate the work on a <code>&lt;type&gt;/&lt;name&gt;</code> branch first.</p>
-<h2 id="creating-a-worktree">Creating a worktree<a class="headerlink" href="#creating-a-worktree" title="Permanent link">&para;</a></h2>
-<p>The bare command works on any platform:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>worktree<span class="w"> </span>add<span class="w"> </span>&lt;worktrees-root&gt;/&lt;name&gt;<span class="w"> </span>-b<span class="w"> </span>&lt;type&gt;/&lt;name&gt;<span class="w"> </span>develop
-</code></pre></div>
-<p>This creates the directory, a new branch off <code>develop</code>, and checks it out there. <code>develop</code> can stay checked out in the main tree at the same time — worktrees may share an upstream branch as their start point; they just cannot both <em>check out</em> the same branch.</p>
-<p>A worktree created this way will, on first configure, try to populate its <strong>own</strong> <code>deps/vcpkg</code> submodule (~8 GB) and bootstrap vcpkg from scratch. That is wasteful when the main checkout already has a working vcpkg. The next section avoids it.</p>
-<h2 id="the-reuse-vcpkg-recipe">The reuse-vcpkg recipe<a class="headerlink" href="#the-reuse-vcpkg-recipe" title="Permanent link">&para;</a></h2>
-<p>The goal: a clean-source worktree that builds and tests, while <strong>reusing the main checkout's already-bootstrapped vcpkg and its binary cache</strong> — no multi-GB duplicate, no re-bootstrap.</p>
-<p>Three things make this work:</p>
-<ol>
-<li><strong>Skip the automatic submodule init.</strong> The root <code>CMakeLists.txt</code> initialises <code>deps/vcpkg</code> before <code>project()</code> when <code>deps/vcpkg/.vcpkg-root</code> is missing (this is what makes a fresh clone and IDE "Open Folder" configure cleanly). In a worktree you do not want that, so drop an <strong>empty</strong> marker file to make the block skip:</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># from inside &lt;worktrees-root&gt;/&lt;name&gt;</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>:&gt;<span class="w"> </span>deps/vcpkg/.vcpkg-root<span class="w">          </span><span class="c1"># create an empty file (any means works)</span>
-</code></pre></div>
-<ol>
-<li><strong>Point the toolchain at the main tree's vcpkg.</strong> Add a <code>CMakeUserPresets.json</code> <em>inside the worktree</em> (it is gitignored, so it stays local) with a preset that inherits the normal platform debug preset but overrides the toolchain file, the build directory, and clang-tidy:</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>{
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  &quot;version&quot;: 9,
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  &quot;configurePresets&quot;: [
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    {
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>      &quot;name&quot;: &quot;wt&quot;,
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>      &quot;inherits&quot;: &quot;config-windows-msvc-debug&quot;,
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>      &quot;toolchainFile&quot;: &quot;&lt;main-tree&gt;/deps/vcpkg/scripts/buildsystems/vcpkg.cmake&quot;,
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>      &quot;binaryDir&quot;: &quot;${sourceDir}/build/wt&quot;,
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>      &quot;cacheVariables&quot;: { &quot;ENABLE_CLANG_TIDY&quot;: &quot;OFF&quot; }
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    }
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  ],
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  &quot;buildPresets&quot;:   [ { &quot;name&quot;: &quot;wt&quot;, &quot;configurePreset&quot;: &quot;wt&quot; } ],
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  &quot;testPresets&quot;:    [ { &quot;name&quot;: &quot;wt&quot;, &quot;configurePreset&quot;: &quot;wt&quot;, &quot;output&quot;: { &quot;outputOnFailure&quot;: true } } ]
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>}
-</code></pre></div>
-<p>On Linux/macOS, inherit <code>config-linux-gcc-debug</code> / <code>config-macos-llvm-debug</code> instead and use a forward-slash <code>&lt;main-tree&gt;</code> path. <code>ENABLE_CLANG_TIDY</code> is <code>ON</code> in the debug presets and runs per translation unit — turning it off is a large speed-up for a pure build/test verify.</p>
-<ol>
-<li><strong>Build via the local preset.</strong> Packages install to the worktree's own <code>binaryDir/vcpkg_installed</code> from the shared binary cache — nothing leaks back into the main tree's vcpkg root.</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>wt
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>wt
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>ctest<span class="w"> </span>--preset<span class="w"> </span>wt
-</code></pre></div>
-<p><strong>The one shared resource is the vcpkg <code>.vcpkg-root</code> lock.</strong> Because the worktree points at the main tree's vcpkg, a configure can briefly block behind another build that is also touching vcpkg. This is fine for a quiet machine; if you routinely run many concurrent builds, give the worktree its <strong>own</strong> vcpkg instead — <code>git -C &lt;worktrees-root&gt;/&lt;name&gt; submodule update --init deps/vcpkg</code> — and drop the <code>toolchainFile</code> override. You trade ~8 GB of disk for zero lock contention.</p>
-<blockquote>
-<p><strong>Do not</strong> combine "reuse the main vcpkg" with letting vcpkg <em>install</em> into a shared root (for example by junctioning <code>deps/vcpkg</code> to the main tree and still running install). That stalls every build on the filesystem lock and leaks writes across worktrees. Either reuse read-only via the toolchain override above, or give the worktree its own submodule — not a hybrid.</p>
-</blockquote>
-<h2 id="building-and-testing-in-a-worktree">Building and testing in a worktree<a class="headerlink" href="#building-and-testing-in-a-worktree" title="Permanent link">&para;</a></h2>
-<p>Everything in <a href="../INSTALL/">INSTALL.md</a> applies unchanged inside a worktree; the only differences are the preset name (<code>wt</code> from your local <code>CMakeUserPresets.json</code>) and the build directory. A first configure that reuses the binary cache takes seconds rather than the multi-minute cold build.</p>
-<p>On a disk-constrained machine, drop the build parallelism (<code>cmake --build --preset wt --parallel 2</code>) — a full-<code>-j</code> debug build of a second tree can exhaust a small volume, and out-of-disk link failures do not always print a clear compiler error.</p>
-<h2 id="cleaning-up">Cleaning up<a class="headerlink" href="#cleaning-up" title="Permanent link">&para;</a></h2>
-<p>Remove a worktree with git, not a raw directory delete — git has to drop the administrative link too:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>worktree<span class="w"> </span>remove<span class="w"> </span>--force<span class="w"> </span>&lt;worktrees-root&gt;/&lt;name&gt;
-</code></pre></div>
-<p>Use <code>--force</code> because the worktree has a populated build directory. If the worktree was given its <strong>own</strong> vcpkg submodule, pass <code>--force</code> <strong>twice</strong> (<code>git worktree remove --force --force …</code>) — a single <code>--force</code> silently no-ops when a populated submodule is present.</p>
-<p>After removing worktrees, reclaim vcpkg scratch space in the main tree by deleting <code>deps/vcpkg/{buildtrees,packages,downloads}</code>; these are regenerated on demand and are safe to remove.</p>
-<h2 id="parallel-and-multi-agent-orchestration">Parallel and multi-agent orchestration<a class="headerlink" href="#parallel-and-multi-agent-orchestration" title="Permanent link">&para;</a></h2>
-<p>The same mechanics scale to several branches — or several automated agents — worked simultaneously, each in its own worktree off a common base. The approach is <strong>compartmentalisation</strong>: give every stream a disjoint slice of the source tree so they never touch the same lines.</p>
+<h2 id="key-conventions">Key conventions<a class="headerlink" href="#key-conventions" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>One worktree, one branch, one stream of work</strong>, all branched from the same base (<code>develop</code>). Disjoint source areas plus git's line-level auto-merge of additive <code>CMakeLists.txt</code> changes mean merges back to <code>develop</code> typically hit zero conflicts.</li>
-<li><strong>Merge order matters.</strong> Land localised, additive features first; merge a broad restructuring or refactor <strong>last</strong> so it absorbs the others rather than forcing every other stream to rebase onto it.</li>
-<li><strong>Mind shared resources.</strong> All worktrees share one vcpkg lock and one disk. Many simultaneous cold configures contend on the lock; many full builds contend on disk and CPU. Prefer the <a href="#the-reuse-vcpkg-recipe">reuse-vcpkg recipe</a> during quiet windows, give worktrees their own vcpkg when you expect heavy concurrency, and lower <code>--parallel</code> when disk is tight.</li>
-<li><strong>Commit with an explicit pathspec.</strong> When worktrees (or parallel agents) share an index or operate in the same tree, a bare <code>git commit</code> can sweep in another stream's staged changes. Commit your paths explicitly (<code>git commit -- &lt;paths&gt;</code>) and <code>git add</code> any brand-new files first — a pathspec commit does not stage untracked files.</li>
+<li>Flat dot keys, namespaced by surface: <code>nav.*</code>, <code>login.*</code>, <code>dash.*</code>,
+  <code>detail.*</code>, <code>diag.*</code>, <code>devcard.*</code>, <code>trends.*</code>, <code>sched.*</code>, <code>settings.*</code>,
+  <code>about.*</code>, plus shared <code>common.*</code>, <code>status.*</code>, <code>cmd.*</code>, <code>alert.*</code>,
+  <code>toast.*</code>, <code>time.*</code>, <code>tier.*</code>, <code>chem.*</code>, <code>swg_health.*</code>, <code>day.*</code>.</li>
+<li>Placeholders are <code>{name}</code> and are substituted by <code>t()</code>; never rebuild
+  sentences by string concatenation — word order differs across languages.</li>
+<li><strong>Number-typed</strong> placeholder values are rendered with <code>Intl.NumberFormat</code>
+  for the active locale, so the digits themselves localize (Arabic renders
+  Eastern Arabic-Indic numerals — pinned via the registry's
+  <code>numberLocale: 'ar-u-nu-arab'</code> because bare <code>ar</code> resolves to Latin digits in
+  some engines). Pass numbers as numbers; a pre-formatted string (e.g.
+  <code>toFixed()</code> output) passes through untouched.</li>
+<li>Keys ending in <strong><code>_html</code></strong> may contain markup (bound with <code>x-html</code>; the
+  content is static catalog text, never server data). Translations must
+  preserve the tags.</li>
+<li><strong>Plural keys</strong> carry a CLDR category suffix (<code>.one</code>, <code>.other</code>, …) and are
+  looked up via <code>tn(key, count)</code> / <code>$tn</code> using <code>Intl.PluralRules</code> (e.g.
+  <code>sched.conflicts.one</code> / <code>sched.conflicts.other</code>).</li>
 </ul>
-<h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Step</th>
-<th>Command</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Create a worktree off <code>develop</code></td>
-<td><code>git worktree add &lt;worktrees-root&gt;/&lt;name&gt; -b &lt;type&gt;/&lt;name&gt; develop</code></td>
-</tr>
-<tr>
-<td>Skip auto vcpkg init (reuse recipe)</td>
-<td><code>:&gt; &lt;worktrees-root&gt;/&lt;name&gt;/deps/vcpkg/.vcpkg-root</code></td>
-</tr>
-<tr>
-<td>Configure / build / test (local preset)</td>
-<td><code>cmake --preset wt &amp;&amp; cmake --build --preset wt &amp;&amp; ctest --preset wt</code></td>
-</tr>
-<tr>
-<td>Give the worktree its own vcpkg instead</td>
-<td><code>git -C &lt;worktrees-root&gt;/&lt;name&gt; submodule update --init deps/vcpkg</code></td>
-</tr>
-<tr>
-<td>List worktrees</td>
-<td><code>git worktree list</code></td>
-</tr>
-<tr>
-<td>Remove a worktree</td>
-<td><code>git worktree remove --force &lt;worktrees-root&gt;/&lt;name&gt;</code> (twice-<code>--force</code> if it has its own vcpkg submodule)</td>
-</tr>
-</tbody>
-</table>
+<h2 id="value-formatting-phase-1">Value formatting (Phase 1)<a class="headerlink" href="#value-formatting-phase-1" title="Permanent link">&para;</a></h2>
+<p>Displayed values format through <code>window.AquaI18n</code> helpers, which follow the
+<strong>selected</strong> locale (not the browser locale) including the registry's
+<code>numberLocale</code> pin, and re-render reactively on a locale switch:</p>
+<ul>
+<li><code>formatNumber(value, intlOptions)</code> — locale digits/separators; template
+  sugar <code>$n(value)</code> and fixed-decimals <code>$nf(value, digits)</code>.</li>
+<li><code>formatTemperature(value, units)</code> — takes the wire dual-unit object
+  (<code>{celsius, fahrenheit}</code>) and the server <code>temperature_units</code> preference
+  (<code>'Celsius' | 'Fahrenheit'</code>), renders via <code>Intl</code> unit formatting. The pool
+  store holds the preference (<code>$store.pool.displayUnits</code>, loaded with the
+  initial data, pushed by Settings on save) and exposes the display getters
+  (<code>poolTemp</code>, <code>poolSetpointDisplay</code>, …) — raw wire values stay in state so a
+  units/locale change re-renders everything.</li>
+<li><code>formatTime(value)</code> / <code>formatDateTime(value)</code> — <code>Intl.DateTimeFormat</code> in the
+  active locale (server start time, last-update, last-seen stamps).</li>
+</ul>
+<p>The WebSocket <code>TemperatureUpdate</code> payload carries the same raw dual-unit
+objects as REST (the old pre-formatted string path hardcoded Celsius). On the
+MQTT side, the HA setpoint <em>number</em> entities follow the preference
+(template/unit/range + command interpretation, republished on change), while
+temperature <em>sensors</em> stay declared °C — HA converts sensors itself (see
+<code>docs/mqtt-home-assistant.md</code>).</p>
+<p>The Trends chart follows the preference too: history samples are stored in
+°C and <code>trends-view.js</code> converts at display time — the temperature panel's
+axis, lines, hover readout, chips and min/max/avg stats all move together
+(the panel title carries the active unit). The canvas cannot use Alpine
+bindings, so the view's <code>x-effect</code> reads the i18n revision/locale and
+<code>$store.pool.displayUnits</code> to trigger a redraw when they change while the
+view is open.</p>
+<h2 id="structured-errors-and-alerts-phase-2">Structured errors and alerts (Phase 2)<a class="headerlink" href="#structured-errors-and-alerts-phase-2" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>HTTP errors</strong>: JSON endpoints return <code>{"error": &lt;english&gt;, "code":
+  &lt;snake_case&gt;, "params": {...}}</code> (built by <code>HTTP::MakeErrorResponse</code>;
+  <code>ApiError</code> schema in swagger.yaml). <code>error</code> is the stable English contract;
+  the UI translates via the <code>error.&lt;code&gt;</code> catalog key when one exists
+  (<code>AquaI18n.apiError(data, fallback)</code> — unknown codes fall back to the
+  server's English message, so a new backend code degrades gracefully until
+  its catalog entries land). <strong>Adding a code in C++ means adding
+  <code>error.&lt;code&gt;</code> to every locale catalog.</strong></li>
+<li><strong>Alerts</strong>: <code>AlertTransition</code> (WS + webhook) carries <code>params</code> next to the
+  English <code>detail</code> (e.g. <code>{salt_ppm, threshold_ppm}</code>, <code>{health:
+  "Warning_LowSalt"}</code>). The alerts store renders its translated detail from
+  the <code>alert_detail.&lt;condition&gt;</code> template + params (chlorinator health maps
+  through <code>AquaUI.swgHealthKey</code> → <code>swg_health.*</code>), falling back to the
+  English <code>detail</code> when params are absent.</li>
+</ul>
+<h2 id="what-is-deliberately-not-translated">What is deliberately NOT translated<a class="headerlink" href="#what-is-deliberately-not-translated" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Device-originated text</strong>: aux/device labels, pool names, panel screen
+  lines, controller program names — these arrive over RS-485 (or are
+  user-configured) and pass through verbatim.</li>
+<li><strong>Technical tokens</strong>: backend enum values used as wire/comparison values
+  (the display layer maps the known ones via <code>status.*</code> / <code>swg_health.*</code>
+  catalog keys and falls back to the raw name for unknown values), log
+  severity levels and channel names, JSON field names, MQTT payloads, units
+  attached to raw diagnostics, endpoint paths, the brand name.</li>
+<li><strong>Backend prose</strong> (HTTP error bodies, alert <code>detail</code> text) still arrives in
+  English — converting those to symbolic codes + params is Phase 2 of the
+  scoping doc.</li>
+</ul>
+<h2 id="adding-a-language">Adding a language<a class="headerlink" href="#adding-a-language" title="Permanent link">&para;</a></h2>
+<p><em>(Contributor-facing workflow, PR conventions, and translation rules:
+<a href="../CONTRIBUTING/#contributing-translations">CONTRIBUTING.md § Contributing translations</a>.)</em></p>
+<ol>
+<li>Copy <code>assets/web/i18n/en.js</code> to <code>assets/web/i18n/&lt;code&gt;.js</code>, change the
+   registration line's locale code, and translate the <strong>values</strong> (never the
+   keys). Keep <code>{placeholder}</code> names, <code>&lt;code&gt;…&lt;/code&gt;</code> contents, technical
+   tokens and brand names untranslated.</li>
+<li>Register the locale in <code>SUPPORTED_LOCALES</code> in <code>assets/web/scripts/i18n.js</code>
+   with its own-language name (endonym) and text direction (<code>ltr</code>/<code>rtl</code>).
+   Pin <code>numberLocale</code> if the bare code's default numbering system is wrong or
+   inconsistent across engines (see the <code>ar</code> entry).</li>
+<li>If the language uses a non-Latin script, add font coverage per "Fonts and
+   scripts" above (a <code>unicode-range</code>-sliced vendored subset or a
+   <code>html[lang='xx']</code> system stack, plus the e2e font-load assertion if
+   vendored).</li>
+<li>Run the guard: <code>pwsh scripts/check-i18n-keys.ps1 -Root &lt;repo-root&gt;</code>.</li>
+<li>The new catalog ships automatically: the build copies and packages
+   <code>assets/web</code> recursively, and the service worker precaches <code>i18n/en.js</code>
+   (other locales are cached on first use by the runtime caching layer).</li>
+</ol>
+<h2 id="testing--guard-rails">Testing / guard rails<a class="headerlink" href="#testing--guard-rails" title="Permanent link">&para;</a></h2>
+<p>Three layers keep i18n from silently rotting as features evolve:</p>
+<ol>
+<li><strong><code>scripts/check-i18n-keys.ps1</code></strong> (static; runs in CI as the
+   <code>i18n-catalogs</code> job in <code>.github/workflows/ci.yml</code>): every key referenced in
+   code must exist in <code>en.js</code>; every locale must have exact key parity with
+   <code>en.js</code>; every translated value must carry exactly the English value's
+   <code>{placeholders}</code>.</li>
+<li><strong><code>e2e/i18n.spec.ts</code> — runtime behavior</strong>: lookup/placeholder/plural/
+   fallback semantics, the Settings language picker, localStorage persistence
+   across reload, per-locale catalog loading, and the <code>&lt;html lang&gt;</code>/<code>&lt;html
+   dir&gt;</code> contract (Arabic ⇒ <code>rtl</code>).</li>
+<li><strong><code>e2e/i18n.spec.ts</code> — guard rails</strong>: walking every route must produce zero
+   <code>[i18n] missing catalog key</code> console warnings (catches a <code>t()</code> call whose
+   key was never added), and a runtime <strong>pseudo-locale scan</strong> (every catalog
+   value wrapped in <code>⟦…⟧</code>, then the DOM is walked for visible Latin text
+   without the markers) catches brand-new hardcoded strings that bypassed the
+   catalog entirely. The scan also checks user-visible <strong>attributes</strong>
+   (<code>title</code>, <code>placeholder</code>, <code>aria-label</code>, <code>alt</code>) on every element — including
+   hidden ones, since a posture-gated affordance (e.g. the guest lock hints,
+   <code>auth.locked_*</code>) must come from the catalog even when the run's auth
+   posture never displays it. Legitimate untranslated content (device labels,
+   wire tokens, endpoints, URL/filename-shaped placeholders) is covered by
+   the spec's exempt-selector list, its token/shape regexes, or a
+   <code>data-i18n-exempt</code> attribute on the element.</li>
+</ol>
+<p><strong>Known blind spot:</strong> the pseudo-locale scan ignores text with fewer than
+   three consecutive Latin letters, so short duration/unit abbreviations
+   ("1m", "7d") pass unnoticed — those must go through the <code>time.abbr_*</code>
+   catalog keys and need human review when touched (this exact miss shipped
+   once in the chart filters).</p>
+<p>Backend side: <code>/api/preferences</code> <code>ui</code> merge behavior is covered by
+<code>TestSuite_PreferencesService/ApplyJson_UiMergesTopLevelKeys</code>.</p>
 
 
 
