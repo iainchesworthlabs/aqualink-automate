@@ -317,6 +317,11 @@
             // to the server (cross-device), then swap reactively.
             async setLocale(code) {
                 if (!localeInfo(code) || code === this.locale) return;
+                // An explicit choice this session outranks the async server pull
+                // (_syncFromServer): without this, the auth:ready-time adoption
+                // can race a just-made switch (its PUT still in flight) and
+                // snap the UI back to the previous locale.
+                this._explicitChoice = true;
                 try { localStorage.setItem(STORAGE_KEY, code); } catch (_) { /* private mode */ }
                 await this._apply(code);
                 try {
@@ -348,10 +353,14 @@
                     ? auth.can('prefs.self')
                     : !!(global.AqualinkAuth && global.AqualinkAuth.token && global.AqualinkAuth.token());
                 if (!reachable) { return; }
+                if (this._explicitChoice) { return; } // user already chose this session
                 try {
                     const resp = await fetch('/api/preferences');
                     if (!resp.ok) return;
                     const p = await resp.json();
+                    // Re-check after the await: a switch made while this request
+                    // was in flight must not be stomped by a stale server value.
+                    if (this._explicitChoice) { return; }
                     const server = p && p.ui && p.ui.locale;
                     if (server && localeInfo(server) && server !== this.locale) {
                         // Server is the cross-device source of truth; keep the
