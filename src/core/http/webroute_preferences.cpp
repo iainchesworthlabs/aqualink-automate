@@ -84,7 +84,13 @@ namespace AqualinkAutomate::HTTP
 			if (per_user_active)
 			{
 				// Overlay the caller's overrides on the LIVE global values.
-				for (const auto& [key, value] : m_UserPrefs->Overrides(subject.Id).items())
+				// Bind the returned json to a named local FIRST: Overrides()
+				// returns by value, and iterating `.items()` on the temporary is
+				// a use-after-free — the temporary is destroyed at the end of the
+				// full-expression, before the loop body runs, so the iteration
+				// proxy dangles (a documented nlohmann pitfall).
+				const nlohmann::json overrides = m_UserPrefs->Overrides(subject.Id);
+				for (const auto& [key, value] : overrides.items())
 				{
 					view[key] = value;
 				}
