@@ -141,6 +141,65 @@ BOOST_AUTO_TEST_CASE(FullPipeline_InvalidFacilityFailsValidation)
 	BOOST_CHECK(!processed_options.has_value());
 }
 
+BOOST_AUTO_TEST_CASE(Format_DefaultsToTextAndParsesJson)
+{
+	{
+		Options::LogSinks::OptionsProcessor processor;
+		auto vm = ParseLoggingOptions(processor, { "program" });
+		auto result = processor.Process(vm);
+		BOOST_REQUIRE(result.has_value());
+		BOOST_CHECK(result->Format == Logging::LogFormat::Text);
+	}
+	{
+		Options::LogSinks::OptionsProcessor processor;
+		auto vm = ParseLoggingOptions(processor, { "program", "--log-format", "JSON" });
+		auto result = processor.Process(vm);
+		BOOST_REQUIRE(result.has_value());
+		BOOST_CHECK(result->Format == Logging::LogFormat::Json);
+	}
+}
+
+BOOST_AUTO_TEST_CASE(Format_InvalidValueFailsValidation)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program", "--log-format", "yaml" });
+	BOOST_CHECK(!processor.Process(vm).has_value());
+}
+
+BOOST_AUTO_TEST_CASE(LogFile_SetsPathAndRotationBounds)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program",
+		"--log-file", "/var/log/aqualink.log",
+		"--log-file-max-size", "1048576",
+		"--log-file-max-files", "3" });
+
+	auto result = processor.Process(vm);
+	BOOST_REQUIRE(result.has_value());
+	BOOST_REQUIRE(result->LogFile.has_value());
+	BOOST_CHECK_EQUAL(result->LogFile->generic_string(), "/var/log/aqualink.log");
+	BOOST_CHECK_EQUAL(result->LogFileMaxBytes, static_cast<std::uintmax_t>(1048576));
+	BOOST_CHECK_EQUAL(result->LogFileMaxFiles, static_cast<std::size_t>(3));
+}
+
+BOOST_AUTO_TEST_CASE(FileToken_WithLogFile_Ok)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program", "--log-sinks", "console,file", "--log-file", "/tmp/a.log" });
+	auto result = processor.Process(vm);
+	BOOST_REQUIRE(result.has_value());
+	BOOST_CHECK(result->File);
+	BOOST_CHECK(result->Console);
+}
+
+BOOST_AUTO_TEST_CASE(FileToken_WithoutLogFile_FailsValidation)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program", "--log-sinks", "file" });
+	// 'file' selected but no --log-file target.
+	BOOST_CHECK(!processor.Process(vm).has_value());
+}
+
 BOOST_AUTO_TEST_CASE(FullPipeline_DefaultsResolveToAuto)
 {
 	const char* argv[] = { "program" };

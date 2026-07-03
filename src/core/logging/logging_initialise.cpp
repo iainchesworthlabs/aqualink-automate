@@ -5,6 +5,7 @@
 #include "logging/logging_initialise.h"
 #include "logging/sinks/log_environment.h"
 #include "logging/sinks/sink_console.h"
+#include "logging/sinks/sink_file.h"
 #include "logging/sinks/sink_filters.h"
 #include "logging/sinks/sink_native.h"
 #include "logging/sinks/sink_registry.h"
@@ -12,16 +13,18 @@
 namespace AqualinkAutomate::Logging
 {
 
-void Initialise()
+void Initialise(LogFormat format)
 {
 	// Bootstrap console sink, installed via the registry before options are parsed
 	// so start-up diagnostics are visible. This resolves the `auto` console arm:
-	// plain text, plus sd-daemon "<N>" priority prefixes when stderr is connected to
-	// the journal (StandardOutput=journal under systemd). The native/file sinks and
-	// any --log-format/--log-sinks overrides are applied after options are processed
-	// (see the post-options reconfigure step).
+	// text (or JSON, if main's argv pre-scan detected --log-format json), plus
+	// sd-daemon "<N>" priority prefixes when stderr is connected to the journal
+	// (StandardOutput=journal under systemd). The native/file sinks and any
+	// --log-sinks overrides are applied after options are processed (the reconfigure
+	// step); the console format is finalised there too.
 	Sinks::ConsoleSinkConfig console_config;
 	console_config.JournaldPrefixes = Sinks::DetectLogEnvironment().StderrIsJournal;
+	console_config.Format = format;
 
 	Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(console_config));
 
@@ -40,6 +43,7 @@ void Reconfigure(const RuntimeConfig& config)
 	{
 		Sinks::ConsoleSinkConfig console_config;
 		console_config.JournaldPrefixes = config.Selection.ConsoleJournaldPrefixes;
+		console_config.Format = config.Format;
 		Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(console_config));
 	}
 
@@ -50,7 +54,14 @@ void Reconfigure(const RuntimeConfig& config)
 			.Facility = config.GeneralNativeFacility }));
 	}
 
-	// The file sink is added by a later slice (it needs the --log-file option).
+	if (config.Selection.File && config.LogFilePath.has_value())
+	{
+		Sinks::SinkRegistry::Add(Sinks::MakeFileSink(Sinks::FileSinkConfig{
+			.Path = *config.LogFilePath,
+			.MaxFileBytes = config.LogFileMaxBytes,
+			.MaxFiles = config.LogFileMaxFiles,
+			.Format = config.Format }));
+	}
 }
 
 void Shutdown()

@@ -216,6 +216,7 @@ target_sources(
 	logging/sinks/severity_mappings.cpp
 	logging/sinks/log_environment.cpp
 	logging/sinks/sink_console.cpp
+	logging/sinks/sink_file.cpp
 	logging/sinks/sink_filters.cpp
 	logging/sinks/sink_native.cpp
 	logging/sinks/sink_registry.cpp

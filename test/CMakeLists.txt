@@ -80,6 +80,7 @@ target_sources(
 	unit/logging/test_severity_mappings.cpp
 	unit/logging/test_log_environment.cpp
 	unit/logging/test_sink_console_and_registry.cpp
+	unit/logging/test_sink_json_and_file.cpp
 	unit/logging/test_audit_separation.cpp
 	unit/alerting/test_alert_monitor.cpp
 	unit/alerting/test_webhook_tls.cpp

@@ -33,17 +33,25 @@ namespace AqualinkAutomate::Logging::Sinks
 		sink->locked_backend()->add_stream(stream);
 
 		// Formatter: optionally emit the sd-daemon "<N>" priority prefix first, then
-		// the standard text layout unchanged. The prefix precedes the whole record,
-		// so only its first line carries the priority (§5.2 multi-line rule).
+		// the selected body (text or JSON). The prefix precedes the whole record, so
+		// only its first line carries the priority (§5.2 multi-line rule).
 		const bool journald = config.JournaldPrefixes;
-		sink->set_formatter([journald](boost::log::record_view const& rec, boost::log::formatting_ostream& strm)
+		const bool as_json = (config.Format == LogFormat::Json);
+		sink->set_formatter([journald, as_json](boost::log::record_view const& rec, boost::log::formatting_ostream& strm)
 			{
 				if (journald)
 				{
 					strm << JournaldPrefix(rec[severity].get<Severity>());
 				}
 
-				Formatter(rec, strm);
+				if (as_json)
+				{
+					JsonFormatter(rec, strm);
+				}
+				else
+				{
+					Formatter(rec, strm);
+				}
 			});
 
 		// The shared operational filter: the same per-channel severity gate the

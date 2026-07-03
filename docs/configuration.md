@@ -357,11 +357,18 @@ systemd the console additionally carries sd-daemon `<N>` priority prefixes so
 
 | Option | Type | Default | Notes |
 |---|---|---|---|
-| `--log-sinks` | string | `auto` | `auto` (environment-derived) or a comma-separated list of `console`, `native`. `native` adds the OS-native operational sink (syslog on POSIX, the Windows Event Log). |
+| `--log-sinks` | string | `auto` | `auto` (environment-derived) or a comma-separated list of `console`, `native`, `file`. `native` adds the OS-native operational sink (syslog on POSIX, the Windows Event Log); `file` requires `--log-file`. Under `auto`, passing `--log-file` implies the file sink. |
 | `--log-syslog-facility` | enum | `daemon` | POSIX syslog facility for the general `native` sink: `daemon`, `user`, `local0`–`local7` (case-insensitive). Ignored on Windows. The audit sink always uses `authpriv` regardless. |
+| `--log-format` | enum | `text` | Record format for the **console and file** sinks: `text` (human) or `json` (one JSON object per line, for container / SIEM pipelines). The native/syslog sink is always message-only. |
+| `--log-file` | path | *(unset)* | Write logs to this file (enables the file sink). Rotated and size-bounded; on shutdown the active file is rotated into the kept set. |
+| `--log-file-max-size` | bytes | `10485760` (10 MiB) | Rotate the log file when it would exceed this many bytes. |
+| `--log-file-max-files` | count | `5` | Keep at most this many rotated log files (oldest deleted). |
 
 Examples: `--log-sinks console,native --log-syslog-facility local0` (console plus
-a syslog `local0` operational sink); `--log-sinks console` (console only).
+a syslog `local0` operational sink); `--log-file /var/log/aqualink/app.log
+--log-format json` (console **and** a rotating JSON file, since `auto` adds the
+file sink when a path is given); `--log-sinks console --log-format json` (JSON to
+the console only, ideal behind a container log driver).
 
 **Important — the big replay gotcha:** `--replay-filename` has hard dependencies. A bare `--dev-mode --replay-filename file.cap` **fails validation**. `--replay-filename` requires *all* of:
 

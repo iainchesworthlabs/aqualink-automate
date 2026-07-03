@@ -36,6 +36,22 @@ After installing, set your serial port in `/etc/aqualink-automate/aqualink-autom
 and `sudo systemctl start aqualink-automate`. See the [Raspberry Pi guide](raspberry-pi.md).
 There is also a [Docker image](#docker) (multi-arch: `linux/amd64` + `linux/arm64`).
 
+### Viewing logs
+
+By default logs go to the console, which each platform captures natively — no
+configuration needed:
+
+- **systemd**: `journalctl -u aqualink-automate`. Priorities are preserved, so
+  `journalctl -u aqualink-automate -p warning` shows only warnings and above.
+- **Docker**: `docker logs <container>` (whatever your log driver captures from
+  stdout/stderr).
+
+For a structured pipeline (Loki, CloudWatch, Elastic, …) add `--log-format json`
+so every line is a single JSON object. To also keep a local rotating file, add
+`--log-file /var/log/aqualink/app.log` (see the
+[Logging options](configuration.md#logging-sinks)). The security **audit trail**
+is separate — see the [Security guide](SECURITY.md).
+
 ## Pre-built binaries
 
 Prefer the repository above on Linux; otherwise download the package for your platform

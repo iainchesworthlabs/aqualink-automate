@@ -5,6 +5,8 @@
 #include <boost/log/sinks/sink.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
 
+#include "logging/logging_formatter.h"
+
 namespace AqualinkAutomate::Logging::Sinks
 {
 
@@ -19,6 +21,10 @@ namespace AqualinkAutomate::Logging::Sinks
 		// stderr is journald-connected (§5.2): journald strips the prefix and records
 		// the real priority. Only the first line of a multi-line record carries it.
 		bool JournaldPrefixes = false;
+
+		// Text (human) or JSON-lines (pipelines). The "<N>" prefix, when enabled,
+		// precedes either body.
+		LogFormat Format = LogFormat::Text;
 	};
 
 	//

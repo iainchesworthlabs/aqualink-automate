@@ -175,7 +175,33 @@ int main(int argc, char* argv[])
 		//---------------------------------------------------------------------
 
 		Logging::SeverityFiltering::SetGlobalFilterLevel(Severity::Info);
-		Logging::Initialise();
+
+		// Lightweight pre-scan of argv for --log-format json BEFORE options are parsed,
+		// so the bootstrap console is JSON too when JSON was requested (a container
+		// pipeline would otherwise choke on the pre-options text lines). The
+		// authoritative, validated parse happens below; this only tilts the bootstrap.
+		Logging::LogFormat bootstrap_format = Logging::LogFormat::Text;
+		for (int arg_index = 1; arg_index < argc; ++arg_index)
+		{
+			const std::string_view arg{ argv[arg_index] };
+			std::string_view value;
+			if (arg == "--log-format" && (arg_index + 1) < argc)
+			{
+				value = argv[arg_index + 1];
+			}
+			else if (arg.starts_with("--log-format="))
+			{
+				value = arg.substr(std::string_view{ "--log-format=" }.size());
+			}
+
+			if (value == "json" || value == "JSON" || value == "Json")
+			{
+				bootstrap_format = Logging::LogFormat::Json;
+				break;
+			}
+		}
+
+		Logging::Initialise(bootstrap_format);
 
 		//---------------------------------------------------------------------
 		// PROFILING
@@ -272,19 +298,25 @@ int main(int argc, char* argv[])
 			if (const auto logging_settings = settings.Get<Options::LogSinks::LoggingSettings>(); logging_settings.has_value())
 			{
 				const auto& log_settings = logging_settings.value().get();
+				const bool have_log_file = log_settings.LogFile.has_value();
 
 				if (Options::LogSinks::SinkMode::Auto == log_settings.Sinks)
 				{
-					log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, /* have_log_file */ false);
+					log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, have_log_file);
 				}
 				else
 				{
 					log_runtime_config.Selection.Console = log_settings.Console;
 					log_runtime_config.Selection.Native = log_settings.Native;
+					log_runtime_config.Selection.File = log_settings.File;
 					log_runtime_config.Selection.ConsoleJournaldPrefixes = log_settings.Console && log_environment.StderrIsJournal;
 				}
 
 				log_runtime_config.GeneralNativeFacility = log_settings.Facility;
+				log_runtime_config.Format = log_settings.Format;
+				log_runtime_config.LogFilePath = log_settings.LogFile;
+				log_runtime_config.LogFileMaxBytes = log_settings.LogFileMaxBytes;
+				log_runtime_config.LogFileMaxFiles = log_settings.LogFileMaxFiles;
 			}
 			else
 			{

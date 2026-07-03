@@ -1,5 +1,11 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <optional>
+
+#include "logging/logging_formatter.h"
 #include "logging/sinks/log_environment.h"
 #include "logging/sinks/sink_native.h"
 
@@ -7,8 +13,11 @@ namespace AqualinkAutomate::Logging
 {
 
 	// Bootstrap the logging core with the auto-resolved console sink. Called before
-	// options are parsed so start-up diagnostics are visible.
-	void Initialise();
+	// options are parsed so start-up diagnostics are visible. `format` lets main pass
+	// an early --log-format (from a lightweight argv pre-scan) so that even the
+	// pre-options bootstrap lines are JSON when JSON was requested — otherwise a
+	// container pipeline would see a few non-JSON startup lines.
+	void Initialise(LogFormat format = LogFormat::Text);
 
 	// The resolved sink configuration applied after options are processed. Built by
 	// the composition root (main) from the Logging options + the detected
@@ -17,6 +26,14 @@ namespace AqualinkAutomate::Logging
 	{
 		Sinks::SinkSelection Selection;
 		Sinks::SyslogFacility GeneralNativeFacility = Sinks::SyslogFacility::Daemon;
+
+		// Wire format for the console + file sinks (the native sink is message-only).
+		LogFormat Format = LogFormat::Text;
+
+		// File sink: only installed when Selection.File is set and a path is present.
+		std::optional<std::filesystem::path> LogFilePath;
+		std::uintmax_t LogFileMaxBytes = 10ull * 1024ull * 1024ull;
+		std::size_t LogFileMaxFiles = 5;
 	};
 
 	// Replace the operational sink set with the one described by config: drops the

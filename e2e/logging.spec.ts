@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
-import { existsSync, openSync, closeSync, fstatSync, readFileSync, mkdtempSync } from 'node:fs';
+import { existsSync, openSync, closeSync, fstatSync, readFileSync, readdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -97,6 +97,41 @@ test('console-only sink still delivers records with --log-sinks console', async 
   const stderr = await runAndCaptureStderr(['--log-sinks', 'console'], { port: 18102 });
   expect(stderr).toContain('Configuring application options');
   expect(stderr).not.toMatch(/^<\d>/m);
+});
+
+test('every stderr line is valid JSON with --log-format json', async () => {
+  const stderr = await runAndCaptureStderr(['--log-format', 'json'], { port: 18104 });
+
+  const lines = stderr.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  expect(lines.length).toBeGreaterThan(0);
+
+  // The guarantee container/SIEM pipelines depend on: EVERY line parses (including
+  // the pre-options bootstrap lines, thanks to main's --log-format pre-scan).
+  const parsed = lines.map((line) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      throw new Error(`Non-JSON line on stderr under --log-format json: ${line}`);
+    }
+  });
+
+  expect(parsed.every((o) => typeof o.severity === 'string' && typeof o.message === 'string')).toBeTruthy();
+});
+
+test('writes an operational log file (content survives shutdown)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aa-logfile-'));
+  const logPath = join(dir, 'app.log');
+
+  await runAndCaptureStderr(['--log-file', logPath], { port: 18105 });
+
+  // On a clean SIGTERM shutdown the active file is finally rotated, so read every
+  // "app*" file in the directory. At least one must hold the startup records —
+  // proving the file sink wrote and (on POSIX) that the shutdown flush ran.
+  const files = readdirSync(dir).filter((f) => f.startsWith('app'));
+  expect(files.length).toBeGreaterThan(0);
+
+  const content = files.map((f) => readFileSync(join(dir, f), 'utf8')).join('');
+  expect(content).toContain('Configuring application options');
 });
 
 // journald priority prefixes only apply on a systemd/POSIX host where stderr is the

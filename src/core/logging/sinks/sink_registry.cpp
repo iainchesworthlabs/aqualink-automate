@@ -48,6 +48,10 @@ namespace AqualinkAutomate::Logging::Sinks::SinkRegistry
 		{
 			if (sink)
 			{
+				// Flush first so an asynchronous frontend delivers its queued records
+				// before we detach it. Clearing the vector then releases the last
+				// reference, whose destructor stops the sink's feeder thread.
+				sink->flush();
 				core->remove_sink(sink);
 			}
 		}

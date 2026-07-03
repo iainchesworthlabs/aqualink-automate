@@ -1,4 +1,6 @@
 #include <cctype>
+#include <cstdint>
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -51,6 +53,38 @@ namespace AqualinkAutomate::Options::LogSinks
 			settings.Facility = OPTION_LOGFACILITY->As<AqualinkAutomate::Logging::Sinks::SyslogFacility>(vm);
 		}
 
+		// Format carries a default (text). text | json.
+		if (OPTION_LOGFORMAT->IsPresent(vm))
+		{
+			const auto format = NormaliseToken(OPTION_LOGFORMAT->As<std::string>(vm));
+			if (format == "text")
+			{
+				settings.Format = AqualinkAutomate::Logging::LogFormat::Text;
+			}
+			else if (format == "json")
+			{
+				settings.Format = AqualinkAutomate::Logging::LogFormat::Json;
+			}
+			else
+			{
+				return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
+			}
+		}
+
+		// File sink target + rotation bounds (max-size / max-files carry defaults).
+		if (OPTION_LOGFILE->IsPresent(vm))
+		{
+			settings.LogFile = std::filesystem::path(OPTION_LOGFILE->As<std::string>(vm));
+		}
+		if (OPTION_LOGFILEMAXSIZE->IsPresent(vm))
+		{
+			settings.LogFileMaxBytes = OPTION_LOGFILEMAXSIZE->As<std::uintmax_t>(vm);
+		}
+		if (OPTION_LOGFILEMAXFILES->IsPresent(vm))
+		{
+			settings.LogFileMaxFiles = static_cast<std::size_t>(OPTION_LOGFILEMAXFILES->As<std::uint32_t>(vm));
+		}
+
 		if (OPTION_LOGSINKS->IsPresent(vm))
 		{
 			const auto spec = NormaliseToken(OPTION_LOGSINKS->As<std::string>(vm));
@@ -77,10 +111,13 @@ namespace AqualinkAutomate::Options::LogSinks
 					{
 						settings.Native = true;
 					}
+					else if (piece == "file")
+					{
+						settings.File = true;
+					}
 					else
 					{
-						// Empty or unknown token (e.g. "file" is not available until the
-						// file-sink slice) — fail validation with a clear pipeline error.
+						// Empty or unknown token — fail validation with a clear error.
 						return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
 					}
 
@@ -92,11 +129,17 @@ namespace AqualinkAutomate::Options::LogSinks
 				}
 
 				// An explicit set that selects nothing is not meaningful.
-				if (!settings.Console && !settings.Native)
+				if (!settings.Console && !settings.Native && !settings.File)
 				{
 					return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
 				}
 			}
+		}
+
+		// An explicitly-selected file sink needs a target path.
+		if (SinkMode::Explicit == settings.Sinks && settings.File && !settings.LogFile.has_value())
+		{
+			return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
 		}
 
 		return settings;

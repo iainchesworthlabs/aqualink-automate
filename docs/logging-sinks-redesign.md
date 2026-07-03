@@ -1,6 +1,6 @@
 # Logging Sinks Redesign — OS-Native Log Delivery
 
-**Status:** Slice 1 IMPLEMENTED (2026-07-03) on `claude/unruffled-nightingale-6f0d91`; slices 2–3 pending.
+**Status:** Slices 1–2 IMPLEMENTED (2026-07-03) on `claude/unruffled-nightingale-6f0d91`; slice 3 pending.
 
 This document is a dated design snapshot. Verify claims against the code before
 relying on any citation; symbols are used as anchors rather than line numbers.
@@ -37,6 +37,29 @@ test suite green (2296 cases). Deviations from the design above, for accuracy:
 - **`configuration.md` channel list.** Removing `Audit` from the enum made the
   pre-existing "18 channels" list correct on this branch; the separately-tracked
   "add audit → 19" fix was for the old code state and does not apply here.
+
+### Slice 2 (file sink + JSON format)
+
+- **File sink** (`sink_file.{h,cpp}`): Boost `text_file_backend` with size rotation
+  + a bounded collector. Options `--log-file`, `--log-file-max-size`,
+  `--log-file-max-files`, and the `file` token in `--log-sinks` (requires
+  `--log-file`; implied by `--log-file` under `auto`). On close Boost does a final
+  rotation of the active file into the kept set (each run's log preserved as a
+  rotated file, bounded by max-files).
+- **JSON format** (`JsonFormatter` in `logging_formatter`): `--log-format
+  text|json` for the console **and** file sinks (native stays message-only);
+  `{ts,severity,channel,message[,file,line]}`, file/line only for Trace/Debug.
+- **`--log-format` argv pre-scan.** `main` pre-scans argv for `--log-format json`
+  *before* `Logging::Initialise`, so even the pre-options bootstrap console lines
+  are JSON — otherwise a container pipeline would see a few non-JSON startup lines.
+  The authoritative validated parse still happens with the other options.
+- **File sink is SYNCHRONOUS** (auto_flush), same as console/native — §9's async
+  frontend stays deferred: the correct async teardown is `remove_sink → stop →
+  flush`, but `SinkRegistry` owns base `sink` handles that expose no `stop()`.
+  Wiring a per-sink drain/stop hook through the registry is the async follow-up.
+- Verified: full suite 2305 cases green; runtime smoke confirmed JSON console
+  (incl. the bootstrap line) and a JSON rotating log file. `e2e/logging.spec.ts`
+  gains the every-line-JSON and file-sink cases (run in Linux CI).
 
 ---
 
