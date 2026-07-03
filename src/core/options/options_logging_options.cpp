@@ -115,6 +115,10 @@ namespace AqualinkAutomate::Options::LogSinks
 					{
 						settings.File = true;
 					}
+					else if (piece == "journald")
+					{
+						settings.Journald = true;
+					}
 					else
 					{
 						// Empty or unknown token — fail validation with a clear error.
@@ -129,7 +133,7 @@ namespace AqualinkAutomate::Options::LogSinks
 				}
 
 				// An explicit set that selects nothing is not meaningful.
-				if (!settings.Console && !settings.Native && !settings.File)
+				if (!settings.Console && !settings.Native && !settings.File && !settings.Journald)
 				{
 					return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
 				}

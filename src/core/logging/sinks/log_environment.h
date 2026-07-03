@@ -19,6 +19,7 @@ namespace AqualinkAutomate::Logging::Sinks
 		bool ConsoleJournaldPrefixes = false;  // console emits sd-daemon "<N>" priority prefixes
 		bool Native = false;                   // general OS-native sink (syslog / Event Log)
 		bool File = false;                     // file sink (only when a log-file path is configured)
+		bool Journald = false;                 // native journald sink (structured; Linux/systemd only)
 	};
 
 	//
@@ -69,11 +70,13 @@ namespace AqualinkAutomate::Logging::Sinks
 
 	//
 	// The `auto` policy (§6.2): console is always present; a journald-connected
-	// stderr adds "<N>" prefixes; a Windows service adds the native Event Log sink.
-	// The general native sink is NOT auto-enabled on POSIX (explicit opt-in, §4).
-	// Pure and noexcept.
+	// stderr uses the structured journald sink when it is available in the build,
+	// otherwise console "<N>" prefixes; a Windows service adds the native Event Log
+	// sink. The general native sink is NOT auto-enabled on POSIX (explicit opt-in,
+	// §4). `journald_available` reflects whether SYSTEMD_SUPPORT_ENABLED was compiled
+	// in (the caller passes it, keeping this layer free of build macros). Pure/noexcept.
 	//
-	[[nodiscard]] SinkSelection ResolveAutoSinks(const LogEnvironment& environment, bool have_log_file) noexcept;
+	[[nodiscard]] SinkSelection ResolveAutoSinks(const LogEnvironment& environment, bool have_log_file, bool journald_available) noexcept;
 
 }
 // namespace AqualinkAutomate::Logging::Sinks

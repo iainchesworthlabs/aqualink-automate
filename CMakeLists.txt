@@ -173,6 +173,12 @@ find_package(VTune)
 
 endif(ENABLE_PROFILING)
 
+# libsystemd (optional): enables the native journald log sink on Linux/systemd
+# hosts (docs/logging-sinks-redesign.md §5.3). Absent on Windows/macOS, where
+# systemd_FOUND is false and the sink is excluded from the build — this is
+# feature detection, not a platform conditional.
+find_package(systemd)
+
 #------------------------------------------------------------------------------
 #
 #

@@ -2,11 +2,13 @@
 #include <boost/log/core.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 
+#include "logging/logging.h"
 #include "logging/logging_initialise.h"
 #include "logging/sinks/log_environment.h"
 #include "logging/sinks/sink_console.h"
 #include "logging/sinks/sink_file.h"
 #include "logging/sinks/sink_filters.h"
+#include "logging/sinks/sink_journald.h"
 #include "logging/sinks/sink_native.h"
 #include "logging/sinks/sink_registry.h"
 
@@ -52,6 +54,24 @@ void Reconfigure(const RuntimeConfig& config)
 		Sinks::SinkRegistry::Add(Sinks::MakeNativeSink(Sinks::NativeSinkConfig{
 			.Filter = Sinks::MakeOperationalFilter(),
 			.Facility = config.GeneralNativeFacility }));
+	}
+
+	if (config.Selection.Journald)
+	{
+#if defined(SYSTEMD_SUPPORT_ENABLED)
+		Sinks::SinkRegistry::Add(Sinks::MakeJournaldSink(Sinks::JournaldSinkConfig{
+			.Filter = Sinks::MakeOperationalFilter() }));
+#else
+		// Requested (e.g. --log-sinks journald) but this build has no systemd support:
+		// fall back to the console with priority prefixes so priorities still reach
+		// the journal, and say so.
+		LogWarning(Channel::Main, "journald sink requested but this build has no systemd support; using console with priority prefixes instead");
+
+		Sinks::ConsoleSinkConfig fallback_console;
+		fallback_console.JournaldPrefixes = true;
+		fallback_console.Format = config.Format;
+		Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(fallback_console));
+#endif
 	}
 
 	if (config.Selection.File && config.LogFilePath.has_value())

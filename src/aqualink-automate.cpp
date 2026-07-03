@@ -295,6 +295,15 @@ int main(int argc, char* argv[])
 			Logging::RuntimeConfig log_runtime_config;
 			const auto log_environment = Sinks::DetectLogEnvironment();
 
+			// Whether the structured journald sink is compiled into this build (Linux/
+			// systemd). Passed to the auto policy so this composition root, not the sink
+			// layer, owns the build-macro knowledge.
+#if defined(SYSTEMD_SUPPORT_ENABLED)
+			constexpr bool journald_available = true;
+#else
+			constexpr bool journald_available = false;
+#endif
+
 			if (const auto logging_settings = settings.Get<Options::LogSinks::LoggingSettings>(); logging_settings.has_value())
 			{
 				const auto& log_settings = logging_settings.value().get();
@@ -302,13 +311,14 @@ int main(int argc, char* argv[])
 
 				if (Options::LogSinks::SinkMode::Auto == log_settings.Sinks)
 				{
-					log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, have_log_file);
+					log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, have_log_file, journald_available);
 				}
 				else
 				{
 					log_runtime_config.Selection.Console = log_settings.Console;
 					log_runtime_config.Selection.Native = log_settings.Native;
 					log_runtime_config.Selection.File = log_settings.File;
+					log_runtime_config.Selection.Journald = log_settings.Journald;
 					log_runtime_config.Selection.ConsoleJournaldPrefixes = log_settings.Console && log_environment.StderrIsJournal;
 				}
 
@@ -320,7 +330,7 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
-				log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, /* have_log_file */ false);
+				log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, /* have_log_file */ false, journald_available);
 			}
 
 			Logging::Reconfigure(log_runtime_config);

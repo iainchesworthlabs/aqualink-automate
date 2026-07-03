@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 
+#include "application/log_source_registration.h"
 #include "exceptions/exception_optionshelporversion.h"
 #include "logging/logging.h"
 #include "logging/logging_severity_filter.h"
@@ -104,10 +105,46 @@ namespace AqualinkAutomate::Options::App
 		}
 	}
 
+	void HandleLogSourceRegistration(boost::program_options::variables_map& vm)
+	{
+		const bool do_register = (0 < vm.count("register-log-source"));
+		const bool do_unregister = (0 < vm.count("unregister-log-source"));
+
+		if (!do_register && !do_unregister)
+		{
+			return;
+		}
+
+		// The runtime Event Log sink and this registration must name the same source.
+		static const std::string source_name{ "Aqualink-Automate" };
+
+#if defined(_WIN32)
+		const bool ok = do_register
+			? Application::RegisterLogSource(source_name)
+			: Application::UnregisterLogSource(source_name);
+
+		if (ok)
+		{
+			std::cout << (do_register ? "Registered" : "Unregistered") << " Windows Event Log source '" << source_name << "'.\n";
+		}
+		else
+		{
+			std::cout << "Failed to " << (do_register ? "register" : "unregister")
+				<< " Windows Event Log source '" << source_name << "' (administrator privileges are required).\n";
+		}
+#else
+		std::cout << "--register-log-source / --unregister-log-source are only supported on Windows.\n";
+#endif
+
+		// One-shot action: exit cleanly (same mechanism as --help/--version).
+		throw Exceptions::OptionsHelpOrVersion();
+	}
+
 	void HandleHelpAndVersion(boost::program_options::variables_map& vm, boost::program_options::options_description& options)
 	{
 		HandleHelp(vm, options);
 		HandleVersion(vm);
+		HandleLogSourceRegistration(vm);
 	}
 
 }

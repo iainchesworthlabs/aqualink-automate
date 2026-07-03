@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(Auto_InteractiveTty_ConsoleOnly, *boost::unit_test::label("
 	LogEnvironment env;
 	env.StderrIsTty = true;
 
-	const auto sel = ResolveAutoSinks(env, /*have_log_file*/ false);
+	const auto sel = ResolveAutoSinks(env, /*have_log_file*/ false, /*journald_available*/ false);
 
 	BOOST_TEST(sel.Console);
 	BOOST_TEST(!sel.ConsoleJournaldPrefixes);
@@ -74,11 +74,26 @@ BOOST_AUTO_TEST_CASE(Auto_Journal_ConsoleWithPrefixesNoNative, *boost::unit_test
 	LogEnvironment env;
 	env.StderrIsJournal = true;
 
-	const auto sel = ResolveAutoSinks(env, false);
+	const auto sel = ResolveAutoSinks(env, false, /*journald_available*/ false);
 
 	BOOST_TEST(sel.Console);
 	BOOST_TEST(sel.ConsoleJournaldPrefixes);
 	BOOST_TEST(!sel.Native);   // a syslog sink here would double-log via the journal
+}
+
+BOOST_AUTO_TEST_CASE(Auto_Journal_UsesJournaldSinkWhenAvailable, *boost::unit_test::label("unit"))
+{
+	LogEnvironment env;
+	env.StderrIsJournal = true;
+
+	const auto sel = ResolveAutoSinks(env, false, /*journald_available*/ true);
+
+	// The structured journald sink replaces the console (which would double-log into
+	// the journal): no console, no "<N>" prefixes, no general native sink.
+	BOOST_TEST(sel.Journald);
+	BOOST_TEST(!sel.Console);
+	BOOST_TEST(!sel.ConsoleJournaldPrefixes);
+	BOOST_TEST(!sel.Native);
 }
 
 BOOST_AUTO_TEST_CASE(Auto_WindowsService_ConsolePlusNative, *boost::unit_test::label("unit"))
@@ -86,7 +101,7 @@ BOOST_AUTO_TEST_CASE(Auto_WindowsService_ConsolePlusNative, *boost::unit_test::l
 	LogEnvironment env;
 	env.WindowsServiceContext = true;
 
-	const auto sel = ResolveAutoSinks(env, false);
+	const auto sel = ResolveAutoSinks(env, false, /*journald_available*/ false);
 
 	BOOST_TEST(sel.Console);
 	BOOST_TEST(sel.Native);
@@ -99,7 +114,7 @@ BOOST_AUTO_TEST_CASE(Auto_PipeOrContainer_ConsoleOnly, *boost::unit_test::label(
 	// but delivery; the log driver / redirect target owns storage.
 	LogEnvironment env;
 
-	const auto sel = ResolveAutoSinks(env, false);
+	const auto sel = ResolveAutoSinks(env, false, /*journald_available*/ false);
 
 	BOOST_TEST(sel.Console);
 	BOOST_TEST(!sel.ConsoleJournaldPrefixes);
@@ -114,10 +129,10 @@ BOOST_AUTO_TEST_CASE(Auto_LogFilePresent_AddsFileSinkInEveryArm, *boost::unit_te
 	LogEnvironment service; service.WindowsServiceContext = true;
 	LogEnvironment plain;
 
-	BOOST_TEST(ResolveAutoSinks(tty, true).File);
-	BOOST_TEST(ResolveAutoSinks(journal, true).File);
-	BOOST_TEST(ResolveAutoSinks(service, true).File);
-	BOOST_TEST(ResolveAutoSinks(plain, true).File);
+	BOOST_TEST(ResolveAutoSinks(tty, true, /*journald_available*/ false).File);
+	BOOST_TEST(ResolveAutoSinks(journal, true, /*journald_available*/ false).File);
+	BOOST_TEST(ResolveAutoSinks(service, true, /*journald_available*/ false).File);
+	BOOST_TEST(ResolveAutoSinks(plain, true, /*journald_available*/ false).File);
 }
 
 //-----------------------------------------------------------------------------

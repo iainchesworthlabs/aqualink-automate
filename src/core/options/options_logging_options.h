@@ -46,6 +46,7 @@ namespace AqualinkAutomate::Options::LogSinks
 			Console{ false },
 			Native{ false },
 			File{ false },
+			Journald{ false },
 			Facility{ AqualinkAutomate::Logging::Sinks::SyslogFacility::Daemon },
 			Format{ AqualinkAutomate::Logging::LogFormat::Text },
 			LogFileMaxBytes{ 10ull * 1024ull * 1024ull },
@@ -60,6 +61,7 @@ namespace AqualinkAutomate::Options::LogSinks
 		bool Console;
 		bool Native;
 		bool File;
+		bool Journald;  // native journald sink (Linux/systemd); falls back to console+prefixes elsewhere
 
 		// POSIX syslog facility for the GENERAL native sink (the audit sink always
 		// uses LOG_AUTHPRIV regardless — §10.3). Ignored on Windows.
@@ -78,7 +80,7 @@ namespace AqualinkAutomate::Options::LogSinks
 	class OptionsProcessor
 	{
 	private:
-		AppOptionPtr OPTION_LOGSINKS{ make_appoption("log-sinks", "Which log sinks to use: 'auto' (environment-derived) or a comma-separated list of 'console','native','file'", boost::program_options::value<std::string>()->default_value("auto")) };
+		AppOptionPtr OPTION_LOGSINKS{ make_appoption("log-sinks", "Which log sinks to use: 'auto' (environment-derived) or a comma-separated list of 'console','native','file','journald' ('journald' is Linux/systemd only; elsewhere it falls back to console with priority prefixes)", boost::program_options::value<std::string>()->default_value("auto")) };
 		AppOptionPtr OPTION_LOGFACILITY{ make_appoption("log-syslog-facility", "POSIX syslog facility for the general native sink: daemon, user, local0-local7", boost::program_options::value<AqualinkAutomate::Logging::Sinks::SyslogFacility>()->default_value(AqualinkAutomate::Logging::Sinks::SyslogFacility::Daemon, "daemon")) };
 		AppOptionPtr OPTION_LOGFORMAT{ make_appoption("log-format", "Log record format for the console and file sinks: 'text' or 'json'", boost::program_options::value<std::string>()->default_value("text")) };
 		AppOptionPtr OPTION_LOGFILE{ make_appoption("log-file", "Write logs to this file (enables the file sink; rotated + size-bounded)", boost::program_options::value<std::string>()) };

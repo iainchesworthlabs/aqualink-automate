@@ -192,6 +192,16 @@ BOOST_AUTO_TEST_CASE(FileToken_WithLogFile_Ok)
 	BOOST_CHECK(result->Console);
 }
 
+BOOST_AUTO_TEST_CASE(JournaldToken_Parses)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program", "--log-sinks", "journald" });
+	auto result = processor.Process(vm);
+	BOOST_REQUIRE(result.has_value());
+	BOOST_CHECK(result->Journald);
+	BOOST_CHECK(!result->Console);
+}
+
 BOOST_AUTO_TEST_CASE(FileToken_WithoutLogFile_FailsValidation)
 {
 	Options::LogSinks::OptionsProcessor processor;

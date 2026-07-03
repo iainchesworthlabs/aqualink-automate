@@ -1,6 +1,6 @@
 # Logging Sinks Redesign — OS-Native Log Delivery
 
-**Status:** Slices 1–2 IMPLEMENTED (2026-07-03) on `claude/unruffled-nightingale-6f0d91`; slice 3 pending.
+**Status:** Slices 1–3 IMPLEMENTED (2026-07-03) on `claude/unruffled-nightingale-6f0d91` (slice 3 minus the Windows service wrapper + message-table resource, both deferred).
 
 This document is a dated design snapshot. Verify claims against the code before
 relying on any citation; symbols are used as anchors rather than line numbers.
@@ -60,6 +60,40 @@ test suite green (2296 cases). Deviations from the design above, for accuracy:
 - Verified: full suite 2305 cases green; runtime smoke confirmed JSON console
   (incl. the bootstrap line) and a JSON rotating log file. `e2e/logging.spec.ts`
   gains the every-line-JSON and file-sink cases (run in Linux CI).
+
+### Slice 3 (platform-native sinks — logging-scoped; service wrapper deferred)
+
+Scope chosen: the logging natives, deferring the full Windows service wrapper
+(a separate app-lifecycle subsystem, §18.6). Most of this is platform code that
+cannot be verified on the Windows dev box — it is cleanly gated so the Windows
+build excludes it, and it compiles in the Linux/macOS CI legs.
+
+- **journald** (`sink_journald.{h,cpp}`, `cmake/tools/Findsystemd.cmake`): a custom
+  Boost.Log backend that calls `sd_journal_sendv` with structured fields
+  (PRIORITY, SYSLOG_IDENTIFIER, MESSAGE, AA_CHANNEL, CODE_FILE/CODE_LINE). Gated on
+  `systemd_FOUND` → `SYSTEMD_SUPPORT_ENABLED` (feature detection, not platform-id);
+  `libsystemd-dev` added to the Docker/CI image. Selection: a `journald` token and
+  the `auto` policy (journal-connected + available → journald instead of
+  console+`<N>`), with a warn+console fallback when requested on a non-systemd
+  build. `SinkSelection.Journald` + `ResolveAutoSinks(..., journald_available)`;
+  main passes availability from the build macro so the sink layer stays macro-free.
+- **macOS os_log** (`sink_oslog.{h,cpp}`): a custom backend calling
+  `os_log_with_type` (Severity → os_log_type_t). `MakeNativeSink` delegates to it
+  on `__APPLE__` instead of the syslog shim; the syslog helpers are `#if`-excluded
+  on Apple. Source added via the `if(APPLE)` block.
+- **Windows Event Log source registration** (§3.3, §10.4): the runtime Event Log
+  sink now uses `registration = event_log::never`, so an **unprivileged run no
+  longer throws** and keeps the sink (the core fix — events reach the Application
+  log regardless). One-time elevated registration via `--register-log-source` /
+  `--unregister-log-source` (platform/windows/log_source_registration.cpp, wired
+  through the App options' HandleHelpAndVersion early-exit). Verified on Windows:
+  `--help` lists them and unprivileged `--register-log-source` fails gracefully.
+- **Deferred**: the **message-table resource** for fully clean Event Viewer text
+  (a Windows build-machinery addition — mc.exe/rc.exe; events are already readable
+  without it), and the **Windows service wrapper** (SCM/ServiceMain; the
+  `WindowsServiceContext` detection seam already returns false awaiting it).
+- Verified locally (Windows): full suite 2307 green; the Linux/macOS backends
+  compile only in their CI legs (can't be run on the dev box).
 
 ---
 

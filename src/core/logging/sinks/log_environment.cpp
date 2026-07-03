@@ -132,28 +132,39 @@ namespace AqualinkAutomate::Logging::Sinks
 		return DetectLogEnvironment(DefaultProbes());
 	}
 
-	SinkSelection ResolveAutoSinks(const LogEnvironment& environment, bool have_log_file) noexcept
+	SinkSelection ResolveAutoSinks(const LogEnvironment& environment, bool have_log_file, bool journald_available) noexcept
 	{
 		SinkSelection selection;
-
-		// Console is present in every `auto` arm.
-		selection.Console = true;
 
 		if (environment.WindowsServiceContext)
 		{
 			// The Event Log is the service-native trail; console stays for an
 			// attached debugger / `sc` session.
+			selection.Console = true;
 			selection.Native = true;
+		}
+		else if (environment.StderrIsJournal && journald_available)
+		{
+			// Journal-connected AND the structured journald sink is compiled in:
+			// deliver via journald natively (priority + queryable fields). The
+			// console would double-log into the journal, so it is not added.
+			selection.Journald = true;
 		}
 		else if (environment.StderrIsJournal)
 		{
-			// journald owns storage/rotation; a syslog sink here would double-log.
-			// Recover priority fidelity with sd-daemon "<N>" prefixes instead.
+			// Journal-connected but no journald sink in this build: keep the console
+			// and recover priority fidelity with sd-daemon "<N>" prefixes. (A syslog
+			// sink here would double-log via the journal.)
+			selection.Console = true;
 			selection.ConsoleJournaldPrefixes = true;
 		}
-		// else: TTY, pipe, redirect, or container — plain console text; the consumer
-		// (terminal / log driver) owns storage. The general native sink is explicit
-		// opt-in on POSIX and is never added by `auto`.
+		else
+		{
+			// TTY, pipe, redirect, or container — plain console; the consumer
+			// (terminal / log driver) owns storage. The general native sink is
+			// explicit opt-in on POSIX and is never added by `auto`.
+			selection.Console = true;
+		}
 
 		selection.File = have_log_file;
 

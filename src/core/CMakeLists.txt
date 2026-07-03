@@ -220,6 +220,7 @@ target_sources(
 	logging/sinks/sink_filters.cpp
 	logging/sinks/sink_native.cpp
 	logging/sinks/sink_registry.cpp
+	$<$<BOOL:${systemd_FOUND}>:logging/sinks/sink_journald.cpp>
 	mqtt/ha_discovery.cpp
 	mqtt/mqtt_client.cpp
 	mqtt/mqtt_hub.cpp
@@ -327,6 +328,7 @@ target_sources(
 	platform/windows/physical_serial_port_timeout.cpp
 	platform/windows/network_serial_port_timeout.cpp
 	platform/windows/safe_ctime.cpp
+	platform/windows/log_source_registration.cpp
 )
 
 target_compile_definitions(
@@ -378,6 +380,7 @@ target_sources(
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
 	platform/macos/physical_serial_port_timeout.cpp
+	logging/sinks/sink_oslog.cpp
 )
 endif(APPLE)
 
@@ -394,6 +397,7 @@ target_compile_definitions(
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${UProf_FOUND}>>:UProf_SUPPORT_ENABLED>
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${UProf_FOUND}>,$<BOOL:${UProf_ACTIVITY_LOGGER_FOUND}>>:UProf_ACTIVITY_LOGGER_ENABLED>
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${VTune_FOUND}>>:VTUNE_SUPPORT_ENABLED>
+	$<$<BOOL:${systemd_FOUND}>:SYSTEMD_SUPPORT_ENABLED>
 	$<$<BOOL:${ENABLE_ASIO_TRACKING}>:-DBOOST_ASIO_ENABLE_HANDLER_TRACKING> # Enable ASIO connection tracking to aid debug async operations
 	$<$<BOOL:${ENABLE_ASIO_TRACKING}>:-DBOOST_ASIO_CUSTOM_HANDLER_TRACKING=\"developer/asio_tracking.h\" > # Enable ASIO connection tracking to aid debug async operations
 )
@@ -416,6 +420,7 @@ target_include_directories(
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${UProf_FOUND}>>:${UProf_INCLUDE_DIRS}>
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${VTune_FOUND}>>:${VTune_INCLUDE_DIRS}>
 	$<$<BOOL:${ENABLE_PROFILING}>:${Tracy_INCLUDE_DIRS}>
+	$<$<BOOL:${systemd_FOUND}>:${systemd_INCLUDE_DIRS}>
 )
 
 target_link_libraries(
@@ -438,5 +443,6 @@ target_link_libraries(
 	ZLIB::ZLIB
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${UProf_FOUND}>>:${UProf_LIBRARIES}>
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${VTune_FOUND}>>:${VTune_LIBRARIES}>
+	$<$<BOOL:${systemd_FOUND}>:${systemd_LIBRARIES}>
 	$<$<BOOL:${ENABLE_PROFILING}>:Tracy::TracyClient>
 )
