@@ -646,6 +646,11 @@
         'about.homepage': 'Site web',
         'about.equipment_info': 'Informations sur l’équipement',
         'about.no_equipment_info': 'Aucune information de version d’équipement disponible',
+        'about.language_support': 'Prise en charge des langues',
+        'about.available_languages': 'Langues disponibles',
+        'about.lang_active': 'Active',
+        'about.language_how': 'Choisissez la langue de l’interface dans {settings} → {appearance} → {language}. Le choix est enregistré avec vos préférences et vous suit sur tous vos appareils ; les langues de droite à gauche inversent automatiquement la mise en page.',
+        'about.language_contribute_html': 'Votre langue manque, ou une traduction pourrait être améliorée ? Les traductions sont de simples catalogues texte, faciles à contribuer — consultez le <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">guide de contribution</a>.',
         'about.model': 'Modèle',
         'about.revision': 'Révision',
 

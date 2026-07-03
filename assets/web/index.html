@@ -2610,6 +2610,30 @@
                 </div>
             </div>
 
+            <div class="section-title" x-text="$t('about.language_support')"></div>
+            <div class="card mb-2">
+                <div class="card-body">
+                    <dl class="info-grid">
+                        <dt x-text="$t('about.available_languages')"></dt>
+                        <dd>
+                            <!-- Endonyms come from the locale registry and are deliberately
+                                 untranslated (a user stuck in the wrong language must be able
+                                 to find their own) — hence the pseudo-scan exemption. -->
+                            <div class="about-lang-chips" data-i18n-exempt>
+                                <template x-for="l in $store.i18n.locales" :key="l.code">
+                                    <span class="about-lang-chip" :class="{ on: l.code === $store.i18n.locale }">
+                                        <span x-text="l.name"></span>
+                                        <span x-show="l.code === $store.i18n.locale" class="about-lang-active" x-text="$t('about.lang_active')"></span>
+                                    </span>
+                                </template>
+                            </div>
+                        </dd>
+                    </dl>
+                    <p class="text-muted" x-text="$t('about.language_how', { settings: $t('nav.settings'), appearance: $t('settings.appearance'), language: $t('settings.language') })"></p>
+                    <p class="text-muted" x-html="$t('about.language_contribute_html')"></p>
+                </div>
+            </div>
+
         </div>
 
     </main>

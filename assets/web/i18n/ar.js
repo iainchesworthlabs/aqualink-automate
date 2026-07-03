@@ -642,6 +642,11 @@
         'about.homepage': 'الصفحة الرئيسية',
         'about.equipment_info': 'معلومات المعدات',
         'about.no_equipment_info': 'لا تتوفر معلومات إصدار المعدات',
+        'about.language_support': 'دعم اللغات',
+        'about.available_languages': 'اللغات المتوفرة',
+        'about.lang_active': 'نشطة',
+        'about.language_how': 'اختر لغة الواجهة من {settings} ← {appearance} ← {language}. يُحفظ الاختيار مع تفضيلاتك ويتبعك عبر جميع أجهزتك؛ وتعكس اللغات المكتوبة من اليمين إلى اليسار تخطيط الواجهة تلقائيًا.',
+        'about.language_contribute_html': 'هل تفتقد لغتك، أو لاحظت ترجمة يمكن تحسينها؟ الترجمات عبارة عن ملفات نصية بسيطة يسهل المساهمة بها — راجع <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">دليل المساهمة</a>.',
         'about.model': 'الطراز',
         'about.revision': 'المراجعة',
 
