@@ -372,6 +372,7 @@
         'trends.autoscaled_note': 'مقياس تلقائي لمقارنة الأشكال',
         'trends.no_series_selected': 'لم تُحدَّد أي سلسلة',
         'trends.runtime_in_window': 'مدة التشغيل ضمن النافذة',
+        'trends.min_max_avg': 'الأدنى {min} · الأقصى {max} · المتوسط {avg}',
         'chem.swg': 'SWG',
 
         // ---- Schedules --------------------------------------------------------------
@@ -526,6 +527,8 @@
         'time.seconds_ago': 'منذ {n} ث',
         'time.minutes_ago': 'منذ {n} د',
         'time.hours_ago': 'منذ {n} س',
+        'time.days_ago': 'منذ {n} ي',
+        'time.now': 'الآن',
         'time.abbr_seconds': '{n} ث',
         'time.abbr_minutes': '{n} د',
         'time.abbr_hours': '{n} س',

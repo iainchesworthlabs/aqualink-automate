@@ -373,6 +373,7 @@
         'trends.autoscaled_note': 'autoescalado para comparar formas',
         'trends.no_series_selected': 'Ninguna serie seleccionada',
         'trends.runtime_in_window': 'funcionamiento en la ventana',
+        'trends.min_max_avg': 'mín {min} · máx {max} · prom {avg}',
         'chem.swg': 'SWG',
 
         // ---- Schedules --------------------------------------------------------------
@@ -527,6 +528,8 @@
         'time.seconds_ago': 'hace {n}s',
         'time.minutes_ago': 'hace {n}min',
         'time.hours_ago': 'hace {n}h',
+        'time.days_ago': 'hace {n}d',
+        'time.now': 'ahora',
         'time.abbr_seconds': '{n}s',
         'time.abbr_minutes': '{n}min',
         'time.abbr_hours': '{n}h',

@@ -2010,7 +2010,11 @@
         </div>
 
         <!-- ====== TRENDS VIEW (WS2) ====== -->
-        <div class="trends-view" x-show="route === 'trends'" x-cloak x-data="trendsView()" x-effect="if (route === 'trends') onShown()">
+        <!-- The effect reads the i18n revision/locale and the display units so
+             the canvas (panel labels, axis digits, tick abbreviations, temp
+             unit) redraws when they change while the view is open; route
+             re-entry covers the picker-in-Settings case. -->
+        <div class="trends-view" x-show="route === 'trends'" x-cloak x-data="trendsView()" x-effect="$store.i18n.revision; $store.i18n.locale; $store.pool.displayUnits; if (route === 'trends') onShown()">
             <div class="trends-head">
                 <div class="section-title" style="margin:0" x-text="$t('trends.title')"></div>
                 <div class="trends-ranges" x-show="available">

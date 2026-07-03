@@ -377,6 +377,7 @@
         'trends.autoscaled_note': 'auto-scaled to compare shapes',
         'trends.no_series_selected': 'No series selected',
         'trends.runtime_in_window': 'runtime in window',
+        'trends.min_max_avg': 'min {min} · max {max} · avg {avg}',
         'chem.swg': 'SWG',
 
         // ---- Schedules --------------------------------------------------------------
@@ -531,6 +532,8 @@
         'time.seconds_ago': '{n}s ago',
         'time.minutes_ago': '{n}m ago',
         'time.hours_ago': '{n}h ago',
+        'time.days_ago': '{n}d ago',
+        'time.now': 'now',
         'time.abbr_seconds': '{n}s',
         'time.abbr_minutes': '{n}m',
         'time.abbr_hours': '{n}h',
