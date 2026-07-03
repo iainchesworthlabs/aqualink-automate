@@ -461,6 +461,7 @@
         'accent.violet': '紫罗兰色',
         'settings.language': '语言',
         'settings.language_hint': '应用于此界面；在此设备上记住并同步到服务器。',
+        'settings.temp_units_hint': '所有温度的显示单位；即时应用并保存到服务器。',
         'settings.system_prefs': '系统偏好设置',
         'settings.saved': '已保存 ✓',
         'settings.server_stored': '保存在服务器上并即时生效 — 无需重启，所有设备共用。',

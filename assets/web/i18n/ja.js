@@ -462,6 +462,7 @@
         'accent.violet': 'すみれ色',
         'settings.language': '言語',
         'settings.language_hint': 'このインターフェースに適用されます。このデバイスに記憶され、サーバーにも同期されます。',
+        'settings.temp_units_hint': 'すべての温度の表示単位。すぐに適用され、サーバーに保存されます。',
         'settings.system_prefs': 'システム環境設定',
         'settings.saved': '保存済み ✓',
         'settings.server_stored': 'サーバーに保存され即時反映されます — 再起動不要で、全デバイスに共通です。',

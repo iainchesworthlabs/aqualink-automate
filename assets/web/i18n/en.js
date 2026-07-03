@@ -467,6 +467,7 @@
         'accent.violet': 'Violet',
         'settings.language': 'Language',
         'settings.language_hint': 'Applies to this interface; remembered on this device and synced to the server.',
+        'settings.temp_units_hint': 'Display units for all temperatures; applied instantly and saved to the server.',
         'settings.system_prefs': 'System Preferences',
         'settings.saved': 'Saved ✓',
         'settings.server_stored': 'Stored on the server and applied live — no restart, shared across devices.',

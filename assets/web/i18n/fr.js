@@ -463,6 +463,7 @@
         'accent.violet': 'Violet',
         'settings.language': 'Langue',
         'settings.language_hint': 'S’applique à cette interface ; mémorisé sur cet appareil et synchronisé avec le serveur.',
+        'settings.temp_units_hint': 'Unités d’affichage pour toutes les températures ; appliquées instantanément et enregistrées sur le serveur.',
         'settings.system_prefs': 'Préférences système',
         'settings.saved': 'Enregistré ✓',
         'settings.server_stored': 'Stocké sur le serveur et appliqué en direct — sans redémarrage, partagé entre les appareils.',
