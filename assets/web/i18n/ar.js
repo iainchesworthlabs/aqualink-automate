@@ -462,6 +462,7 @@
         'accent.violet': 'بنفسجي',
         'settings.language': 'اللغة',
         'settings.language_hint': 'تنطبق على هذه الواجهة؛ تُحفظ على هذا الجهاز وتُزامَن مع الخادم.',
+        'settings.temp_units_hint': 'وحدات عرض جميع درجات الحرارة؛ تُطبَّق فورًا وتُحفظ على الخادم.',
         'settings.system_prefs': 'تفضيلات النظام',
         'settings.saved': 'تم الحفظ ✓',
         'settings.server_stored': 'تُخزَّن على الخادم وتُطبَّق مباشرة — دون إعادة تشغيل، ومشتركة بين الأجهزة.',

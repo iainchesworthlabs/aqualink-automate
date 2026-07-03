@@ -462,6 +462,7 @@
         'accent.violet': 'סגול',
         'settings.language': 'שפה',
         'settings.language_hint': 'חל על ממשק זה; נשמר במכשיר זה ומסונכרן לשרת.',
+        'settings.temp_units_hint': 'יחידות התצוגה לכל הטמפרטורות; מיושמות מיד ונשמרות בשרת.',
         'settings.system_prefs': 'העדפות מערכת',
         'settings.saved': 'נשמר ✓',
         'settings.server_stored': 'נשמר בשרת ומוחל מיידית — ללא הפעלה מחדש, משותף בין מכשירים.',

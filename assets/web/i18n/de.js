@@ -463,6 +463,7 @@
         'accent.violet': 'Violett',
         'settings.language': 'Sprache',
         'settings.language_hint': 'Gilt für diese Oberfläche; wird auf diesem Gerät gespeichert und mit dem Server synchronisiert.',
+        'settings.temp_units_hint': 'Anzeigeeinheit für alle Temperaturen; wird sofort angewendet und auf dem Server gespeichert.',
         'settings.system_prefs': 'Systemeinstellungen',
         'settings.saved': 'Gespeichert ✓',
         'settings.server_stored': 'Auf dem Server gespeichert und sofort wirksam — kein Neustart, gilt auf allen Geräten.',
