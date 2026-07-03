@@ -50,7 +50,7 @@ test.describe('i18n runtime', () => {
     expect(r.pluralOther).toBe('3 schedules conflict with a controller program');
     expect(r.fallbackReturnsKey).toBe('definitely.not_a_key');
     expect(r.bridgeMatchesStore).toBe(true);
-    expect(r.locales).toEqual(expect.arrayContaining(['en', 'de', 'ar', 'ja']));
+    expect(r.locales).toEqual(expect.arrayContaining(['en', 'de', 'es', 'fr', 'ar', 'he', 'ja', 'zh']));
   });
 
   test('defaults to English with LTR document attributes', async ({ page }) => {
@@ -98,6 +98,42 @@ test.describe('i18n runtime', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
     await page.evaluate(async () => { await (window as any).Alpine.store('i18n').setLocale('en'); localStorage.removeItem('locale'); });
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+  });
+
+  test('Hebrew is RTL and the vendored Hebrew face serves its glyphs (Phase 5)', async ({ page }) => {
+    await page.goto('/');
+    const r = await page.evaluate(async () => {
+      const store = (window as any).Alpine.store('i18n');
+      await store.setLocale('he');
+      const dir = document.documentElement.dir;
+      await document.fonts.load("16px 'Noto Sans Hebrew'", 'לוח בקרה');
+      await document.fonts.ready;
+      const loaded = [...document.fonts].some(
+        (f) => f.family.replace(/['"]/g, '') === 'Noto Sans Hebrew' && f.status === 'loaded');
+      const check = document.fonts.check("16px 'Noto Sans Hebrew'", 'לוח');
+      await store.setLocale('en');
+      localStorage.removeItem('locale');
+      return { dir, loaded, check };
+    });
+    expect(r.dir).toBe('rtl');
+    expect(r.loaded).toBe(true);
+    expect(r.check).toBe(true);
+  });
+
+  test('Chinese applies its named system font stack (Phase 5)', async ({ page }) => {
+    await page.goto('/');
+    const r = await page.evaluate(async () => {
+      const store = (window as any).Alpine.store('i18n');
+      await store.setLocale('zh');
+      const stack = getComputedStyle(document.documentElement).getPropertyValue('--font-ui');
+      const lang = document.documentElement.lang;
+      await store.setLocale('en');
+      localStorage.removeItem('locale');
+      return { stack, lang };
+    });
+    expect(r.lang).toBe('zh');
+    expect(r.stack).toContain('PingFang SC');
+    expect(r.stack).toContain('Microsoft YaHei');
   });
 
   test('RTL actually mirrors the layout (Phase 3 logical-properties pass)', async ({ page }) => {
