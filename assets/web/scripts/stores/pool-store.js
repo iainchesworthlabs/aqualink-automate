@@ -129,9 +129,21 @@ document.addEventListener('alpine:init', () => {
             return key ? window.AquaI18n.t(key) : String(h).replace(/_/g, ' ');
         },
 
-        // Per-value timestamps for freshness tracking
+        // Per-value timestamps for freshness tracking (epoch ms). Temperatures
+        // adopt the SERVER's last_updated from /api/equipment; WebSocket updates
+        // stamp arrival time (≈ the server's write time on a LAN).
         _timestamps: {},
-        _stalenessThreshold: 60,  // seconds
+        // The server's staleness threshold (--temperature-staleness-threshold),
+        // synced from /api/equipment so client-side ageing agrees with the
+        // server's per-temperature `stale` flags. 600 s mirrors the server default.
+        _stalenessThreshold: 600,  // seconds
+
+        // 1 s heartbeat that makes age/staleness getters live-reactive between
+        // events (staleness onset generates no WebSocket event of its own).
+        _tick: 0,
+        init() {
+            setInterval(() => { this._tick++; }, 1000);
+        },
 
         buttons: [],
         // Bodies of water from /api/equipment configuration.bodies[]
@@ -227,6 +239,87 @@ document.addEventListener('alpine:init', () => {
             return a !== null && a > this._stalenessThreshold;
         },
 
+        // ---- Temperature freshness ---------------------------------------
+        // Three states per reading: 'live' (fresh), 'stale' (a real value has
+        // outlived the server threshold — kept on screen, visibly aged) and
+        // 'none' (nothing to show). Staleness has two flavours: EXPECTED while
+        // the pump is off (nightly normal, calm treatment) and UNEXPECTED while
+        // it runs (amber; the backend raises temperature_stale in parallel).
+        tempHas(field) {
+            return this['_' + field + 'Raw'] != null;
+        },
+
+        tempAgeSeconds(field) {
+            void this._tick;   // reactive dependency on the 1 s heartbeat
+            return this.age(field);
+        },
+
+        tempFreshness(field) {
+            if (!this.tempHas(field)) return 'none';
+            const a = this.tempAgeSeconds(field);
+            return (a !== null && a > this._stalenessThreshold) ? 'stale' : 'live';
+        },
+
+        tempStateClass(field) {
+            const f = this.tempFreshness(field);
+            return { 'is-stale': f === 'stale', 'is-none': f === 'none' };
+        },
+
+        // Short localized age ("25m ago") for freshness captions.
+        tempAgeLabel(field) {
+            const a = this.tempAgeSeconds(field);
+            const t = window.AquaI18n.t;
+            if (a === null) return '';
+            if (a < 5) return t('time.just_now');
+            if (a < 60) return t('time.seconds_ago', { n: a });
+            if (a < 3600) return t('time.minutes_ago', { n: Math.floor(a / 60) });
+            if (a < 86400) return t('time.hours_ago', { n: Math.floor(a / 3600) });
+            return t('time.days_ago', { n: Math.floor(a / 86400) });
+        },
+
+        // "Last reading 25m ago" caption shown in place of the setpoint line.
+        tempCaption(field) {
+            return window.AquaI18n.t('dash.last_reading', { ago: this.tempAgeLabel(field) });
+        },
+
+        // The unexpected flavour: stale while the pump is circulating.
+        tempStaleUnexpected(field) {
+            return this.tempFreshness(field) === 'stale' && this.pumpState === 'running';
+        },
+
+        // Why there is no reading at all (shown under the '--'). Water bodies
+        // name the cause when it is knowable; air (pump-independent) and the
+        // fresh-boot case fall back to a plain "no reading yet".
+        tempReason(field) {
+            const t = window.AquaI18n.t;
+            if (field === 'poolTemp' || field === 'spaTemp') {
+                if (this.pumpState === 'off') return t('dash.not_measuring');
+                const isActiveBody = (field === 'spaTemp') === this.spaModeActive;
+                if (this.pumpState === 'running' && !isActiveBody) return t('dash.not_circulating');
+            }
+            return t('dash.no_reading');
+        },
+
+        // Filter-pump run state derived from the buttons list: 'running',
+        // 'off', or 'unknown' (buttons not loaded / status not reported).
+        get pumpState() {
+            const ui = window.AquaUI || {};
+            const kws = (ui.DEVICE_KEYWORDS && ui.DEVICE_KEYWORDS.pump) || ['pump', 'filter'];
+            const match = ui.labelMatchesKeywords || ((label, ks) => {
+                const l = String(label == null ? '' : label).toLowerCase();
+                return ks.some(k => l.includes(k));
+            });
+            const isActive = ui.isActiveStatus || ((status) => {
+                const s = String(status == null ? '' : status).toLowerCase();
+                return s === 'on' || s === 'running' || s === 'heating' || s === 'enabled';
+            });
+            const pump = this.buttons.find(b => b.label && match(b.label, kws));
+            if (!pump) return 'unknown';
+            if (isActive(pump.status)) return 'running';
+            const s = String(pump.status || '').toLowerCase();
+            return (s === 'off') ? 'off' : 'unknown';
+        },
+
         async _fetchEquipment() {
             try {
                 const resp = await fetch('/api/equipment');
@@ -243,6 +336,15 @@ document.addEventListener('alpine:init', () => {
                     if (data.temperatures.pool_setpoint_2) this.poolSetpoint2 = data.temperatures.pool_setpoint_2;
                     if (data.temperatures.pool_heater_2_enabled != null) this.poolHeater2Enabled = data.temperatures.pool_heater_2_enabled;
                     if (data.temperatures.spa_setpoint) this.spaSetpoint = data.temperatures.spa_setpoint;
+
+                    // Server-authoritative freshness: adopt each reading's
+                    // last_updated (epoch seconds) and the server's staleness
+                    // threshold so client-side ageing agrees with the server's
+                    // per-temperature `stale` flags.
+                    if (data.temperatures.staleness_threshold_seconds != null) this._stalenessThreshold = data.temperatures.staleness_threshold_seconds;
+                    if (data.temperatures.pool?.last_updated != null) this._timestamps.poolTemp = data.temperatures.pool.last_updated * 1000;
+                    if (data.temperatures.spa?.last_updated != null) this._timestamps.spaTemp = data.temperatures.spa.last_updated * 1000;
+                    if (data.temperatures.air?.last_updated != null) this._timestamps.airTemp = data.temperatures.air.last_updated * 1000;
                 }
 
                 // Chemistry — nested structure: { salt_ppm, orp_mv, ph,

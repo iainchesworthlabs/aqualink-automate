@@ -110,6 +110,10 @@ namespace AqualinkAutomate::HTTP
 		jandy_equipment_json["temperatures"]["pool_heater_2_enabled"] = m_DataHub->PoolHeater2Enabled().has_value()
 			? nlohmann::json(m_DataHub->PoolHeater2Enabled().value()) : nlohmann::json(nullptr);
 		jandy_equipment_json["temperatures"]["spa_setpoint"] = Utility::SerializeTemperature(m_DataHub->SpaTempSetpoint(), m_DataHub->SpaTempSetpointUpdatedAt(), false);
+		// The server's staleness clock, surfaced so the client can age readings live
+		// between fetches (staleness onset generates no WebSocket event) while staying
+		// in agreement with the `stale` flags above.
+		jandy_equipment_json["temperatures"]["staleness_threshold_seconds"] = m_DataHub->TemperatureStalenessThreshold.count();
 
 		// Nested chemistry payload.  Salt / SWG values come from the DataHub
 		// chlorinator AuxillaryDevice traits (+ SaltLevel); ORP / pH read the

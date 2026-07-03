@@ -13,6 +13,7 @@ const ALERT_LABEL_KEYS = {
     salt_low: 'alert.salt_low',
     service_mode: 'alert.service_mode',
     serial_comms_loss: 'alert.serial_comms_loss',
+    temperature_stale: 'alert.temperature_stale',
 };
 
 document.addEventListener('alpine:init', () => {
@@ -38,6 +39,12 @@ document.addEventListener('alpine:init', () => {
                 if (params.health) {
                     const hk = window.AquaUI.swgHealthKey(params.health);
                     params.health = hk ? api.t(hk) : String(params.health).replace(/_/g, ' ');
+                }
+                // temperature_stale carries the affected body as a wire token
+                // ("pool"/"spa"); map it to the translated body name.
+                if (params.body) {
+                    const bk = { pool: 'common.pool', spa: 'common.spa' }[String(params.body).toLowerCase()];
+                    params.body = bk ? api.t(bk) : params.body;
                 }
                 return api.t(key, params);
             }

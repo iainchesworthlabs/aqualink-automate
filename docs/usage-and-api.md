@@ -271,11 +271,12 @@ Returns the full equipment state. The top-level keys are `temperatures`, `chemis
 ```json
 {
   "temperatures": {
-    "pool": { "celsius": 28, "fahrenheit": 82 },
+    "pool": { "celsius": 28, "fahrenheit": 82, "last_updated": 1782600000, "stale": false },
     "spa": null,
-    "air": { "celsius": 24, "fahrenheit": 75 },
+    "air": { "celsius": 24, "fahrenheit": 75, "last_updated": 1782600000, "stale": false },
     "pool_setpoint": { "celsius": 28, "fahrenheit": 82 },
-    "spa_setpoint": { "celsius": 38, "fahrenheit": 100 }
+    "spa_setpoint": { "celsius": 38, "fahrenheit": 100 },
+    "staleness_threshold_seconds": 600
   },
   "chemistry": {
     "salt_ppm": 3200,
@@ -549,7 +550,7 @@ Every frame is a JSON object with two fields:
 - `CirculationUpdate` — circulation/heater mode changes
 - `ButtonStateChange`
 - `SystemStatusChange`
-- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ..., "params": <object, optional> }` — `detail` is the English description; `params` carries the structured values behind it (e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}`) for translated UI text / automations (docs/i18n.md)
+- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ..., "params": <object, optional> }` — `detail` is the English description; `params` carries the structured values behind it (e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}`) for translated UI text / automations (docs/i18n.md). Conditions: `chlorinator_fault`, `chlorinator_warning`, `salt_low`, `service_mode`, `serial_comms_loss`, and `temperature_stale` (pump running but the active body's water temperature has outlived `--temperature-staleness-threshold`; pump-off staleness is expected and never raises — the UI just ages the reading)
 
 On connect, `/ws/equipment` enqueues exactly one `SystemStateUpdate` so a freshly connected client knows the current state immediately:
 

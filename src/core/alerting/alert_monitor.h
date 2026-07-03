@@ -75,6 +75,7 @@ namespace AqualinkAutomate::Alerting
 		void EvaluateChlorinatorFault();
 		void EvaluateServiceMode();
 		void EvaluateSerialCommsLoss();
+		void EvaluateTemperatureStale();
 
 	public:
 		// Inject a deterministic clock (unix seconds).  Must be called before
