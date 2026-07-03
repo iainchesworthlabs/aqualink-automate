@@ -53,14 +53,14 @@ function adminGroupsView() {
             try {
                 const resp = await fetch('/api/groups');
                 if (!resp.ok) {
-                    this.listError = `Could not load groups (${resp.status}).`;
+                    this.listError = window.AquaI18n.t('admin.error_load_groups', { status: resp.status });
                     this.groups = [];
                     return;
                 }
                 const list = await resp.json();
                 this.groups = Array.isArray(list) ? list : [];
             } catch (_) {
-                this.listError = 'Network error loading groups.';
+                this.listError = window.AquaI18n.t('admin.error_network_groups');
                 this.groups = [];
             } finally {
                 this.loading = false;
@@ -83,7 +83,7 @@ function adminGroupsView() {
         async submitCreate(entitlements) {
             this.cError = '';
             const name = this.cName.trim();
-            if (!name) { this.cError = 'Group name is required.'; return; }
+            if (!name) { this.cError = window.AquaI18n.t('admin.error_group_name_required'); return; }
             this.cBusy = true;
             try {
                 const resp = await fetch('/api/groups', {
@@ -98,7 +98,7 @@ function adminGroupsView() {
                 }
                 this.cError = await this._errorText(resp);
             } catch (_) {
-                this.cError = 'Network error — please try again.';
+                this.cError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.cBusy = false;
             }
@@ -132,7 +132,7 @@ function adminGroupsView() {
                 }
                 this.eError = await this._errorText(resp);
             } catch (_) {
-                this.eError = 'Network error — please try again.';
+                this.eError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.eBusy = false;
             }
@@ -161,7 +161,7 @@ function adminGroupsView() {
                 }
                 this.dError = await this._errorText(resp);
             } catch (_) {
-                this.dError = 'Network error — please try again.';
+                this.dError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.dBusy = false;
             }
@@ -174,7 +174,7 @@ function adminGroupsView() {
                 const data = await resp.json();
                 if (data && data.error) { return data.error; }
             } catch (_) { /* not JSON */ }
-            return `Request failed (${resp.status}).`;
+            return window.AquaI18n.t('admin.error_request_failed', { status: resp.status });
         },
     };
 }

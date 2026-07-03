@@ -19,6 +19,9 @@ const ADMIN_PASSWORD_MIN = 12;
 
 function adminUsersView() {
     return {
+        // Exposed for the "(min {min})" catalog bindings in the panels.
+        passwordMin: ADMIN_PASSWORD_MIN,
+
         users: [],
         groups: [],       // [{name, ...}] for the membership picker
         loading: false,
@@ -66,7 +69,7 @@ function adminUsersView() {
                     fetch('/api/groups'),
                 ]);
                 if (!uResp.ok) {
-                    this.listError = `Could not load users (${uResp.status}).`;
+                    this.listError = window.AquaI18n.t('admin.error_load_users', { status: uResp.status });
                     this.users = [];
                 } else {
                     const list = await uResp.json();
@@ -77,7 +80,7 @@ function adminUsersView() {
                     this.groups = Array.isArray(gl) ? gl : [];
                 }
             } catch (_) {
-                this.listError = 'Network error loading users.';
+                this.listError = window.AquaI18n.t('admin.error_network_users');
                 this.users = [];
             } finally {
                 this.loading = false;
@@ -102,13 +105,13 @@ function adminUsersView() {
         async submitCreate(entitlements) {
             this.cError = '';
             const username = this.cForm.username.trim();
-            if (!username) { this.cError = 'Username is required.'; return; }
+            if (!username) { this.cError = window.AquaI18n.t('admin.error_username_required'); return; }
             if (this.cForm.password.length < ADMIN_PASSWORD_MIN) {
-                this.cError = `Password must be at least ${ADMIN_PASSWORD_MIN} characters.`;
+                this.cError = window.AquaI18n.t('admin.password_too_short', { min: ADMIN_PASSWORD_MIN });
                 return;
             }
             if (this.cForm.password !== this.cForm.confirm) {
-                this.cError = 'Passwords do not match.';
+                this.cError = window.AquaI18n.t('admin.passwords_no_match');
                 return;
             }
             this.cBusy = true;
@@ -130,7 +133,7 @@ function adminUsersView() {
                 }
                 this.cError = await this._errorText(resp);
             } catch (_) {
-                this.cError = 'Network error — please try again.';
+                this.cError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.cBusy = false;
             }
@@ -172,7 +175,7 @@ function adminUsersView() {
                 }
                 this.eError = await this._errorText(resp);
             } catch (_) {
-                this.eError = 'Network error — please try again.';
+                this.eError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.eBusy = false;
             }
@@ -192,11 +195,11 @@ function adminUsersView() {
             this.pError = '';
             this.pSaved = false;
             if (this.pForm.password.length < ADMIN_PASSWORD_MIN) {
-                this.pError = `Password must be at least ${ADMIN_PASSWORD_MIN} characters.`;
+                this.pError = window.AquaI18n.t('admin.password_too_short', { min: ADMIN_PASSWORD_MIN });
                 return;
             }
             if (this.pForm.password !== this.pForm.confirm) {
-                this.pError = 'Passwords do not match.';
+                this.pError = window.AquaI18n.t('admin.passwords_no_match');
                 return;
             }
             this.pBusy = true;
@@ -215,7 +218,7 @@ function adminUsersView() {
                 }
                 this.pError = await this._errorText(resp);
             } catch (_) {
-                this.pError = 'Network error — please try again.';
+                this.pError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.pBusy = false;
             }
@@ -244,7 +247,7 @@ function adminUsersView() {
                 }
                 this.dError = await this._errorText(resp);
             } catch (_) {
-                this.dError = 'Network error — please try again.';
+                this.dError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.dBusy = false;
             }
@@ -258,7 +261,7 @@ function adminUsersView() {
                 const data = await resp.json();
                 if (data && data.error) { return data.error; }
             } catch (_) { /* not JSON */ }
-            return `Request failed (${resp.status}).`;
+            return window.AquaI18n.t('admin.error_request_failed', { status: resp.status });
         },
     };
 }

@@ -16,12 +16,13 @@ function adminView() {
         open: false,
         tab: 'users',   // 'users' | 'groups' | 'entitlements' | 'apikeys' | 'kiosk'
 
+        // Tab captions resolve through the catalog at render time (x-text="$t(t.labelKey)").
         tabs: [
-            { id: 'users', label: 'Users' },
-            { id: 'groups', label: 'Groups' },
-            { id: 'entitlements', label: 'Entitlements' },
-            { id: 'apikeys', label: 'API keys' },
-            { id: 'kiosk', label: 'Kiosk' },
+            { id: 'users', labelKey: 'admin.users' },
+            { id: 'groups', labelKey: 'admin.groups' },
+            { id: 'entitlements', labelKey: 'admin.entitlements' },
+            { id: 'apikeys', labelKey: 'admin.apikeys' },
+            { id: 'kiosk', labelKey: 'admin.kiosk' },
         ],
 
         // Entitlements reference tab state (read-only vocabulary listing).
@@ -49,14 +50,14 @@ function adminView() {
             try {
                 const resp = await fetch('/api/entitlements');
                 if (!resp.ok) {
-                    this.vocabError = `Could not load entitlements (${resp.status}).`;
+                    this.vocabError = window.AquaI18n.t('admin.error_load_entitlements', { status: resp.status });
                     return;
                 }
                 const data = await resp.json();
                 this.vocabulary = Array.isArray(data.actions) ? data.actions : [];
                 this.vocabLoaded = true;
             } catch (_) {
-                this.vocabError = 'Network error loading entitlements.';
+                this.vocabError = window.AquaI18n.t('admin.error_network_entitlements');
             }
         },
 
@@ -71,16 +72,14 @@ function adminView() {
             return Object.entries(groups).map(([name, actions]) => ({ name, actions }));
         },
 
-        // A one-line description for the reference tab. Purely presentational.
+        // A one-line description for the reference tab. Purely presentational —
+        // resolved through the catalog at render time (locale can change).
         actionHint(action) {
-            const hints = {
-                'system.admin': 'Full administrator — implies every other action.',
-                'equipment.control.aux': 'Toggle auxiliary devices. Supports a per-device selector.',
-            };
-            if (hints[action]) { return hints[action]; }
-            if (action.endsWith('.view')) { return 'Read-only visibility of this area.'; }
-            if (action.startsWith('equipment.control.')) { return 'Command this equipment category.'; }
-            if (action.endsWith('.edit')) { return 'Create / modify entries in this area.'; }
+            if (action === 'system.admin') { return window.AquaI18n.t('admin.hint_system_admin'); }
+            if (action === 'equipment.control.aux') { return window.AquaI18n.t('admin.hint_aux'); }
+            if (action.endsWith('.view')) { return window.AquaI18n.t('admin.hint_view'); }
+            if (action.startsWith('equipment.control.')) { return window.AquaI18n.t('admin.hint_control'); }
+            if (action.endsWith('.edit')) { return window.AquaI18n.t('admin.hint_edit'); }
             return '';
         },
     };

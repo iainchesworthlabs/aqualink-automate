@@ -49,14 +49,14 @@ function adminApikeysView() {
             try {
                 const resp = await fetch('/api/apikeys');
                 if (!resp.ok) {
-                    this.listError = `Could not load API keys (${resp.status}).`;
+                    this.listError = window.AquaI18n.t('admin.error_load_apikeys', { status: resp.status });
                     this.keys = [];
                     return;
                 }
                 const list = await resp.json();
                 this.keys = Array.isArray(list) ? list : [];
             } catch (_) {
-                this.listError = 'Network error loading API keys.';
+                this.listError = window.AquaI18n.t('admin.error_network_apikeys');
                 this.keys = [];
             } finally {
                 this.loading = false;
@@ -67,12 +67,12 @@ function adminApikeysView() {
 
         // ---- Display helpers ----
         expiryLabel(unix) {
-            if (!unix) { return 'Never'; }
+            if (!unix) { return window.AquaI18n.t('admin.never'); }
             try { return new Date(unix * 1000).toLocaleDateString(); } catch (_) { return String(unix); }
         },
 
         lastUsedLabel(unix) {
-            if (!unix) { return 'Never used'; }
+            if (!unix) { return window.AquaI18n.t('admin.never_used'); }
             try { return new Date(unix * 1000).toLocaleString(); } catch (_) { return String(unix); }
         },
 
@@ -87,7 +87,7 @@ function adminApikeysView() {
         async submitCreate(entitlements) {
             this.cError = '';
             const label = this.cLabel.trim();
-            if (!label) { this.cError = 'Label is required.'; return; }
+            if (!label) { this.cError = window.AquaI18n.t('admin.error_label_required'); return; }
 
             const payload = { label, entitlements: entitlements || [] };
             if (this.cExpiry) {
@@ -111,7 +111,8 @@ function adminApikeysView() {
                     this.secret = {
                         label: data.label || label,
                         secret: data.secret || '',
-                        warning: data.warning || 'Store this secret now; it cannot be retrieved again.',
+                        // Server-sent warning is shown verbatim; the fallback is ours.
+                        warning: data.warning || window.AquaI18n.t('admin.secret_warning'),
                     };
                     this.copied = false;
                     await this.refresh();
@@ -119,7 +120,7 @@ function adminApikeysView() {
                 }
                 this.cError = await this._errorText(resp);
             } catch (_) {
-                this.cError = 'Network error — please try again.';
+                this.cError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.cBusy = false;
             }
@@ -167,7 +168,7 @@ function adminApikeysView() {
                 }
                 this.dError = await this._errorText(resp);
             } catch (_) {
-                this.dError = 'Network error — please try again.';
+                this.dError = window.AquaI18n.t('admin.error_network');
             } finally {
                 this.dBusy = false;
             }
@@ -180,7 +181,7 @@ function adminApikeysView() {
                 const data = await resp.json();
                 if (data && data.error) { return data.error; }
             } catch (_) { /* not JSON */ }
-            return `Request failed (${resp.status}).`;
+            return window.AquaI18n.t('admin.error_request_failed', { status: resp.status });
         },
     };
 }

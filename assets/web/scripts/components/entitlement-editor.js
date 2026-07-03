@@ -66,14 +66,14 @@ function entitlementEditor() {
             try {
                 const resp = await fetch('/api/entitlements');
                 if (!resp.ok) {
-                    this.loadError = `Could not load the entitlement vocabulary (${resp.status}).`;
+                    this.loadError = window.AquaI18n.t('admin.error_load_vocabulary', { status: resp.status });
                     this.actions = [];
                     return;
                 }
                 const data = await resp.json();
                 this.actions = Array.isArray(data.actions) ? data.actions : [];
             } catch (_) {
-                this.loadError = 'Network error loading entitlements.';
+                this.loadError = window.AquaI18n.t('admin.error_network_entitlements');
                 this.actions = [];
             } finally {
                 this.loading = false;

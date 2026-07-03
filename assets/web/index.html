@@ -104,7 +104,7 @@
         <div class="login-card">
             <!-- Guests opened this from "Sign in"; let them back out to the dashboard. -->
             <button class="login-close" type="button" x-show="$store.auth.canDismissLogin" x-cloak
-                    @click="$store.auth.showLogin = false" aria-label="Continue as guest">&times;</button>
+                    @click="$store.auth.showLogin = false" :aria-label="$t('auth.continue_as_guest_aria')">&times;</button>
             <svg class="login-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                 <path d="M16 3C16 3 6 15 6 21a10 10 0 0020 0C26 15 16 3 16 3z" fill="#0ea5e9"/>
             </svg>
@@ -113,23 +113,21 @@
             <!-- FIRST-RUN SETUP: no accounts exist yet — create the administrator. -->
             <template x-if="$store.auth.setupRequired">
                 <div>
-                    <p class="login-subtitle">Create the administrator account to finish setup.</p>
+                    <p class="login-subtitle" x-text="$t('auth.setup_subtitle')"></p>
                     <form @submit.prevent="submitSetup()">
-                        <input class="login-input" type="text" placeholder="Admin username"
-                               x-model="username" autocomplete="username" aria-label="Admin username" required>
-                        <input class="login-input" type="password" placeholder="Password (min 12 characters)"
-                               x-model="password" autocomplete="new-password" aria-label="Password" required>
-                        <input class="login-input" type="password" placeholder="Confirm password"
-                               x-model="confirm" autocomplete="new-password" aria-label="Confirm password" required>
-                        <p class="login-hint" x-show="password.length > 0 && password.length < min" x-cloak>
-                            Password must be at least 12 characters.
-                        </p>
-                        <p class="login-hint" x-show="confirm.length > 0 && password !== confirm" x-cloak>
-                            Passwords do not match.
-                        </p>
+                        <input class="login-input" type="text" :placeholder="$t('auth.admin_username')"
+                               x-model="username" autocomplete="username" :aria-label="$t('auth.admin_username')" required>
+                        <input class="login-input" type="password" :placeholder="$t('auth.password_min_placeholder', { min })"
+                               x-model="password" autocomplete="new-password" :aria-label="$t('auth.password')" required>
+                        <input class="login-input" type="password" :placeholder="$t('auth.confirm_password')"
+                               x-model="confirm" autocomplete="new-password" :aria-label="$t('auth.confirm_password')" required>
+                        <p class="login-hint" x-show="password.length > 0 && password.length < min" x-cloak
+                           x-text="$t('auth.password_too_short', { min })"></p>
+                        <p class="login-hint" x-show="confirm.length > 0 && password !== confirm" x-cloak
+                           x-text="$t('auth.passwords_no_match')"></p>
                         <button class="login-submit" type="submit" :disabled="$store.auth.busy || !setupValid">
-                            <span x-show="!$store.auth.busy">Create account</span>
-                            <span x-show="$store.auth.busy" x-cloak>Creating…</span>
+                            <span x-show="!$store.auth.busy" x-text="$t('auth.create_account')"></span>
+                            <span x-show="$store.auth.busy" x-cloak x-text="$t('auth.creating')"></span>
                         </button>
                         <p class="login-error" x-show="$store.auth.error" x-cloak x-text="$store.auth.error" role="alert"></p>
                     </form>
@@ -139,32 +137,32 @@
             <!-- LOGIN: accounts exist — sign in. -->
             <template x-if="!$store.auth.setupRequired">
                 <div>
-                    <p class="login-subtitle">Sign in to continue.</p>
+                    <p class="login-subtitle" x-text="$t('auth.signin_subtitle')"></p>
                     <form @submit.prevent="submitLogin()">
-                        <input class="login-input" type="text" placeholder="Username"
-                               x-model="username" autocomplete="username" aria-label="Username" required>
-                        <input class="login-input" type="password" placeholder="Password"
-                               x-model="password" autocomplete="current-password" aria-label="Password" required>
+                        <input class="login-input" type="text" :placeholder="$t('auth.username')"
+                               x-model="username" autocomplete="username" :aria-label="$t('auth.username')" required>
+                        <input class="login-input" type="password" :placeholder="$t('auth.password')"
+                               x-model="password" autocomplete="current-password" :aria-label="$t('auth.password')" required>
                         <label class="login-remember">
                             <input type="checkbox" x-model="remember">
-                            Remember me on this device
+                            <span x-text="$t('auth.remember_me')"></span>
                         </label>
                         <button class="login-submit" type="submit" :disabled="$store.auth.busy">
-                            <span x-show="!$store.auth.busy">Sign in</span>
-                            <span x-show="$store.auth.busy" x-cloak>Signing in…</span>
+                            <span x-show="!$store.auth.busy" x-text="$t('auth.sign_in')"></span>
+                            <span x-show="$store.auth.busy" x-cloak x-text="$t('auth.signing_in')"></span>
                         </button>
                         <p class="login-error" x-show="$store.auth.error" x-cloak x-text="$store.auth.error" role="alert"></p>
                     </form>
 
                     <!-- KIOSK PIN: quick elevation on a shared wall tablet. -->
                     <div class="login-pin" x-show="$store.auth.kioskEnabled" x-cloak>
-                        <div class="login-divider"><span>or use a PIN</span></div>
+                        <div class="login-divider"><span x-text="$t('auth.or_use_pin')"></span></div>
                         <form @submit.prevent="submitPin()">
                             <input class="login-input" type="password" inputmode="numeric" autocomplete="off"
-                                   placeholder="Kiosk PIN" x-model="pin" aria-label="Kiosk PIN">
+                                   :placeholder="$t('auth.kiosk_pin')" x-model="pin" :aria-label="$t('auth.kiosk_pin')">
                             <button class="login-pin-submit" type="submit" :disabled="$store.auth.busy || pin.length === 0">
-                                <span x-show="!$store.auth.busy">Enter PIN</span>
-                                <span x-show="$store.auth.busy" x-cloak>Checking…</span>
+                                <span x-show="!$store.auth.busy" x-text="$t('auth.enter_pin')"></span>
+                                <span x-show="$store.auth.busy" x-cloak x-text="$t('auth.checking')"></span>
                             </button>
                         </form>
                     </div>
@@ -176,19 +174,19 @@
     <!-- ====== ACCOUNT OVERLAY (Wave A) ====== -->
     <div class="account-overlay" x-data="accountView()" x-show="open" x-cloak
          @account:open.window="show()" @keydown.escape.window="hide()">
-        <div class="account-card" role="dialog" aria-modal="true" aria-label="Account" @click.outside="hide()">
+        <div class="account-card" role="dialog" aria-modal="true" :aria-label="$t('account.title')" @click.outside="hide()">
             <div class="account-head">
-                <h2 class="account-title">Account</h2>
-                <button class="account-close" @click="hide()" aria-label="Close">&times;</button>
+                <h2 class="account-title" x-text="$t('account.title')"></h2>
+                <button class="account-close" @click="hide()" :aria-label="$t('common.close')">&times;</button>
             </div>
 
-            <!-- Identity -->
+            <!-- Identity (server-resolved id + group names, rendered verbatim) -->
             <section class="account-section">
                 <div class="account-identity">
                     <span class="account-avatar" aria-hidden="true" x-text="identity.slice(0,1).toUpperCase()"></span>
                     <div>
-                        <div class="account-username" x-text="identity"></div>
-                        <div class="account-groups" x-show="groups.length" x-cloak>
+                        <div class="account-username" data-i18n-exempt x-text="identity"></div>
+                        <div class="account-groups" data-i18n-exempt x-show="groups.length" x-cloak>
                             <template x-for="g in groups" :key="g">
                                 <span class="account-group-chip" x-text="g"></span>
                             </template>
@@ -199,38 +197,39 @@
 
             <!-- Change password -->
             <section class="account-section">
-                <h3 class="account-subhead">Change password</h3>
+                <h3 class="account-subhead" x-text="$t('account.change_password')"></h3>
                 <form @submit.prevent="changePassword()">
-                    <input class="login-input" type="password" placeholder="New password (min 12 characters)"
-                           x-model="newPassword" autocomplete="new-password" aria-label="New password">
-                    <input class="login-input" type="password" placeholder="Confirm new password"
-                           x-model="confirmPassword" autocomplete="new-password" aria-label="Confirm new password">
+                    <input class="login-input" type="password" :placeholder="$t('account.new_password_min_placeholder', { min: passwordMin })"
+                           x-model="newPassword" autocomplete="new-password" :aria-label="$t('account.new_password')">
+                    <input class="login-input" type="password" :placeholder="$t('account.confirm_new_password')"
+                           x-model="confirmPassword" autocomplete="new-password" :aria-label="$t('account.confirm_new_password')">
                     <button class="account-btn" type="submit" :disabled="pwBusy">
-                        <span x-show="!pwBusy">Update password</span>
-                        <span x-show="pwBusy" x-cloak>Updating…</span>
+                        <span x-show="!pwBusy" x-text="$t('account.update_password')"></span>
+                        <span x-show="pwBusy" x-cloak x-text="$t('account.updating')"></span>
                     </button>
                     <p class="login-error" x-show="pwError" x-cloak x-text="pwError" role="alert"></p>
-                    <p class="account-ok" x-show="pwSaved" x-cloak role="status">Password updated. Other sessions were signed out.</p>
+                    <p class="account-ok" x-show="pwSaved" x-cloak role="status" x-text="$t('account.password_updated_sessions')"></p>
                 </form>
             </section>
 
             <!-- Sessions -->
             <section class="account-section">
-                <h3 class="account-subhead">Active sessions</h3>
+                <h3 class="account-subhead" x-text="$t('account.active_sessions')"></h3>
                 <p class="login-error" x-show="sessionsError" x-cloak x-text="sessionsError" role="alert"></p>
-                <p class="account-muted" x-show="sessionsLoading" x-cloak>Loading…</p>
-                <p class="account-muted" x-show="!sessionsLoading && sessions.length === 0" x-cloak>No active sessions.</p>
+                <p class="account-muted" x-show="sessionsLoading" x-cloak x-text="$t('account.loading')"></p>
+                <p class="account-muted" x-show="!sessionsLoading && sessions.length === 0" x-cloak x-text="$t('account.no_sessions')"></p>
                 <ul class="account-session-list">
                     <template x-for="s in sessions" :key="s.id">
                         <li class="account-session">
                             <div class="account-session-info">
-                                <div class="account-session-device" x-text="deviceLabel(s.user_agent)"></div>
+                                <!-- Derived from the session's user agent (server data) -->
+                                <div class="account-session-device" data-i18n-exempt x-text="deviceLabel(s.user_agent)"></div>
                                 <div class="account-session-meta">
                                     <span x-text="s.peer_ip"></span>
-                                    <span x-show="s.last_seen_unix" x-cloak> · last seen <span x-text="relativeTime(s.last_seen_unix)"></span></span>
+                                    <span x-show="s.last_seen_unix" x-cloak x-text="' ' + $t('account.last_seen', { time: relativeTime(s.last_seen_unix) })"></span>
                                 </div>
                             </div>
-                            <button class="account-revoke" @click="revokeSession(s.id)" aria-label="Revoke session">Revoke</button>
+                            <button class="account-revoke" @click="revokeSession(s.id)" :aria-label="$t('account.revoke_session_aria')" x-text="$t('account.revoke')"></button>
                         </li>
                     </template>
                 </ul>
@@ -238,8 +237,8 @@
 
             <!-- Sign out -->
             <section class="account-section account-actions">
-                <button class="account-btn account-btn-secondary" @click="signOut()">Sign out</button>
-                <button class="account-btn account-btn-danger" @click="signOutEverywhere()">Sign out everywhere</button>
+                <button class="account-btn account-btn-secondary" @click="signOut()" x-text="$t('account.sign_out')"></button>
+                <button class="account-btn account-btn-danger" @click="signOutEverywhere()" x-text="$t('account.sign_out_everywhere')"></button>
             </section>
         </div>
     </div>
@@ -247,18 +246,18 @@
     <!-- ====== ADMINISTRATION OVERLAY (Slice 2 Wave B) ====== -->
     <div class="admin-overlay" x-data="adminView()" x-show="open" x-cloak
          @admin:open.window="show()" @keydown.escape.window="hide()">
-        <div class="admin-card" role="dialog" aria-modal="true" aria-label="Administration">
+        <div class="admin-card" role="dialog" aria-modal="true" :aria-label="$t('admin.title')">
             <div class="admin-head">
-                <h2 class="admin-title">Administration</h2>
-                <button class="account-close" @click="hide()" aria-label="Close">&times;</button>
+                <h2 class="admin-title" x-text="$t('admin.title')"></h2>
+                <button class="account-close" @click="hide()" :aria-label="$t('common.close')">&times;</button>
             </div>
 
             <!-- Tabs -->
-            <div class="admin-tabs" role="tablist" aria-label="Administration sections">
+            <div class="admin-tabs" role="tablist" :aria-label="$t('admin.sections_aria')">
                 <template x-for="t in tabs" :key="t.id">
                     <button class="admin-tab" :class="{ active: tab === t.id }"
                             role="tab" :aria-selected="tab === t.id"
-                            @click="selectTab(t.id)" x-text="t.label"></button>
+                            @click="selectTab(t.id)" x-text="$t(t.labelKey)"></button>
                 </template>
             </div>
 
@@ -268,69 +267,69 @@
                 <section role="tabpanel" x-show="tab === 'users'" x-data="adminUsersView()"
                          x-effect="if (open && tab === 'users') ensureLoaded()">
                     <div class="admin-section-head">
-                        <h3 class="admin-subhead">Users</h3>
+                        <h3 class="admin-subhead" x-text="$t('admin.users')"></h3>
                         <div class="admin-section-actions">
-                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
-                            <button class="account-btn admin-btn-inline" @click="openCreate()">New user</button>
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading" x-text="$t('admin.refresh')"></button>
+                            <button class="account-btn admin-btn-inline" @click="openCreate()" x-text="$t('admin.new_user')"></button>
                         </div>
                     </div>
                     <p class="login-error" x-show="listError" x-cloak x-text="listError" role="alert"></p>
-                    <p class="account-muted" x-show="loading" x-cloak>Loading…</p>
+                    <p class="account-muted" x-show="loading" x-cloak x-text="$t('admin.loading')"></p>
 
                     <!-- Create panel (x-if so the nested editor only inits when opened) -->
                     <template x-if="panel === 'create'">
                     <div class="admin-panel" x-data="entitlementEditor()" x-init="init([])">
-                        <h4 class="admin-panel-title">New user</h4>
+                        <h4 class="admin-panel-title" x-text="$t('admin.new_user')"></h4>
                         <div class="admin-form-grid">
-                            <label class="admin-field"><span>Username</span>
-                                <input class="login-input" type="text" x-model="cForm.username" autocomplete="off" aria-label="Username">
+                            <label class="admin-field"><span x-text="$t('admin.username')"></span>
+                                <input class="login-input" type="text" x-model="cForm.username" autocomplete="off" :aria-label="$t('admin.username')">
                             </label>
-                            <label class="admin-field"><span>Password (min 12)</span>
-                                <input class="login-input" type="password" x-model="cForm.password" autocomplete="new-password" aria-label="Password">
+                            <label class="admin-field"><span x-text="$t('admin.password_min', { min: passwordMin })"></span>
+                                <input class="login-input" type="password" x-model="cForm.password" autocomplete="new-password" :aria-label="$t('admin.password')">
                             </label>
-                            <label class="admin-field"><span>Confirm password</span>
-                                <input class="login-input" type="password" x-model="cForm.confirm" autocomplete="new-password" aria-label="Confirm password">
+                            <label class="admin-field"><span x-text="$t('admin.confirm_password')"></span>
+                                <input class="login-input" type="password" x-model="cForm.confirm" autocomplete="new-password" :aria-label="$t('admin.confirm_password')">
                             </label>
                         </div>
                         <div class="admin-groups-pick">
-                            <div class="admin-group-label">Groups</div>
+                            <div class="admin-group-label" x-text="$t('admin.groups')"></div>
                             <div class="admin-chip-set">
                                 <template x-for="g in groups" :key="g.name">
-                                    <label class="admin-check-chip" :class="{ on: cForm.groups[g.name] }">
+                                    <label class="admin-check-chip" data-i18n-exempt :class="{ on: cForm.groups[g.name] }">
                                         <input type="checkbox" x-model="cForm.groups[g.name]"> <span x-text="g.name"></span>
                                     </label>
                                 </template>
                             </div>
                         </div>
-                        <div class="admin-group-label">Direct entitlements</div>
+                        <div class="admin-group-label" x-text="$t('admin.direct_entitlements')"></div>
                         <div class="ent-editor">
                             <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
                             <label class="admin-check-chip ent-admin" :class="{ on: admin }">
-                                <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                                <input type="checkbox" x-model="admin"> <span x-text="$t('admin.ent_system_admin')"></span>
                             </label>
                             <div class="ent-actions" x-show="!admin">
                                 <div class="admin-chip-set">
                                     <template x-for="a in plainActions()" :key="a">
-                                        <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                        <label class="admin-check-chip" data-i18n-exempt :class="{ on: selected[a] }">
                                             <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
                                         </label>
                                     </template>
                                 </div>
                                 <template x-if="hasAuxAction()">
                                     <div class="ent-aux">
-                                        <div class="admin-group-label">equipment.control.aux</div>
-                                        <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                        <div class="admin-group-label" data-i18n-exempt>equipment.control.aux</div>
+                                        <div class="ent-aux-modes" role="group" :aria-label="$t('admin.aux_scope_aria')">
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')" x-text="$t('common.none')"></button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')" x-text="$t('admin.aux_all_devices')"></button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')" x-text="$t('admin.aux_specific')"></button>
                                         </div>
                                         <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
                                             <template x-for="d in auxDevices" :key="d.id">
-                                                <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                <label class="admin-check-chip" data-i18n-exempt :class="{ on: auxSelected[d.id] }">
                                                     <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
                                                 </label>
                                             </template>
-                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak x-text="$t('admin.no_aux_devices')"></p>
                                         </div>
                                     </div>
                                 </template>
@@ -338,9 +337,9 @@
                         </div>
                         <p class="login-error" x-show="cError" x-cloak x-text="cError" role="alert"></p>
                         <div class="admin-panel-actions">
-                            <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                            <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                             <button class="account-btn" :disabled="cBusy" @click="submitCreate(compose())">
-                                <span x-show="!cBusy">Create user</span><span x-show="cBusy" x-cloak>Creating…</span>
+                                <span x-show="!cBusy" x-text="$t('admin.create_user')"></span><span x-show="cBusy" x-cloak x-text="$t('admin.creating')"></span>
                             </button>
                         </div>
                     </div>
@@ -352,74 +351,74 @@
                             <li class="admin-row">
                                 <div class="admin-row-main">
                                     <div class="admin-row-title">
-                                        <span x-text="u.username"></span>
-                                        <span class="admin-badge admin-badge-off" x-show="u.disabled" x-cloak>Disabled</span>
+                                        <span data-i18n-exempt x-text="u.username"></span>
+                                        <span class="admin-badge admin-badge-off" x-show="u.disabled" x-cloak x-text="$t('common.disabled')"></span>
                                     </div>
                                     <div class="admin-row-meta">
                                         <template x-for="g in (u.groups || [])" :key="g">
-                                            <span class="account-group-chip" x-text="g"></span>
+                                            <span class="account-group-chip" data-i18n-exempt x-text="g"></span>
                                         </template>
                                         <template x-for="e in (u.direct_entitlements || [])" :key="e">
-                                            <span class="account-group-chip ent-chip" x-text="describeEnt(e)"></span>
+                                            <span class="account-group-chip ent-chip" data-i18n-exempt x-text="describeEnt(e)"></span>
                                         </template>
-                                        <span class="admin-tokver">tokver <span x-text="u.tokver"></span></span>
+                                        <span class="admin-tokver" data-i18n-exempt>tokver <span x-text="u.tokver"></span></span>
                                     </div>
                                 </div>
                                 <div class="admin-row-actions">
-                                    <button class="admin-mini-btn" @click="openEdit(u)">Edit</button>
-                                    <button class="admin-mini-btn" @click="openPassword(u)">Password</button>
-                                    <button class="admin-mini-btn admin-mini-danger" @click="openDelete(u)">Delete</button>
+                                    <button class="admin-mini-btn" @click="openEdit(u)" x-text="$t('common.edit')"></button>
+                                    <button class="admin-mini-btn" @click="openPassword(u)" x-text="$t('admin.password')"></button>
+                                    <button class="admin-mini-btn admin-mini-danger" @click="openDelete(u)" x-text="$t('common.delete')"></button>
                                 </div>
 
                                 <!-- Edit panel -->
                                 <template x-if="isEditing(u.id)">
                                 <div class="admin-panel admin-panel-inline"
                                      x-data="entitlementEditor()" x-init="init(u.direct_entitlements || [])">
-                                    <h4 class="admin-panel-title">Edit <span x-text="u.username"></span></h4>
+                                    <h4 class="admin-panel-title" x-text="$t('admin.edit_user', { name: u.username })"></h4>
                                     <label class="settings-toggle-row admin-toggle">
                                         <div class="settings-toggle-text">
-                                            <div class="settings-toggle-title">Account disabled</div>
-                                            <div class="settings-toggle-sub">A disabled user cannot sign in; all their sessions end.</div>
+                                            <div class="settings-toggle-title" x-text="$t('admin.account_disabled')"></div>
+                                            <div class="settings-toggle-sub" x-text="$t('admin.account_disabled_sub')"></div>
                                         </div>
-                                        <input type="checkbox" class="settings-switch" x-model="eForm.disabled" aria-label="Account disabled">
+                                        <input type="checkbox" class="settings-switch" x-model="eForm.disabled" :aria-label="$t('admin.account_disabled')">
                                     </label>
-                                    <div class="admin-group-label">Groups</div>
+                                    <div class="admin-group-label" x-text="$t('admin.groups')"></div>
                                     <div class="admin-chip-set">
                                         <template x-for="g in groups" :key="g.name">
-                                            <label class="admin-check-chip" :class="{ on: eForm.groups[g.name] }">
+                                            <label class="admin-check-chip" data-i18n-exempt :class="{ on: eForm.groups[g.name] }">
                                                 <input type="checkbox" x-model="eForm.groups[g.name]"> <span x-text="g.name"></span>
                                             </label>
                                         </template>
                                     </div>
-                                    <div class="admin-group-label">Direct entitlements</div>
+                                    <div class="admin-group-label" x-text="$t('admin.direct_entitlements')"></div>
                                     <div class="ent-editor">
                                         <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
                                         <label class="admin-check-chip ent-admin" :class="{ on: admin }">
-                                            <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                                            <input type="checkbox" x-model="admin"> <span x-text="$t('admin.ent_system_admin')"></span>
                                         </label>
                                         <div class="ent-actions" x-show="!admin">
                                             <div class="admin-chip-set">
                                                 <template x-for="a in plainActions()" :key="a">
-                                                    <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                                    <label class="admin-check-chip" data-i18n-exempt :class="{ on: selected[a] }">
                                                         <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
                                                     </label>
                                                 </template>
                                             </div>
                                             <template x-if="hasAuxAction()">
                                                 <div class="ent-aux">
-                                                    <div class="admin-group-label">equipment.control.aux</div>
-                                                    <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
-                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
-                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
-                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                                    <div class="admin-group-label" data-i18n-exempt>equipment.control.aux</div>
+                                                    <div class="ent-aux-modes" role="group" :aria-label="$t('admin.aux_scope_aria')">
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')" x-text="$t('common.none')"></button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')" x-text="$t('admin.aux_all_devices')"></button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')" x-text="$t('admin.aux_specific')"></button>
                                                     </div>
                                                     <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
                                                         <template x-for="d in auxDevices" :key="d.id">
-                                                            <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                            <label class="admin-check-chip" data-i18n-exempt :class="{ on: auxSelected[d.id] }">
                                                                 <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
                                                             </label>
                                                         </template>
-                                                        <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                                        <p class="account-muted" x-show="auxDevices.length === 0" x-cloak x-text="$t('admin.no_aux_devices')"></p>
                                                     </div>
                                                 </div>
                                             </template>
@@ -427,9 +426,9 @@
                                     </div>
                                     <p class="login-error" x-show="eError" x-cloak x-text="eError" role="alert"></p>
                                     <div class="admin-panel-actions">
-                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                                         <button class="account-btn" :disabled="eBusy" @click="submitEdit(compose())">
-                                            <span x-show="!eBusy">Save changes</span><span x-show="eBusy" x-cloak>Saving…</span>
+                                            <span x-show="!eBusy" x-text="$t('admin.save_changes')"></span><span x-show="eBusy" x-cloak x-text="$t('admin.saving')"></span>
                                         </button>
                                     </div>
                                 </div>
@@ -437,39 +436,39 @@
 
                                 <!-- Reset password panel -->
                                 <div class="admin-panel admin-panel-inline" x-show="isResetting(u.id)" x-cloak>
-                                    <h4 class="admin-panel-title">Reset password — <span x-text="u.username"></span></h4>
+                                    <h4 class="admin-panel-title" x-text="$t('admin.reset_password_user', { name: u.username })"></h4>
                                     <div class="admin-form-grid">
-                                        <label class="admin-field"><span>New password (min 12)</span>
-                                            <input class="login-input" type="password" x-model="pForm.password" autocomplete="new-password" aria-label="New password">
+                                        <label class="admin-field"><span x-text="$t('admin.new_password_min', { min: passwordMin })"></span>
+                                            <input class="login-input" type="password" x-model="pForm.password" autocomplete="new-password" :aria-label="$t('admin.new_password')">
                                         </label>
-                                        <label class="admin-field"><span>Confirm password</span>
-                                            <input class="login-input" type="password" x-model="pForm.confirm" autocomplete="new-password" aria-label="Confirm password">
+                                        <label class="admin-field"><span x-text="$t('admin.confirm_password')"></span>
+                                            <input class="login-input" type="password" x-model="pForm.confirm" autocomplete="new-password" :aria-label="$t('admin.confirm_password')">
                                         </label>
                                     </div>
                                     <p class="login-error" x-show="pError" x-cloak x-text="pError" role="alert"></p>
-                                    <p class="account-ok" x-show="pSaved" x-cloak role="status">Password updated.</p>
+                                    <p class="account-ok" x-show="pSaved" x-cloak role="status" x-text="$t('admin.password_updated')"></p>
                                     <div class="admin-panel-actions">
-                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                                         <button class="account-btn" :disabled="pBusy" @click="submitPassword()">
-                                            <span x-show="!pBusy">Set password</span><span x-show="pBusy" x-cloak>Setting…</span>
+                                            <span x-show="!pBusy" x-text="$t('admin.set_password')"></span><span x-show="pBusy" x-cloak x-text="$t('admin.setting')"></span>
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Delete confirm -->
                                 <div class="admin-panel admin-panel-inline admin-panel-danger" x-show="isDeleting(u.id)" x-cloak>
-                                    <p class="admin-confirm-text">Delete user <strong x-text="u.username"></strong>? This cannot be undone.</p>
+                                    <p class="admin-confirm-text" x-text="$t('admin.delete_user_confirm', { name: u.username })"></p>
                                     <p class="login-error" x-show="dError" x-cloak x-text="dError" role="alert"></p>
                                     <div class="admin-panel-actions">
-                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                                         <button class="account-btn account-btn-danger" :disabled="dBusy" @click="confirmDelete()">
-                                            <span x-show="!dBusy">Delete user</span><span x-show="dBusy" x-cloak>Deleting…</span>
+                                            <span x-show="!dBusy" x-text="$t('admin.delete_user')"></span><span x-show="dBusy" x-cloak x-text="$t('admin.deleting')"></span>
                                         </button>
                                     </div>
                                 </div>
                             </li>
                         </template>
-                        <li class="account-muted admin-empty" x-show="!loading && users.length === 0" x-cloak>No users.</li>
+                        <li class="account-muted admin-empty" x-show="!loading && users.length === 0" x-cloak x-text="$t('admin.no_users')"></li>
                     </ul>
                 </section>
 
@@ -477,51 +476,51 @@
                 <section role="tabpanel" x-show="tab === 'groups'" x-data="adminGroupsView()"
                          x-effect="if (open && tab === 'groups') ensureLoaded()">
                     <div class="admin-section-head">
-                        <h3 class="admin-subhead">Groups</h3>
+                        <h3 class="admin-subhead" x-text="$t('admin.groups')"></h3>
                         <div class="admin-section-actions">
-                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
-                            <button class="account-btn admin-btn-inline" @click="openCreate()">New group</button>
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading" x-text="$t('admin.refresh')"></button>
+                            <button class="account-btn admin-btn-inline" @click="openCreate()" x-text="$t('admin.new_group')"></button>
                         </div>
                     </div>
                     <p class="login-error" x-show="listError" x-cloak x-text="listError" role="alert"></p>
-                    <p class="account-muted" x-show="loading" x-cloak>Loading…</p>
+                    <p class="account-muted" x-show="loading" x-cloak x-text="$t('admin.loading')"></p>
 
                     <!-- Create panel (x-if so the nested editor only inits when opened) -->
                     <template x-if="panel === 'create'">
                     <div class="admin-panel" x-data="entitlementEditor()" x-init="init([])">
-                        <h4 class="admin-panel-title">New group</h4>
-                        <label class="admin-field"><span>Group name</span>
-                            <input class="login-input" type="text" x-model="cName" autocomplete="off" aria-label="Group name">
+                        <h4 class="admin-panel-title" x-text="$t('admin.new_group')"></h4>
+                        <label class="admin-field"><span x-text="$t('admin.group_name')"></span>
+                            <input class="login-input" type="text" x-model="cName" autocomplete="off" :aria-label="$t('admin.group_name')">
                         </label>
-                        <div class="admin-group-label">Entitlements</div>
+                        <div class="admin-group-label" x-text="$t('admin.entitlements')"></div>
                         <div class="ent-editor">
                             <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
                             <label class="admin-check-chip ent-admin" :class="{ on: admin }">
-                                <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                                <input type="checkbox" x-model="admin"> <span x-text="$t('admin.ent_system_admin')"></span>
                             </label>
                             <div class="ent-actions" x-show="!admin">
                                 <div class="admin-chip-set">
                                     <template x-for="a in plainActions()" :key="a">
-                                        <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                        <label class="admin-check-chip" data-i18n-exempt :class="{ on: selected[a] }">
                                             <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
                                         </label>
                                     </template>
                                 </div>
                                 <template x-if="hasAuxAction()">
                                     <div class="ent-aux">
-                                        <div class="admin-group-label">equipment.control.aux</div>
-                                        <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                        <div class="admin-group-label" data-i18n-exempt>equipment.control.aux</div>
+                                        <div class="ent-aux-modes" role="group" :aria-label="$t('admin.aux_scope_aria')">
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')" x-text="$t('common.none')"></button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')" x-text="$t('admin.aux_all_devices')"></button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')" x-text="$t('admin.aux_specific')"></button>
                                         </div>
                                         <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
                                             <template x-for="d in auxDevices" :key="d.id">
-                                                <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                <label class="admin-check-chip" data-i18n-exempt :class="{ on: auxSelected[d.id] }">
                                                     <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
                                                 </label>
                                             </template>
-                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak x-text="$t('admin.no_aux_devices')"></p>
                                         </div>
                                     </div>
                                 </template>
@@ -529,9 +528,9 @@
                         </div>
                         <p class="login-error" x-show="cError" x-cloak x-text="cError" role="alert"></p>
                         <div class="admin-panel-actions">
-                            <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                            <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                             <button class="account-btn" :disabled="cBusy" @click="submitCreate(compose())">
-                                <span x-show="!cBusy">Create group</span><span x-show="cBusy" x-cloak>Creating…</span>
+                                <span x-show="!cBusy" x-text="$t('admin.create_group')"></span><span x-show="cBusy" x-cloak x-text="$t('admin.creating')"></span>
                             </button>
                         </div>
                     </div>
@@ -543,60 +542,57 @@
                             <li class="admin-row">
                                 <div class="admin-row-main">
                                     <div class="admin-row-title">
-                                        <span x-text="grp.name"></span>
-                                        <span class="admin-badge admin-badge-builtin" x-show="grp.built_in" x-cloak>Built-in</span>
-                                        <span class="admin-badge admin-badge-guest" x-show="isGuest(grp.name)" x-cloak>Guest scope</span>
+                                        <span data-i18n-exempt x-text="grp.name"></span>
+                                        <span class="admin-badge admin-badge-builtin" x-show="grp.built_in" x-cloak x-text="$t('admin.built_in')"></span>
+                                        <span class="admin-badge admin-badge-guest" x-show="isGuest(grp.name)" x-cloak x-text="$t('admin.guest_scope')"></span>
                                     </div>
                                     <div class="admin-row-meta">
-                                        <span class="account-muted" x-text="(grp.entitlements || []).length + ' entitlement' + ((grp.entitlements || []).length === 1 ? '' : 's')"></span>
+                                        <span class="account-muted" x-text="$tn('admin.entitlement_count', (grp.entitlements || []).length)"></span>
                                         <template x-for="e in (grp.entitlements || [])" :key="e">
-                                            <span class="account-group-chip ent-chip" x-text="describeEnt(e)"></span>
+                                            <span class="account-group-chip ent-chip" data-i18n-exempt x-text="describeEnt(e)"></span>
                                         </template>
                                     </div>
                                 </div>
                                 <div class="admin-row-actions">
-                                    <button class="admin-mini-btn" @click="openEdit(grp)">Edit</button>
-                                    <button class="admin-mini-btn admin-mini-danger" x-show="!grp.built_in" @click="openDelete(grp)">Delete</button>
-                                    <span class="admin-mini-note" x-show="grp.built_in" x-cloak title="Built-in groups cannot be deleted">Undeletable</span>
+                                    <button class="admin-mini-btn" @click="openEdit(grp)" x-text="$t('common.edit')"></button>
+                                    <button class="admin-mini-btn admin-mini-danger" x-show="!grp.built_in" @click="openDelete(grp)" x-text="$t('common.delete')"></button>
+                                    <span class="admin-mini-note" x-show="grp.built_in" x-cloak :title="$t('admin.undeletable_title')" x-text="$t('admin.undeletable')"></span>
                                 </div>
 
                                 <!-- Edit entitlements panel -->
                                 <template x-if="isEditing(grp.name)">
                                 <div class="admin-panel admin-panel-inline"
                                      x-data="entitlementEditor()" x-init="init(grp.entitlements || [])">
-                                    <h4 class="admin-panel-title">Entitlements — <span x-text="grp.name"></span></h4>
-                                    <p class="admin-guest-note" x-show="isGuest(grp.name)" x-cloak>
-                                        The <strong>Guest</strong> group is applied to visitors who are <strong>not signed in</strong>.
-                                        Access is denied by default — anything you grant here is what an anonymous guest may do.
-                                    </p>
+                                    <h4 class="admin-panel-title" x-text="$t('admin.entitlements_for', { name: grp.name })"></h4>
+                                    <p class="admin-guest-note" x-show="isGuest(grp.name)" x-cloak x-html="$t('admin.guest_note_html')"></p>
                                     <div class="ent-editor">
                                         <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
                                         <label class="admin-check-chip ent-admin" :class="{ on: admin }">
-                                            <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                                            <input type="checkbox" x-model="admin"> <span x-text="$t('admin.ent_system_admin')"></span>
                                         </label>
                                         <div class="ent-actions" x-show="!admin">
                                             <div class="admin-chip-set">
                                                 <template x-for="a in plainActions()" :key="a">
-                                                    <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                                    <label class="admin-check-chip" data-i18n-exempt :class="{ on: selected[a] }">
                                                         <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
                                                     </label>
                                                 </template>
                                             </div>
                                             <template x-if="hasAuxAction()">
                                                 <div class="ent-aux">
-                                                    <div class="admin-group-label">equipment.control.aux</div>
-                                                    <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
-                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
-                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
-                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                                    <div class="admin-group-label" data-i18n-exempt>equipment.control.aux</div>
+                                                    <div class="ent-aux-modes" role="group" :aria-label="$t('admin.aux_scope_aria')">
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')" x-text="$t('common.none')"></button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')" x-text="$t('admin.aux_all_devices')"></button>
+                                                        <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')" x-text="$t('admin.aux_specific')"></button>
                                                     </div>
                                                     <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
                                                         <template x-for="d in auxDevices" :key="d.id">
-                                                            <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                            <label class="admin-check-chip" data-i18n-exempt :class="{ on: auxSelected[d.id] }">
                                                                 <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
                                                             </label>
                                                         </template>
-                                                        <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                                        <p class="account-muted" x-show="auxDevices.length === 0" x-cloak x-text="$t('admin.no_aux_devices')"></p>
                                                     </div>
                                                 </div>
                                             </template>
@@ -604,9 +600,9 @@
                                     </div>
                                     <p class="login-error" x-show="eError" x-cloak x-text="eError" role="alert"></p>
                                     <div class="admin-panel-actions">
-                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                                         <button class="account-btn" :disabled="eBusy" @click="submitEdit(compose())">
-                                            <span x-show="!eBusy">Save entitlements</span><span x-show="eBusy" x-cloak>Saving…</span>
+                                            <span x-show="!eBusy" x-text="$t('admin.save_entitlements')"></span><span x-show="eBusy" x-cloak x-text="$t('admin.saving')"></span>
                                         </button>
                                     </div>
                                 </div>
@@ -614,29 +610,29 @@
 
                                 <!-- Delete confirm -->
                                 <div class="admin-panel admin-panel-inline admin-panel-danger" x-show="isDeleting(grp.name)" x-cloak>
-                                    <p class="admin-confirm-text">Delete group <strong x-text="grp.name"></strong>? Members lose its entitlements.</p>
+                                    <p class="admin-confirm-text" x-text="$t('admin.delete_group_confirm', { name: grp.name })"></p>
                                     <p class="login-error" x-show="dError" x-cloak x-text="dError" role="alert"></p>
                                     <div class="admin-panel-actions">
-                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                                         <button class="account-btn account-btn-danger" :disabled="dBusy" @click="confirmDelete()">
-                                            <span x-show="!dBusy">Delete group</span><span x-show="dBusy" x-cloak>Deleting…</span>
+                                            <span x-show="!dBusy" x-text="$t('admin.delete_group')"></span><span x-show="dBusy" x-cloak x-text="$t('admin.deleting')"></span>
                                         </button>
                                     </div>
                                 </div>
                             </li>
                         </template>
-                        <li class="account-muted admin-empty" x-show="!loading && groups.length === 0" x-cloak>No groups.</li>
+                        <li class="account-muted admin-empty" x-show="!loading && groups.length === 0" x-cloak x-text="$t('admin.no_groups')"></li>
                     </ul>
                 </section>
 
                 <!-- ===== ENTITLEMENTS TAB (reference) ===== -->
                 <section role="tabpanel" x-show="tab === 'entitlements'">
-                    <h3 class="admin-subhead">Entitlement vocabulary</h3>
-                    <p class="settings-card-desc">The assignable actions the server recognises. Grant these to users (directly) or to groups. Only <code>equipment.control.aux</code> takes a per-device selector.</p>
+                    <h3 class="admin-subhead" x-text="$t('admin.ent_vocabulary')"></h3>
+                    <p class="settings-card-desc" x-html="$t('admin.ent_vocabulary_desc_html')"></p>
                     <p class="login-error" x-show="vocabError" x-cloak x-text="vocabError" role="alert"></p>
                     <template x-for="grp in vocabularyGroups()" :key="grp.name">
                         <div class="admin-vocab-group">
-                            <div class="admin-group-label" x-text="grp.name"></div>
+                            <div class="admin-group-label" data-i18n-exempt x-text="grp.name"></div>
                             <ul class="admin-vocab-list">
                                 <template x-for="a in grp.actions" :key="a">
                                     <li class="admin-vocab-item">
@@ -653,56 +649,56 @@
                 <section role="tabpanel" x-show="tab === 'apikeys'" x-data="adminApikeysView()"
                          x-effect="if (open && tab === 'apikeys') ensureLoaded()">
                     <div class="admin-section-head">
-                        <h3 class="admin-subhead">API keys</h3>
+                        <h3 class="admin-subhead" x-text="$t('admin.apikeys')"></h3>
                         <div class="admin-section-actions">
-                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
-                            <button class="account-btn admin-btn-inline" @click="openCreate()">New key</button>
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading" x-text="$t('admin.refresh')"></button>
+                            <button class="account-btn admin-btn-inline" @click="openCreate()" x-text="$t('admin.new_key')"></button>
                         </div>
                     </div>
                     <p class="login-error" x-show="listError" x-cloak x-text="listError" role="alert"></p>
-                    <p class="account-muted" x-show="loading" x-cloak>Loading…</p>
+                    <p class="account-muted" x-show="loading" x-cloak x-text="$t('admin.loading')"></p>
 
                     <!-- Create panel (x-if so the nested editor only inits when opened) -->
                     <template x-if="panel === 'create'">
                     <div class="admin-panel" x-data="entitlementEditor()" x-init="init([])">
-                        <h4 class="admin-panel-title">New API key</h4>
+                        <h4 class="admin-panel-title" x-text="$t('admin.new_apikey')"></h4>
                         <div class="admin-form-grid">
-                            <label class="admin-field"><span>Label</span>
-                                <input class="login-input" type="text" x-model="cLabel" autocomplete="off" aria-label="Label">
+                            <label class="admin-field"><span x-text="$t('admin.label')"></span>
+                                <input class="login-input" type="text" x-model="cLabel" autocomplete="off" :aria-label="$t('admin.label')">
                             </label>
-                            <label class="admin-field"><span>Expiry <span class="settings-unit">optional</span></span>
-                                <input class="login-input" type="date" x-model="cExpiry" aria-label="Expiry date">
+                            <label class="admin-field"><span><span x-text="$t('admin.expiry')"></span> <span class="settings-unit" x-text="$t('settings.optional')"></span></span>
+                                <input class="login-input" type="date" x-model="cExpiry" :aria-label="$t('admin.expiry_date_aria')">
                             </label>
                         </div>
-                        <div class="admin-group-label">Entitlements</div>
+                        <div class="admin-group-label" x-text="$t('admin.entitlements')"></div>
                         <div class="ent-editor">
                             <p class="login-error" x-show="loadError" x-cloak x-text="loadError"></p>
                             <label class="admin-check-chip ent-admin" :class="{ on: admin }">
-                                <input type="checkbox" x-model="admin"> <span>system.admin (full administrator)</span>
+                                <input type="checkbox" x-model="admin"> <span x-text="$t('admin.ent_system_admin')"></span>
                             </label>
                             <div class="ent-actions" x-show="!admin">
                                 <div class="admin-chip-set">
                                     <template x-for="a in plainActions()" :key="a">
-                                        <label class="admin-check-chip" :class="{ on: selected[a] }">
+                                        <label class="admin-check-chip" data-i18n-exempt :class="{ on: selected[a] }">
                                             <input type="checkbox" :checked="selected[a]" @change="toggleAction(a)"> <span x-text="a"></span>
                                         </label>
                                     </template>
                                 </div>
                                 <template x-if="hasAuxAction()">
                                     <div class="ent-aux">
-                                        <div class="admin-group-label">equipment.control.aux</div>
-                                        <div class="ent-aux-modes" role="group" aria-label="Aux control scope">
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')">None</button>
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')">All devices</button>
-                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')">Specific</button>
+                                        <div class="admin-group-label" data-i18n-exempt>equipment.control.aux</div>
+                                        <div class="ent-aux-modes" role="group" :aria-label="$t('admin.aux_scope_aria')">
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'off' }" @click="setAuxMode('off')" x-text="$t('common.none')"></button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'all' }" @click="setAuxMode('all')" x-text="$t('admin.aux_all_devices')"></button>
+                                            <button type="button" class="seg-option" :class="{ active: auxMode === 'specific' }" @click="setAuxMode('specific')" x-text="$t('admin.aux_specific')"></button>
                                         </div>
                                         <div class="admin-chip-set ent-aux-devices" x-show="auxMode === 'specific'" x-cloak>
                                             <template x-for="d in auxDevices" :key="d.id">
-                                                <label class="admin-check-chip" :class="{ on: auxSelected[d.id] }">
+                                                <label class="admin-check-chip" data-i18n-exempt :class="{ on: auxSelected[d.id] }">
                                                     <input type="checkbox" :checked="auxSelected[d.id]" @change="toggleAuxDevice(d.id)"> <span x-text="d.label"></span>
                                                 </label>
                                             </template>
-                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak>No aux devices discovered.</p>
+                                            <p class="account-muted" x-show="auxDevices.length === 0" x-cloak x-text="$t('admin.no_aux_devices')"></p>
                                         </div>
                                     </div>
                                 </template>
@@ -710,9 +706,9 @@
                         </div>
                         <p class="login-error" x-show="cError" x-cloak x-text="cError" role="alert"></p>
                         <div class="admin-panel-actions">
-                            <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                            <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                             <button class="account-btn" :disabled="cBusy" @click="submitCreate(compose())">
-                                <span x-show="!cBusy">Create key</span><span x-show="cBusy" x-cloak>Creating…</span>
+                                <span x-show="!cBusy" x-text="$t('admin.create_key')"></span><span x-show="cBusy" x-cloak x-text="$t('admin.creating')"></span>
                             </button>
                         </div>
                     </div>
@@ -724,52 +720,53 @@
                             <li class="admin-row">
                                 <div class="admin-row-main">
                                     <div class="admin-row-title">
-                                        <span x-text="k.label"></span>
-                                        <span class="admin-badge admin-badge-off" x-show="k.revoked" x-cloak>Revoked</span>
+                                        <span data-i18n-exempt x-text="k.label"></span>
+                                        <span class="admin-badge admin-badge-off" x-show="k.revoked" x-cloak x-text="$t('admin.revoked')"></span>
                                     </div>
                                     <div class="admin-row-meta">
                                         <template x-for="e in (k.entitlements || [])" :key="e">
-                                            <span class="account-group-chip ent-chip" x-text="describeEnt(e)"></span>
+                                            <span class="account-group-chip ent-chip" data-i18n-exempt x-text="describeEnt(e)"></span>
                                         </template>
-                                        <span class="account-muted">Expires: <span x-text="expiryLabel(k.expiry_unix)"></span></span>
-                                        <span class="account-muted">Last used: <span x-text="lastUsedLabel(k.last_used_unix)"></span></span>
+                                        <span class="account-muted" x-text="$t('admin.expires', { value: expiryLabel(k.expiry_unix) })"></span>
+                                        <span class="account-muted" x-text="$t('admin.last_used', { value: lastUsedLabel(k.last_used_unix) })"></span>
                                     </div>
                                 </div>
                                 <div class="admin-row-actions">
-                                    <button class="admin-mini-btn admin-mini-danger" x-show="!k.revoked" @click="openRevoke(k)">Revoke</button>
+                                    <button class="admin-mini-btn admin-mini-danger" x-show="!k.revoked" @click="openRevoke(k)" x-text="$t('admin.revoke')"></button>
                                 </div>
 
                                 <!-- Revoke confirm -->
                                 <div class="admin-panel admin-panel-inline admin-panel-danger" x-show="isRevoking(k.id)" x-cloak>
-                                    <p class="admin-confirm-text">Revoke key <strong x-text="k.label"></strong>? Any client using it will stop working.</p>
+                                    <p class="admin-confirm-text" x-text="$t('admin.revoke_key_confirm', { name: k.label })"></p>
                                     <p class="login-error" x-show="dError" x-cloak x-text="dError" role="alert"></p>
                                     <div class="admin-panel-actions">
-                                        <button class="account-btn account-btn-secondary" @click="closePanel()">Cancel</button>
+                                        <button class="account-btn account-btn-secondary" @click="closePanel()" x-text="$t('common.cancel')"></button>
                                         <button class="account-btn account-btn-danger" :disabled="dBusy" @click="confirmRevoke()">
-                                            <span x-show="!dBusy">Revoke key</span><span x-show="dBusy" x-cloak>Revoking…</span>
+                                            <span x-show="!dBusy" x-text="$t('admin.revoke_key')"></span><span x-show="dBusy" x-cloak x-text="$t('admin.revoking')"></span>
                                         </button>
                                     </div>
                                 </div>
                             </li>
                         </template>
-                        <li class="account-muted admin-empty" x-show="!loading && keys.length === 0" x-cloak>No API keys.</li>
+                        <li class="account-muted admin-empty" x-show="!loading && keys.length === 0" x-cloak x-text="$t('admin.no_apikeys')"></li>
                     </ul>
 
                     <!-- One-time secret modal -->
                     <div class="admin-secret-overlay" x-show="secret" x-cloak
                          @keydown.escape.window="dismissSecret()">
-                        <div class="admin-secret-card" role="dialog" aria-modal="true" aria-label="New API key secret">
-                            <h3 class="admin-panel-title">API key created</h3>
-                            <p class="admin-secret-warn" role="alert" x-text="secret && secret.warning"></p>
+                        <div class="admin-secret-card" role="dialog" aria-modal="true" :aria-label="$t('admin.apikey_secret_aria')">
+                            <h3 class="admin-panel-title" x-text="$t('admin.apikey_created')"></h3>
+                            <!-- Server-sent warning rendered verbatim (client fallback is translated at assignment) -->
+                            <p class="admin-secret-warn" data-i18n-exempt role="alert" x-text="secret && secret.warning"></p>
                             <div class="admin-secret-row">
                                 <code class="admin-secret-value" x-text="secret && secret.secret"></code>
                                 <button class="account-btn admin-btn-inline" @click="copySecret()">
-                                    <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied ✓</span>
+                                    <span x-show="!copied" x-text="$t('admin.copy')"></span><span x-show="copied" x-cloak x-text="$t('admin.copied')"></span>
                                 </button>
                             </div>
-                            <p class="account-muted admin-secret-label">Label: <span x-text="secret && secret.label"></span></p>
+                            <p class="account-muted admin-secret-label" x-text="$t('admin.label_line', { name: secret && secret.label })"></p>
                             <div class="admin-panel-actions">
-                                <button class="account-btn" @click="dismissSecret()">I've stored it — dismiss</button>
+                                <button class="account-btn" @click="dismissSecret()" x-text="$t('admin.secret_dismiss')"></button>
                             </div>
                         </div>
                     </div>
@@ -779,30 +776,25 @@
                 <section role="tabpanel" x-show="tab === 'kiosk'" x-data="adminKioskView()"
                          x-effect="if (open && tab === 'kiosk') ensureLoaded()">
                     <div class="admin-section-head">
-                        <h3 class="admin-subhead">Kiosk PIN</h3>
+                        <h3 class="admin-subhead" x-text="$t('admin.kiosk_pin')"></h3>
                         <div class="admin-section-actions">
-                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading">Refresh</button>
+                            <button class="account-btn admin-btn-inline" @click="refresh()" :disabled="loading" x-text="$t('admin.refresh')"></button>
                         </div>
                     </div>
 
-                    <p class="admin-guest-note" style="display:block">
-                        A kiosk PIN lets a shared wall tablet quick-elevate an anonymous visitor into a chosen
-                        group by typing a short PIN — no username needed. Pair it with the group whose scope the
-                        tablet should have (the <strong>Guest</strong> group is the usual choice).
-                    </p>
+                    <p class="admin-guest-note" style="display:block" x-html="$t('admin.kiosk_explainer_html')"></p>
 
                     <div class="admin-panel">
                         <div class="admin-kiosk-status">
                             <span class="admin-badge" :class="enabled ? 'admin-badge-builtin' : 'admin-badge-off'"
-                                  x-text="enabled ? 'Enabled' : 'Disabled'"></span>
-                            <span x-show="enabled" x-cloak class="text-muted">
-                                elevates to <strong x-text="targetGroup"></strong>
-                            </span>
+                                  x-text="enabled ? $t('common.enabled') : $t('common.disabled')"></span>
+                            <span x-show="enabled" x-cloak class="text-muted"
+                                  x-text="$t('admin.elevates_to', { group: targetGroup })"></span>
                         </div>
 
                         <label class="admin-field">
-                            <span class="admin-field-label">Target group</span>
-                            <select class="login-input" x-model="formGroup" aria-label="Kiosk target group">
+                            <span class="admin-field-label" x-text="$t('admin.target_group')"></span>
+                            <select class="login-input" x-model="formGroup" :aria-label="$t('admin.kiosk_target_group_aria')">
                                 <template x-for="g in groups" :key="g">
                                     <option :value="g" x-text="g"></option>
                                 </template>
@@ -810,24 +802,24 @@
                         </label>
 
                         <label class="admin-field">
-                            <span class="admin-field-label">PIN (min 4 characters)</span>
+                            <span class="admin-field-label" x-text="$t('admin.pin_min', { min: minPin })"></span>
                             <input class="login-input" type="password" inputmode="numeric" autocomplete="off"
-                                   x-model="pin" aria-label="Kiosk PIN">
+                                   x-model="pin" :aria-label="$t('auth.kiosk_pin')">
                         </label>
                         <label class="admin-field">
-                            <span class="admin-field-label">Confirm PIN</span>
+                            <span class="admin-field-label" x-text="$t('admin.confirm_pin')"></span>
                             <input class="login-input" type="password" inputmode="numeric" autocomplete="off"
-                                   x-model="confirmPin" aria-label="Confirm kiosk PIN">
+                                   x-model="confirmPin" :aria-label="$t('admin.confirm_kiosk_pin_aria')">
                         </label>
-                        <p class="login-hint" x-show="pin.length > 0 && pin.length < minPin" x-cloak>PIN must be at least 4 characters.</p>
-                        <p class="login-hint" x-show="confirmPin.length > 0 && pin !== confirmPin" x-cloak>PINs do not match.</p>
+                        <p class="login-hint" x-show="pin.length > 0 && pin.length < minPin" x-cloak x-text="$t('admin.pin_too_short', { min: minPin })"></p>
+                        <p class="login-hint" x-show="confirmPin.length > 0 && pin !== confirmPin" x-cloak x-text="$t('admin.pins_no_match')"></p>
 
                         <div class="admin-section-actions">
                             <button class="account-btn admin-btn-inline" @click="save()" :disabled="!pinValid || saving"
-                                    x-text="enabled ? 'Replace PIN' : 'Set PIN'"></button>
+                                    x-text="enabled ? $t('admin.replace_pin') : $t('admin.set_pin')"></button>
                             <button class="account-btn account-btn-danger admin-btn-inline" @click="disable()"
-                                    x-show="enabled" x-cloak :disabled="saving">Disable</button>
-                            <span class="account-ok" x-show="okFlash" x-cloak>Saved ✓</span>
+                                    x-show="enabled" x-cloak :disabled="saving" x-text="$t('admin.disable')"></button>
+                            <span class="account-ok" x-show="okFlash" x-cloak x-text="$t('settings.saved')"></span>
                         </div>
                         <p class="login-error" x-show="error" x-cloak x-text="error" role="alert"></p>
                     </div>
@@ -919,22 +911,22 @@
                 <!-- Administration (system.admin only) -->
                 <button class="theme-toggle" x-show="$store.auth.can('system.admin')" x-cloak
                         @click="window.dispatchEvent(new CustomEvent('admin:open'))"
-                        title="Administration" aria-label="Administration">
+                        :title="$t('admin.title')" :aria-label="$t('admin.title')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
                 <!-- Account menu (authenticated) -->
                 <button class="theme-toggle" x-show="$store.auth.authenticated" x-cloak
                         @click="window.dispatchEvent(new CustomEvent('account:open'))"
-                        title="Account" aria-label="Account">
+                        :title="$t('account.title')" :aria-label="$t('account.title')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </button>
                 <!-- Guest status pill (identity system on, browsing anonymously) -->
                 <span class="guest-pill" x-show="$store.auth.isGuest" x-cloak
-                      title="You are viewing as a guest — sign in for full access">Guest</span>
+                      :title="$t('auth.guest_title')" x-text="$t('auth.guest')"></span>
                 <!-- Sign in (identity system on, not authenticated) -->
                 <button class="theme-toggle" x-show="$store.auth.isEnabled && !$store.auth.authenticated" x-cloak
                         @click="$store.auth.showLogin = true"
-                        title="Sign in" aria-label="Sign in">
+                        :title="$t('auth.sign_in')" :aria-label="$t('auth.sign_in')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
                 </button>
             </div>

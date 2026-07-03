@@ -359,13 +359,13 @@ document.addEventListener('alpine:init', () => {
                 if (resp.status === 403) {
                     // Someone else completed setup first — fall back to login.
                     this.setupRequired = false;
-                    this.error = 'Setup has already been completed. Please sign in.';
+                    this.error = window.AquaI18n.t('auth.error_setup_done');
                     return false;
                 }
-                this.error = 'Could not create the administrator account.';
+                this.error = window.AquaI18n.t('auth.error_setup_failed');
                 return false;
             } catch (_) {
-                this.error = 'Network error — please try again.';
+                this.error = window.AquaI18n.t('auth.error_network');
                 return false;
             } finally {
                 this.busy = false;
@@ -389,7 +389,7 @@ document.addEventListener('alpine:init', () => {
                     if (!ok) {
                         // Should not happen (we just authenticated) but stay safe.
                         window.AqualinkAuth.clearTokens();
-                        this.error = 'Sign-in failed. Please try again.';
+                        this.error = window.AquaI18n.t('auth.error_signin_failed');
                     }
                     return ok;
                 }
@@ -398,16 +398,16 @@ document.addEventListener('alpine:init', () => {
                     const retry = resp.headers.get('Retry-After');
                     const secs = retry ? parseInt(retry, 10) : 0;
                     this.error = secs
-                        ? `Too many attempts. Try again in ${secs} second${secs === 1 ? '' : 's'}.`
-                        : 'Too many attempts. Please try again later.';
+                        ? Alpine.store('i18n').tn('auth.error_rate_limited', secs)
+                        : window.AquaI18n.t('auth.error_rate_limited_later');
                     return false;
                 }
 
                 // 401 (and any other failure) is one indistinguishable message.
-                this.error = 'Incorrect username or password.';
+                this.error = window.AquaI18n.t('auth.error_bad_credentials');
                 return false;
             } catch (_) {
-                this.error = 'Network error — please try again.';
+                this.error = window.AquaI18n.t('auth.error_network');
                 return false;
             } finally {
                 this.busy = false;
@@ -433,7 +433,7 @@ document.addEventListener('alpine:init', () => {
                     const ok = await this.check();
                     if (!ok) {
                         window.AqualinkAuth.clearTokens();
-                        this.error = 'Sign-in failed. Please try again.';
+                        this.error = window.AquaI18n.t('auth.error_signin_failed');
                     }
                     return ok;
                 }
@@ -442,15 +442,15 @@ document.addEventListener('alpine:init', () => {
                     const retry = resp.headers.get('Retry-After');
                     const secs = retry ? parseInt(retry, 10) : 0;
                     this.error = secs
-                        ? `Too many attempts. Try again in ${secs} second${secs === 1 ? '' : 's'}.`
-                        : 'Too many attempts. Please try again later.';
+                        ? Alpine.store('i18n').tn('auth.error_rate_limited', secs)
+                        : window.AquaI18n.t('auth.error_rate_limited_later');
                     return false;
                 }
 
-                this.error = 'Incorrect PIN.';
+                this.error = window.AquaI18n.t('auth.error_bad_pin');
                 return false;
             } catch (_) {
-                this.error = 'Network error — please try again.';
+                this.error = window.AquaI18n.t('auth.error_network');
                 return false;
             } finally {
                 this.busy = false;
