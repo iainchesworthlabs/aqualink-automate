@@ -234,6 +234,9 @@
         'diag.since_restart': 'Depuis le redémarrage',
         'diag.min_abbr': 'min',
         'diag.max_abbr': 'max',
+        'diag.unit_microseconds': '{n} µs',
+        'diag.unit_milliseconds': '{n} ms',
+        'diag.unit_seconds': '{n} s',
         'diag.view_diagnostics': 'Voir les diagnostics',
         'diag.message_statistics_mqtt': 'Statistiques des messages & MQTT',
         'diag.message_statistics': 'Statistiques des messages',
@@ -450,6 +453,10 @@
         'settings.accent': 'Accent',
         'settings.accent_aria': 'Couleur d’accent',
         'settings.accent_hint': 'Appliqué instantanément et mémorisé sur cet appareil.',
+        'accent.teal': 'Bleu sarcelle',
+        'accent.azure': 'Azur',
+        'accent.aqua': 'Aigue-marine',
+        'accent.violet': 'Violet',
         'settings.language': 'Langue',
         'settings.language_hint': 'S’applique à cette interface ; mémorisé sur cet appareil et synchronisé avec le serveur.',
         'settings.system_prefs': 'Préférences système',
@@ -652,6 +659,7 @@
         'about.language_how': 'Choisissez la langue de l’interface dans {settings} → {appearance} → {language}. Le choix est enregistré avec vos préférences et vous suit sur tous vos appareils ; les langues de droite à gauche inversent automatiquement la mise en page.',
         'about.language_contribute_html': 'Votre langue manque, ou une traduction pourrait être améliorée ? Les traductions sont de simples catalogues texte, faciles à contribuer — consultez le <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">guide de contribution</a>.',
         'about.model': 'Modèle',
+        'about.type': 'Type',
         'about.revision': 'Révision',
 
         // ---- Auth / Account / Administration ----------------------------------

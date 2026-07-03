@@ -101,7 +101,7 @@ function _tempToDisplay(c) {
 function _fmt(key, unit, v) {
     const n = window.AquaI18n.formatNumber;
     if (v == null || Number.isNaN(v)) return '—';
-    if (key === 'chem/salt_ppm' || unit === 'ppm') return n(Math.round(v)) + ' ppm';
+    if (key === 'chem/salt_ppm' || unit === 'ppm') return n(Math.round(v)) + ' ' + window.AquaI18n.t('settings.ppm_unit');
     if (key === 'chem/ph' || unit === 'pH') return n(v, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (key === 'chem/orp' || unit === 'mV') return n(Math.round(v)) + ' mV';
     if (key === 'swg/percent' || unit === '%') return n(Math.round(v)) + '%';

@@ -42,6 +42,7 @@
         { code: 'he', name: 'עברית', dir: 'rtl' },
         { code: 'ja', name: '日本語', dir: 'ltr' },
         { code: 'zh', name: '简体中文', dir: 'ltr' },
+        { code: 'yi', name: 'ייִדיש', dir: 'rtl' },
     ];
 
     const api = (global.AquaI18n = global.AquaI18n || {});

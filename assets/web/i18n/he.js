@@ -233,6 +233,9 @@
         'diag.since_restart': 'מאז הפעלה מחדש',
         'diag.min_abbr': 'מינ׳',
         'diag.max_abbr': 'מקס׳',
+        'diag.unit_microseconds': '{n} מיקרו-שנ׳',
+        'diag.unit_milliseconds': '{n} מילישנ׳',
+        'diag.unit_seconds': '{n} שנ׳',
         'diag.view_diagnostics': 'הצגת אבחון',
         'diag.message_statistics_mqtt': 'סטטיסטיקת הודעות ו-MQTT',
         'diag.message_statistics': 'סטטיסטיקת הודעות',
@@ -449,6 +452,10 @@
         'settings.accent': 'צבע הדגשה',
         'settings.accent_aria': 'צבע הדגשה',
         'settings.accent_hint': 'מוחל מיידית ונשמר במכשיר זה.',
+        'accent.teal': 'ירוק-כחול',
+        'accent.azure': 'תכלת',
+        'accent.aqua': 'טורקיז',
+        'accent.violet': 'סגול',
         'settings.language': 'שפה',
         'settings.language_hint': 'חל על ממשק זה; נשמר במכשיר זה ומסונכרן לשרת.',
         'settings.system_prefs': 'העדפות מערכת',
@@ -651,6 +658,7 @@
         'about.language_how': 'בחרו את שפת הממשק תחת {settings} ← {appearance} ← {language}. הבחירה נשמרת עם ההעדפות שלכם ועוקבת אחריכם בכל המכשירים; שפות הנכתבות מימין לשמאל משקפות את הפריסה אוטומטית.',
         'about.language_contribute_html': 'חסרה לכם שפה, או שמצאתם תרגום שאפשר לשפר? התרגומים הם קטלוגי טקסט פשוטים שקל לתרום להם — ראו את <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">מדריך התרומה</a>.',
         'about.model': 'דגם',
+        'about.type': 'סוג',
         'about.revision': 'מהדורה',
 
         // ---- Auth / Account / Administration ----------------------------------

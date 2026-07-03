@@ -199,6 +199,14 @@ function deviceCard() {
             }
         },
 
+        // Translated display text for the operating_state enum name (falls back
+        // to the raw name for values with no catalog entry).
+        stateLabel(state) {
+            const ui = (typeof window !== 'undefined' && window.AquaUI) || {};
+            const key = ui.operatingStateKey ? ui.operatingStateKey(state) : null;
+            return key ? t(key) : String(state);
+        },
+
         // Recent commands, newest first, capped to keep the card compact.
         recentCommands(d) {
             const list = Array.isArray(d.recent_commands) ? d.recent_commands : [];

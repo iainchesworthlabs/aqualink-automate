@@ -233,6 +233,9 @@
         'diag.since_restart': '再起動以降',
         'diag.min_abbr': '最小',
         'diag.max_abbr': '最大',
+        'diag.unit_microseconds': '{n}マイクロ秒',
+        'diag.unit_milliseconds': '{n}ミリ秒',
+        'diag.unit_seconds': '{n}秒',
         'diag.view_diagnostics': '診断を表示',
         'diag.message_statistics_mqtt': 'メッセージ統計と MQTT',
         'diag.message_statistics': 'メッセージ統計',
@@ -449,6 +452,10 @@
         'settings.accent': 'アクセント',
         'settings.accent_aria': 'アクセントカラー',
         'settings.accent_hint': '即時に適用され、このデバイスに記憶されます。',
+        'accent.teal': '青緑',
+        'accent.azure': '空色',
+        'accent.aqua': '水色',
+        'accent.violet': 'すみれ色',
         'settings.language': '言語',
         'settings.language_hint': 'このインターフェースに適用されます。このデバイスに記憶され、サーバーにも同期されます。',
         'settings.system_prefs': 'システム環境設定',
@@ -648,6 +655,7 @@
         'about.language_how': 'インターフェースの言語は {settings} → {appearance} → {language} で選択できます。選択は設定とともに保存され、すべてのデバイスに引き継がれます。右から左に書く言語ではレイアウトが自動的に反転します。',
         'about.language_contribute_html': 'お使いの言語が見つからない、または改善できる翻訳を見つけましたか？翻訳はシンプルなテキストカタログで、簡単に貢献できます。<a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">貢献ガイド</a>をご覧ください。',
         'about.model': 'モデル',
+        'about.type': 'タイプ',
         'about.revision': 'リビジョン',
 
         // ---- Auth / Account / Administration ----------------------------------

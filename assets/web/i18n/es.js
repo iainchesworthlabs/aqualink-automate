@@ -234,6 +234,9 @@
         'diag.since_restart': 'Desde el reinicio',
         'diag.min_abbr': 'mín',
         'diag.max_abbr': 'máx',
+        'diag.unit_microseconds': '{n} µs',
+        'diag.unit_milliseconds': '{n} ms',
+        'diag.unit_seconds': '{n} s',
         'diag.view_diagnostics': 'Ver diagnóstico',
         'diag.message_statistics_mqtt': 'Estadísticas de mensajes y MQTT',
         'diag.message_statistics': 'Estadísticas de mensajes',
@@ -450,6 +453,10 @@
         'settings.accent': 'Acento',
         'settings.accent_aria': 'Color de acento',
         'settings.accent_hint': 'Se aplica al instante y se recuerda en este dispositivo.',
+        'accent.teal': 'Verde azulado',
+        'accent.azure': 'Azur',
+        'accent.aqua': 'Aguamarina',
+        'accent.violet': 'Violeta',
         'settings.language': 'Idioma',
         'settings.language_hint': 'Se aplica a esta interfaz; se recuerda en este dispositivo y se sincroniza con el servidor.',
         'settings.system_prefs': 'Preferencias del sistema',
@@ -652,6 +659,7 @@
         'about.language_how': 'Elija el idioma de la interfaz en {settings} → {appearance} → {language}. La elección se guarda con sus preferencias y le sigue en todos sus dispositivos; los idiomas de derecha a izquierda reflejan el diseño automáticamente.',
         'about.language_contribute_html': '¿Falta su idioma o ha visto una traducción que podría mejorarse? Las traducciones son catálogos de texto sencillos y fáciles de aportar — consulte la <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">guía de contribución</a>.',
         'about.model': 'Modelo',
+        'about.type': 'Tipo',
         'about.revision': 'Revisión',
 
         // ---- Auth / Account / Administration ----------------------------------

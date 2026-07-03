@@ -210,13 +210,18 @@ function settingsView() {
             }
         },
 
+        // Temperature units apply instantly, like theme/accent/language — no Save
+        // button, and no shared "Saved" flash (that badge belongs to the System
+        // Preferences / Device Names cards' explicit batch-save actions).
+        async setTemperatureUnits(value) {
+            this.prefs.temperature_units = value;
+            if (this.$store.pool) { this.$store.pool.displayUnits = value; }
+            await this._putPrefs({ temperature_units: value }, { flash: false });
+        },
+
         // ---- Server-backed preferences ----
         async saveServerPrefs() {
-            // Push the units into the pool store immediately so every
-            // temperature display flips without waiting for a refetch.
-            if (this.$store.pool) { this.$store.pool.displayUnits = this.prefs.temperature_units; }
             await this._putPrefs({
-                temperature_units: this.prefs.temperature_units,
                 alert: {
                     salt_low_ppm: Number(this.prefs.salt_low_ppm),
                     comms_timeout_seconds: Number(this.prefs.comms_timeout_seconds),
@@ -226,7 +231,7 @@ function settingsView() {
             });
         },
 
-        async _putPrefs(payload) {
+        async _putPrefs(payload, { flash = true } = {}) {
             this.prefsError = '';
             try {
                 const resp = await fetch('/api/preferences', {
@@ -245,8 +250,10 @@ function settingsView() {
                     this.prefsError = window.AquaI18n.t('settings.save_failed_status', { status: resp.status }) + (detail ? ': ' + detail : '');
                     return;
                 }
-                this.savedFlash = true;
-                setTimeout(() => { this.savedFlash = false; }, 1500);
+                if (flash) {
+                    this.savedFlash = true;
+                    setTimeout(() => { this.savedFlash = false; }, 1500);
+                }
             } catch (e) {
                 this.prefsError = window.AquaI18n.t('settings.save_failed_network');
             }

@@ -232,6 +232,9 @@
         'diag.since_restart': '自重启以来',
         'diag.min_abbr': '最小',
         'diag.max_abbr': '最大',
+        'diag.unit_microseconds': '{n}微秒',
+        'diag.unit_milliseconds': '{n}毫秒',
+        'diag.unit_seconds': '{n}秒',
         'diag.view_diagnostics': '查看诊断',
         'diag.message_statistics_mqtt': '消息统计与 MQTT',
         'diag.message_statistics': '消息统计',
@@ -448,6 +451,10 @@
         'settings.accent': '强调色',
         'settings.accent_aria': '强调色',
         'settings.accent_hint': '即时生效，并在此设备上记住。',
+        'accent.teal': '青绿色',
+        'accent.azure': '天蓝色',
+        'accent.aqua': '碧绿色',
+        'accent.violet': '紫罗兰色',
         'settings.language': '语言',
         'settings.language_hint': '应用于此界面；在此设备上记住并同步到服务器。',
         'settings.system_prefs': '系统偏好设置',
@@ -650,6 +657,7 @@
         'about.language_how': '在 {settings} → {appearance} → {language} 中选择界面语言。所选语言会随偏好设置保存，并在所有设备间同步；从右到左书写的语言会自动镜像布局。',
         'about.language_contribute_html': '没有您的语言，或发现可以改进的翻译？翻译是简单的文本目录，很容易贡献 — 请参阅<a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">贡献指南</a>。',
         'about.model': '型号',
+        'about.type': '类型',
         'about.revision': '修订版本',
 
         // ---- Auth / Account / Administration ----------------------------------

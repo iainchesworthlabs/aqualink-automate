@@ -234,6 +234,9 @@
         'diag.since_restart': 'Seit Neustart',
         'diag.min_abbr': 'min',
         'diag.max_abbr': 'max',
+        'diag.unit_microseconds': '{n} µs',
+        'diag.unit_milliseconds': '{n} ms',
+        'diag.unit_seconds': '{n} s',
         'diag.view_diagnostics': 'Diagnose anzeigen',
         'diag.message_statistics_mqtt': 'Nachrichtenstatistik & MQTT',
         'diag.message_statistics': 'Nachrichtenstatistik',
@@ -450,6 +453,10 @@
         'settings.accent': 'Akzent',
         'settings.accent_aria': 'Akzentfarbe',
         'settings.accent_hint': 'Wird sofort angewendet und auf diesem Gerät gespeichert.',
+        'accent.teal': 'Petrol',
+        'accent.azure': 'Azurblau',
+        'accent.aqua': 'Aquamarin',
+        'accent.violet': 'Violett',
         'settings.language': 'Sprache',
         'settings.language_hint': 'Gilt für diese Oberfläche; wird auf diesem Gerät gespeichert und mit dem Server synchronisiert.',
         'settings.system_prefs': 'Systemeinstellungen',
@@ -649,6 +656,7 @@
         'about.language_how': 'Wählen Sie die Oberflächensprache unter {settings} → {appearance} → {language}. Die Auswahl wird mit Ihren Einstellungen gespeichert und folgt Ihnen auf allen Geräten; Rechts-nach-links-Sprachen spiegeln das Layout automatisch.',
         'about.language_contribute_html': 'Fehlt Ihre Sprache, oder ist Ihnen eine Übersetzung aufgefallen, die besser klingen könnte? Übersetzungen sind einfache Textkataloge und leicht beizutragen — siehe den <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">Leitfaden für Beiträge</a>.',
         'about.model': 'Modell',
+        'about.type': 'Typ',
         'about.revision': 'Revision',
 
         // ---- Auth / Account / Administration ----------------------------------

@@ -238,6 +238,9 @@
         'diag.since_restart': 'Since restart',
         'diag.min_abbr': 'min',
         'diag.max_abbr': 'max',
+        'diag.unit_microseconds': '{n} µs',
+        'diag.unit_milliseconds': '{n} ms',
+        'diag.unit_seconds': '{n} s',
         'diag.view_diagnostics': 'View diagnostics',
         'diag.message_statistics_mqtt': 'Message Statistics & MQTT',
         'diag.message_statistics': 'Message Statistics',
@@ -454,6 +457,10 @@
         'settings.accent': 'Accent',
         'settings.accent_aria': 'Accent colour',
         'settings.accent_hint': 'Applied instantly and remembered on this device.',
+        'accent.teal': 'Teal',
+        'accent.azure': 'Azure',
+        'accent.aqua': 'Aqua',
+        'accent.violet': 'Violet',
         'settings.language': 'Language',
         'settings.language_hint': 'Applies to this interface; remembered on this device and synced to the server.',
         'settings.system_prefs': 'System Preferences',
@@ -656,6 +663,7 @@
         'about.language_how': 'Choose the interface language under {settings} → {appearance} → {language}. The choice is saved with your preferences and follows you across devices; right-to-left languages mirror the layout automatically.',
         'about.language_contribute_html': 'Missing your language, or spotted a translation that could read better? Translations are plain-text catalogs that are easy to contribute — see the <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">contributing guide</a>.',
         'about.model': 'Model',
+        'about.type': 'Type',
         'about.revision': 'Revision',
 
         // ---- Auth / Account / Administration ----------------------------------

@@ -2420,12 +2420,20 @@ main input[type="range"] { accent-color: var(--accent); }
 .circ-feedback { display: flex; gap: 8px; margin-top: 12px; min-height: 0; }
 .circ-feedback:empty { display: none; }
 
+/* --- Settings: Appearance + System Preferences side by side -------------- */
+.settings-two-col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 20px; align-items: start; }
+.settings-two-col .settings-card { margin-bottom: 0; }
+@media (max-width: 820px) { .settings-two-col { grid-template-columns: 1fr; gap: 0; } }
+
 /* --- Settings: System Preferences 2-column field grid ------------------- */
 .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 28px; }
 .settings-field-full { grid-column: 1 / -1; }
 .settings-grid .settings-input { width: 100%; }
 .settings-field > label .settings-unit { text-transform: none; font-weight: 500; margin-inline-start: 4px; }
 @media (max-width: 620px) { .settings-grid { grid-template-columns: 1fr; } }
+/* Narrower half-width column (inside .settings-two-col): fields read better stacked. */
+.settings-grid-1col { grid-template-columns: 1fr; }
+.settings-grid-1col .settings-field-full { grid-column: auto; }
 
 /* --- Settings: Device Names — aux-id toggle row + 3-column name grid ----- */
 .settings-toggle-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 13px; background: var(--surface-2); border: 1px solid var(--border); margin: 4px 0 20px; cursor: pointer; }

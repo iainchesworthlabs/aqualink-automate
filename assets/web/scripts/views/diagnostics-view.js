@@ -271,7 +271,14 @@ function diagnosticsView() {
                                     hour: 'HH:mm'
                                 }
                             },
-                            ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8, color: textColor },
+                            // Chart.js's own displayFormats always renders Latin digits
+                            // (its date adapter ignores the app's active locale); override
+                            // the tick label with the locale-aware time formatter so the
+                            // axis matches the rest of the page (e.g. Arabic-Indic digits).
+                            ticks: {
+                                maxRotation: 0, autoSkip: true, maxTicksLimit: 8, color: textColor,
+                                callback: (value) => window.AquaI18n.formatTime(value)
+                            },
                             grid: { color: gridColor }
                         },
                         y: {
@@ -682,10 +689,11 @@ function diagnosticsView() {
 
         formatMicros(us) {
             const n = window.AquaI18n.formatNumber;
+            const t = window.AquaI18n.t;
             if (us == null) return '--';
-            if (us < 1000) return n(us, { maximumFractionDigits: 0 }) + ' \u00B5s';
-            if (us < 1000000) return n(us / 1000, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ms';
-            return n(us / 1000000, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' s';
+            if (us < 1000) return t('diag.unit_microseconds', { n: n(us, { maximumFractionDigits: 0 }) });
+            if (us < 1000000) return t('diag.unit_milliseconds', { n: n(us / 1000, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) });
+            return t('diag.unit_seconds', { n: n(us / 1000000, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) });
         },
 
         utilColor(val) {

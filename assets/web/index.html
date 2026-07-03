@@ -877,10 +877,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                         </svg>
-                        <span class="alerts-badge" x-show="$store.alerts.hasAlerts" x-cloak x-text="$store.alerts.count"></span>
+                        <span class="alerts-badge" x-show="$store.alerts.hasAlerts" x-cloak x-text="$n($store.alerts.count)"></span>
                     </button>
                     <div class="alerts-dropdown" x-show="open" x-cloak @click.outside="open = false" x-transition.opacity role="dialog" :aria-label="$t('alerts.aria')">
-                        <div class="alerts-dd-head"><span x-text="$t('alerts.title')"></span><span class="alerts-dd-count" x-text="$store.alerts.count"></span></div>
+                        <div class="alerts-dd-head"><span x-text="$t('alerts.title')"></span><span class="alerts-dd-count" x-text="$n($store.alerts.count)"></span></div>
                         <div class="alerts-dd-empty" x-show="!$store.alerts.hasAlerts" x-text="$t('alerts.empty')"></div>
                         <div class="alerts-dd-list">
                             <template x-for="a in $store.alerts.list" :key="a.condition">
@@ -1293,7 +1293,7 @@
                     <div class="detail-kv">
                         <div class="kv-row"><span class="kv-k" x-text="$t('chem.ph')"></span><span class="kv-v" x-text="$store.pool.ph === '--' ? '--' : $n($store.pool.ph)"></span></div>
                         <div class="kv-row"><span class="kv-k" x-text="$t('chem.orp')"></span><span class="kv-v" x-text="$store.pool.orp === '--' ? '--' : ($n($store.pool.orp) + ' mV')"></span></div>
-                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.salt')"></span><span class="kv-v" x-text="$store.pool.saltPpm === '--' ? '--' : ($n($store.pool.saltPpm) + ' ppm')"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('chem.salt')"></span><span class="kv-v" x-text="$store.pool.saltPpm === '--' ? '--' : ($n($store.pool.saltPpm) + ' ' + $t('settings.ppm_unit'))"></span></div>
                         <template x-if="$store.pool.chlorinatorPresent">
                             <div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_output')"></span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($n($store.pool.swgGeneratingPercent) + ' %')"></span></div>
@@ -1315,7 +1315,7 @@
                             <div class="kv-row"><span class="kv-k" x-text="$t('detail.body')"></span><span class="kv-v" x-text="$t('common.pool')"></span></div>
                         </template>
                         <template x-for="b in ($store.pool.buttons || []).filter(x => /pump|filter|spillway/i.test(x.label))" :key="b.id">
-                            <div class="kv-row"><span class="kv-k" x-text="b.display_label || b.label"></span><span class="kv-v" x-text="b.status || '--'"></span></div>
+                            <div class="kv-row"><span class="kv-k" x-text="b.display_label || b.label"></span><span class="kv-v" x-text="window.AquaUI.buttonStatusLabel(b.status)"></span></div>
                         </template>
                     </div>
                 </div>
@@ -1327,7 +1327,7 @@
                     <div class="detail-kv">
                         <div class="kv-row"><span class="kv-k" x-text="$t('detail.heat_source')"></span><span class="kv-v" x-text="(() => { const h = ($store.pool.buttons || []).find(b => /heat|solar/i.test(b.label) && b.status && !/off/i.test(b.status)); return h ? (h.display_label || h.label) : $t('common.none'); })()"></span></div>
                         <template x-for="b in ($store.pool.buttons || []).filter(x => /heat|solar/i.test(x.label))" :key="b.id">
-                            <div class="kv-row"><span class="kv-k" x-text="b.display_label || b.label"></span><span class="kv-v" x-text="b.status || '--'"></span></div>
+                            <div class="kv-row"><span class="kv-k" x-text="b.display_label || b.label"></span><span class="kv-v" x-text="window.AquaUI.buttonStatusLabel(b.status)"></span></div>
                         </template>
                     </div>
                 </div>
@@ -1338,7 +1338,7 @@
                     <div class="card-header" x-text="$t('detail.system')"></div>
                     <div class="detail-kv">
                         <template x-for="field in $store.pool.equipmentVersion" :key="field.label">
-                            <div class="kv-row"><span class="kv-k" x-text="field.label"></span><span class="kv-v" x-text="field.value"></span></div>
+                            <div class="kv-row"><span class="kv-k" x-text="window.AquaUI.equipmentVersionLabel(field.label)"></span><span class="kv-v" x-text="field.value"></span></div>
                         </template>
                         <div class="kv-row"><span class="kv-k" x-text="$t('detail.state')"></span><span class="kv-v" x-text="$store.system.state"></span></div>
                         <div class="kv-row"><span class="kv-k" x-text="$t('detail.system_status')"></span><span class="kv-v" x-text="$store.pool.systemStatusLabel"></span></div>
@@ -1605,7 +1605,7 @@
                                         <span class="dmc-summary" x-text="summary(dev)"></span>
                                         <template x-if="dev.operating_state">
                                             <span class="badge dmc-status" :class="stateClass(dev.operating_state)"
-                                                  x-text="dev.operating_state"></span>
+                                                  x-text="stateLabel(dev.operating_state)"></span>
                                         </template>
                                     </div>
                                     <template x-if="hasSuppressedNote(dev)">
@@ -1707,7 +1707,7 @@
                 </div>
                 <template x-if="logHasOverrides">
                     <div class="logsum-overrides">
-                        <div class="logsum-over-label"><span x-text="$t('diag.overrides')"></span> <span class="logsum-over-count" x-text="logOverrideCount"></span></div>
+                        <div class="logsum-over-label"><span x-text="$t('diag.overrides')"></span> <span class="logsum-over-count" x-text="$n(logOverrideCount)"></span></div>
                         <div class="logsum-over-chips">
                             <template x-for="o in logOverrides()" :key="o[0]">
                                 <span class="logsum-chip"><span class="logsum-chip-ch" x-text="o[0]"></span><span class="logsum-chip-lvl" :style="`color:${logLevelColor(o[1])}`" x-text="o[1]"></span></span>
@@ -1783,7 +1783,7 @@
                             </div>
                             <span class="dmc-role" x-text="emuLabel(selectedDevice())"></span>
                             <template x-if="selectedDevice()?.operating_state">
-                                <span class="badge" :class="stateClass(selectedDevice().operating_state)" x-text="selectedDevice().operating_state"></span>
+                                <span class="badge" :class="stateClass(selectedDevice().operating_state)" x-text="stateLabel(selectedDevice().operating_state)"></span>
                             </template>
                             <button type="button" class="diag-modal-close" @click="closeModal()" :aria-label="$t('common.close')">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1937,7 +1937,7 @@
                             <div class="log-filter-row">
                                 <input type="text" class="log-search" x-model="logSearch" :placeholder="$t('diag.search_channels')">
                                 <button type="button" class="log-filter-btn" :class="{ active: logFilter === 'all' }" @click="logFilter = 'all'" x-text="$t('common.all')"></button>
-                                <button type="button" class="log-filter-btn" :class="{ active: logFilter === 'overrides' }" @click="logFilter = 'overrides'"><span x-text="$t('diag.overrides')"></span> <span x-text="logOverrideCount"></span></button>
+                                <button type="button" class="log-filter-btn" :class="{ active: logFilter === 'overrides' }" @click="logFilter = 'overrides'"><span x-text="$t('diag.overrides')"></span> <span x-text="$n(logOverrideCount)"></span></button>
                             </div>
                             <div class="log-chan-list">
                                 <template x-for="[ch, lvl] in logFilteredChannels()" :key="ch">
@@ -2334,86 +2334,90 @@
 
             <div class="section-title mt-2" x-text="$t('settings.title')"></div>
 
-            <!-- Appearance (client-side prefs) -->
-            <div class="card mb-2 settings-card">
-                <div class="card-header" x-text="$t('settings.appearance')"></div>
-                <div class="card-body">
-                    <p class="settings-card-desc" x-text="$t('settings.stored_browser')"></p>
-                    <div class="settings-group-label" x-text="$t('settings.theme')"></div>
-                    <div class="settings-field">
-                        <div class="seg-toggle" role="group" :aria-label="$t('settings.theme')">
-                            <button type="button" class="seg-option" :class="{ active: !$store.theme.isDark }" @click="if ($store.theme.isDark) $store.theme.toggle()" x-text="$t('settings.light')"></button>
-                            <button type="button" class="seg-option" :class="{ active: $store.theme.isDark }" @click="if (!$store.theme.isDark) $store.theme.toggle()" x-text="$t('settings.dark')"></button>
-                        </div>
-                    </div>
-                    <div class="settings-group-label" x-text="$t('settings.accent')"></div>
-                    <div class="settings-field">
-                        <div class="accent-swatches" role="group" :aria-label="$t('settings.accent_aria')">
-                            <template x-for="opt in $store.accent.options" :key="opt">
-                                <button type="button" class="accent-swatch" :class="{ active: $store.accent.name === opt }"
-                                        :data-accent-swatch="opt" @click="$store.accent.set(opt)"
-                                        :aria-pressed="$store.accent.name === opt" :aria-label="opt">
-                                    <span class="accent-swatch-dot" aria-hidden="true"></span>
-                                    <span class="accent-swatch-name" x-text="opt"></span>
-                                </button>
-                            </template>
-                        </div>
-                        <span class="settings-hint" x-text="$t('settings.accent_hint')"></span>
-                    </div>
-                    <div class="settings-group-label" x-text="$t('settings.language')"></div>
-                    <div class="settings-field">
-                        <select class="settings-input" :aria-label="$t('settings.language')"
-                                @change="$store.i18n.setLocale($event.target.value)">
-                            <template x-for="loc in $store.i18n.locales" :key="loc.code">
-                                <option :value="loc.code" :selected="loc.code === $store.i18n.locale" x-text="loc.name"></option>
-                            </template>
-                        </select>
-                        <span class="settings-hint" x-text="$t('settings.language_hint')"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- System Preferences -->
-            <div class="card mb-2 settings-card">
-                <div class="card-header card-header-split">
-                    <span x-text="$t('settings.system_prefs')"></span>
-                    <div class="settings-card-actions">
-                        <span class="badge badge-good" x-show="savedFlash" x-cloak x-text="$t('settings.saved')"></span>
-                        <button class="sched-new-btn" @click="saveServerPrefs()" x-text="$t('common.save')"></button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <p class="settings-card-desc" x-text="$t('settings.server_stored')"></p>
-                    <div class="settings-grid">
+            <div class="settings-two-col mb-2">
+                <!-- Appearance (client-side prefs) -->
+                <div class="card mb-2 settings-card">
+                    <div class="card-header" x-text="$t('settings.appearance')"></div>
+                    <div class="card-body">
+                        <p class="settings-card-desc" x-text="$t('settings.stored_browser')"></p>
+                        <div class="settings-group-label" x-text="$t('settings.theme')"></div>
                         <div class="settings-field">
-                            <label for="pref-units" x-text="$t('settings.temp_units')"></label>
-                            <select id="pref-units" x-model="prefs.temperature_units" class="settings-input">
+                            <div class="seg-toggle" role="group" :aria-label="$t('settings.theme')">
+                                <button type="button" class="seg-option" :class="{ active: !$store.theme.isDark }" @click="if ($store.theme.isDark) $store.theme.toggle()" x-text="$t('settings.light')"></button>
+                                <button type="button" class="seg-option" :class="{ active: $store.theme.isDark }" @click="if (!$store.theme.isDark) $store.theme.toggle()" x-text="$t('settings.dark')"></button>
+                            </div>
+                        </div>
+                        <div class="settings-group-label" x-text="$t('settings.accent')"></div>
+                        <div class="settings-field">
+                            <div class="accent-swatches" role="group" :aria-label="$t('settings.accent_aria')">
+                                <template x-for="opt in $store.accent.options" :key="opt">
+                                    <button type="button" class="accent-swatch" :class="{ active: $store.accent.name === opt }"
+                                            :data-accent-swatch="opt" @click="$store.accent.set(opt)"
+                                            :aria-pressed="$store.accent.name === opt" :aria-label="$t('accent.' + opt)">
+                                        <span class="accent-swatch-dot" aria-hidden="true"></span>
+                                        <span class="accent-swatch-name" x-text="$t('accent.' + opt)"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <span class="settings-hint" x-text="$t('settings.accent_hint')"></span>
+                        </div>
+                        <div class="settings-group-label" x-text="$t('settings.language')"></div>
+                        <div class="settings-field">
+                            <select class="settings-input" :aria-label="$t('settings.language')"
+                                    @change="$store.i18n.setLocale($event.target.value)">
+                                <template x-for="loc in $store.i18n.locales" :key="loc.code">
+                                    <option :value="loc.code" :selected="loc.code === $store.i18n.locale" x-text="loc.name"></option>
+                                </template>
+                            </select>
+                            <span class="settings-hint" x-text="$t('settings.language_hint')"></span>
+                        </div>
+                        <div class="settings-group-label" x-text="$t('settings.temp_units')"></div>
+                        <div class="settings-field">
+                            <select id="pref-units" class="settings-input" :aria-label="$t('settings.temp_units')"
+                                    :value="prefs.temperature_units" @change="setTemperatureUnits($event.target.value)">
                                 <option value="Celsius" x-text="$t('settings.celsius')"></option>
                                 <option value="Fahrenheit" x-text="$t('settings.fahrenheit')"></option>
                             </select>
-                        </div>
-                        <div class="settings-field">
-                            <label for="pref-retention"><span x-text="$t('settings.retention')"></span> <span class="settings-unit" x-text="$t('settings.days_unit')"></span></label>
-                            <input id="pref-retention" type="number" min="1" x-model.number="prefs.retention_days" class="settings-input">
-                            <span class="settings-hint" x-text="$t('settings.retention_hint')"></span>
-                        </div>
-                        <div class="settings-field">
-                            <label for="pref-salt"><span x-text="$t('settings.salt_low')"></span> <span class="settings-unit" x-text="$t('settings.ppm_unit')"></span></label>
-                            <input id="pref-salt" type="number" min="0" max="6000" x-model.number="prefs.salt_low_ppm" class="settings-input">
-                            <span class="settings-hint" x-text="$t('settings.salt_low_hint')"></span>
-                        </div>
-                        <div class="settings-field">
-                            <label for="pref-comms"><span x-text="$t('settings.comms_timeout')"></span> <span class="settings-unit" x-text="$t('settings.seconds_unit')"></span></label>
-                            <input id="pref-comms" type="number" min="1" x-model.number="prefs.comms_timeout_seconds" class="settings-input">
-                            <span class="settings-hint" x-text="$t('settings.comms_timeout_hint')"></span>
-                        </div>
-                        <div class="settings-field settings-field-full">
-                            <label for="pref-webhook"><span x-text="$t('settings.webhook')"></span> <span class="settings-unit" x-text="$t('settings.optional')"></span></label>
-                            <input id="pref-webhook" type="text" x-model="prefs.webhook_url" class="settings-input" placeholder="https://example.com/hook">
-                            <span class="settings-hint" x-text="$t('settings.webhook_hint')"></span>
+                            <span class="settings-hint" x-text="$t('settings.language_hint')"></span>
                         </div>
                     </div>
-                    <p class="trends-error" x-show="prefsError" x-cloak x-text="prefsError"></p>
+                </div>
+
+                <!-- System Preferences -->
+                <div class="card mb-2 settings-card">
+                    <div class="card-header card-header-split">
+                        <span x-text="$t('settings.system_prefs')"></span>
+                        <div class="settings-card-actions">
+                            <span class="badge badge-good" x-show="savedFlash" x-cloak x-text="$t('settings.saved')"></span>
+                            <button class="sched-new-btn" @click="saveServerPrefs()" x-text="$t('common.save')"></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="settings-card-desc" x-text="$t('settings.server_stored')"></p>
+                        <div class="settings-grid settings-grid-1col">
+                            <div class="settings-field">
+                                <label for="pref-retention"><span x-text="$t('settings.retention')"></span> <span class="settings-unit" x-text="$t('settings.days_unit')"></span></label>
+                                <input id="pref-retention" type="number" min="1" x-model.number="prefs.retention_days" class="settings-input">
+                                <span class="settings-hint" x-text="$t('settings.retention_hint')"></span>
+                            </div>
+                            <div class="settings-field">
+                                <label for="pref-salt"><span x-text="$t('settings.salt_low')"></span> <span class="settings-unit" x-text="$t('settings.ppm_unit')"></span></label>
+                                <input id="pref-salt" type="number" min="0" max="6000" x-model.number="prefs.salt_low_ppm" class="settings-input">
+                                <span class="settings-hint" x-text="$t('settings.salt_low_hint')"></span>
+                            </div>
+                            <div class="settings-field">
+                                <label for="pref-comms"><span x-text="$t('settings.comms_timeout')"></span> <span class="settings-unit" x-text="$t('settings.seconds_unit')"></span></label>
+                                <input id="pref-comms" type="number" min="1" x-model.number="prefs.comms_timeout_seconds" class="settings-input">
+                                <span class="settings-hint" x-text="$t('settings.comms_timeout_hint')"></span>
+                            </div>
+                            <div class="settings-field settings-field-full">
+                                <label for="pref-webhook"><span x-text="$t('settings.webhook')"></span> <span class="settings-unit" x-text="$t('settings.optional')"></span></label>
+                                <input id="pref-webhook" type="text" x-model="prefs.webhook_url" class="settings-input" placeholder="https://example.com/hook">
+                                <span class="settings-hint" x-text="$t('settings.webhook_hint')"></span>
+                            </div>
+                        </div>
+                        <p class="trends-error" x-show="prefsError" x-cloak x-text="prefsError"></p>
+                    </div>
                 </div>
             </div>
 
@@ -2572,22 +2576,22 @@
                         <dd x-text="$store.pool.projectName || 'Aqualink Automate'"></dd>
 
                         <dt x-text="$t('about.version')"></dt>
-                        <dd x-text="$store.pool.softwareVersion"></dd>
+                        <dd dir="ltr" x-text="$store.pool.softwareVersion"></dd>
 
                         <dt x-text="$t('about.description')"></dt>
                         <dd x-text="$store.pool.projectDescription || '--'"></dd>
 
                         <dt x-text="$t('about.git_commit')"></dt>
-                        <dd>
+                        <dd dir="ltr">
                             <code x-text="shortCommit"></code>
                             <span x-show="$store.pool.gitUncommitted" class="badge badge-warn ml-1" x-text="$t('about.uncommitted')"></span>
                         </dd>
 
                         <dt x-text="$t('about.commit_date')"></dt>
-                        <dd x-text="$store.pool.gitDate || '--'"></dd>
+                        <dd dir="ltr" x-text="$store.pool.gitDate || '--'"></dd>
 
                         <dt x-text="$t('about.homepage')"></dt>
-                        <dd>
+                        <dd dir="ltr">
                             <a x-show="safeHomepage" :href="safeHomepage" x-text="safeHomepage" target="_blank" rel="noopener noreferrer"></a>
                             <span x-show="!safeHomepage" class="text-muted">--</span>
                         </dd>
@@ -2601,7 +2605,7 @@
                     <dl class="info-grid" x-show="$store.pool.equipmentVersion.length > 0">
                         <template x-for="field in $store.pool.equipmentVersion" :key="field.label">
                             <div class="contents">
-                                <dt x-text="field.label"></dt>
+                                <dt x-text="window.AquaUI.equipmentVersionLabel(field.label)"></dt>
                                 <dd x-text="field.value"></dd>
                             </div>
                         </template>
@@ -2663,6 +2667,9 @@
     <script src="/scripts/stores/system-store.js"></script>
     <script src="/scripts/stores/pool-store.js"></script>
     <script src="/scripts/stores/stats-store.js"></script>
+    <!-- UI constants: shared config consumed by the component/view scripts below
+         (see scripts/config/ui-constants.js's own header comment). -->
+    <script src="/scripts/config/ui-constants.js"></script>
     <!-- Component scripts -->
     <script src="/scripts/components/pool-graphic.js"></script>
     <script src="/scripts/components/chemistry-gauge.js"></script>
