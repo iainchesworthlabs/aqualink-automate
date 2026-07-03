@@ -216,3 +216,37 @@ In particular:
 - **Wire-protocol opcodes or message types** → update the relevant protocol doc under `docs/`.
 
 Prefer durable references (symbols, route URLs, option long-names, section headings) over bare `file.cpp:NNN` line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (`docs/async_migration_*.md`, `docs/cicd-redesign.md`) are dated snapshots — do not treat their line citations as current truth.
+
+## Contributing translations
+
+The web UI is fully internationalized: every user-visible string resolves through a per-language catalog, and adding or improving a language never touches C++ or the build system. The full mechanics are in [docs/i18n.md](i18n.md); this section is the contributor workflow. Translation-only pull requests are very welcome — the shipped non-English catalogs were machine-translated and reviewed for structure, so native-speaker improvements are genuinely valuable.
+
+### Improving an existing translation
+
+Catalogs are plain JavaScript files under `assets/web/i18n/<code>.js` — one flat `'namespace.key': 'string'` map per language. To improve a translation, edit the **value** (never the key) and open a pull request typed `fix(webui)`.
+
+Rules — CI enforces the structural ones:
+
+- Keep every `{placeholder}` name exactly as it appears in the English value. They are substituted at runtime; the word order around them is yours to change freely.
+- Keys ending in `_html` contain markup: translate the prose, keep the tags and attributes byte-for-byte.
+- Plural keys carry CLDR category suffixes (`.one`, `.other`); translate each form per your language's plural rules, and do not add or remove suffixes.
+- Leave technical tokens untranslated: product names (AquaLink, Home Assistant, MQTT, Matter), protocol terms (RS-485, WebSocket), wire enum values quoted inside error text, and the built-in `Guest` group name where it names that group.
+- Match the file's existing tone and terminology — each catalog keeps a consistent register (e.g. German uses Sie-form; French uses the typographic apostrophe).
+
+Verify before pushing:
+
+```bash
+pwsh scripts/check-i18n-keys.ps1
+```
+
+The checker confirms every language carries exactly the English key set and that every placeholder survived translation. The `i18n-catalogs` CI job runs the same script on every pull request, and the Playwright i18n suite additionally fails on any string that bypasses the catalog.
+
+### Adding a language
+
+1. Copy `assets/web/i18n/en.js` to `assets/web/i18n/<code>.js` (lower-case BCP-47 language code), change the registration line's locale code, and translate the values following the rules above.
+2. Register the locale in `SUPPORTED_LOCALES` in `assets/web/scripts/i18n.js` with its own-language name (endonym — deliberately shown untranslated so users can always find their own language) and its text direction (`ltr`/`rtl`). Pin `numberLocale` if the bare code's default numbering system is wrong or inconsistent across engines (see the `ar` entry).
+3. If the language uses a script the shipped fonts do not cover, add font coverage per "Fonts and scripts" in [docs/i18n.md](i18n.md): a `unicode-range`-sliced vendored Noto subset (the Arabic/Hebrew pattern) or a `html[lang='xx']` system-font stack (the Japanese/Chinese pattern), plus an e2e font-load assertion if vendored.
+4. Run the checker (above) and the Playwright i18n suite (`npx playwright test e2e/i18n.spec.ts` — see [docs/i18n.md](i18n.md) for the harness prerequisites). The key-parity and zero-missing-key tests pick the new locale up automatically from the registry.
+5. Open a pull request typed `feat(webui)`. Nothing else needs wiring: the build packages `assets/web` recursively, the language picker and the About page render from the registry, and the service worker caches the catalog on first use.
+
+RTL languages need no extra layout work — the stylesheets use logical properties throughout, and the document direction flips from the registry's `dir` field. If you spot a component that fails to mirror, that is a bug worth reporting on its own.

@@ -65,6 +65,7 @@ markdown_extensions:
 # repository as reference but are not part of the published site.
 exclude_docs: |
   alwin32/
+  i18n-scoping.md
   alwin32_simulator_protocol.md
   aqualink_rs_revisions.md
   iaqualink2_init_handshake.md
@@ -89,6 +90,7 @@ nav:
       - Security: SECURITY.md
   - Development:
       - Contributing: CONTRIBUTING.md
+      - Internationalization (i18n): i18n.md
       - Releasing: releasing.md
       - CI/CD: ci-cd.md
       - Git worktrees: worktrees.md
