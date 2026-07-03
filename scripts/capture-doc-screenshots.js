@@ -27,12 +27,12 @@
  *   node scripts/capture-doc-screenshots.js --only hero,trends
  *
  * AQUALINK_EXE defaults to build/wt/src/aqualink-automate.exe, matching
- * playwright.config.ts. Playwright browsers must be installed
- * (`npx playwright install chromium`).
+ * playwright.config.ts; AQUALINK_DOC_ROOT overrides the web assets served
+ * (defaults to this repo's assets/web). Playwright browsers must be
+ * installed (`npx playwright install chromium`).
  *
  * Shots: hero, trends, schedules, settings, about, rtl, auth (wizard +
- * admin + login). TODO: an account-menu shot is deliberately omitted until
- * the account overlay shows the username instead of the raw subject UUID.
+ * admin + account menu + login).
  */
 const { chromium } = require('@playwright/test');
 const { spawn } = require('node:child_process');
@@ -42,7 +42,7 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'docs', 'assets');
-const DOC_ROOT = path.join(ROOT, 'assets', 'web');
+const DOC_ROOT = process.env.AQUALINK_DOC_ROOT ?? path.join(ROOT, 'assets', 'web');
 const FIXTURES = path.join(ROOT, 'test', 'fixtures');
 const EXE = process.env.AQUALINK_EXE ?? path.join(ROOT, 'build', 'wt', 'src', 'aqualink-automate.exe');
 const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'aqualink-doc-shots-'));
@@ -313,7 +313,10 @@ async function captureAuth(browser) {
       await panel.locator('input[aria-label="Password"]').fill('family-docs-passphrase');
       await panel.locator('input[aria-label="Confirm password"]').fill('family-docs-passphrase');
       for (const ent of ['equipment.view', 'equipment.control']) {
-        const chip = panel.locator('.ent-actions .admin-check-chip', { hasText: ent });
+        // Exact match: 'equipment.control' must not sweep up the whole
+        // 'equipment.control.*' selector family.
+        const chip = panel.locator('.ent-actions .admin-check-chip')
+          .filter({ has: page.getByText(ent, { exact: true }) }).first();
         if (await chip.count()) await chip.locator('input[type="checkbox"]').check();
       }
       await panel.getByRole('button', { name: 'Create user' }).click();
@@ -326,6 +329,18 @@ async function captureAuth(browser) {
 
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
+
+    await shot('webui-account-menu.png', async () => {
+      await page.locator('button[title="Account"]').click();
+      await page.locator('.account-card').waitFor({ timeout: 5_000 });
+      // The identity line must show the username, not the subject UUID.
+      const identity = (await page.locator('.account-username').textContent())?.trim();
+      if (identity !== ADMIN_USER) throw new Error(`account identity shows "${identity}", expected "${ADMIN_USER}"`);
+      await page.waitForTimeout(400);
+      await page.screenshot(png('webui-account-menu.png'));
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+    });
 
     await shot('webui-auth-login.png', async () => {
       await page.locator('button[title="Account"]').click();

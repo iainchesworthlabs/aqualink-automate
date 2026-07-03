@@ -117,6 +117,10 @@ Slice 2 adds the local-account login flow and the admin management surface on to
 - **API keys.** Machine credentials for the HTTP API are created by an administrator, **entitlement-scoped**, optionally expiring, and **shown exactly once** at creation (`aak_...`); only their SHA-256 digest is stored, so a lost secret cannot be recovered — only revoked. The legacy `--api-auth-token`, when configured under `--auth-mode enabled`, is **folded in as a pre-seeded bootstrap key** with `system.admin` scope, so existing deployments keep working with their configured secret.
 - **Secrets at rest.** JWT signing keys, the user/group/API-key/session stores, and per-user preference overrides all live as owner-only files in the auth state directory (`--auth-state-dir`, or the platform's secure `0700` state directory by default); the signing key file is written `0600`.
 
+Signed-in users manage their own credential from the Account menu — password change, the active-session list with per-device revocation, and sign-out-everywhere:
+
+![The Account menu — change password, active sessions with revoke, sign out everywhere](assets/webui-account-menu.png)
+
 ### Guest scope and kiosk PIN (Slice 3)
 
 Slice 3 covers anonymous visitors and shared terminals:
