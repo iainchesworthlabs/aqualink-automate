@@ -33,10 +33,11 @@
     --radius-xl: 1.5rem;
     --transition: 0.2s ease;
     --grid-color: rgba(0, 0, 0, 0.06);
-    /* Per-glyph fallback: Latin renders from the brand faces; Arabic-script
-       glyphs fall through to the vendored Noto Sans Arabic (its @font-face is
-       unicode-range-limited to Arabic); everything else lands on system-ui. */
-    --font-family: 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Per-glyph fallback: Latin renders from the brand faces; Arabic/Hebrew
+       glyphs fall through to the vendored Noto Sans faces (their @font-face
+       rules are unicode-range-limited to their scripts); everything else
+       lands on system-ui. */
+    --font-family: 'Hanken Grotesk', 'Noto Sans Arabic', 'Noto Sans Hebrew', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html.dark {
@@ -72,8 +73,8 @@ html.dark {
    each view is migrated; new surfaces use the tokens below.
    ============================================================================ */
 :root {
-    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, sans-serif;
-    --font-ui: 'Hanken Grotesk', 'Noto Sans Arabic', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Noto Sans Arabic', 'Noto Sans Hebrew', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'Noto Sans Arabic', 'Noto Sans Hebrew', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     --radius-card: 22px;
     --radius-row: 16px;
@@ -88,6 +89,12 @@ html[lang='ja'] {
     --font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
     --font-ui: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
     --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+}
+
+html[lang='zh'] {
+    --font-family: 'Hanken Grotesk', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
 }
 
 :root[data-theme="dark"],

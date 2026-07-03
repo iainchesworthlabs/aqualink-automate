@@ -20,6 +20,9 @@ function accountView() {
     return {
         open: false,
 
+        // Exposed for the password-placeholder catalog binding ({min}).
+        passwordMin: ACCOUNT_PASSWORD_MIN,
+
         // Change-password form.
         newPassword: '',
         confirmPassword: '',
@@ -43,7 +46,7 @@ function accountView() {
         },
 
         // ---- Identity (read from the auth store) ----
-        get identity() { return this.$store.auth.id || 'unknown'; },
+        get identity() { return this.$store.auth.id || window.AquaI18n.t('account.unknown_user'); },
         get groups() { return this.$store.auth.groups || []; },
 
         _resetPasswordForm() {
@@ -59,16 +62,16 @@ function accountView() {
             this.pwSaved = false;
 
             if (this.newPassword.length < ACCOUNT_PASSWORD_MIN) {
-                this.pwError = `Password must be at least ${ACCOUNT_PASSWORD_MIN} characters.`;
+                this.pwError = window.AquaI18n.t('account.password_too_short', { min: ACCOUNT_PASSWORD_MIN });
                 return;
             }
             if (this.newPassword !== this.confirmPassword) {
-                this.pwError = 'Passwords do not match.';
+                this.pwError = window.AquaI18n.t('account.passwords_no_match');
                 return;
             }
 
             const id = this.$store.auth.id;
-            if (!id) { this.pwError = 'No account is signed in.'; return; }
+            if (!id) { this.pwError = window.AquaI18n.t('account.error_not_signed_in'); return; }
 
             this.pwBusy = true;
             try {
@@ -86,12 +89,12 @@ function accountView() {
                     this.fetchSessions();
                     setTimeout(() => { this.pwSaved = false; }, 2500);
                 } else if (resp.status === 400) {
-                    this.pwError = `Password must be at least ${ACCOUNT_PASSWORD_MIN} characters.`;
+                    this.pwError = window.AquaI18n.t('account.password_too_short', { min: ACCOUNT_PASSWORD_MIN });
                 } else {
-                    this.pwError = `Could not change password (${resp.status}).`;
+                    this.pwError = window.AquaI18n.t('account.error_change_password', { status: resp.status });
                 }
             } catch (_) {
-                this.pwError = 'Network error — please try again.';
+                this.pwError = window.AquaI18n.t('account.error_network');
             } finally {
                 this.pwBusy = false;
             }
@@ -104,14 +107,14 @@ function accountView() {
             try {
                 const resp = await fetch('/api/sessions');
                 if (!resp.ok) {
-                    this.sessionsError = `Could not load sessions (${resp.status}).`;
+                    this.sessionsError = window.AquaI18n.t('account.error_load_sessions', { status: resp.status });
                     this.sessions = [];
                     return;
                 }
                 const list = await resp.json();
                 this.sessions = Array.isArray(list) ? list : [];
             } catch (_) {
-                this.sessionsError = 'Network error loading sessions.';
+                this.sessionsError = window.AquaI18n.t('account.error_network_sessions');
                 this.sessions = [];
             } finally {
                 this.sessionsLoading = false;
@@ -125,10 +128,10 @@ function accountView() {
                 if (resp.status === 204) {
                     this.sessions = this.sessions.filter((s) => s.id !== id);
                 } else {
-                    this.sessionsError = `Could not revoke session (${resp.status}).`;
+                    this.sessionsError = window.AquaI18n.t('account.error_revoke_session', { status: resp.status });
                 }
             } catch (_) {
-                this.sessionsError = 'Network error revoking session.';
+                this.sessionsError = window.AquaI18n.t('account.error_network_revoke');
             }
         },
 
@@ -145,9 +148,11 @@ function accountView() {
 
         // ---- Display helpers ----
         // A compact "browser / OS" label from the user agent for the session row.
+        // Browser / OS product names are brand tokens and stay untranslated; the
+        // composition and the fallbacks go through the catalog.
         deviceLabel(ua) {
-            if (!ua) return 'Unknown device';
-            let browser = 'Browser';
+            if (!ua) return window.AquaI18n.t('account.unknown_device');
+            let browser = window.AquaI18n.t('account.generic_browser');
             if (/Edg\//.test(ua)) browser = 'Edge';
             else if (/OPR\//.test(ua)) browser = 'Opera';
             else if (/Chrome\//.test(ua)) browser = 'Chrome';
@@ -161,20 +166,21 @@ function accountView() {
             else if (/Mac OS X|Macintosh/.test(ua)) os = 'macOS';
             else if (/Linux/.test(ua)) os = 'Linux';
 
-            return os ? `${browser} on ${os}` : browser;
+            return os ? window.AquaI18n.t('account.device_on', { browser, os }) : browser;
         },
 
         // "3 minutes ago" style relative time from a unix seconds value.
         relativeTime(unixSeconds) {
             if (!unixSeconds) return '';
             const deltaSec = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
-            if (deltaSec < 60) return 'just now';
+            if (deltaSec < 60) return window.AquaI18n.t('time.just_now');
+            const i18n = Alpine.store('i18n');
             const mins = Math.floor(deltaSec / 60);
-            if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+            if (mins < 60) return i18n.tn('time.minutes_ago_long', mins);
             const hours = Math.floor(mins / 60);
-            if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+            if (hours < 24) return i18n.tn('time.hours_ago_long', hours);
             const days = Math.floor(hours / 24);
-            return `${days} day${days === 1 ? '' : 's'} ago`;
+            return i18n.tn('time.days_ago_long', days);
         },
     };
 }

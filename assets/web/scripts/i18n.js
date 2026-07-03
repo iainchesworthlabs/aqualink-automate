@@ -36,8 +36,12 @@
     const SUPPORTED_LOCALES = [
         { code: 'en', name: 'English', dir: 'ltr' },
         { code: 'de', name: 'Deutsch', dir: 'ltr' },
+        { code: 'es', name: 'Español', dir: 'ltr' },
+        { code: 'fr', name: 'Français', dir: 'ltr' },
         { code: 'ar', name: 'العربية', dir: 'rtl', numberLocale: 'ar-u-nu-arab' },
+        { code: 'he', name: 'עברית', dir: 'rtl' },
         { code: 'ja', name: '日本語', dir: 'ltr' },
+        { code: 'zh', name: '简体中文', dir: 'ltr' },
     ];
 
     const api = (global.AquaI18n = global.AquaI18n || {});
@@ -313,6 +317,11 @@
             // to the server (cross-device), then swap reactively.
             async setLocale(code) {
                 if (!localeInfo(code) || code === this.locale) return;
+                // An explicit choice this session outranks the async server pull
+                // (_syncFromServer): without this, the auth:ready-time adoption
+                // can race a just-made switch (its PUT still in flight) and
+                // snap the UI back to the previous locale.
+                this._explicitChoice = true;
                 try { localStorage.setItem(STORAGE_KEY, code); } catch (_) { /* private mode */ }
                 await this._apply(code);
                 try {
@@ -332,17 +341,26 @@
             },
 
             async _syncFromServer() {
-                // Per-user prefs (the server locale) require a session. An
-                // anonymous/guest visitor has none — /api/preferences answers 401
-                // without prefs.self — so keep the localStorage locale (D7) and
-                // skip the request entirely to avoid first-paint 401 noise. The
-                // auth:ready listener re-runs this once a session exists.
-                const authed = window.AqualinkAuth && window.AqualinkAuth.token && window.AqualinkAuth.token();
-                if (!authed) { return; }
+                // Per-user prefs (the server locale) are prefs.self-gated, but a
+                // disabled posture permits everyone — so gate on the auth store's
+                // can() (one source of truth): auth-off installs keep cross-device
+                // locale sync, while an anonymous/guest visitor under an enabled
+                // posture keeps the localStorage locale (D7) and skips the request
+                // to avoid first-paint 401 noise. Falls back to the raw token while
+                // /api/auth/me is in flight; the auth:ready listener re-runs this.
+                const auth = global.Alpine && global.Alpine.store('auth');
+                const reachable = (auth && auth.ready)
+                    ? auth.can('prefs.self')
+                    : !!(global.AqualinkAuth && global.AqualinkAuth.token && global.AqualinkAuth.token());
+                if (!reachable) { return; }
+                if (this._explicitChoice) { return; } // user already chose this session
                 try {
                     const resp = await fetch('/api/preferences');
                     if (!resp.ok) return;
                     const p = await resp.json();
+                    // Re-check after the await: a switch made while this request
+                    // was in flight must not be stomped by a stale server value.
+                    if (this._explicitChoice) { return; }
                     const server = p && p.ui && p.ui.locale;
                     if (server && localeInfo(server) && server !== this.locale) {
                         // Server is the cross-device source of truth; keep the

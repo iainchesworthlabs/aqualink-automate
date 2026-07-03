@@ -46,13 +46,13 @@ function adminKioskView() {
             this.error = '';
             try {
                 const resp = await fetch('/api/kiosk');
-                if (!resp.ok) { this.error = `Could not load kiosk status (${resp.status}).`; return; }
+                if (!resp.ok) { this.error = window.AquaI18n.t('admin.error_load_kiosk', { status: resp.status }); return; }
                 const data = await resp.json();
                 this.enabled = !!data.enabled;
                 this.targetGroup = data.target_group || '';
                 if (!this.formGroup) { this.formGroup = this.targetGroup; }
             } catch (_) {
-                this.error = 'Network error loading kiosk status.';
+                this.error = window.AquaI18n.t('admin.error_network_kiosk');
             } finally {
                 this.loading = false;
             }
@@ -89,7 +89,7 @@ function adminKioskView() {
                 if (!resp.ok) {
                     let detail = '';
                     try { detail = (await resp.json()).error || ''; } catch (_) { /* ignore */ }
-                    this.error = detail || `Could not save the PIN (${resp.status}).`;
+                    this.error = detail || window.AquaI18n.t('admin.error_save_pin', { status: resp.status });
                     return;
                 }
                 this.pin = '';
@@ -98,7 +98,7 @@ function adminKioskView() {
                 setTimeout(() => { this.okFlash = false; }, 1500);
                 await this.refresh();
             } catch (_) {
-                this.error = 'Network error saving the PIN.';
+                this.error = window.AquaI18n.t('admin.error_network_save_pin');
             } finally {
                 this.saving = false;
             }
@@ -110,12 +110,12 @@ function adminKioskView() {
             this.error = '';
             try {
                 const resp = await fetch('/api/kiosk', { method: 'DELETE' });
-                if (!resp.ok) { this.error = `Could not disable the kiosk PIN (${resp.status}).`; return; }
+                if (!resp.ok) { this.error = window.AquaI18n.t('admin.error_disable_pin', { status: resp.status }); return; }
                 this.pin = '';
                 this.confirmPin = '';
                 await this.refresh();
             } catch (_) {
-                this.error = 'Network error disabling the kiosk PIN.';
+                this.error = window.AquaI18n.t('admin.error_network_disable_pin');
             } finally {
                 this.saving = false;
             }

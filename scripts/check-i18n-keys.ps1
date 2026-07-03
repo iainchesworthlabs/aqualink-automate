@@ -19,8 +19,11 @@ $failures = 0
 function Get-CatalogKeys([string]$file) {
     $src = Get-Content $file -Raw
     $map = [ordered]@{}
-    foreach ($m in [regex]::Matches($src, "'([a-z_]+(?:\.[A-Za-z0-9_]+)+)'\s*:\s*'((?:[^'\\]|\\.)*)'")) {
-        $map[$m.Groups[1].Value] = $m.Groups[2].Value
+    # Values may use either quote style (double quotes when the English text
+    # contains an apostrophe) — accept both, else those keys are invisible to
+    # the parity and placeholder checks.
+    foreach ($m in [regex]::Matches($src, "'([a-z_]+(?:\.[A-Za-z0-9_]+)+)'\s*:\s*(?:'((?:[^'\\]|\\.)*)'|`"((?:[^`"\\]|\\.)*)`")")) {
+        $map[$m.Groups[1].Value] = if ($m.Groups[2].Success) { $m.Groups[2].Value } else { $m.Groups[3].Value }
     }
     return $map
 }
