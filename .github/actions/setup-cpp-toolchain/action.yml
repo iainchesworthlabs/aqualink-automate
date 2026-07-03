@@ -11,7 +11,7 @@ runs:
   steps:
     - name: Setup C++ toolchain (Linux)
       if: runner.os == 'Linux'
-      uses: aminya/setup-cpp@1f17f92d6a52bfcb1a25348e2c526c2e5cbb1134 # v1.8.0
+      uses: aminya/setup-cpp@8170d66c458f4a045220b7b0966c10940bb2a15d # v1.8.1
       with:
         compiler: ${{ inputs.compiler }}
         cmake: true
@@ -19,7 +19,7 @@ runs:
 
     - name: Setup build tools (Windows)
       if: runner.os == 'Windows'
-      uses: aminya/setup-cpp@1f17f92d6a52bfcb1a25348e2c526c2e5cbb1134 # v1.8.0
+      uses: aminya/setup-cpp@8170d66c458f4a045220b7b0966c10940bb2a15d # v1.8.1
       with:
         cmake: true
         ninja: true
