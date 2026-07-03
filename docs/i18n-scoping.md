@@ -18,7 +18,9 @@
 > the hardcoded-Celsius `TranslationsAndUnitsFormatter` is deleted; the HA setpoint
 > number entities follow `Temperature_DisplayUnits` with discovery republish). Sensors
 > deliberately stay °C (HA self-converts sensors — the "should still be honest" note
-> below was half-right). Trends chart stays °C pending a chart-wide conversion.
+> below was half-right). Trends chart stays °C pending a chart-wide conversion
+> *(done 2026-07-03 on `fix/trends-chart-display-units`: the chart converts at
+> display time — axis, readout and stats together; see docs/i18n.md).*
 >
 > **Reconciliation 2026-07-03: Phase 2 is implemented** on `feat/i18n-phase2` —
 > HTTP errors carry `{error, code, params}` (additive; `error` stays the English
