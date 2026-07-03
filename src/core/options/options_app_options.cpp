@@ -3,6 +3,7 @@
 #include <string>
 
 #include "application/log_source_registration.h"
+#include "application/service_host.h"
 #include "exceptions/exception_optionshelporversion.h"
 #include "logging/logging.h"
 #include "logging/logging_severity_filter.h"
@@ -146,11 +147,47 @@ namespace AqualinkAutomate::Options::App
 		throw Exceptions::OptionsHelpOrVersion();
 	}
 
+	void HandleServiceInstallation(boost::program_options::variables_map& vm)
+	{
+		const bool do_install = (0 < vm.count("install-service"));
+		const bool do_uninstall = (0 < vm.count("uninstall-service"));
+
+		if (!do_install && !do_uninstall)
+		{
+			return;
+		}
+
+		if (do_install && do_uninstall)
+		{
+			std::cout << "Specify only one of --install-service / --uninstall-service.\n";
+			throw Exceptions::OptionsHelpOrVersion();
+		}
+
+#if defined(_WIN32)
+		// The Install/Uninstall actions print their own detailed result (binary path,
+		// account, Event Log source, error reason) to stdout.
+		if (do_install)
+		{
+			Application::InstallService();
+		}
+		else
+		{
+			Application::UninstallService();
+		}
+#else
+		std::cout << "--install-service / --uninstall-service are only supported on Windows.\n";
+#endif
+
+		// One-shot action: exit cleanly (same mechanism as --help/--version).
+		throw Exceptions::OptionsHelpOrVersion();
+	}
+
 	void HandleHelpAndVersion(boost::program_options::variables_map& vm, boost::program_options::options_description& options)
 	{
 		HandleHelp(vm, options);
 		HandleVersion(vm);
 		HandleLogSourceRegistration(vm);
+		HandleServiceInstallation(vm);
 	}
 
 }

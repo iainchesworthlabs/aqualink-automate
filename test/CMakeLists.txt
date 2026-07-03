@@ -86,6 +86,7 @@ target_sources(
 	unit/alerting/test_webhook_tls.cpp
 	unit/history/test_history_service.cpp
 	unit/options/test_option_metadata.cpp
+	unit/options/test_options_app.cpp
 	unit/options/test_options_alerting.cpp
 	unit/options/test_options_auth.cpp
 	unit/options/test_options_config_file.cpp

@@ -43,6 +43,7 @@
 
 // Core — authentication / authorization substrate
 #include "application/secure_runtime_paths.h"
+#include "application/service_host.h"
 #include "auth/api_key_store.h"
 #include "auth/audit_log.h"
 #include "auth/bootstrap.h"
@@ -164,7 +165,15 @@ using namespace AqualinkAutomate;
 using namespace AqualinkAutomate::Logging;
 using namespace AqualinkAutomate::Profiling;
 
-int main(int argc, char* argv[])
+//
+// The application body: the console/service-agnostic startup -> run -> shutdown
+// sequence. Runs identically whether launched from a console (empty hooks) or under
+// the Windows Service Control Manager (hooks report status + bridge the SCM stop into
+// the ordered shutdown). Kept in this executable translation unit (NOT core) because it
+// pulls in the HTTP/MQTT/Jandy/Pentair stack; the OS service host reaches it via the
+// AppEntry callback passed to Application::RunHosted (see main, below).
+//
+static int RunApplication(int argc, char* argv[], const Application::AppHostHooks& hooks)
 {
 	int return_value = EXIT_FAILURE;
 
@@ -294,7 +303,18 @@ int main(int argc, char* argv[])
 
 		{
 			Logging::RuntimeConfig log_runtime_config;
-			const auto log_environment = Sinks::DetectLogEnvironment();
+
+			// When hosted by a service manager (the Windows SCM), force the
+			// service-context probe so the `auto` sink policy resolves to the Event Log
+			// sink (docs/logging-sinks-redesign.md §6.2). No console is attached in that
+			// case, so this is the only trail. In console mode the hook is false and the
+			// environment is detected exactly as before.
+			auto log_probes = Sinks::DefaultProbes();
+			if (hooks.RunningAsManagedService)
+			{
+				log_probes.WindowsServiceContext = [] { return true; };
+			}
+			const auto log_environment = Sinks::DetectLogEnvironment(log_probes);
 
 			// Whether the structured journald sink can be used: Linux with libsystemd
 			// resolvable at runtime (dlopen); false elsewhere via the platform stub.
@@ -1191,7 +1211,35 @@ int main(int argc, char* argv[])
 			shutdown = true;
 		});
 
+		// Bridge an OS service-manager stop (the Windows SCM control handler, which runs
+		// on a different thread) into the SAME ordered shutdown as SIGINT/SIGTERM: it
+		// posts the shutdown flag onto the io_context so the write happens on this thread
+		// at the next poll(), mirroring the signal_set handler exactly. The RAII guard
+		// clears the published requester on EVERY exit path (normal return and exception
+		// unwind) BEFORE io_context is destroyed, so a late stop can never post into a
+		// dead io_context. No-op in console mode (PublishStopRequester is empty).
+		struct StopRequesterGuard
+		{
+			const Application::AppHostHooks& hooks;
+			~StopRequesterGuard() { if (hooks.PublishStopRequester) { hooks.PublishStopRequester(nullptr); } }
+		} stop_requester_guard{ hooks };
+
+		if (hooks.PublishStopRequester)
+		{
+			hooks.PublishStopRequester([&io_context, &shutdown]()
+			{
+				boost::asio::post(io_context, [&shutdown]() { shutdown = true; });
+			});
+		}
+
 		profiler.Get()->EmitFrameMark("MainLoop");
+
+		// Startup complete and now serving: tell the service manager we are RUNNING
+		// (no-op in console mode).
+		if (hooks.OnRunning)
+		{
+			hooks.OnRunning();
+		}
 
 		while (!shutdown)
 		{
@@ -1274,6 +1322,13 @@ int main(int argc, char* argv[])
 		//---------------------------------------------------------------------
 		// STOP APPLICATION
 		//---------------------------------------------------------------------
+
+		// Ordered shutdown begins (console Ctrl-C or a service stop): tell the service
+		// manager we are STOP_PENDING before the teardown below (no-op in console mode).
+		if (hooks.OnStopPending)
+		{
+			hooks.OnStopPending();
+		}
 
 		LogInfo(Channel::Main, "Stopping AqualinkAutomate...");
 		profiler.Get()->Message("Application shutting down", static_cast<uint32_t>(Profiling::UnitColours::Orange));
@@ -1415,4 +1470,14 @@ int main(int argc, char* argv[])
 	}
 
 	return return_value;
+}
+
+int main(int argc, char* argv[])
+{
+	// Run the application body, wrapped in the platform's service host where one exists.
+	// On Windows this attempts Service Control Manager dispatch and, when the process was
+	// NOT launched by the SCM, falls through to a direct console run. On POSIX it calls
+	// RunApplication directly with empty hooks. The console path is unchanged from before
+	// this seam was introduced.
+	return AqualinkAutomate::Application::RunHosted(argc, argv, &RunApplication);
 }

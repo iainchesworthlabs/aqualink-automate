@@ -379,8 +379,37 @@ native sink uses the unified logging system (`os_log`; view with Console.app or
 `log show`). On **Windows**, the Event Log source is registered once, elevated,
 with `--register-log-source` (and removed with `--unregister-log-source`); the
 running service never needs elevation because the sink itself does not write the
-registry. Until that one-time registration, events still appear in the Application
-log, just wrapped in a generic description.
+registry. `--install-service` performs this registration too, so a service install is
+clean in one step. The executable embeds a message-table resource matching the sink's
+event IDs, so once the source is registered Event Viewer renders each entry verbatim;
+until that one-time registration, events still appear in the Application log, just
+wrapped in a generic description.
+
+### Running as a Windows service
+
+On Windows the application can run as a managed service (the analogue of the Linux
+systemd unit): auto-start at boot, survives logoff, restarts on failure, and logs to the
+Windows Event Log. Install it from an **elevated** prompt:
+
+```
+aqualink-automate.exe --install-service --config "C:\ProgramData\Aqualink Automate\aqualink-automate.conf"
+```
+
+`--install-service` registers an auto-starting (delayed) service running as the built-in
+least-privilege `NT AUTHORITY\LocalService` account, sets restart-on-failure recovery,
+and registers the Event Log source. Any flags you pass alongside `--install-service`
+(`--config`, ports, `--mqtt-*`, …) are **baked into the service command line**, mirroring
+the systemd unit's `ExecStart` — so that is where the service reads its configuration
+from. If you omit `--config`, it defaults to
+`%ProgramData%\Aqualink Automate\aqualink-automate.conf`, creating that folder and a
+starter file. Use **absolute** paths: a service's working directory is `System32`.
+
+Manage it with the standard tools — `sc start Aqualink-Automate` /
+`Start-Service Aqualink-Automate`, `Stop-Service`, `Get-Service`, `sc qc Aqualink-Automate`
+(shows the baked-in command line) — and remove it with an elevated
+`aqualink-automate.exe --uninstall-service` (which also removes the Event Log source).
+Run from a normal console (no `--install-service`) the application behaves exactly as
+before — a foreground process that shuts down cleanly on Ctrl-C.
 
 **Important — the big replay gotcha:** `--replay-filename` has hard dependencies. A bare `--dev-mode --replay-filename file.cap` **fails validation**. `--replay-filename` requires *all* of:
 

@@ -40,6 +40,8 @@ namespace AqualinkAutomate::Options::App
 		AppOptionPtr OPTION_VERSIONDETAILS{ make_appoption("version-detail", "Displays detailed version information (including git commit)") };
 		AppOptionPtr OPTION_REGISTERLOGSOURCE{ make_appoption("register-log-source", "Register the Windows Event Log source (one-time, requires elevation), then exit. Windows only") };
 		AppOptionPtr OPTION_UNREGISTERLOGSOURCE{ make_appoption("unregister-log-source", "Remove the Windows Event Log source registration, then exit. Windows only") };
+		AppOptionPtr OPTION_INSTALLSERVICE{ make_appoption("install-service", "Install the application as an auto-starting Windows service (LocalService) and register its Event Log source, then exit. Any --config and other flags given alongside are baked into the service. Requires elevation. Windows only") };
+		AppOptionPtr OPTION_UNINSTALLSERVICE{ make_appoption("uninstall-service", "Stop and remove the Windows service and its Event Log source, then exit. Requires elevation. Windows only") };
 
 		const std::vector<AppOptionPtr> AppOptionsCollection
 		{
@@ -50,7 +52,9 @@ namespace AqualinkAutomate::Options::App
 			OPTION_VERSION,
 			OPTION_VERSIONDETAILS,
 			OPTION_REGISTERLOGSOURCE,
-			OPTION_UNREGISTERLOGSOURCE
+			OPTION_UNREGISTERLOGSOURCE,
+			OPTION_INSTALLSERVICE,
+			OPTION_UNINSTALLSERVICE
 		};
 
 	public:
