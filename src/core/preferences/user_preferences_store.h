@@ -63,8 +63,15 @@ namespace AqualinkAutomate::Preferences
 
 	private:
 		std::filesystem::path m_File{};
-		nlohmann::json m_Defaults{ nlohmann::json::object() };
-		nlohmann::json m_ByUser{ nlohmann::json::object() };   // user_id -> overrides object.
+		// Copy-init (not brace-init): `nlohmann::json x{ json::object() }` selects
+		// the initializer_list constructor, which on GCC/Clang wraps the argument
+		// into an ARRAY (`[{}]`) rather than adopting it — so `x["key"]` then throws
+		// type_error.305 ("operator[] with a string argument with array"). MSVC
+		// resolves the same brace-init to the copy ctor and stays an object, which
+		// is why this only broke the Linux/macOS builds. `= json::object()` is the
+		// move ctor on every compiler and reliably yields an empty object.
+		nlohmann::json m_Defaults = nlohmann::json::object();
+		nlohmann::json m_ByUser = nlohmann::json::object();   // user_id -> overrides object.
 	};
 
 }
