@@ -2,8 +2,10 @@
 
 #include <memory>
 
+#include <boost/beast/http/verb.hpp>
 #include <nlohmann/json.hpp>
 
+#include "auth/entitlement_vocabulary.h"
 #include "interfaces/iwebroute.h"
 #include "kernel/equipment_hub.h"
 #include "kernel/hub_locator.h"
@@ -27,6 +29,18 @@ namespace AqualinkAutomate::HTTP
 	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
+	public:
+		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
+		{
+			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))
+			{
+				return { .Action = Auth::Vocabulary::DIAGNOSTICS_VIEW };
+			}
+
+			return { .Action = Auth::Vocabulary::SYSTEM_ADMIN };
+		}
+
+	public:
 		// Collect diagnostic JSON for every *non-emulated* device in the hub.
 		nlohmann::json CollectActualDiagnostics() const;
 

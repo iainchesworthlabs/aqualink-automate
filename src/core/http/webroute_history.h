@@ -2,6 +2,9 @@
 
 #include <memory>
 
+#include <boost/beast/http/verb.hpp>
+
+#include "auth/entitlement_vocabulary.h"
 #include "interfaces/iwebroute.h"
 
 namespace AqualinkAutomate::History
@@ -27,6 +30,12 @@ namespace AqualinkAutomate::HTTP
 
 	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
+
+	public:
+		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
+		{
+			return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };
+		}
 
 	private:
 		std::shared_ptr<History::HistoryService> m_Service;

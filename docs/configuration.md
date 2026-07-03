@@ -162,6 +162,22 @@ The built-in HTTP/HTTPS server that hosts the web UI and the REST/WebSocket API.
 
 Conflicts: `--disable-http` vs `--http-port`; `--disable-https` vs each of `--https-port`, `--cert`, `--cert-key`, `--cachain-cert`. Because the conflict checker [ignores defaulted options](#conflict-and-dependency-matrix), `--disable-https` is accepted even though `--cert`/`--cert-key` carry default values — only an *explicit* `--cert` collides with it.
 
+## Authentication and identity options
+
+The opt-in identity system — subjects, entitlements, and the policy engine (see [SECURITY.md](SECURITY.md) for the enforcement model and [auth-redesign.md](auth-redesign.md) for the design). Lives in the `Authentication` settings area. Slice 1 ships the framework only: login and user management arrive in a later slice, so the app cannot yet issue tokens itself.
+
+| Option | Short | Type | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--auth-mode` | | enum | `disabled` | Identity-system posture: `disabled` (historical behaviour — no identity resolution, every policy decision is Permit) or `enabled` (every request resolves to a subject and routes are gated by entitlements; anonymous callers get the deny-by-default Guest group). When `enabled`, the legacy `--api-auth-token` shared-token check is superseded — bearer credentials are interpreted by the subject resolver instead. |
+| `--auth-state-dir` | | string | none (platform secure state dir) | Directory for authentication state (JWT signing keys; user/group/key stores in later slices). When unset, an `auth/` subdirectory of the platform's secure state directory is used (the same fallback chain as the generated TLS key). The directory is prepared owner-only; startup fails if no usable secure directory can be prepared. |
+| `--jwt-access-ttl` | | uint32 | `15` | Access-token lifetime in minutes. Must be at least 1. |
+| `--bootstrap-admin` | | string | none | Username of a first administrator to create at startup. Only fires when `--auth-mode enabled` **and** the user store is empty; idempotent (a no-op once any user exists). The password comes from `--bootstrap-admin-password-file` or `AQUALINK_BOOTSTRAP_ADMIN_PASSWORD` — never a CLI argument. |
+| `--bootstrap-admin-password-file` | | string | none | File whose first line (newline-terminated) is the bootstrap administrator's password. Used only with `--bootstrap-admin`. |
+
+An `--auth-mode` value other than `disabled`/`enabled`, or a `--jwt-access-ttl` of `0`, fails validation and stops startup.
+
+**Headless first-admin bootstrap.** `--bootstrap-admin <username>` creates the first administrator without the interactive setup screen — useful for containers and unattended installs. It only acts when `--auth-mode enabled` and no users exist yet; with any user already on file it is silently a no-op (so a stale flag can never mint a second admin). The password is **never** passed on the command line, where it would be visible in the process table. Instead it is read from the first line of the file named by `--bootstrap-admin-password-file`, or, if that is unset, from the `AQUALINK_BOOTSTRAP_ADMIN_PASSWORD` environment variable. If `--bootstrap-admin` is given but no password can be found from either source, no administrator is created and a startup warning is logged. The password must satisfy the same policy as everywhere else (at least 12 characters).
+
 ## MQTT and Home Assistant options
 
 Publishing pool state to an MQTT broker, optionally with Home Assistant auto-discovery. Lives in the `MQTT` settings area. This is a summary — for the full topic layout, entity types, and discovery payloads, see the [MQTT and Home Assistant guide](mqtt-home-assistant.md).

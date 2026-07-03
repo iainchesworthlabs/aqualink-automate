@@ -118,6 +118,17 @@ namespace AqualinkAutomate::HTTP
 		boost::beast::flat_buffer m_WsReadBuffer;
 		std::string m_WsWriteBuffer;
 
+		// Re-checks whether this WebSocket connection's credential is still
+		// authorised (empty => auth-mode off, no revalidation); polled every
+		// WS_REVALIDATE_INTERVAL frames. See Poll() and Routing::CurrentWebSocketRevalidator.
+		Routing::WebSocketRevalidator m_WsRevalidator{};
+		unsigned m_WsRevalidateTick{ 0 };
+
+		// The poll loop runs at frame cadence (~10ms); re-validating every frame
+		// would re-verify a JWT hundreds of times a second for no benefit, since
+		// revocation/expiry move on the order of seconds. Check ~every 5s.
+		static constexpr unsigned WS_REVALIDATE_INTERVAL = 500;
+
 		static constexpr auto SESSION_TIMEOUT = std::chrono::seconds(30);
 
 		// Cap an inbound WebSocket message. HTTP request bodies are already limited

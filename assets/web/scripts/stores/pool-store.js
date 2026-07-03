@@ -191,8 +191,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         // Fetch the display-units preference (best-effort: 401/offline keeps
-        // the Celsius default; Settings updates it live on save).
+        // the Celsius default; Settings updates it live on save). Requires a
+        // session — /api/preferences is prefs.self-gated — so an anonymous/guest
+        // visitor keeps the default instead of firing a first-paint 401 (D7).
         async _fetchDisplayUnits() {
+            const authed = window.AqualinkAuth && window.AqualinkAuth.token && window.AqualinkAuth.token();
+            if (!authed) { return; }
             try {
                 const resp = await fetch('/api/preferences');
                 if (!resp.ok) return;

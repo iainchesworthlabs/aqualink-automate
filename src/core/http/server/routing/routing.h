@@ -1,11 +1,13 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "auth/subject.h"
 #include "http/server/server_types.h"
 #include "http/server/static_file_handler.h"
 #include "interfaces/iwebroute.h"
@@ -37,13 +39,59 @@ namespace AqualinkAutomate::HTTP::Routing
 		/// to false so existing clients are unaffected.
 		bool RequireCsrfHeader{ false };
 
+		/// CIDR blocks (e.g. "10.0.0.0/8", "::1/128") of TRUSTED reverse proxies.
+		/// Only when the connecting peer is inside one of these does the router
+		/// honour X-Forwarded-For to derive the real client address (for the
+		/// failed-auth rate limiter and audit identity).  Empty (the default):
+		/// XFF is ignored entirely — an untrusted client cannot spoof its way
+		/// out of (or someone else into) a rate-limit bucket.
+		std::vector<std::string> TrustedProxyCidrs{};
+
+		/// When true the identity system (--auth-mode enabled) governs requests:
+		/// every request is resolved to an Auth::Subject (see SetSubjectResolver)
+		/// and routes declaring an AccessRequirement are gated by the
+		/// Auth::PolicyEngine.  The legacy shared-token check (AuthToken above) is
+		/// then SUPERSEDED — bearer credentials are interpreted by the resolver
+		/// instead (the legacy token folds in as a bootstrap API key in Slice 2).
+		/// Defaults to false: historical behaviour, decisions all Permit (posture).
+		bool AuthModeEnabled{ false };
+
 		/// True when any security knob is engaged. Used to early-out of the checks on
 		/// the request hot path when the feature is entirely disabled (the default).
 		[[nodiscard]] bool IsEnabled() const noexcept
 		{
-			return AuthToken.has_value() || !AllowedOrigins.empty() || RequireCsrfHeader;
+			return AuthToken.has_value() || !AllowedOrigins.empty() || RequireCsrfHeader || AuthModeEnabled;
 		}
 	};
+
+	/// Resolve the credentials on a request (session JWT / API key / forwarded
+	/// header / nothing) into the Auth::Subject the PolicyEngine consumes.  The
+	/// providers are wired per-slice; routing only depends on this signature.
+	using SubjectResolver = std::function<Auth::Subject(const HTTP::Request& req, bool is_websocket_upgrade)>;
+
+	/// Install (or clear, by passing nullptr) the active subject resolver.  With
+	/// none installed every request resolves to Auth::Subject::Anonymous().
+	void SetSubjectResolver(SubjectResolver resolver);
+
+	/// Derive the effective client address for rate-limiting/audit: the peer
+	/// address, unless the peer is a trusted proxy (SecurityConfig::
+	/// TrustedProxyCidrs) offering X-Forwarded-For — then the FIRST forwarded
+	/// hop.  Exposed for tests; HTTP_OnRequest applies it automatically.
+	std::string EffectiveClientIp(const HTTP::Request& req, std::string_view peer_ip);
+
+	/// The Subject resolved for the request currently being dispatched.  Valid
+	/// only during HTTP_OnRequest/AuthorizeWebSocketUpgrade (single-threaded
+	/// cooperative model); route handlers use it for per-resource authorization
+	/// refinement and subject-aware responses (/api/auth/me, preferences).
+	/// ASYNC ROUTES: read it (and CurrentPeerIp) in the synchronous prefix of
+	/// OnRequestAsync, BEFORE any suspension — another request may be
+	/// dispatched in between.
+	const Auth::Subject& CurrentSubject();
+
+	/// The trusted-proxy-aware client address of the request currently being
+	/// dispatched (see EffectiveClientIp); same validity rules as
+	/// CurrentSubject.  Used for audit identity on auth flows.
+	std::string_view CurrentPeerIp();
 
 	void Clear();
 
@@ -60,12 +108,36 @@ namespace AqualinkAutomate::HTTP::Routing
 	/// peer_ip (the connecting client's address, empty when unknown) feeds the
 	/// per-source failed-auth rate limiter; pass it from the HTTP session.
 	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view peer_ip = {});
+
+	/// Completion-based dispatch (the HTTP session uses this).  Synchronous
+	/// routes — every route by default — invoke `complete` inline, so the
+	/// behaviour is identical to HTTP_OnRequest; a route declaring
+	/// IsAsyncRoute() (deferred-response handlers such as login's off-thread
+	/// argon2 verify) invokes it later on the same executor.  `complete` is
+	/// called exactly once.
+	using DispatchCompletion = std::function<void(HTTP::Message&&)>;
+	void HTTP_OnRequestDispatch(HTTP::Request req, std::string_view peer_ip, DispatchCompletion complete);
 	Interfaces::IWebSocketBase* WS_OnAccept(const std::string_view target);
 
 	/// Evaluate the security policy against a WebSocket upgrade request.
 	/// Returns std::nullopt when the upgrade is permitted; otherwise returns the
 	/// HTTP error response (401/403/429) that should be written instead of accepting.
 	std::optional<HTTP::Response> AuthorizeWebSocketUpgrade(const HTTP::Request& req, std::string_view peer_ip = {});
+
+	/// A predicate that re-checks whether a still-open WebSocket connection
+	/// remains authorized: the credential re-resolves to an authenticated
+	/// subject (token unexpired, not revoked via tokver, account not disabled)
+	/// that still holds the socket's required entitlement.  The HTTP session
+	/// polls it and closes the connection when it returns false (D15/D2 —
+	/// revocation and expiry reach live sockets, not just new requests).
+	using WebSocketRevalidator = std::function<bool()>;
+
+	/// The revalidator for the upgrade AuthorizeWebSocketUpgrade just permitted
+	/// (empty when auth-mode is off or the upgrade was rejected — the session
+	/// then performs no revalidation).  The HTTP session must read this
+	/// immediately after a successful AuthorizeWebSocketUpgrade, before another
+	/// request is dispatched (same single-threaded validity rule as CurrentSubject).
+	WebSocketRevalidator CurrentWebSocketRevalidator();
 
 }
 // namespace AqualinkAutomate::HTTP::Routing

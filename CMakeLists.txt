@@ -130,9 +130,11 @@ endif()
 # edits live in WU-CORE-CMAKE-CLEANUP (src/core/CMakeLists.txt). This COMPONENTS
 # list is the single source of truth for what is requested.
 find_package(Boost REQUIRED COMPONENTS graph iostreams log log_setup program_options regex system unit_test_framework url)
+find_package(jwt-cpp CONFIG REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(unofficial-sodium CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 

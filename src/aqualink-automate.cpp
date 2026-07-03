@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <fstream>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -39,11 +40,36 @@
 #include "developer/mock_serial_port_impl.h"
 #include "developer/recording_serial_port_impl.h"
 
+// Core — authentication / authorization substrate
+#include "application/secure_runtime_paths.h"
+#include "auth/api_key_store.h"
+#include "auth/audit_log.h"
+#include "auth/bootstrap.h"
+#include "auth/group.h"
+#include "auth/group_store.h"
+#include "auth/jwt_codec.h"
+#include "auth/jwt_key_store.h"
+#include "auth/kiosk_service.h"
+#include "auth/kiosk_store.h"
+#include "auth/session_service.h"
+#include "auth/session_store.h"
+#include "auth/subject_resolver.h"
+#include "auth/user_store.h"
+#include "utility/offload_pool.h"
+
 // Core — HTTP server and routes
 #include "http/server/http_server.h"
 #include "http/server/static_file_handler.h"
 #include "http/server/routing/routing.h"
+#include "http/webroute_apikey.h"
+#include "http/webroute_apikeys.h"
 #include "http/webroute_auth_check.h"
+#include "http/webroute_auth_login.h"
+#include "http/webroute_auth_logout.h"
+#include "http/webroute_auth_me.h"
+#include "http/webroute_auth_pin.h"
+#include "http/webroute_auth_refresh.h"
+#include "http/webroute_auth_setup.h"
 #include "http/webroute_diagnostics_actualdevices.h"
 #include "http/webroute_diagnostics_devices.h"
 #include "http/webroute_diagnostics_matter.h"
@@ -63,9 +89,18 @@
 #include "http/webroute_equipment_circulation.h"
 #include "http/webroute_equipment_setpoints.h"
 #include "http/webroute_equipment_version.h"
+#include "http/webroute_entitlements.h"
+#include "http/webroute_group.h"
+#include "http/webroute_groups.h"
 #include "http/webroute_health.h"
 #include "http/webroute_health_detailed.h"
+#include "http/webroute_kiosk.h"
 #include "http/webroute_metrics.h"
+#include "http/webroute_session.h"
+#include "http/webroute_sessions.h"
+#include "http/webroute_user.h"
+#include "http/webroute_user_password.h"
+#include "http/webroute_users.h"
 #include "http/webroute_version.h"
 #include "http/websocket_equipment.h"
 #include "http/websocket_equipment_stats.h"
@@ -81,6 +116,7 @@
 
 // Core — preferences (user/admin settings)
 #include "preferences/preferences_service.h"
+#include "preferences/user_preferences_store.h"
 #include "http/webroute_preferences.h"
 
 // Core — equipment cache (instant dashboard on restart)
@@ -172,6 +208,7 @@ int main(int argc, char* argv[])
 			auto processed_options = Options::Initialise()
 				| Add(Options::Alerting::OptionsProcessor{})
 				| Add(Options::App::OptionsProcessor{})
+				| Add(Options::Auth::OptionsProcessor{})
 				| Add(Options::Developer::OptionsProcessor{})
 				| Add(Options::Equipment::OptionsProcessor{})
 				| Add(Options::History::OptionsProcessor{})
@@ -194,6 +231,7 @@ int main(int argc, char* argv[])
 				| Process(
 					Options::Alerting::OptionsProcessor{},
 					Options::App::OptionsProcessor{},
+					Options::Auth::OptionsProcessor{},
 					Options::Developer::OptionsProcessor{},
 					Options::Equipment::OptionsProcessor{},
 					Options::History::OptionsProcessor{},
@@ -620,6 +658,26 @@ int main(int argc, char* argv[])
 		std::unique_ptr<HTTP::HttpServer> https_server;
 		boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tls_server);
 
+		// The identity-system stack MUST be declared at this (server) scope, NOT
+		// inside the web-settings block below: the web routes registered there
+		// hold these by REFERENCE (SessionService&, OffloadPool&, the stores),
+		// and they have to outlive the frame loop that services requests.  A
+		// tighter scope would free them at the block's end, leaving the routes
+		// with dangling references (a use-after-free the moment a login/setup
+		// request is served).  Fully-qualified to sidestep the block-scope
+		// `Auth`/`Preferences` aliases used further down.
+		std::shared_ptr<AqualinkAutomate::Preferences::UserPreferencesStore> user_preferences_store{};
+		std::shared_ptr<AqualinkAutomate::Auth::UserStore> auth_users{};
+		std::shared_ptr<AqualinkAutomate::Auth::GroupStore> auth_group_store{};
+		std::shared_ptr<AqualinkAutomate::Auth::SessionStore> auth_sessions{};
+		std::shared_ptr<AqualinkAutomate::Auth::ApiKeyStore> auth_api_keys{};
+		std::shared_ptr<AqualinkAutomate::Auth::JwtCodec> auth_codec{};
+		std::shared_ptr<AqualinkAutomate::Auth::AuditLog> auth_audit{};
+		std::shared_ptr<AqualinkAutomate::Utility::OffloadPool> auth_offload{};
+		std::shared_ptr<AqualinkAutomate::Auth::SessionService> auth_session_service{};
+		std::shared_ptr<AqualinkAutomate::Auth::KioskStore> auth_kiosk{};
+		std::shared_ptr<AqualinkAutomate::Auth::KioskService> auth_kiosk_service{};
+
 		if (web_settings_result)
 		{
 			const auto& web_settings = web_settings_result.value().get();
@@ -635,6 +693,154 @@ int main(int argc, char* argv[])
 				.AllowedOrigins = web_settings.ApiAllowedOrigins,
 				.RequireCsrfHeader = web_settings.ApiRequireCsrfHeader
 			};
+
+			// Identity system (--auth-mode) — docs/auth-redesign.md.  Disabled (the
+			// default) preserves historical behaviour exactly: no subject resolution,
+			// every policy decision is Permit by posture.  Enabled: the auth stores
+			// are loaded from the hardened state directory, requests resolve to a
+			// Subject (anonymous == the Guest group, deny-by-default; session JWTs
+			// and API keys authenticate), routes are gated by the PolicyEngine, and
+			// the login/refresh/logout flows come online; the legacy
+			// --api-auth-token folds in as a bootstrap API key.
+			//
+			// Declared at this scope: the routes registered below hold references,
+			// so the whole stack must live for the application lifetime.
+			//
+			// Block-scope alias: bare `Auth` is otherwise ambiguous between the
+			// AqualinkAutomate::Auth subsystem and AqualinkAutomate::Options::Auth
+			// (same collision, and same fix, as `Alerting` further down).
+			namespace Auth = AqualinkAutomate::Auth;
+
+			// The identity-system stack (user_preferences_store + auth_*) is
+			// declared at the SERVER scope above so it outlives the frame loop;
+			// here we only assign into it.  See the note at its declaration.
+			if (auto auth_settings_result = settings.Get<Options::Auth::AuthSettings>(); auth_settings_result)
+			{
+				const auto& auth_settings = auth_settings_result.value().get();
+
+				if (auth_settings.auth_mode_enabled)
+				{
+					security_config.AuthModeEnabled = true;
+
+					// Resolve (and harden) the auth state directory: an explicit
+					// --auth-state-dir wins, otherwise the platform's secure state
+					// directory candidates (same posture as the TLS private key).
+					std::filesystem::path auth_state_dir;
+
+					if (!auth_settings.auth_state_dir.empty())
+					{
+						auth_state_dir = auth_settings.auth_state_dir;
+						Application::PrepareSecureDirectory(auth_state_dir);
+					}
+					else
+					{
+						for (const auto& candidate : Application::SecureRuntimeStateDirectories())
+						{
+							if (Application::PrepareSecureDirectory(candidate / "auth"))
+							{
+								auth_state_dir = candidate / "auth";
+								break;
+							}
+						}
+					}
+
+					if (auth_state_dir.empty())
+					{
+						LogFatal(Channel::Main, "No usable secure state directory for authentication state (--auth-state-dir)");
+						return EXIT_FAILURE;
+					}
+
+					auth_users = std::make_shared<Auth::UserStore>(Auth::UserStore::Load(auth_state_dir / "users.json"));
+					auth_group_store = std::make_shared<Auth::GroupStore>(Auth::GroupStore::Load(auth_state_dir / "groups.json"));
+					user_preferences_store = std::make_shared<Preferences::UserPreferencesStore>(Preferences::UserPreferencesStore::Load(auth_state_dir / "user_preferences.json"));
+					auth_sessions = std::make_shared<Auth::SessionStore>(Auth::SessionStore::Load(auth_state_dir / "sessions.json"));
+					auth_api_keys = std::make_shared<Auth::ApiKeyStore>(Auth::ApiKeyStore::Load(auth_state_dir / "api-keys.json"));
+					auth_kiosk = std::make_shared<Auth::KioskStore>(Auth::KioskStore::Load(auth_state_dir / "kiosk.json"));
+
+					// Legacy shared token keeps working as a system.admin machine key.
+					if (web_settings.ApiAuthToken.has_value())
+					{
+						auth_api_keys->SeedBootstrapKey(*web_settings.ApiAuthToken);
+					}
+
+					auto key_store = std::make_shared<Auth::JwtKeyStore>(Auth::JwtKeyStore::LoadOrCreate(auth_state_dir / "jwt-signing.key"));
+
+					Auth::JwtCodec::Config codec_config;
+					codec_config.AccessTokenTtl = std::chrono::minutes{ auth_settings.jwt_access_ttl_minutes };
+
+					auth_codec = std::make_shared<Auth::JwtCodec>(std::move(key_store), std::move(codec_config));
+
+					// Audit trail: OS-native sink + owner-only JSONL in the state dir.
+					auth_audit = std::make_shared<Auth::AuditLog>(Auth::AuditLog::Config{ .JsonlFile = auth_state_dir / "audit.jsonl" });
+					Auth::RegisterAuditOsSink();
+
+					// argon2 runs here, never on the kernel thread.
+					auth_offload = std::make_shared<Utility::OffloadPool>(1);
+
+					auth_session_service = std::make_shared<Auth::SessionService>(
+						auth_users, auth_group_store, auth_sessions, auth_codec, *auth_offload, *auth_audit, Auth::SessionService::Config{});
+
+					// Kiosk PIN elevation (guest mode): shares the offload pool,
+					// codec, group and session stores with local sessions.
+					auth_kiosk_service = std::make_shared<Auth::KioskService>(
+						auth_kiosk, auth_group_store, auth_sessions, auth_codec, *auth_offload, *auth_audit, Auth::KioskService::Config{});
+
+					HTTP::Routing::SetSubjectResolver(Auth::MakeSubjectResolver(Auth::SubjectResolverDeps{
+						.Groups = auth_group_store->SharedRegistry(),
+						.Codec = auth_codec,
+						.Users = auth_users,
+						.ApiKeys = auth_api_keys,
+						.Kiosk = auth_kiosk }));
+
+					// Headless first-admin bootstrap (--bootstrap-admin).  The kernel
+					// loop is not running yet, so the synchronous argon2 hash here is
+					// acceptable.  Idempotent: with any user on file it is a no-op.
+					if (!auth_settings.bootstrap_admin_username.empty())
+					{
+						if (!auth_users->Empty())
+						{
+							LogDebug(Channel::Main, "--bootstrap-admin ignored: users already exist (setup is complete)");
+						}
+						else
+						{
+							std::string bootstrap_password;
+
+							if (!auth_settings.bootstrap_admin_password_file.empty())
+							{
+								std::ifstream password_file(auth_settings.bootstrap_admin_password_file);
+								std::getline(password_file, bootstrap_password);
+							}
+							else if (const char* env_password = std::getenv("AQUALINK_BOOTSTRAP_ADMIN_PASSWORD"); nullptr != env_password)
+							{
+								bootstrap_password = env_password;
+							}
+
+							// Trim trailing CR/whitespace (CRLF password files).
+							while (!bootstrap_password.empty() && (('\r' == bootstrap_password.back()) || (' ' == bootstrap_password.back()) || ('\t' == bootstrap_password.back())))
+							{
+								bootstrap_password.pop_back();
+							}
+
+							std::string bootstrap_error;
+
+							if (bootstrap_password.empty())
+							{
+								LogWarning(Channel::Main, "--bootstrap-admin supplied but no password found (--bootstrap-admin-password-file or AQUALINK_BOOTSTRAP_ADMIN_PASSWORD); no administrator created");
+							}
+							else if (!Auth::BootstrapAdmin(*auth_users, auth_settings.bootstrap_admin_username, bootstrap_password, Auth::PasswordHasher::Params{}, *auth_audit, bootstrap_error).has_value())
+							{
+								LogWarning(Channel::Main, [&] { return std::format("Bootstrap administrator was not created: {}", bootstrap_error); });
+							}
+							else
+							{
+								LogInfo(Channel::Main, [&] { return std::format("Bootstrap administrator '{}' created", auth_settings.bootstrap_admin_username); });
+							}
+						}
+					}
+
+					LogInfo(Channel::Main, [&] { return std::format("Identity system enabled (auth-mode=enabled); auth state in '{}'; {} user(s) on file", auth_state_dir.string(), auth_users->Size()); });
+				}
+			}
 
 			// Open-control-plane guard: the equipment-control API actuates pumps,
 			// heaters and chlorinators. Binding a non-loopback interface with NO auth
@@ -676,6 +882,39 @@ int main(int argc, char* argv[])
 			}
 
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthCheck>());
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>(
+				[users = auth_users]() { return (nullptr != users) && users->Empty(); },
+				[kiosk = auth_kiosk]() { return (nullptr != kiosk) && kiosk->Enabled(); }));
+
+			// Session flows exist only under the identity system: with auth-mode
+			// disabled there are no accounts to log into and the routes would
+			// answer 503-shaped errors; not registering them keeps the legacy
+			// surface byte-identical.
+			if (auth_session_service)
+			{
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogin>(*auth_session_service, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthRefresh>(*auth_session_service));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogout>(*auth_session_service));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthSetup>(*auth_users, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
+
+				// Kiosk PIN elevation (guest mode, D16): the public PIN-login
+				// endpoint and the system.admin config surface.
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthPin>(*auth_kiosk_service, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Kiosk>(*auth_kiosk_service, io_context.get_executor()));
+
+				// The admin/user-management surface (docs/auth-redesign.md §6-§7):
+				// users, groups, entitlement vocabulary, API keys and sessions.
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Users>(*auth_users, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_User>(*auth_users, *auth_group_store, *auth_session_service, *auth_sessions, *auth_audit, user_preferences_store.get()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_UserPassword>(*auth_users, *auth_group_store, *auth_sessions, *auth_audit, *auth_offload, Auth::PasswordHasher::Params{}, io_context.get_executor()));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Groups>(*auth_group_store, *auth_users, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Group>(*auth_group_store, *auth_users, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Entitlements>());
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ApiKeys>(*auth_api_keys, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ApiKey>(*auth_api_keys, *auth_audit));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Sessions>(*auth_sessions));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Session>(*auth_sessions, *auth_audit));
+			}
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Devices>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Mqtt>(hub_locator));
 			{
@@ -710,9 +949,9 @@ int main(int argc, char* argv[])
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_HealthDetailed>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_History>(history_service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Metrics>(hub_locator));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Preferences>(preferences_service));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedule>(scheduler_service));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedules>(scheduler_service));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Preferences>(preferences_service, user_preferences_store));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedule>(scheduler_service, data_hub));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedules>(scheduler_service, data_hub));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedules>(controller_schedule_store));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Version>());
 

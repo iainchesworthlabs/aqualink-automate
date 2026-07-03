@@ -13,6 +13,24 @@ target_sources(
 	unit/test_main.cpp
 	unit/application/test_application_defaults.cpp
 	unit/application/test_secure_runtime_paths.cpp
+	unit/auth/test_audit_log.cpp
+	unit/auth/test_auth_stores.cpp
+	unit/auth/test_bootstrap.cpp
+	unit/auth/test_kiosk.cpp
+	unit/http/test_access_enforcement.cpp
+	unit/http/test_http_admin_routes.cpp
+	unit/http/test_http_auth_routes.cpp
+	unit/http/test_http_preferences_subject.cpp
+	unit/http/test_http_diagnostics_options_redaction.cpp
+	unit/http/test_routing_authz.cpp
+	unit/auth/test_entitlement.cpp
+	unit/auth/test_jwt.cpp
+	unit/auth/test_mock_idp.cpp
+	unit/auth/test_password_hasher.cpp
+	unit/auth/test_policy_engine.cpp
+	unit/auth/test_session.cpp
+	unit/auth/test_subject_resolver.cpp
+	unit/utility/test_offload_pool.cpp
 	unit/auxillaries/test_jandy_auxillary_id.cpp
 	unit/concepts/test_concept_is_c_array.cpp
 	unit/certificates/test_certificate_generation.cpp
@@ -64,6 +82,7 @@ target_sources(
 	unit/history/test_history_service.cpp
 	unit/options/test_option_metadata.cpp
 	unit/options/test_options_alerting.cpp
+	unit/options/test_options_auth.cpp
 	unit/options/test_options_config_file.cpp
 	unit/options/test_options_developer.cpp
 	unit/options/test_options_equipment.cpp
@@ -75,7 +94,9 @@ target_sources(
 	unit/options/test_options_serial.cpp
 	unit/options/test_options_validators.cpp
 	unit/preferences/test_preferences_service.cpp
+	unit/preferences/test_user_preferences_store.cpp
 	unit/scheduling/test_controller_schedule.cpp
+	unit/scheduling/test_schedule_authorization.cpp
 	unit/scheduling/test_schedule.cpp
 	unit/scheduling/test_scheduler_service.cpp
 	unit/startup/test_jandy_revision_capabilities.cpp
@@ -104,7 +125,8 @@ target_sources(
 	unit/mocks/mock_generator_messagetorawdata.cpp 
 	unit/mocks/mock_generator_rawdatatomessage.cpp 	
 	unit/mocks/mock_mqtt_broker.cpp
-	unit/mocks/mock_testserialportimpl.cpp 
+	unit/mocks/mock_oidc_provider.cpp
+	unit/mocks/mock_testserialportimpl.cpp
 	unit/mqtt/test_mqtt_client.cpp
 	unit/mqtt/test_mqtt_ha_discovery.cpp
 	unit/mqtt/test_mqtt_hub.cpp

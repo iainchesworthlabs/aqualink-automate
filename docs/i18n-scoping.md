@@ -26,6 +26,23 @@
 > alert WS/webhook payloads carry structured `params` next to `detail`, and the
 > UI translates both from `error.<code>` / `alert_detail.<condition>` catalog
 > entries. See docs/i18n.md "Structured errors and alerts".
+>
+> **Reconciliation 2026-07-03: Phase 3 is implemented** on `feat/i18n-phase3` —
+> the stylesheets converted to logical properties, `[dir='rtl']` overrides for
+> switch knobs/toast slide, and time-axis geometry pinned LTR (docs/i18n.md
+> "RTL layout"). The alerts-dropdown narrow-viewport clipping turned out to be
+> pre-existing in BOTH directions and is tracked separately. *(Fixed 2026-07-03:
+> `.alerts-dropdown` now anchors to `.nav-inner` instead of the bell — see the
+> Phase 3 breaker list below.)*
+>
+> **Reconciliation 2026-07-03: Phase 4 is implemented** on `feat/i18n-phase4` —
+> a vendored Noto Sans Arabic variable woff2 (Arabic `unicode-range` slice only,
+> so it acts as a per-glyph fallback behind the Latin brand faces) plus a named
+> Japanese system-font stack under `html[lang='ja']`. Deviates from the plan in
+> one respect: the "optional" vendored Noto subset was taken up for Arabic so the
+> rendered face is consistent across platforms instead of whatever `system-ui`
+> resolves to; CJK stays on named system faces. See docs/i18n.md "Fonts and
+> scripts".
 
 ## Goal
 
@@ -136,11 +153,12 @@ maintainer-specific assumption.
 - Targeted fixes for the known breakers: alerts dropdown anchor, toast container corner, alerts
   badge position, schedule-timeline axis padding, `margin-left: auto` right-aligners, trends
   hover readout.
-  - *Reconciled 2026-07-03:* the alerts dropdown anchor and alerts badge position are done —
-    `.alerts-dropdown` now anchors to `.nav-inner` via `inset-inline-end` (full-width sheet
-    below the nav at narrow widths, so it can never overflow the viewport when the nav wraps),
-    and `.alerts-badge` uses `inset-inline-end` anchored to `.alerts-bell`. The remaining
-    breakers in this list are still open.
+  - *Reconciled 2026-07-03:* Phase 3 converted the alerts dropdown/badge anchors to
+    `inset-inline-end`, which mirrored them in RTL but left the (pre-existing, both-direction)
+    narrow-viewport clipping when the nav wraps. That is now fixed too: `.alerts-dropdown`
+    anchors to `.nav-inner` instead of the bell (full-width sheet below the nav at narrow
+    widths), so it can never overflow the viewport regardless of where the wrap point falls
+    for a given locale.
 - Numerals/percent widths in the timeline: keep LTR numerals inside RTL text via
   `unicode-bidi`/`dir="ltr"` islands where needed.
 - Playwright RTL smoke test (load with an RTL locale, assert `dir`, screenshot key views).

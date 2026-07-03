@@ -76,9 +76,33 @@ function settingsView() {
         _matterQrPayload: null,
 
         // Alpine auto-calls init() on the component.
-        async init() {
-            this.fetchMatter();
-            this.fetchProfiling();
+        init() {
+            // These endpoints (preferences, matter, profiling) require auth
+            // under the identity system. Defer the initial load until the
+            // session is ready (authorised, or posture disabled) so a first
+            // paint before login does not fire 401s. If already ready — e.g.
+            // navigating here after login — load immediately.
+            const auth = window.Alpine && Alpine.store('auth');
+            if (auth && !auth.ready) {
+                window.addEventListener('auth:ready', () => this._loadInitial(), { once: true });
+            } else {
+                this._loadInitial();
+            }
+        },
+
+        async _loadInitial() {
+            const auth = window.Alpine && Alpine.store('auth');
+            // Matter + profiling are diagnostics.view surfaces; only fetch them
+            // when the subject may see diagnostics (an anonymous guest usually
+            // cannot — skip to avoid a pointless 401).
+            if (!auth || auth.can('diagnostics.view')) {
+                this.fetchMatter();
+                this.fetchProfiling();
+            }
+            // Per-user server preferences require a session (prefs.self). A guest
+            // has none, so keep the localStorage first-paint values (D7) and skip
+            // the server round-trip entirely.
+            if (auth && !auth.authenticated) { return; }
             try {
                 const resp = await fetch('/api/preferences');
                 if (!resp.ok) { return; }

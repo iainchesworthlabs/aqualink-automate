@@ -332,6 +332,13 @@
             },
 
             async _syncFromServer() {
+                // Per-user prefs (the server locale) require a session. An
+                // anonymous/guest visitor has none — /api/preferences answers 401
+                // without prefs.self — so keep the localStorage locale (D7) and
+                // skip the request entirely to avoid first-paint 401 noise. The
+                // auth:ready listener re-runs this once a session exists.
+                const authed = window.AqualinkAuth && window.AqualinkAuth.token && window.AqualinkAuth.token();
+                if (!authed) { return; }
                 try {
                     const resp = await fetch('/api/preferences');
                     if (!resp.ok) return;

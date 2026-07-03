@@ -2,8 +2,10 @@
 
 #include <memory>
 
+#include <boost/beast/http/verb.hpp>
 #include <nlohmann/json.hpp>
 
+#include "auth/entitlement_vocabulary.h"
 #include "interfaces/ispasideremotecontroller.h"
 #include "interfaces/iwebroute.h"
 #include "kernel/data_hub.h"
@@ -32,6 +34,17 @@ namespace AqualinkAutomate::HTTP
 
 	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
+
+	public:
+		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
+		{
+			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))
+			{
+				return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };
+			}
+
+			return { .Action = Auth::Vocabulary::EQUIPMENT_CONTROL_SPASIDE };
+		}
 
 	private:
 		HTTP::Response HandleGet(const HTTP::Request& req);

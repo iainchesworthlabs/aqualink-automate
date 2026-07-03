@@ -9,6 +9,7 @@
 
 #include <boost/signals2.hpp>
 
+#include "auth/entitlement_vocabulary.h"
 #include "interfaces/iwebsocket.h"
 #include "kernel/data_hub.h"
 #include "kernel/equipment_hub.h"
@@ -24,6 +25,12 @@ namespace AqualinkAutomate::HTTP
 	{
 	public:
 		WebSocket_Equipment(Kernel::HubLocator& hub_locator);
+
+	public:
+		Interfaces::AccessRequirement RequiredAccess() const override
+		{
+			return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };
+		}
 
 	public:
 		std::optional<std::string> DequeueMessage(ConnectionId connId) override;

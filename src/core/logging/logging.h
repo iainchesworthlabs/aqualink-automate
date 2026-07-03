@@ -33,7 +33,7 @@ namespace AqualinkAutomate::Logging
 	// enumerator count drifts from the wired-up logger set, forcing both to be updated.
 	//
 	inline constexpr std::size_t CHANNEL_COUNT = magic_enum::enum_count<Channel>();
-	static_assert(CHANNEL_COUNT == 18U, "Channel enum changed: update global_logger.{h,cpp} and the GetGlobalLogger() switch in logging.h to match.");
+	static_assert(CHANNEL_COUNT == 19U, "Channel enum changed: update global_logger.{h,cpp} and the GetGlobalLogger() switch in logging.h to match.");
 
 	//
 	// A loggable message is either:
@@ -92,6 +92,9 @@ namespace AqualinkAutomate::Logging
 		{
 			switch (channel)
 			{
+			case Channel::Audit:
+				return GlobalLogger_Audit::get();
+
 			case Channel::Certificates:
 				return GlobalLogger_Certificates::get();
 
