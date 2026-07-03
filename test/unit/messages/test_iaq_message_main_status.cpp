@@ -58,9 +58,11 @@ BOOST_AUTO_TEST_CASE(TestConstruction_Defaults)
 	IAQMessage_MainStatus msg;
 	BOOST_CHECK(msg.PumpOn() == false);
 	BOOST_CHECK(msg.SpaMode() == false);
-	BOOST_CHECK(ApproxEqual(msg.PoolTemperature().InCelsius().value(), 0.0));
-	BOOST_CHECK(ApproxEqual(msg.SpaTemperature().InCelsius().value(), 0.0));
-	BOOST_CHECK(ApproxEqual(msg.AirTemperature().InCelsius().value(), 0.0));
+	BOOST_CHECK(!msg.PoolTemperature().has_value());
+	BOOST_CHECK(!msg.SpaTemperature().has_value());
+	BOOST_CHECK(!msg.AirTemperature().has_value());
+	BOOST_CHECK(!msg.PoolSetpoint().has_value());
+	BOOST_CHECK(!msg.SpaSetpoint().has_value());
 	BOOST_CHECK(msg.PoolHeaterStatus() == HeaterStatuses::Unknown);
 	BOOST_CHECK(msg.SpaHeaterStatus() == HeaterStatuses::Unknown);
 	BOOST_CHECK(msg.SolarHeaterStatus() == HeaterStatuses::Unknown);
@@ -97,9 +99,12 @@ BOOST_AUTO_TEST_CASE(TestDeserialize_LegacyFormat_ThreeDevices_PumpOn_SpaOff)
 
 	BOOST_CHECK(msg.PumpOn() == true);
 	BOOST_CHECK(msg.SpaMode() == false);
-	BOOST_CHECK(ApproxEqual(msg.PoolTemperature().InCelsius().value(), 28.5));
-	BOOST_CHECK(ApproxEqual(msg.SpaTemperature().InCelsius().value(), 30.0));
-	BOOST_CHECK(ApproxEqual(msg.AirTemperature().InCelsius().value(), 25.0));
+	BOOST_REQUIRE(msg.PoolTemperature().has_value());
+	BOOST_REQUIRE(msg.SpaTemperature().has_value());
+	BOOST_REQUIRE(msg.AirTemperature().has_value());
+	BOOST_CHECK(ApproxEqual(msg.PoolTemperature()->InCelsius().value(), 28.5));
+	BOOST_CHECK(ApproxEqual(msg.SpaTemperature()->InCelsius().value(), 30.0));
+	BOOST_CHECK(ApproxEqual(msg.AirTemperature()->InCelsius().value(), 25.0));
 
 	BOOST_REQUIRE(msg.DeviceIds().size() == 3);
 	BOOST_CHECK_EQUAL(msg.DeviceIds()[0], static_cast<uint8_t>(0x01));
@@ -175,10 +180,18 @@ BOOST_AUTO_TEST_CASE(TestDeserialize_CurrentFormat_FiveDevices)
 	BOOST_CHECK(msg.SpaHeaterStatus() == HeaterStatuses::Enabled);
 	BOOST_CHECK(msg.SolarHeaterStatus() == HeaterStatuses::Off);
 
-	// Current format: PoolTemp = pool_target, SpaTemp = water_current
-	BOOST_CHECK(ApproxEqual(msg.PoolTemperature().InCelsius().value(), 28.0));
-	BOOST_CHECK(ApproxEqual(msg.SpaTemperature().InCelsius().value(), 27.0));
-	BOOST_CHECK(ApproxEqual(msg.AirTemperature().InCelsius().value(), 24.0));
+	// Current format: pool_target/spa_target are SETPOINTS; water_current is the
+	// actual temperature of the active body (pool here, since spa mode is off).
+	BOOST_REQUIRE(msg.PoolSetpoint().has_value());
+	BOOST_REQUIRE(msg.SpaSetpoint().has_value());
+	BOOST_CHECK(ApproxEqual(msg.PoolSetpoint()->InCelsius().value(), 28.0));
+	BOOST_CHECK(ApproxEqual(msg.SpaSetpoint()->InCelsius().value(), 32.0));
+
+	BOOST_REQUIRE(msg.PoolTemperature().has_value());
+	BOOST_CHECK(ApproxEqual(msg.PoolTemperature()->InCelsius().value(), 27.0));
+	BOOST_CHECK(!msg.SpaTemperature().has_value());   // spa not circulating -> no reading
+	BOOST_REQUIRE(msg.AirTemperature().has_value());
+	BOOST_CHECK(ApproxEqual(msg.AirTemperature()->InCelsius().value(), 24.0));
 
 	// HeaterSetpoint = pool_target when not in spa mode
 	BOOST_REQUIRE(msg.HeaterSetpoint().has_value());
@@ -215,6 +228,75 @@ BOOST_AUTO_TEST_CASE(TestDeserialize_CurrentFormat_SpaMode_HeaterSetpoint)
 	// HeaterSetpoint = spa_target when in spa mode
 	BOOST_REQUIRE(msg.HeaterSetpoint().has_value());
 	BOOST_CHECK(ApproxEqual(msg.HeaterSetpoint()->InCelsius().value(), 35.0));
+
+	// In spa mode, water_current is the SPA's actual temperature; the pool has no reading.
+	BOOST_REQUIRE(msg.SpaTemperature().has_value());
+	BOOST_CHECK(ApproxEqual(msg.SpaTemperature()->InCelsius().value(), 34.0));
+	BOOST_CHECK(!msg.PoolTemperature().has_value());
+}
+
+// =============================================================================
+// Regression: the pool/spa TARGETS must never be reported as measured
+// temperatures, and a pump-off (or sentinel) water_current must yield NO
+// reading rather than a fabricated one.  Previously PoolTemperature() returned
+// pool_target, so with the pump off the UI showed the setpoint (e.g. 30C) as a
+// live pool temperature instead of flagging the reading as stale.
+// =============================================================================
+
+BOOST_AUTO_TEST_CASE(TestDeserialize_CurrentFormat_PumpOff_NoWaterTemperature)
+{
+	// Pump OFF: water_current carries the 0x0001 "no reading" sentinel.
+	std::vector<uint8_t> payload;
+	payload.push_back(0x00);       // device_count = 0
+	payload.push_back(0x00);       // pump OFF
+	payload.push_back(0x00);       // pool heater = Off
+	payload.push_back(0x00);       // spa OFF
+	payload.push_back(0x00);       // spa heater = Off
+	payload.push_back(0x00);       // solar = Off
+	PushTempBE(payload, 30);       // pool_target = 30C (the user-visible setpoint)
+	PushTempBE(payload, 39);       // spa_target = 39C
+	PushTempBE(payload, 24);       // air = 24C
+	PushTempBE(payload, 1);        // water_current = 0x0001 sentinel (pump off)
+
+	auto pkt = MakePacket(0x33, 0x70, payload);
+	IAQMessage_MainStatus msg;
+	BOOST_REQUIRE(msg.DeserializeContents(std::span<const uint8_t>(pkt)));
+
+	// No water reading — and in particular NOT the 30C setpoint.
+	BOOST_CHECK(!msg.PoolTemperature().has_value());
+	BOOST_CHECK(!msg.SpaTemperature().has_value());
+
+	// The setpoints and air temperature are still decoded.
+	BOOST_REQUIRE(msg.PoolSetpoint().has_value());
+	BOOST_CHECK(ApproxEqual(msg.PoolSetpoint()->InCelsius().value(), 30.0));
+	BOOST_REQUIRE(msg.SpaSetpoint().has_value());
+	BOOST_CHECK(ApproxEqual(msg.SpaSetpoint()->InCelsius().value(), 39.0));
+	BOOST_REQUIRE(msg.AirTemperature().has_value());
+	BOOST_CHECK(ApproxEqual(msg.AirTemperature()->InCelsius().value(), 24.0));
+}
+
+BOOST_AUTO_TEST_CASE(TestDeserialize_CurrentFormat_SentinelWithPumpOn_NoWaterTemperature)
+{
+	// Defensive: even with the pump flagged ON, a sentinel water_current (<= 0x0001)
+	// must not be reported as a temperature.
+	std::vector<uint8_t> payload;
+	payload.push_back(0x00);       // device_count = 0
+	payload.push_back(0x01);       // pump ON
+	payload.push_back(0x00);
+	payload.push_back(0x00);       // spa OFF
+	payload.push_back(0x00);
+	payload.push_back(0x00);
+	PushTempBE(payload, 30);       // pool_target
+	PushTempBE(payload, 39);       // spa_target
+	PushTempBE(payload, 24);       // air
+	PushTempBE(payload, 0);        // water_current = 0x0000 sentinel
+
+	auto pkt = MakePacket(0x33, 0x70, payload);
+	IAQMessage_MainStatus msg;
+	BOOST_REQUIRE(msg.DeserializeContents(std::span<const uint8_t>(pkt)));
+
+	BOOST_CHECK(!msg.PoolTemperature().has_value());
+	BOOST_CHECK(!msg.SpaTemperature().has_value());
 }
 
 // =============================================================================
@@ -330,8 +412,11 @@ BOOST_AUTO_TEST_CASE(TestDeserialize_ZeroDeviceCount)
 
 	BOOST_CHECK(msg.DeviceIds().empty());
 	BOOST_CHECK(msg.PumpOn() == true);
-	BOOST_CHECK(ApproxEqual(msg.PoolTemperature().InCelsius().value(), 26.0));
-	BOOST_CHECK(ApproxEqual(msg.AirTemperature().InCelsius().value(), 20.0));
+	// Pool mode + pump on -> water_current (25C) is the pool's actual temperature.
+	BOOST_REQUIRE(msg.PoolTemperature().has_value());
+	BOOST_CHECK(ApproxEqual(msg.PoolTemperature()->InCelsius().value(), 25.0));
+	BOOST_REQUIRE(msg.AirTemperature().has_value());
+	BOOST_CHECK(ApproxEqual(msg.AirTemperature()->InCelsius().value(), 20.0));
 }
 
 // =============================================================================
