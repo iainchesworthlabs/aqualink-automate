@@ -125,13 +125,21 @@ test('writes an operational log file (content survives shutdown)', async () => {
   await runAndCaptureStderr(['--log-file', logPath], { port: 18105 });
 
   // On a clean SIGTERM shutdown the active file is finally rotated, so read every
-  // "app*" file in the directory. At least one must hold the startup records —
+  // "app*" file in the directory. At least one must hold operational records —
   // proving the file sink wrote and (on POSIX) that the shutdown flush ran.
   const files = readdirSync(dir).filter((f) => f.startsWith('app'));
   expect(files.length).toBeGreaterThan(0);
 
+  // Anchor on a POST-options startup line. The file sink is installed at the
+  // reconfigure step, AFTER options are parsed (docs/logging-sinks-redesign.md
+  // §8.3) — the --log-file path can come from the config file, so it is unknown
+  // before the parse. The pre-options bootstrap lines (e.g. "Configuring
+  // application options") therefore only ever reach the console, never the file;
+  // asserting one here was the original bug. "Starting AqualinkAutomate::HttpServer"
+  // is an unconditional startup record emitted well after the reconfigure, so it is
+  // always in the file regardless of platform or replay fixture.
   const content = files.map((f) => readFileSync(join(dir, f), 'utf8')).join('');
-  expect(content).toContain('Configuring application options');
+  expect(content).toContain('Starting AqualinkAutomate::HttpServer');
 });
 
 // journald priority prefixes only apply on a systemd/POSIX host where stderr is the
