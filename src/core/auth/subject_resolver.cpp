@@ -12,9 +12,56 @@ namespace AqualinkAutomate::Auth
 	namespace
 	{
 		constexpr std::string_view BEARER_PREFIX{ "Bearer " };
+		constexpr std::string_view WS_BEARER_ENTRY_PREFIX{ "bearer." };
 
-		std::string_view BearerToken(const HTTP::Request& req)
+		// Browsers cannot set an Authorization header on a WebSocket upgrade, so
+		// the UI offers the token as a `bearer.<token>` entry in the
+		// Sec-WebSocket-Protocol header instead (e.g. "aqualink, bearer.<token>").
+		// Mirrors routing.cpp's WebSocketSubprotocolTokenMatches parsing, but
+		// extracts the token rather than comparing it to one expected value,
+		// since the JWT/API-key path has no single shared secret to compare
+		// against.
+		std::string_view WebSocketSubprotocolBearerToken(const HTTP::Request& req)
 		{
+			const auto it = req.find(boost::beast::http::field::sec_websocket_protocol);
+
+			if (req.end() == it)
+			{
+				return {};
+			}
+
+			const std::string_view header{ it->value().data(), it->value().size() };
+
+			std::size_t pos = 0;
+			while (pos <= header.size())
+			{
+				const std::size_t comma = header.find(',', pos);
+				std::string_view entry = (comma == std::string_view::npos)
+					? header.substr(pos)
+					: header.substr(pos, comma - pos);
+
+				while (!entry.empty() && (entry.front() == ' ' || entry.front() == '\t')) { entry.remove_prefix(1); }
+				while (!entry.empty() && (entry.back() == ' ' || entry.back() == '\t')) { entry.remove_suffix(1); }
+
+				if (entry.starts_with(WS_BEARER_ENTRY_PREFIX))
+				{
+					return entry.substr(WS_BEARER_ENTRY_PREFIX.size());
+				}
+
+				if (comma == std::string_view::npos) { break; }
+				pos = comma + 1;
+			}
+
+			return {};
+		}
+
+		std::string_view BearerToken(const HTTP::Request& req, bool is_websocket_upgrade)
+		{
+			if (is_websocket_upgrade)
+			{
+				return WebSocketSubprotocolBearerToken(req);
+			}
+
 			const auto it = req.find(boost::beast::http::field::authorization);
 
 			if (req.end() == it)
@@ -171,9 +218,9 @@ namespace AqualinkAutomate::Auth
 
 	HTTP::Routing::SubjectResolver MakeSubjectResolver(SubjectResolverDeps deps)
 	{
-		return [deps = std::move(deps)](const HTTP::Request& req, [[maybe_unused]] bool is_websocket_upgrade) -> Subject
+		return [deps = std::move(deps)](const HTTP::Request& req, bool is_websocket_upgrade) -> Subject
 		{
-			const auto token = BearerToken(req);
+			const auto token = BearerToken(req, is_websocket_upgrade);
 
 			if (!token.empty())
 			{

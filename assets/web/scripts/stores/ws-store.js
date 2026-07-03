@@ -227,4 +227,19 @@ document.addEventListener('alpine:init', () => {
             conn.delay = Math.min(conn.delay * 2, WS_RECONNECT_MAX_DELAY_MS);
         }
     });
+
+    // Re-open both sockets whenever auth state settles — not just at boot.
+    // `auth:ready` fires again after a successful login/logout (auth.js's
+    // check()), and browsers can't attach a bearer token to an in-flight
+    // WebSocket, so a socket opened before login stays anonymous forever
+    // unless it's explicitly recreated here (mirrors prefs-sync.js's
+    // un-gated `auth:ready` listener). _connect() safely replaces any
+    // existing socket, so a redundant call right after app.js's own
+    // first-boot connect is a harmless no-op.
+    window.addEventListener('auth:ready', () => {
+        const ws = Alpine.store('ws');
+        if (!ws) return;
+        ws.connectEquipment();
+        ws.connectStats();
+    });
 });

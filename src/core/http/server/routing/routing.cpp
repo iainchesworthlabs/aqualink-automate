@@ -266,6 +266,39 @@ namespace AqualinkAutomate::HTTP::Routing
 			return false;
 		}
 
+		// Extract the bearer token offered via the WebSocket handshake's
+		// Sec-WebSocket-Protocol header, verbatim (unlike
+		// WebSocketSubprotocolTokenMatches above, which compares against one
+		// expected value — this is for capturing an arbitrary per-connection
+		// credential, e.g. into the WS revalidator closure below).
+		[[nodiscard]] std::string_view WebSocketSubprotocolBearerToken(const HTTP::Request& req)
+		{
+			const std::string_view header = HeaderValue(req, boost::beast::http::field::sec_websocket_protocol);
+			static constexpr std::string_view BEARER_ENTRY_PREFIX{ "bearer." };
+
+			std::size_t pos = 0;
+			while (pos <= header.size())
+			{
+				const std::size_t comma = header.find(',', pos);
+				std::string_view entry = (comma == std::string_view::npos)
+					? header.substr(pos)
+					: header.substr(pos, comma - pos);
+
+				while (!entry.empty() && (entry.front() == ' ' || entry.front() == '\t')) { entry.remove_prefix(1); }
+				while (!entry.empty() && (entry.back() == ' ' || entry.back() == '\t')) { entry.remove_suffix(1); }
+
+				if (entry.starts_with(BEARER_ENTRY_PREFIX))
+				{
+					return entry.substr(BEARER_ENTRY_PREFIX.size());
+				}
+
+				if (comma == std::string_view::npos) { break; }
+				pos = comma + 1;
+			}
+
+			return {};
+		}
+
 		// Evaluate the active SecurityConfig against a parsed request. Returns the
 		// rejection response to send when the request is denied, or std::nullopt when
 		// it is permitted. Shared by the HTTP and WebSocket-upgrade paths so both
@@ -800,11 +833,10 @@ namespace AqualinkAutomate::HTTP::Routing
 			// reach the live socket on the next poll.
 			if (subject_resolver && required.IsSpecified())
 			{
-				std::string bearer;
-				if (const auto it = req.find(boost::beast::http::field::authorization); it != req.end())
-				{
-					bearer.assign(it->value().data(), it->value().size());
-				}
+				// Browsers cannot set an Authorization header on the upgrade — the
+				// bearer travels as a `bearer.<token>` entry in Sec-WebSocket-Protocol
+				// instead (see WebSocketSubprotocolBearerToken above).
+				std::string bearer{ WebSocketSubprotocolBearerToken(req) };
 
 				const std::string action{ required.Action };
 				const std::string resource_kind{ required.ResourceKind };
@@ -816,13 +848,15 @@ namespace AqualinkAutomate::HTTP::Routing
 						return true;
 					}
 
-					// Re-resolve from a minimal synthesised request carrying only
-					// the captured credential — the resolver reads the bearer.
+					// Re-resolve from a minimal synthesised request carrying only the
+					// captured credential, offered the same way a real WS upgrade
+					// would (Sec-WebSocket-Protocol) — is_websocket_upgrade=true below
+					// makes the resolver look there, not at Authorization.
 					HTTP::Request synth;
 					synth.method(boost::beast::http::verb::get);
 					if (!bearer.empty())
 					{
-						synth.set(boost::beast::http::field::authorization, bearer);
+						synth.set(boost::beast::http::field::sec_websocket_protocol, "bearer." + bearer);
 					}
 
 					const auto subject = subject_resolver(synth, true);

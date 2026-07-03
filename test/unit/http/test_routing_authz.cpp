@@ -150,6 +150,26 @@ namespace
 		return req;
 	}
 
+	// A WebSocket upgrade: browsers cannot set an Authorization header on one,
+	// so the UI offers the token as a `bearer.<token>` entry in
+	// Sec-WebSocket-Protocol instead (alongside the benign "aqualink" marker).
+	// Unlike MakeRequest(), this reflects what a real browser can actually send.
+	HTTP::Request MakeWebSocketUpgradeRequest(std::string_view target, std::string_view bearer = {})
+	{
+		HTTP::Request req;
+		req.version(11);
+		req.method(boost::beast::http::verb::get);
+		req.target(target);
+		req.set(boost::beast::http::field::host, "localhost.localdomain");
+
+		if (!bearer.empty())
+		{
+			req.set(boost::beast::http::field::sec_websocket_protocol, "aqualink, bearer." + std::string{ bearer });
+		}
+
+		return req;
+	}
+
 	// Registers the test routes, enables auth-mode, and installs the real
 	// subject resolver over a caller-shaped group registry (+ optional codec).
 	struct AuthModeFixture
@@ -347,7 +367,7 @@ BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_UnknownApiPathIs404WhenAuthenticated, 
 
 BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_WebSocketUpgradeGated, AuthModeFixture)
 {
-	auto req = MakeRequest(boost::beast::http::verb::get, "/ws/test/feed");
+	auto req = MakeWebSocketUpgradeRequest("/ws/test/feed");
 
 	// Anonymous with no guest grants: upgrade rejected 401.
 	const auto denial = HTTP::Routing::AuthorizeWebSocketUpgrade(req);
@@ -358,8 +378,10 @@ BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_WebSocketUpgradeGated, AuthModeFixture
 	GrantToGuest({ "equipment.view" });
 	BOOST_CHECK(!HTTP::Routing::AuthorizeWebSocketUpgrade(req).has_value());
 
-	// Authenticated subject with view: also permitted.
-	auto authed = MakeRequest(boost::beast::http::verb::get, "/ws/test/feed", MintToken({ "equipment.view" }));
+	// Authenticated subject with view, credential offered the way a real
+	// browser upgrade offers it (Sec-WebSocket-Protocol, not Authorization):
+	// also permitted.
+	auto authed = MakeWebSocketUpgradeRequest("/ws/test/feed", MintToken({ "equipment.view" }));
 	BOOST_CHECK(!HTTP::Routing::AuthorizeWebSocketUpgrade(authed).has_value());
 }
 
@@ -387,7 +409,7 @@ BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_WebSocketRevalidatorClosesOnRevocation
 	claims.Entitlements = { "equipment.view" };
 	const auto token = Codec->Sign(claims);
 
-	auto req = MakeRequest(boost::beast::http::verb::get, "/ws/test/feed", token);
+	auto req = MakeWebSocketUpgradeRequest("/ws/test/feed", token);
 	BOOST_REQUIRE(!HTTP::Routing::AuthorizeWebSocketUpgrade(req).has_value());
 
 	// The revalidator captured for this connection currently passes...
@@ -407,7 +429,7 @@ BOOST_FIXTURE_TEST_CASE(Test_RoutingAuthz_WebSocketRevalidatorEmptyWhenAuthModeO
 	HTTP::Routing::SecurityConfig off;   // AuthModeEnabled defaults false
 	HTTP::Routing::SetSecurityConfig(std::move(off));
 
-	auto req = MakeRequest(boost::beast::http::verb::get, "/ws/test/feed");
+	auto req = MakeWebSocketUpgradeRequest("/ws/test/feed");
 	BOOST_CHECK(!HTTP::Routing::AuthorizeWebSocketUpgrade(req).has_value());
 	BOOST_CHECK(!static_cast<bool>(HTTP::Routing::CurrentWebSocketRevalidator()));
 }

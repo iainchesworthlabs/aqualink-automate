@@ -68,12 +68,12 @@ function adminApikeysView() {
         // ---- Display helpers ----
         expiryLabel(unix) {
             if (!unix) { return window.AquaI18n.t('admin.never'); }
-            try { return new Date(unix * 1000).toLocaleDateString(); } catch (_) { return String(unix); }
+            try { return window.AquaI18n.formatDateTime(unix * 1000); } catch (_) { return String(unix); }
         },
 
         lastUsedLabel(unix) {
             if (!unix) { return window.AquaI18n.t('admin.never_used'); }
-            try { return new Date(unix * 1000).toLocaleString(); } catch (_) { return String(unix); }
+            try { return window.AquaI18n.formatDateTime(unix * 1000); } catch (_) { return String(unix); }
         },
 
         // ---- Create ----

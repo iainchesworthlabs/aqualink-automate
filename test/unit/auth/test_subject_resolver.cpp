@@ -93,6 +93,24 @@ namespace
 			return Resolver(req, false);
 		}
 
+		// A WebSocket upgrade: browsers cannot set an Authorization header on one,
+		// so the UI offers the token as a `bearer.<token>` entry in
+		// Sec-WebSocket-Protocol instead (alongside the benign "aqualink" marker).
+		Auth::Subject ResolveWebSocketUpgrade(std::string_view bearer = {})
+		{
+			HTTP::Request req;
+			req.version(11);
+			req.method(boost::beast::http::verb::get);
+			req.target("/ws/equipment");
+
+			if (!bearer.empty())
+			{
+				req.set(boost::beast::http::field::sec_websocket_protocol, "aqualink, bearer." + std::string{ bearer });
+			}
+
+			return Resolver(req, true);
+		}
+
 		fs::path Dir;
 		std::shared_ptr<Auth::UserStore> Users;
 		std::shared_ptr<Auth::GroupStore> GroupsStore;
@@ -192,6 +210,25 @@ BOOST_FIXTURE_TEST_CASE(Test_Resolver_ApiKeyAuthenticatesAsMachineSubject, Resol
 	// Revocation applies on the next request.
 	BOOST_REQUIRE(ApiKeys->Revoke(key_id, error));
 	BOOST_CHECK(!Resolve(secret).Authenticated);
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_Resolver_WebSocketUpgradeAuthenticatesViaSubprotocolBearerToken, ResolverFixture)
+{
+	// Regression: the WS upgrade path used to unconditionally read the
+	// Authorization header (impossible for a browser to set on a WebSocket
+	// upgrade), so every /ws/equipment connection resolved to anonymous even
+	// with a valid, logged-in session's access token in hand.
+	const auto token = MintFor(*Users->FindById(AliceId));
+
+	const auto subject = ResolveWebSocketUpgrade(token);
+
+	BOOST_CHECK(subject.Authenticated);
+	BOOST_CHECK_EQUAL(subject.Id, AliceId);
+	BOOST_CHECK(Auth::SubjectProvider::Local == subject.Provider);
+	BOOST_CHECK(subject.Entitlements.Permits("system.admin"));
+
+	// No credential offered => anonymous, same as the plain-HTTP path.
+	BOOST_CHECK(!ResolveWebSocketUpgrade().Authenticated);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_Resolver_LegacyTokenFoldsInAsBootstrapAdmin, ResolverFixture)

@@ -183,7 +183,7 @@ function entitlementEditor() {
         describe(raw) {
             const { action, selector } = this._parse(raw);
             if (selector === null) { return action; }
-            if (selector === '*') { return `${action} (all)`; }
+            if (selector === '*') { return `${action} (${window.AquaI18n.t('common.all')})`; }
             const dev = this.auxDevices.find((d) => d.id === selector);
             return dev ? `${action} (${dev.label})` : `${action} (${selector})`;
         },
@@ -203,7 +203,7 @@ window.AqualinkEntitlements = {
         if (colon === -1) { return raw; }
         const action = raw.slice(0, colon);
         const selector = raw.slice(colon + 1);
-        if (selector === '*') { return `${action} (all)`; }
+        if (selector === '*') { return `${action} (${window.AquaI18n.t('common.all')})`; }
         return `${action} (${selector})`;
     },
 };
