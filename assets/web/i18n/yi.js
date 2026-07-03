@@ -118,6 +118,10 @@
         // ---- Dashboard ---------------------------------------------------------
         'dash.summary_aria': 'איבערבליק פֿון באַסיין- און ספּאַ-טעמפּעראַטור און געצייג-סטאַטוס',
         'dash.set_value': 'שטעלט {value}',
+        'dash.last_reading': 'לעצטע לייענונג {ago}',
+        'dash.no_reading': 'נאָך קיין לייענונג',
+        'dash.not_measuring': 'פּאָמפּע אויס — קיין מעסטונג',
+        'dash.not_circulating': 'קיין צירקולאַציע',
         'dash.pump_state': 'פּאָמפּע {state}',
         'dash.heater_state': 'היצער {state}',
         'dash.chlorinator_state': 'כלאָרינאַטאָר {state}',
@@ -545,6 +549,7 @@
         'alert.salt_low': 'זאַלץ נידעריק',
         'alert.service_mode': 'סערוויס-מאָדוס',
         'alert.serial_comms_loss': 'סעריעלע קאָמוניקאַציע פֿאַרלוירן',
+        'alert.temperature_stale': 'וואַסער-טעמפּעראַטור פֿאַרעלטערט',
         'alert.raised': '{label}: {detail}',
         'alert.fault_detected': 'דעפֿעקט דערזען',
         'alert.cleared': '{label} אויסגעקליבן',
@@ -638,6 +643,7 @@
         'alert_detail.chlorinator_fault': '{health}',
         'alert_detail.service_mode': 'דער קאָנטראָלער איז אין סערוויס-מאָדוס',
         'alert_detail.serial_comms_loss': 'קיין פּראָטאָקאָל-מעלדונג ניט דעקאָדירט פֿאַר {timeout_seconds} ס',
+        'alert_detail.temperature_stale': 'קיין פֿרישע {body}-טעמפּעראַטור פֿאַר מער ווי {threshold_seconds} ס בעת די פּאָמפּע לויפֿט',
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'פּראָגראַם-אינפֿאָרמאַציע',

@@ -318,6 +318,7 @@ target_sources(
 	platform/windows/physical_serial_port_timeout.cpp
 	platform/windows/network_serial_port_timeout.cpp
 	platform/windows/safe_ctime.cpp
+	platform/windows/audit_os_sink.cpp
 )
 
 target_compile_definitions(
@@ -354,6 +355,7 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/audit_os_sink.cpp
 	platform/linux/physical_serial_port_timeout.cpp
 )
 endif(LINUX)
@@ -368,6 +370,7 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/audit_os_sink.cpp
 	platform/macos/physical_serial_port_timeout.cpp
 )
 endif(APPLE)

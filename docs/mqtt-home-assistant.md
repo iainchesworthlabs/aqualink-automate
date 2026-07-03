@@ -229,11 +229,11 @@ These entities are always published:
 | Clean Mode | `binary_sensor` | `payload_on: true` / `payload_off: false`. |
 | Circulation Mode (select) | `select` | Dual-body systems only. Options `Pool`, `Spa`, `Spillover`. Command on `command/circulation/mode`. |
 | Uptime | `sensor` | `device_class: duration`, `entity_category: diagnostic`. |
-| Alerts (5) | `binary_sensor` | `device_class: problem`. See below. |
+| Alerts (6) | `binary_sensor` | `device_class: problem`. See below. |
 
 ### Alert binary sensors
 
-Five `binary_sensor` entities (`device_class: problem`, `payload_on: true` / `payload_off: false`) read the consolidated document at `aqualink/alert/state`:
+Six `binary_sensor` entities (`device_class: problem`, `payload_on: true` / `payload_off: false`) read the consolidated document at `aqualink/alert/state`:
 
 | Key | Display name |
 | --- | --- |
@@ -242,6 +242,9 @@ Five `binary_sensor` entities (`device_class: problem`, `payload_on: true` / `pa
 | `salt_low` | Salt Low |
 | `service_mode` | Service Mode |
 | `serial_comms_loss` | Serial Comms Loss |
+| `temperature_stale` | Temperature Stale |
+
+`temperature_stale` raises when the filter pump is running but the active body's water temperature has not refreshed within `--temperature-staleness-threshold`; a reading going stale while the pump is off is expected (no flow past the sensor) and never raises.
 
 ### Dynamic device entities
 

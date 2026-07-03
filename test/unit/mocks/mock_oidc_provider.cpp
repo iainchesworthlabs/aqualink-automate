@@ -49,6 +49,11 @@ namespace AqualinkAutomate::Test
 	{
 	}
 
+	MockOidcProvider::MockOidcProvider() :
+		MockOidcProvider(Config{})
+	{
+	}
+
 	MockOidcProvider::RsaKeyPair MockOidcProvider::GenerateRsaKeyPair()
 	{
 		EvpPkeyPtr pkey(EVP_RSA_gen(2048), &EVP_PKEY_free);
@@ -184,6 +189,16 @@ namespace AqualinkAutomate::Test
 		}
 
 		return builder.sign(jwt::algorithm::rs256{ key.PublicPem, key.PrivatePem, "", "" });
+	}
+
+	std::string MockOidcProvider::IssueIdToken(
+		const std::string& subject,
+		const std::vector<std::string>& groups,
+		const std::vector<std::string>& scopes,
+		const nlohmann::json& extra_claims,
+		std::chrono::seconds ttl) const
+	{
+		return IssueIdToken(subject, groups, scopes, extra_claims, ttl, TokenOptions{});
 	}
 
 }

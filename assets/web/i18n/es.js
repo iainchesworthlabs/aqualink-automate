@@ -121,6 +121,10 @@
         // ---- Dashboard ---------------------------------------------------------
         'dash.summary_aria': 'Resumen de temperaturas de piscina y spa y estado de los equipos',
         'dash.set_value': 'Ajustar {value}',
+        'dash.last_reading': 'Última lectura {ago}',
+        'dash.no_reading': 'Aún sin lectura',
+        'dash.not_measuring': 'Bomba apagada — sin medición',
+        'dash.not_circulating': 'Sin circulación',
         'dash.pump_state': 'Bomba {state}',
         'dash.heater_state': 'Calentador {state}',
         'dash.chlorinator_state': 'Clorador {state}',
@@ -548,6 +552,7 @@
         'alert.salt_low': 'Sal baja',
         'alert.service_mode': 'Modo de servicio',
         'alert.serial_comms_loss': 'Comunicación serie perdida',
+        'alert.temperature_stale': 'Temperatura del agua desactualizada',
         'alert.raised': '{label}: {detail}',
         'alert.fault_detected': 'falla detectada',
         'alert.cleared': '{label}: resuelto',
@@ -641,6 +646,7 @@
         'alert_detail.chlorinator_fault': '{health}',
         'alert_detail.service_mode': 'El controlador está en modo de servicio',
         'alert_detail.serial_comms_loss': 'No se decodificó ningún mensaje de protocolo durante {timeout_seconds} s',
+        'alert_detail.temperature_stale': 'Sin temperatura de {body} actualizada durante más de {threshold_seconds} s con la bomba en marcha',
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'Información del software',

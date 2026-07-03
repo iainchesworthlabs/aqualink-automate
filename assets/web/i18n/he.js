@@ -120,6 +120,10 @@
         // ---- Dashboard ---------------------------------------------------------
         'dash.summary_aria': 'סקירת טמפרטורות הבריכה והספא ומצב הציוד',
         'dash.set_value': 'הגדרת {value}',
+        'dash.last_reading': 'קריאה אחרונה {ago}',
+        'dash.no_reading': 'אין קריאה עדיין',
+        'dash.not_measuring': 'המשאבה כבויה — אין מדידה',
+        'dash.not_circulating': 'אין סחרור',
         'dash.pump_state': 'משאבה {state}',
         'dash.heater_state': 'מחמם {state}',
         'dash.chlorinator_state': 'מכשיר הכלרה {state}',
@@ -547,6 +551,7 @@
         'alert.salt_low': 'מלח נמוך',
         'alert.service_mode': 'מצב שירות',
         'alert.serial_comms_loss': 'התקשורת הטורית אבדה',
+        'alert.temperature_stale': 'טמפרטורת המים אינה עדכנית',
         'alert.raised': '{label}: {detail}',
         'alert.fault_detected': 'זוהתה תקלה',
         'alert.cleared': '{label} — נפתר',
@@ -640,6 +645,7 @@
         'alert_detail.chlorinator_fault': '{health}',
         'alert_detail.service_mode': 'הבקר במצב שירות',
         'alert_detail.serial_comms_loss': 'לא פוענחה הודעת פרוטוקול במשך {timeout_seconds} שנ׳',
+        'alert_detail.temperature_stale': 'אין טמפרטורת {body} עדכנית יותר מ-{threshold_seconds} שנ׳ בזמן שהמשאבה פועלת',
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'פרטי תוכנה',

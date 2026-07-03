@@ -42,7 +42,12 @@ namespace AqualinkAutomate::Auth
 
 	public:
 		// Throws std::runtime_error when sodium fails (init/allocation).
-		static std::string Hash(std::string_view password, const Params& params = {});
+		//
+		// No default for `params`: every call site passes one explicitly
+		// (Params{} as a default argument here is a nested-class default-member-
+		// initializer used before PasswordHasher is a complete class — MSVC
+		// accepts it, GCC/Clang correctly reject it).
+		static std::string Hash(std::string_view password, const Params& params);
 
 		// Constant-time verification against a stored crypto_pwhash_str value.
 		static bool Verify(std::string_view password, std::string_view stored_hash);

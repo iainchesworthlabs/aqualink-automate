@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <format>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -43,15 +44,21 @@ namespace AqualinkAutomate::Devices
 		// data pages from here (runs once).
 		MaybeStartPageSurvey();
 
-		LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Processing MainStatus: pool={:.0f}F, spa={:.0f}F, air={:.0f}F, pump={}, pool_heat={}, spa_heat={}, solar={}",
-			DeviceId(),
-			msg.PoolTemperature().InFahrenheit().value(),
-			msg.SpaTemperature().InFahrenheit().value(),
-			msg.AirTemperature().InFahrenheit().value(),
-			msg.PumpOn(),
-			magic_enum::enum_name(msg.PoolHeaterStatus()),
-			magic_enum::enum_name(msg.SpaHeaterStatus()),
-			magic_enum::enum_name(msg.SolarHeaterStatus())); });
+		LogDebug(Channel::Devices, [&]() {
+			auto temp_str = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+			{
+				return temp.has_value() ? std::format("{:.0f}F", temp->InFahrenheit().value()) : "n/a";
+			};
+
+			return std::format("IAQ ({}): Processing MainStatus: pool={}, spa={}, air={}, pump={}, pool_heat={}, spa_heat={}, solar={}",
+				DeviceId(),
+				temp_str(msg.PoolTemperature()),
+				temp_str(msg.SpaTemperature()),
+				temp_str(msg.AirTemperature()),
+				msg.PumpOn(),
+				magic_enum::enum_name(msg.PoolHeaterStatus()),
+				magic_enum::enum_name(msg.SpaHeaterStatus()),
+				magic_enum::enum_name(msg.SolarHeaterStatus())); });
 
 		// Heuristic: if we see spa mode and have no bodies yet (IAQ-only setup),
 		// infer DualBody_SharedEquipment and create both bodies. This runs BEFORE the
@@ -73,13 +80,40 @@ namespace AqualinkAutomate::Devices
 			? Kernel::CirculationModes::Spa
 			: Kernel::CirculationModes::Pool);
 
-		// Update temperatures in the DataHub.
-		m_DataHub->PoolTemp(msg.PoolTemperature());
-		m_DataHub->SpaTemp(msg.SpaTemperature());
-		m_DataHub->AirTemp(msg.AirTemperature());
+		// Update temperatures in the DataHub. Absent values mean "no reading in this
+		// message" (e.g. water temp while the pump is off) and must NOT be written:
+		// writing would refresh the value's timestamp and defeat the staleness
+		// tracking that lets consumers flag the last real reading as stale.
+		if (auto temp = msg.PoolTemperature(); temp.has_value())
+		{
+			m_DataHub->PoolTemp(temp.value());
+		}
 
-		// Update heater setpoint if present.
-		if (auto setpoint = msg.HeaterSetpoint(); setpoint.has_value())
+		if (auto temp = msg.SpaTemperature(); temp.has_value())
+		{
+			m_DataHub->SpaTemp(temp.value());
+		}
+
+		if (auto temp = msg.AirTemperature(); temp.has_value())
+		{
+			m_DataHub->AirTemp(temp.value());
+		}
+
+		// Update heat setpoints. The current wire format reports both targets on every
+		// message; the legacy format only carries the active body's target (HeaterSetpoint).
+		if (msg.PoolSetpoint().has_value() || msg.SpaSetpoint().has_value())
+		{
+			if (auto setpoint = msg.PoolSetpoint(); setpoint.has_value())
+			{
+				m_DataHub->PoolTempSetpoint(setpoint.value());
+			}
+
+			if (auto setpoint = msg.SpaSetpoint(); setpoint.has_value())
+			{
+				m_DataHub->SpaTempSetpoint(setpoint.value());
+			}
+		}
+		else if (auto setpoint = msg.HeaterSetpoint(); setpoint.has_value())
 		{
 			if (msg.SpaMode())
 			{
@@ -193,11 +227,18 @@ namespace AqualinkAutomate::Devices
 		std::vector<std::string> lines;
 		lines.reserve(IAQ_STATUS_PAGE_LINES);
 
+		// A missing reading renders as "--" (matches the panel's own display for a
+		// sensor with no flow) rather than a fabricated number.
+		auto temp_line = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+		{
+			return temp.has_value() ? std::format("{:.0f}F", temp->InFahrenheit().value()) : "--";
+		};
+
 		lines.emplace_back("System Status");
 		lines.emplace_back(std::format("Mode: {}", msg.SpaMode() ? "Spa" : "Pool"));
-		lines.emplace_back(std::format("Pool Temp: {:.0f}F", msg.PoolTemperature().InFahrenheit().value()));
-		lines.emplace_back(std::format("Spa Temp:  {:.0f}F", msg.SpaTemperature().InFahrenheit().value()));
-		lines.emplace_back(std::format("Air Temp:  {:.0f}F", msg.AirTemperature().InFahrenheit().value()));
+		lines.emplace_back(std::format("Pool Temp: {}", temp_line(msg.PoolTemperature())));
+		lines.emplace_back(std::format("Spa Temp:  {}", temp_line(msg.SpaTemperature())));
+		lines.emplace_back(std::format("Air Temp:  {}", temp_line(msg.AirTemperature())));
 
 		if (auto setpoint = msg.HeaterSetpoint(); setpoint.has_value())
 		{

@@ -25,9 +25,20 @@ namespace AqualinkAutomate::Messages
 		const std::vector<uint8_t>& RawPayload() const;
 		bool PumpOn() const;
 		bool SpaMode() const;
-		Kernel::Temperature PoolTemperature() const;
-		Kernel::Temperature SpaTemperature() const;
-		Kernel::Temperature AirTemperature() const;
+
+		// Actual (measured) temperatures. The current wire format only carries the
+		// ACTIVE body's water temperature (and only while the pump is running), so
+		// pool/spa are optional: absent means "no reading in this message", never 0.
+		std::optional<Kernel::Temperature> PoolTemperature() const;
+		std::optional<Kernel::Temperature> SpaTemperature() const;
+		std::optional<Kernel::Temperature> AirTemperature() const;
+
+		// Heat setpoints (targets). The current format reports both on every message;
+		// the legacy format reports only the active body's target (see HeaterSetpoint).
+		std::optional<Kernel::Temperature> PoolSetpoint() const;
+		std::optional<Kernel::Temperature> SpaSetpoint() const;
+
+		// The active body's target: spa target in spa mode, else pool target.
 		std::optional<Kernel::Temperature> HeaterSetpoint() const;
 		Kernel::HeaterStatuses PoolHeaterStatus() const;
 		Kernel::HeaterStatuses SpaHeaterStatus() const;
@@ -45,9 +56,11 @@ namespace AqualinkAutomate::Messages
 		std::vector<uint8_t> m_RawPayload;
 		bool m_PumpOn{false};
 		bool m_SpaMode{false};
-		Kernel::Temperature m_PoolTemp{Kernel::Temperature::ConvertToTemperatureInCelsius(0.0)};
-		Kernel::Temperature m_SpaTemp{Kernel::Temperature::ConvertToTemperatureInCelsius(0.0)};
-		Kernel::Temperature m_AirTemp{Kernel::Temperature::ConvertToTemperatureInCelsius(0.0)};
+		std::optional<Kernel::Temperature> m_PoolTemp;
+		std::optional<Kernel::Temperature> m_SpaTemp;
+		std::optional<Kernel::Temperature> m_AirTemp;
+		std::optional<Kernel::Temperature> m_PoolSetpoint;
+		std::optional<Kernel::Temperature> m_SpaSetpoint;
 		std::optional<Kernel::Temperature> m_HeaterSetpoint;
 		Kernel::HeaterStatuses m_PoolHeaterStatus{Kernel::HeaterStatuses::Unknown};
 		Kernel::HeaterStatuses m_SpaHeaterStatus{Kernel::HeaterStatuses::Unknown};
