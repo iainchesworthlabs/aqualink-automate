@@ -371,6 +371,7 @@
         'trends.autoscaled_note': '已自动缩放以便比较形状',
         'trends.no_series_selected': '未选择序列',
         'trends.runtime_in_window': '时间窗内的运行时长',
+        'trends.min_max_avg': '最低 {min} · 最高 {max} · 平均 {avg}',
         'chem.swg': 'SWG',
 
         // ---- Schedules --------------------------------------------------------------
@@ -525,6 +526,8 @@
         'time.seconds_ago': '{n}秒前',
         'time.minutes_ago': '{n}分钟前',
         'time.hours_ago': '{n}小时前',
+        'time.days_ago': '{n}天前',
+        'time.now': '现在',
         'time.abbr_seconds': '{n}秒',
         'time.abbr_minutes': '{n}分',
         'time.abbr_hours': '{n}时',

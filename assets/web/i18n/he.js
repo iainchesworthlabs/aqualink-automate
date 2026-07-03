@@ -372,6 +372,7 @@
         'trends.autoscaled_note': 'קנה מידה אוטומטי להשוואת צורות',
         'trends.no_series_selected': 'לא נבחרה סדרה',
         'trends.runtime_in_window': 'זמן פעולה בחלון',
+        'trends.min_max_avg': 'מינ׳ {min} · מקס׳ {max} · ממוצע {avg}',
         'chem.swg': 'SWG',
 
         // ---- Schedules --------------------------------------------------------------
@@ -526,6 +527,8 @@
         'time.seconds_ago': 'לפני {n} שנ׳',
         'time.minutes_ago': 'לפני {n} דק׳',
         'time.hours_ago': 'לפני {n} שע׳',
+        'time.days_ago': 'לפני {n} ימ׳',
+        'time.now': 'עכשיו',
         'time.abbr_seconds': '{n} שנ׳',
         'time.abbr_minutes': '{n} דק׳',
         'time.abbr_hours': '{n} שע׳',
