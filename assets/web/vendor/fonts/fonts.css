@@ -1,4 +1,14 @@
-/* Vendored Bricolage Grotesque + Hanken Grotesk + Noto Sans Arabic (variable woff2). Google Fonts, OFL. */
+/* Vendored Bricolage Grotesque + Hanken Grotesk + Noto Sans Arabic + Noto Sans Hebrew (variable woff2). Google Fonts, OFL. */
+/* hebrew — Hebrew-script glyphs only (unicode-range); Latin stays on the brand faces. */
+@font-face {
+  font-family: 'Noto Sans Hebrew';
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(/vendor/fonts/noto-hebrew.woff2) format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
 /* arabic — Arabic-script glyphs only (unicode-range); Latin stays on the brand faces. */
 @font-face {
   font-family: 'Noto Sans Arabic';
