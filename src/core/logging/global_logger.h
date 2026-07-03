@@ -10,7 +10,6 @@ namespace AqualinkAutomate::Logging
 {
 	using Logger = boost::log::sources::severity_channel_logger_mt<Severity, Channel>;
 	
-	BOOST_LOG_GLOBAL_LOGGER(GlobalLogger_Audit, Logger);
 	BOOST_LOG_GLOBAL_LOGGER(GlobalLogger_Certificates, Logger);
 	BOOST_LOG_GLOBAL_LOGGER(GlobalLogger_Coroutines, Logger);
 	BOOST_LOG_GLOBAL_LOGGER(GlobalLogger_Developer, Logger);

@@ -213,6 +213,12 @@ target_sources(
 	logging/logging_initialise.cpp
 	logging/logging_severity_filter.cpp
 	logging/logging_severity_levels.cpp
+	logging/sinks/severity_mappings.cpp
+	logging/sinks/log_environment.cpp
+	logging/sinks/sink_console.cpp
+	logging/sinks/sink_filters.cpp
+	logging/sinks/sink_native.cpp
+	logging/sinks/sink_registry.cpp
 	mqtt/ha_discovery.cpp
 	mqtt/mqtt_client.cpp
 	mqtt/mqtt_hub.cpp
@@ -224,6 +230,7 @@ target_sources(
 	options/options_developer_options.cpp
 	options/options_equipment_options.cpp
 	options/options_history_options.cpp
+	options/options_logging_options.cpp
 	options/options_matter_options.cpp
 	options/options_mqtt_options.cpp
 	options/options_option_type.cpp
@@ -238,6 +245,7 @@ target_sources(
 	options/helpers/option_dependency_helper.cpp 
 	options/validators/profiler_type_validator.cpp
 	options/validators/severity_level_validator.cpp
+	options/validators/syslog_facility_validator.cpp
 	preferences/preferences_service.cpp
 	preferences/user_preferences_store.cpp
 	profiling/noop_profiler.cpp

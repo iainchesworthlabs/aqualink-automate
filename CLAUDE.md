@@ -25,6 +25,7 @@ When you touch a subsystem, check (and update if affected) its companion doc:
 | GitHub Actions workflows (`.github/workflows/`), Packer/runner images (`cicd/`) | `docs/ci-cd.md`, `docs/cicd-redesign.md`, `docs/releasing.md` |
 | CMake presets, build/install steps | `docs/INSTALL.md`, `docs/worktrees.md` |
 | Profiling/logging facade | `docs/profiling.md` |
+| Logging sinks / `--log-sinks` / `--log-syslog-facility` / audit routing (`src/core/logging/sinks/`, `src/core/auth/audit_log.*`) | `docs/logging-sinks-redesign.md`, `docs/configuration.md` (Logging section) **and** `docs/SECURITY.md` (audit trail) |
 | Record/replay, mock harness | `docs/RECORD_REPLAY.md` |
 | Matter bridge, device-ID maps | `docs/MATTER.md` |
 | Jandy/Pentair wire protocol, opcodes, message types | the relevant protocol doc (`docs/to_master_decoding.md`, `docs/iaqualink2_init_handshake.md`, `docs/aqualink_rs_revisions.md`, `docs/alwin32_simulator_protocol.md`) |

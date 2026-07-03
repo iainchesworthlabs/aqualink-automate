@@ -212,6 +212,7 @@ int main(int argc, char* argv[])
 				| Add(Options::Developer::OptionsProcessor{})
 				| Add(Options::Equipment::OptionsProcessor{})
 				| Add(Options::History::OptionsProcessor{})
+				| Add(Options::LogSinks::OptionsProcessor{})
 				| Add(Options::Matter::OptionsProcessor{})
 				| Add(Options::Mqtt::OptionsProcessor{})
 				| Add(Options::Preferences::OptionsProcessor{})
@@ -235,6 +236,7 @@ int main(int argc, char* argv[])
 					Options::Developer::OptionsProcessor{},
 					Options::Equipment::OptionsProcessor{},
 					Options::History::OptionsProcessor{},
+					Options::LogSinks::OptionsProcessor{},
 					Options::Matter::OptionsProcessor{},
 					Options::Mqtt::OptionsProcessor{},
 					Options::Preferences::OptionsProcessor{},
@@ -252,6 +254,44 @@ int main(int argc, char* argv[])
 			}
 
 			settings = processed_options.value();
+		}
+
+		//---------------------------------------------------------------------
+		// LOGGING ACTIVATION
+		//---------------------------------------------------------------------
+		//
+		// Options are known now, so replace the bootstrap console sink with the
+		// resolved operational sink set (--log-sinks / --log-syslog-facility, or the
+		// environment-derived `auto` policy). The audit sink is installed later, by
+		// the auth bootstrap, and is independent of this.
+
+		{
+			Logging::RuntimeConfig log_runtime_config;
+			const auto log_environment = Sinks::DetectLogEnvironment();
+
+			if (const auto logging_settings = settings.Get<Options::LogSinks::LoggingSettings>(); logging_settings.has_value())
+			{
+				const auto& log_settings = logging_settings.value().get();
+
+				if (Options::LogSinks::SinkMode::Auto == log_settings.Sinks)
+				{
+					log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, /* have_log_file */ false);
+				}
+				else
+				{
+					log_runtime_config.Selection.Console = log_settings.Console;
+					log_runtime_config.Selection.Native = log_settings.Native;
+					log_runtime_config.Selection.ConsoleJournaldPrefixes = log_settings.Console && log_environment.StderrIsJournal;
+				}
+
+				log_runtime_config.GeneralNativeFacility = log_settings.Facility;
+			}
+			else
+			{
+				log_runtime_config.Selection = Sinks::ResolveAutoSinks(log_environment, /* have_log_file */ false);
+			}
+
+			Logging::Reconfigure(log_runtime_config);
 		}
 
 		//---------------------------------------------------------------------
@@ -1282,6 +1322,11 @@ int main(int argc, char* argv[])
 
 		// 8. Stop profiling last
 		profiler.Get()->StopProfiling();
+
+		// 9. Flush and remove logging sinks last of all, so every prior shutdown
+		//    message is delivered (and any async sink frontend drained).
+		LogInfo(Channel::Main, "Shutting down logging...");
+		Logging::Shutdown();
 
 		return_value = EXIT_SUCCESS;
 	}

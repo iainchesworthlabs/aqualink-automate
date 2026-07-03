@@ -7,6 +7,7 @@
 #include "options/options_developer_options.h"
 #include "options/options_equipment_options.h"
 #include "options/options_history_options.h"
+#include "options/options_logging_options.h"
 #include "options/options_matter_options.h"
 #include "options/options_mqtt_options.h"
 #include "options/options_preferences_options.h"

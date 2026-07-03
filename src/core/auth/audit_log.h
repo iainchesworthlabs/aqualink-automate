@@ -11,18 +11,24 @@ namespace AqualinkAutomate::Auth
 {
 
 	//=========================================================================
-	// AuditLog — the security audit trail (docs/auth-redesign.md §10, D17).
+	// AuditLog — the security audit trail (docs/auth-redesign.md §10, D17;
+	// docs/logging-sinks-redesign.md §10).
 	//
-	// Every auditable event (control action with its PDP decision, login
-	// success/failure, lockout, token/key issuance + revocation, entitlement/
-	// group change, posture change) is recorded twice:
+	// Audit is a subsystem, NOT an operational log channel. Every auditable event
+	// (control action with its PDP decision, login success/failure, lockout,
+	// token/key issuance + revocation, entitlement/group change, posture change)
+	// reaches:
 	//
-	//   1. as a structured JSONL line in the state-dir audit file (owner-only;
-	//      size-rotated) — feeds the in-app audit viewer and is the fallback
-	//      sink that always exists; and
-	//   2. through the Logging facade on Channel::Audit — which the OS-native
-	//      sink (syslog/journald on POSIX, Windows Event Log on Windows; see
-	//      RegisterAuditOsSink) forwards to the platform's audit trail.
+	//   1. the OS-native, forward-capable sink — syslog LOG_AUTHPRIV on POSIX or a
+	//      dedicated Windows Event Log source (see RegisterAuditOsSink) — the
+	//      AUTHORITATIVE copy (integrity comes from off-box forwarding); and
+	//   2. a structured JSONL line in the state-dir audit file (owner-only,
+	//      size-rotated) — convenience/fallback that feeds the in-app audit viewer;
+	//      explicitly NOT the integrity anchor.
+	//
+	// Emission uses the Boost.Log core tagged with the `is_audit` attribute (not a
+	// Logging::Channel), so audit records reach only the audit sink and never an
+	// operational sink.
 	//=========================================================================
 
 	struct AuditEvent
@@ -64,15 +70,15 @@ namespace AqualinkAutomate::Auth
 		Config m_Config;
 	};
 
-	// Register the platform's OS-native audit sink on the logging core,
-	// filtered to Channel::Audit: syslog on POSIX, the Windows Event Log on
-	// Windows.  Returns the installed sink as a removable handle, or an empty
-	// (null) shared_ptr — after logging a warning — when the platform sink
-	// cannot be installed (the JSONL file remains the durable trail).
+	// Register the audit trail's OS-native sink on the logging core, accepting only
+	// audit records (the `is_audit` attribute): syslog with the LOG_AUTHPRIV facility
+	// on POSIX, a dedicated Windows Event Log source on Windows. Returns the installed
+	// sink as a removable handle, or an empty (null) shared_ptr — after logging a
+	// warning — when the platform sink cannot be installed (the JSONL file remains
+	// the local fallback).
 	//
 	// Production callers install for the process lifetime and may ignore the
-	// handle (consistent with the console sink in logging_initialise.cpp);
-	// callers that need a bounded lifetime (e.g. tests) keep the handle and
+	// handle; callers that need a bounded lifetime (e.g. tests) keep the handle and
 	// pass it to boost::log::core::get()->remove_sink(handle) in teardown.
 	boost::shared_ptr<boost::log::sinks::sink> RegisterAuditOsSink();
 

@@ -342,6 +342,27 @@ profiling     protocol    scraping   serial     signals    web
 
 Each takes a severity (case-insensitive): `Trace`, `Debug`, `Info`, `Notify`, `Warning`, `Error`, `Fatal`. For example `--loglevel-protocol Debug`.
 
+> **Audit is not a log channel.** The security audit trail (auth decisions,
+> privileged actions) is a separate subsystem, not an operational log channel, so
+> there is deliberately no `--loglevel-audit`. See
+> [Security → Audit trail](SECURITY.md) for where audit events are routed.
+
+### Logging sinks
+
+Where operational log records are delivered is configured by the **Logging**
+options. By default (`--log-sinks auto`) the destination is derived from the run
+environment: an interactive terminal or a container gets the console; under
+systemd the console additionally carries sd-daemon `<N>` priority prefixes so
+`journalctl -u aqualink-automate -p warning` works.
+
+| Option | Type | Default | Notes |
+|---|---|---|---|
+| `--log-sinks` | string | `auto` | `auto` (environment-derived) or a comma-separated list of `console`, `native`. `native` adds the OS-native operational sink (syslog on POSIX, the Windows Event Log). |
+| `--log-syslog-facility` | enum | `daemon` | POSIX syslog facility for the general `native` sink: `daemon`, `user`, `local0`–`local7` (case-insensitive). Ignored on Windows. The audit sink always uses `authpriv` regardless. |
+
+Examples: `--log-sinks console,native --log-syslog-facility local0` (console plus
+a syslog `local0` operational sink); `--log-sinks console` (console only).
+
 **Important — the big replay gotcha:** `--replay-filename` has hard dependencies. A bare `--dev-mode --replay-filename file.cap` **fails validation**. `--replay-filename` requires *all* of:
 
 - `--dev-mode`

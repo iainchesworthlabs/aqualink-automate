@@ -40,9 +40,11 @@ import { join } from 'node:path';
  */
 
 // Every per-channel log level the developer options expose; --replay-filename
-// requires each to be present (see option_dependency_helper.cpp).
+// requires each to be present (see option_dependency_helper.cpp). Note: audit is
+// deliberately absent — it is a separate subsystem, not an operational log channel
+// (docs/logging-sinks-redesign.md §10), so there is no --loglevel-audit.
 const LOG_CHANNELS = [
-  'audit', 'main', 'certificates', 'coroutines', 'developer', 'devices',
+  'main', 'certificates', 'coroutines', 'developer', 'devices',
   'equipment', 'exceptions', 'messages', 'mqtt', 'navigation', 'options',
   'platform', 'profiling', 'protocol', 'scraping', 'serial', 'signals', 'web',
 ];

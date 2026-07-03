@@ -77,6 +77,10 @@ target_sources(
 	unit/logging/test_logging_validator_severity.cpp 
 	unit/logging/test_logging_severity_filter_defaults.cpp
 	unit/logging/test_logging_filter_and_helpers.cpp
+	unit/logging/test_severity_mappings.cpp
+	unit/logging/test_log_environment.cpp
+	unit/logging/test_sink_console_and_registry.cpp
+	unit/logging/test_audit_separation.cpp
 	unit/alerting/test_alert_monitor.cpp
 	unit/alerting/test_webhook_tls.cpp
 	unit/history/test_history_service.cpp
@@ -88,6 +92,7 @@ target_sources(
 	unit/options/test_options_equipment.cpp
 	unit/options/test_options_history.cpp
 	unit/options/test_options_jandy.cpp
+	unit/options/test_options_logging.cpp
 	unit/options/test_options_pipeline.cpp
 	unit/options/test_options_preferences.cpp
 	unit/options/test_options_scheduling.cpp
