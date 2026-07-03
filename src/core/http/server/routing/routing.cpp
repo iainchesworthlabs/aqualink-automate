@@ -8,6 +8,9 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/ip/network_v4.hpp>
+#include <boost/asio/ip/network_v6.hpp>
 #include <boost/beast/core/string.hpp>
 #include <boost/beast/http/field.hpp>
 #include <boost/beast/http/verb.hpp>
@@ -16,6 +19,8 @@
 #include <boost/url/url.hpp>
 #include <magic_enum/magic_enum.hpp>
 
+#include "auth/policy_engine.h"
+#include "auth/subject.h"
 #include "exceptions/exception_http_duplicateroute.h"
 #include "formatters/beast_stringview_formatter.h"
 #include "formatters/url_segments_encoded_view_formatter.h"
@@ -51,6 +56,26 @@ namespace AqualinkAutomate::HTTP::Routing
 		std::optional<StaticFileHandler> sf_route;
 
 		SecurityConfig security_config{};
+
+		// The active credential resolver (empty => everything is anonymous) and
+		// the Subject of the request currently being dispatched.  The io_context
+		// runs on a single thread and route handlers execute synchronously inside
+		// HTTP_OnRequest, so one file-scope current subject is safe (and mirrors
+		// how the rest of this translation unit already manages per-request state).
+		SubjectResolver subject_resolver{};
+		Auth::Subject current_subject{ Auth::Subject::Anonymous() };
+		std::string current_peer_ip{};
+		WebSocketRevalidator current_ws_revalidator{};
+
+		Auth::Subject ResolveSubject(const HTTP::Request& req, bool is_websocket_upgrade)
+		{
+			if (!security_config.AuthModeEnabled || !subject_resolver)
+			{
+				return Auth::Subject::Anonymous();
+			}
+
+			return subject_resolver(req, is_websocket_upgrade);
+		}
 
 		// Per-source-IP throttle for FAILED bearer-token attempts. The token compare
 		// is already constant-time, but nothing slowed online guessing of a weak
@@ -241,6 +266,39 @@ namespace AqualinkAutomate::HTTP::Routing
 			return false;
 		}
 
+		// Extract the bearer token offered via the WebSocket handshake's
+		// Sec-WebSocket-Protocol header, verbatim (unlike
+		// WebSocketSubprotocolTokenMatches above, which compares against one
+		// expected value — this is for capturing an arbitrary per-connection
+		// credential, e.g. into the WS revalidator closure below).
+		[[nodiscard]] std::string_view WebSocketSubprotocolBearerToken(const HTTP::Request& req)
+		{
+			const std::string_view header = HeaderValue(req, boost::beast::http::field::sec_websocket_protocol);
+			static constexpr std::string_view BEARER_ENTRY_PREFIX{ "bearer." };
+
+			std::size_t pos = 0;
+			while (pos <= header.size())
+			{
+				const std::size_t comma = header.find(',', pos);
+				std::string_view entry = (comma == std::string_view::npos)
+					? header.substr(pos)
+					: header.substr(pos, comma - pos);
+
+				while (!entry.empty() && (entry.front() == ' ' || entry.front() == '\t')) { entry.remove_prefix(1); }
+				while (!entry.empty() && (entry.back() == ' ' || entry.back() == '\t')) { entry.remove_suffix(1); }
+
+				if (entry.starts_with(BEARER_ENTRY_PREFIX))
+				{
+					return entry.substr(BEARER_ENTRY_PREFIX.size());
+				}
+
+				if (comma == std::string_view::npos) { break; }
+				pos = comma + 1;
+			}
+
+			return {};
+		}
+
 		// Evaluate the active SecurityConfig against a parsed request. Returns the
 		// rejection response to send when the request is denied, or std::nullopt when
 		// it is permitted. Shared by the HTTP and WebSocket-upgrade paths so both
@@ -270,8 +328,11 @@ namespace AqualinkAutomate::HTTP::Routing
 				}
 			}
 
-			// --- Bearer token authentication ---
-			if (cfg.AuthToken.has_value())
+			// --- Bearer token authentication (legacy shared token) ---
+			// Superseded when the identity system is active: bearer credentials are
+			// then interpreted by the subject resolver (JWT session / API key) and
+			// enforcement happens in EvaluateAccess via the PolicyEngine instead.
+			if (cfg.AuthToken.has_value() && !cfg.AuthModeEnabled)
 			{
 				// Brute-force throttle: a source that has failed auth too many times
 				// recently is refused with 429 before the token is even examined.
@@ -328,6 +389,56 @@ namespace AqualinkAutomate::HTTP::Routing
 			return std::nullopt;
 		}
 
+		// True when `address` falls inside the "prefix/len" CIDR block.  A parse
+		// failure of either side answers false (fail closed: no trust extended).
+		[[nodiscard]] bool AddressInCidr(const boost::asio::ip::address& address, const std::string& cidr)
+		{
+			try
+			{
+				if (address.is_v4())
+				{
+					const auto network = boost::asio::ip::make_network_v4(cidr);
+					return boost::asio::ip::network_v4(address.to_v4(), network.prefix_length()).canonical() == network.canonical();
+				}
+
+				const auto network = boost::asio::ip::make_network_v6(cidr);
+				return boost::asio::ip::network_v6(address.to_v6(), network.prefix_length()).canonical() == network.canonical();
+			}
+			catch (const std::exception&)
+			{
+				return false;
+			}
+		}
+
+		// PDP gate for a declared access requirement.  Deny maps to 401 for an
+		// anonymous subject (a login could elevate) and 403 for an authenticated
+		// one (logged in, not entitled).  Auth-mode disabled => posture makes the
+		// decision Permit, so this stays a no-op for historical deployments.
+		[[nodiscard]] std::optional<HTTP::Response> EvaluateAccess(const HTTP::Request& req, const Interfaces::AccessRequirement& requirement, std::string_view resource_id = {})
+		{
+			if (!security_config.AuthModeEnabled || !requirement.IsSpecified())
+			{
+				return std::nullopt;
+			}
+
+			const Auth::ResourceRef resource{ .Kind = std::string{ requirement.ResourceKind }, .Id = std::string{ resource_id } };
+			const Auth::Environment environment{ .AuthEnabled = true };
+
+			if (Auth::Decision::Permit == Auth::PolicyEngine::Decide(current_subject, requirement.Action, resource, environment))
+			{
+				return std::nullopt;
+			}
+
+			LogWarning(Channel::Web, [&] { return std::format("Denied {} {} for subject '{}' (missing entitlement '{}')", magic_enum::enum_name(req.method()), std::string_view(req.target()), current_subject.Id, requirement.Action); });
+
+			if (!current_subject.Authenticated)
+			{
+				return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
+			}
+
+			return MakeSecurityResponse(req, HTTP::Status::forbidden, "Forbidden: not entitled.");
+		}
+
 	}
 	// unnamed namespace
 
@@ -340,6 +451,68 @@ namespace AqualinkAutomate::HTTP::Routing
 		sf_route.reset();
 		security_config = SecurityConfig{};
 		auth_rate_limiter.Reset();
+		subject_resolver = SubjectResolver{};
+		current_subject = Auth::Subject::Anonymous();
+	}
+
+	void SetSubjectResolver(SubjectResolver resolver)
+	{
+		subject_resolver = std::move(resolver);
+	}
+
+	std::string EffectiveClientIp(const HTTP::Request& req, std::string_view peer_ip)
+	{
+		const auto& cidrs = security_config.TrustedProxyCidrs;
+
+		if (cidrs.empty() || peer_ip.empty())
+		{
+			return std::string{ peer_ip };
+		}
+
+		boost::system::error_code parse_ec;
+		const auto peer = boost::asio::ip::make_address(std::string{ peer_ip }, parse_ec);
+
+		if (parse_ec)
+		{
+			return std::string{ peer_ip };
+		}
+
+		const bool trusted = std::any_of(cidrs.begin(), cidrs.end(), [&](const auto& cidr) { return AddressInCidr(peer, cidr); });
+
+		if (!trusted)
+		{
+			// XFF from an untrusted source is attacker-controlled: ignore it.
+			return std::string{ peer_ip };
+		}
+
+		const std::string_view xff = HeaderValue(req, boost::beast::string_view{ "X-Forwarded-For" });
+
+		if (xff.empty())
+		{
+			return std::string{ peer_ip };
+		}
+
+		// First entry == the original client (each proxy appends).
+		auto first = xff.substr(0, xff.find(','));
+		while (!first.empty() && ((' ' == first.front()) || ('\t' == first.front()))) { first.remove_prefix(1); }
+		while (!first.empty() && ((' ' == first.back()) || ('\t' == first.back()))) { first.remove_suffix(1); }
+
+		return first.empty() ? std::string{ peer_ip } : std::string{ first };
+	}
+
+	const Auth::Subject& CurrentSubject()
+	{
+		return current_subject;
+	}
+
+	std::string_view CurrentPeerIp()
+	{
+		return current_peer_ip;
+	}
+
+	WebSocketRevalidator CurrentWebSocketRevalidator()
+	{
+		return current_ws_revalidator;
 	}
 
 	void SetSecurityConfig(SecurityConfig config)
@@ -388,10 +561,37 @@ namespace AqualinkAutomate::HTTP::Routing
 		sf_route = std::move(sf);
 	}
 
-	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view peer_ip)
+	void HTTP_OnRequestDispatch(HTTP::Request request_in, std::string_view raw_peer_ip, DispatchCompletion complete)
 	{
+		// Exactly-once completion guard: the catch handler below answers 500
+		// for a synchronously-throwing route, but must stay silent when the
+		// route already responded (double DoWrite would corrupt the session).
+		auto responded = std::make_shared<bool>(false);
+		auto respond = [responded, complete = std::move(complete)](HTTP::Message&& msg) mutable
+		{
+			if (*responded)
+			{
+				return;
+			}
+
+			*responded = true;
+			complete(std::move(msg));
+		};
+
+		// Async routes suspend and complete later: the request must outlive
+		// this frame, so it lives in shared storage from the start.
+		auto request = std::make_shared<HTTP::Request>(std::move(request_in));
+		const HTTP::Request& req = *request;
+
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("Routing::RouteRequest", std::source_location::current());
 		DeferredZoneText(zone, [&] { return std::format("{} {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
+
+		// Trusted-proxy aware client identity: behind a reverse proxy every
+		// client shares the proxy's peer address, which would let one guest's
+		// auth failures rate-limit everyone (and an attacker hide in the crowd).
+		const std::string effective_ip = EffectiveClientIp(req, raw_peer_ip);
+		const std::string_view peer_ip{ effective_ip };
+		current_peer_ip = effective_ip;
 
 		try
 		{
@@ -420,7 +620,8 @@ namespace AqualinkAutomate::HTTP::Routing
 			{
 				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 400 Bad Request");
 				LogDebug(Channel::Web, [&] { return std::format("Supplied http target could not be parsed; error was -> {}", target_url.error().message()); });
-				return HTTP::Responses::Response_400(req);
+				respond(HTTP::Responses::Response_400(req));
+				return;
 			}
 			else if (auto p = http_routes.find_impl(target_url->encoded_segments(), matches_it, ids_it, matches_end, ids_end); nullptr != p)
 			{
@@ -431,11 +632,47 @@ namespace AqualinkAutomate::HTTP::Routing
 				{
 					if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
 					{
-						return std::move(*rejection);
+						respond(std::move(*rejection));
+						return;
 					}
 				}
 
+				// Resolve the request's subject (anonymous when auth-mode is off or
+				// no credentials are presented) and gate the route's declared access
+				// through the PolicyEngine.
+				current_subject = ResolveSubject(req, false);
+
+				const auto requirement = p->RequiredAccess(req.method());
+
+				// When the route declares per-resource grain (ResourceKind set), its
+				// sole path parameter IS the resource id (e.g. /api/equipment/
+				// buttons/{button_id}); the router matched it into m, so selector-
+				// scoped entitlements (equipment.control.aux:<id>) are enforced HERE,
+				// not left to the handler.
+				const std::string_view access_resource_id = (!requirement.ResourceKind.empty()) ? *m.matches() : std::string_view{};
+
+				if (auto denial = EvaluateAccess(req, requirement, access_resource_id); denial.has_value())
+				{
+					respond(std::move(*denial));
+					return;
+				}
+
 				LogTrace(Channel::Web, [&] { return std::format("Handling HTTP {} request for {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
+
+				if (p->IsAsyncRoute())
+				{
+					// Deferred-response route (e.g. login's off-thread argon2
+					// verify): the handler completes later on this same executor.
+					// `request` keeps the message alive across the suspension and
+					// `respond` stamps no-store exactly like the synchronous path.
+					p->OnRequestAsync(*request, [request, respond](HTTP::Response&& resp) mutable
+						{
+							resp.set(boost::beast::http::field::cache_control, "no-store");
+							respond(std::move(resp));
+						});
+
+					return;
+				}
 
 				// Dynamic route responses (API equipment state, diagnostics, etc.)
 				// reflect live data and must never be reused from a cache. The service
@@ -446,13 +683,15 @@ namespace AqualinkAutomate::HTTP::Routing
 				// and means no handler has to remember to set it.
 				HTTP::Response resp = p->OnRequest(req);
 				resp.set(boost::beast::http::field::cache_control, "no-store");
-				return resp;
+				respond(std::move(resp));
+				return;
 			}
 			else if (sf_route.has_value() && sf_route->match(req.target(), static_file_result))
 			{
 				// Static asset -> intentionally UNauthenticated (see above).
 				LogTrace(Channel::Web, [&] { return std::format("Attempting to serve static content; file is -> {}", static_file_result.string()); });
-				return HTTP::Responses::Response_StaticFile(req, static_file_result);
+				respond(HTTP::Responses::Response_StaticFile(req, static_file_result));
+				return;
 			}
 			else
 			{
@@ -460,23 +699,62 @@ namespace AqualinkAutomate::HTTP::Routing
 				// answers 401 (not 404) when a token is required.
 				if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
 				{
-					return std::move(*rejection);
+					respond(std::move(*rejection));
+					return;
+				}
+
+				// Same non-leak rule under the identity system: an unauthenticated
+				// subject probing an unknown /api/* path gets 401 (not 404) so the
+				// route surface is not enumerable without credentials.
+				if (security_config.AuthModeEnabled)
+				{
+					current_subject = ResolveSubject(req, false);
+
+					if (!current_subject.Authenticated && ToStringView(req.target()).starts_with("/api/"))
+					{
+						respond(MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized."));
+						return;
+					}
 				}
 
 				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 404 Not Found");
 				LogDebug(Channel::Web, [&] { return std::format("Path '{}' was requested but no HTTP handler was available", std::string_view(req.target())); });
 				LogDebug(Channel::Web, "Could not handle request -> returning a 404 NOT FOUND");
-				return HTTP::Responses::Response_404(req);
+				respond(HTTP::Responses::Response_404(req));
+				return;
 			}
 		}
 		catch (const std::exception& ex)
 		{
 			// The detail stays server-side only; the client receives a context-free 500.
 			// Promote to Warning so an escaping exception is visible at the default log
-			// level (it indicates a route handler fault, not routine traffic).
+			// level (it indicates a route handler fault, not routine traffic).  The
+			// exactly-once guard keeps this silent when the route already responded.
 			LogWarning(Channel::Web, [&] { return std::format("An exception was thrown while processing an HTTP request: exception was -> {}", ex.what()); });
+			respond(HTTP::Responses::Response_500(req));
+		}
+	}
+
+	HTTP::Message HTTP_OnRequest(const HTTP::Request& req, std::string_view raw_peer_ip)
+	{
+		// Synchronous facade over the dispatcher (tests and any caller that
+		// cannot defer).  Every stock route completes inline; an async route
+		// reached through here cannot block the kernel thread waiting, so it
+		// answers 500 — use HTTP_OnRequestDispatch for those.
+		std::optional<HTTP::Message> result;
+
+		HTTP_OnRequestDispatch(HTTP::Request{ req }, raw_peer_ip, [&result](HTTP::Message&& msg)
+			{
+				result = std::move(msg);
+			});
+
+		if (!result.has_value())
+		{
+			LogWarning(Channel::Web, "Deferred-response route dispatched through the synchronous HTTP_OnRequest facade; answering 500");
 			return HTTP::Responses::Response_500(req);
 		}
+
+		return std::move(*result);
 	}
 
 	Interfaces::IWebSocketBase* WS_OnAccept(const std::string_view target)
@@ -518,9 +796,79 @@ namespace AqualinkAutomate::HTTP::Routing
 		return nullptr;
 	}
 
-	std::optional<HTTP::Response> AuthorizeWebSocketUpgrade(const HTTP::Request& req, std::string_view peer_ip)
+	std::optional<HTTP::Response> AuthorizeWebSocketUpgrade(const HTTP::Request& req, std::string_view raw_peer_ip)
 	{
-		return EvaluateSecurity(req, true, peer_ip);
+		current_ws_revalidator = WebSocketRevalidator{};   // No stale revalidator survives a rejected upgrade.
+
+		const std::string effective_ip = EffectiveClientIp(req, raw_peer_ip);
+		const std::string_view peer_ip{ effective_ip };
+
+		if (auto rejection = EvaluateSecurity(req, true, peer_ip); rejection.has_value())
+		{
+			return rejection;
+		}
+
+		// Under the identity system the upgrade is additionally gated by the
+		// socket's declared entitlement (equipment.view for the live-data feeds).
+		if (security_config.AuthModeEnabled)
+		{
+			current_subject = ResolveSubject(req, true);
+
+			Interfaces::AccessRequirement required{};
+
+			if (auto* ws = WS_OnAccept(ToStringView(req.target())); nullptr != ws)
+			{
+				required = ws->RequiredAccess();
+
+				if (auto denial = EvaluateAccess(req, required, {}); denial.has_value())
+				{
+					return denial;
+				}
+			}
+
+			// Build the revalidator by capturing the connection's bearer
+			// credential + the socket's required access.  Re-resolution reuses
+			// the whole subject-resolution path (JWT verify -> tokver/disabled
+			// cross-check -> API key -> expiry), so revocation and token expiry
+			// reach the live socket on the next poll.
+			if (subject_resolver && required.IsSpecified())
+			{
+				// Browsers cannot set an Authorization header on the upgrade — the
+				// bearer travels as a `bearer.<token>` entry in Sec-WebSocket-Protocol
+				// instead (see WebSocketSubprotocolBearerToken above).
+				std::string bearer{ WebSocketSubprotocolBearerToken(req) };
+
+				const std::string action{ required.Action };
+				const std::string resource_kind{ required.ResourceKind };
+
+				current_ws_revalidator = [bearer = std::move(bearer), action, resource_kind]() -> bool
+				{
+					if (!security_config.AuthModeEnabled || !subject_resolver)
+					{
+						return true;
+					}
+
+					// Re-resolve from a minimal synthesised request carrying only the
+					// captured credential, offered the same way a real WS upgrade
+					// would (Sec-WebSocket-Protocol) — is_websocket_upgrade=true below
+					// makes the resolver look there, not at Authorization.
+					HTTP::Request synth;
+					synth.method(boost::beast::http::verb::get);
+					if (!bearer.empty())
+					{
+						synth.set(boost::beast::http::field::sec_websocket_protocol, "bearer." + bearer);
+					}
+
+					const auto subject = subject_resolver(synth, true);
+					const Auth::ResourceRef resource{ .Kind = resource_kind, .Id = {} };
+					const Auth::Environment environment{ .AuthEnabled = true };
+
+					return Auth::Decision::Permit == Auth::PolicyEngine::Decide(subject, action, resource, environment);
+				};
+			}
+		}
+
+		return std::nullopt;
 	}
 
 }

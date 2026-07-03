@@ -1,10 +1,4 @@
-#include <format>
-
-#include <magic_enum/magic_enum.hpp>
-
-#include "formatters/temperature_formatter.h"
 #include "kernel/hub_events/data_hub_config_event_temperature.h"
-#include "localisation/translations_and_units_formatter.h"
 #include "utility/json_serialization_helpers.h"
 
 namespace AqualinkAutomate::Kernel
@@ -97,19 +91,24 @@ namespace AqualinkAutomate::Kernel
 	{
 		nlohmann::json j;
 
+		// Raw dual-unit objects ({celsius, fahrenheit}), matching the REST
+		// /api/equipment shape and the setpoints below. Display formatting —
+		// unit choice, locale digits — is the frontend's job (docs/i18n.md);
+		// the old pre-formatted string path hardcoded Celsius and ignored the
+		// Temperature_DisplayUnits preference.
 		if (m_PoolTemp.has_value())
 		{
-			j["pool_temp"] = Localisation::TranslationsAndUnitsFormatter::Instance().Localised(m_PoolTemp.value());
+			j["pool_temp"] = Utility::SerializeTemperature(m_PoolTemp.value());
 		}
 
 		if (m_SpaTemp.has_value())
 		{
-			j["spa_temp"] = Localisation::TranslationsAndUnitsFormatter::Instance().Localised(m_SpaTemp.value());
+			j["spa_temp"] = Utility::SerializeTemperature(m_SpaTemp.value());
 		}
 
 		if (m_AirTemp.has_value())
 		{
-			j["air_temp"] = Localisation::TranslationsAndUnitsFormatter::Instance().Localised(m_AirTemp.value());
+			j["air_temp"] = Utility::SerializeTemperature(m_AirTemp.value());
 		}
 
 		if (m_PoolSetpoint.has_value())

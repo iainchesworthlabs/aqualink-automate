@@ -13,6 +13,7 @@
 #include "kernel/data_hub.h"
 #include "kernel/equipment_hub.h"
 #include "kernel/hub_locator.h"
+#include "kernel/preferences_hub.h"
 #include "kernel/statistics_hub.h"
 #include "mqtt/ha_discovery.h"
 #include "mqtt/mqtt_hub.h"
@@ -63,11 +64,13 @@ namespace AqualinkAutomate::Mqtt
 		/// Connect to all hubs using the hub locator.
 		void ConnectHubs(Kernel::HubLocator& hub_locator);
 
-		/// Connect to individual hubs.
+		/// Connect to individual hubs. The preferences hub is optional (may be
+		/// nullptr): without it the HA setpoint number entities stay Celsius.
 		void ConnectHubs(
 			const std::shared_ptr<Kernel::DataHub>& data_hub,
 			const std::shared_ptr<Kernel::EquipmentHub>& equipment_hub,
-			const std::shared_ptr<Kernel::StatisticsHub>& statistics_hub);
+			const std::shared_ptr<Kernel::StatisticsHub>& statistics_hub,
+			const std::shared_ptr<Kernel::PreferencesHub>& preferences_hub = nullptr);
 
 		//---------------------------------------------------------------------
 		// ACCESS
@@ -109,7 +112,12 @@ namespace AqualinkAutomate::Mqtt
 		std::weak_ptr<Kernel::DataHub> m_DataHub;
 		std::weak_ptr<Kernel::EquipmentHub> m_EquipmentHub;
 		std::weak_ptr<Kernel::StatisticsHub> m_StatisticsHub;
+		std::weak_ptr<Kernel::PreferencesHub> m_PreferencesHub;
 		std::weak_ptr<Interfaces::ICommandDispatcher> m_CommandDispatcher;
+
+		// Republishes the HA discovery configs when Temperature_DisplayUnits
+		// changes (the setpoint number entities' unit/range follow it).
+		boost::signals2::scoped_connection m_PrefsUnitsConnection;
 	};
 
 	/// Factory function to create MqttIntegration from settings.

@@ -160,9 +160,9 @@ Inbound payloads are parsed as JSON. If a payload is not valid JSON, the raw str
 | `aqualink/command/refresh` | (any) | Force a status refresh; publishes a response. |
 | `aqualink/command/device` | JSON `{ "device_id": ..., "action": ... }` | Toggle a device by UUID or label. This command **always toggles**; the `action` value is ignored (echoed back in the response only). For explicit on/off, use `command/device/{slug}` with `ON`/`OFF`. |
 | `aqualink/command/device/{slug}` | `ON` or `OFF` | Drive one discovered device on/off. |
-| `aqualink/command/setpoint` | JSON `{ "target": "pool"\|"spa", "temperature": <celsius> }` | Set a body's temperature. |
-| `aqualink/command/setpoint/pool` | plain number (degrees C) | Set the pool setpoint. |
-| `aqualink/command/setpoint/spa` | plain number (degrees C) | Set the spa setpoint. |
+| `aqualink/command/setpoint` | JSON `{ "target": "pool"\|"spa", "temperature": <celsius> }` | Set a body's temperature. Always Celsius (stable API contract). |
+| `aqualink/command/setpoint/pool` | plain number | Set the pool setpoint. Interpreted in the `temperature_units` display preference's unit (Celsius by default) — these are the HA number entities' command topics and must match their declared unit. |
+| `aqualink/command/setpoint/spa` | plain number | Set the spa setpoint. Same unit rule as `setpoint/pool`. |
 | `aqualink/command/chlorinator/percentage` | number `0`–`100` | Set the chlorinator output percentage. |
 | `aqualink/command/chlorinator/boost` | `ON` or `OFF` | Enable or disable chlorinator boost. |
 | `aqualink/command/circulation/mode` | `pool`, `spa`, or `spillover` | Set the circulation mode. |
@@ -219,7 +219,7 @@ These entities are always published:
 | Entity | Platform | Notes |
 | --- | --- | --- |
 | Pool / Spa / Air / Freeze Protect temperatures | `sensor` | `device_class: temperature`, unit degC. |
-| Pool / Spa setpoint | `number` | min 15, max 41, step 0.5, degC. Command on `command/setpoint/{pool,spa}`. |
+| Pool / Spa setpoint | `number` | Follows the `temperature_units` preference: min 15, max 41, step 0.5, °C (default), or min 59, max 106, step 1, °F. Command on `command/setpoint/{pool,spa}`, interpreted in the declared unit. Changing the preference republishes discovery so HA picks up the new unit/range. (Temperature *sensors* stay declared °C — their payload is Celsius and HA converts sensors to its own unit system.) |
 | ORP | `sensor` | `device_class: voltage`, unit mV. |
 | pH | `sensor` | `device_class: ph`. |
 | Salt Level | `sensor` | unit ppm. |
@@ -229,11 +229,11 @@ These entities are always published:
 | Clean Mode | `binary_sensor` | `payload_on: true` / `payload_off: false`. |
 | Circulation Mode (select) | `select` | Dual-body systems only. Options `Pool`, `Spa`, `Spillover`. Command on `command/circulation/mode`. |
 | Uptime | `sensor` | `device_class: duration`, `entity_category: diagnostic`. |
-| Alerts (5) | `binary_sensor` | `device_class: problem`. See below. |
+| Alerts (6) | `binary_sensor` | `device_class: problem`. See below. |
 
 ### Alert binary sensors
 
-Five `binary_sensor` entities (`device_class: problem`, `payload_on: true` / `payload_off: false`) read the consolidated document at `aqualink/alert/state`:
+Six `binary_sensor` entities (`device_class: problem`, `payload_on: true` / `payload_off: false`) read the consolidated document at `aqualink/alert/state`:
 
 | Key | Display name |
 | --- | --- |
@@ -242,6 +242,9 @@ Five `binary_sensor` entities (`device_class: problem`, `payload_on: true` / `pa
 | `salt_low` | Salt Low |
 | `service_mode` | Service Mode |
 | `serial_comms_loss` | Serial Comms Loss |
+| `temperature_stale` | Temperature Stale |
+
+`temperature_stale` raises when the filter pump is running but the active body's water temperature has not refreshed within `--temperature-staleness-threshold`; a reading going stale while the pump is off is expected (no flow past the sensor) and never raises.
 
 ### Dynamic device entities
 

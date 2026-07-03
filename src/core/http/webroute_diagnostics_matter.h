@@ -7,6 +7,9 @@
 #include <string>
 #include <thread>
 
+#include <boost/beast/http/verb.hpp>
+
+#include "auth/entitlement_vocabulary.h"
 #include "interfaces/iwebroute.h"
 
 namespace AqualinkAutomate::HTTP
@@ -39,6 +42,17 @@ namespace AqualinkAutomate::HTTP
 
 	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
+
+	public:
+		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
+		{
+			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))
+			{
+				return { .Action = Auth::Vocabulary::DIAGNOSTICS_VIEW };
+			}
+
+			return { .Action = Auth::Vocabulary::SYSTEM_ADMIN };
+		}
 
 	private:
 		// Background-thread body: polls the sidecar off the main loop and updates the

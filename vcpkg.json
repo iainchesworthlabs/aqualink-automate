@@ -27,6 +27,8 @@
     "boost-units",
     "boost-uuid",
     "boost-url",
+    "jwt-cpp",
+    "libsodium",
     "magic-enum",
     "nlohmann-json",
     "openssl",

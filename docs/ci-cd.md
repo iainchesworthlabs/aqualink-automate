@@ -42,17 +42,20 @@ Concurrency is keyed on the PR number (or the ref for branch pushes) with `cance
 |-----|---------|--------------|
 | `branch-name` | `ubuntu-latest` | PR only. Validates the PR head branch matches `<type>/<name>` with an allowed commit type, failing a non-conforming name. `develop`/`main` heads are accepted so the `develop` -> `main` release-promotion PR passes. A **required** status check on `develop`/`main`, so a misnamed branch cannot merge. |
 | `build-and-test` | Per-OS matrix (see [_build.yml](#_buildyml)) | Calls `_build.yml` with no packaging. Configures, builds, and runs the full test suite on Linux, Windows, and macOS. |
-| `e2e-ui` | Linux | Builds only the app binary, then runs the Playwright UI suite four times — once per mode. |
+| `e2e-ui` | Linux | Builds only the app binary, then runs the Playwright UI suite once per mode (see the mode table below). |
 | `matter-bridge` | Linux | Node job in `matter-bridge/`: `npm ci`, typecheck (including the matter.js bridge), build, and unit tests. |
+| `i18n-catalogs` | `ubuntu-latest` | Runs `scripts/check-i18n-keys.ps1`: every key referenced in web-UI code exists in `en.js`, and every shipped locale catalog has exact key + placeholder parity with English (see `docs/i18n.md`). Part of the `ci-status` aggregate. |
 | `version-check` | `ubuntu-latest` | PR-into-`main` only. Compares what `git describe` resolves on the PR head versus the base. **Blocking at the job level** — when the resolved version is unchanged it emits `::error::` and `exit 1`, failing the job. It is, however, intentionally excluded from the `ci-status` aggregator's `needs` list, so a failed `version-check` does not by itself fail the aggregated `ci-status` required check. |
 | `docker-verify` | Linux | Builds the `ci` and `runtime` Docker targets, smoke-tests the runtime image with `--version`, and asserts the Matter sidecar is bundled. |
 
-**e2e-ui modes.** The four Playwright runs mirror the modes encoded in `playwright.config.ts`, selected by environment variable:
+**e2e-ui modes.** The Playwright runs mirror the modes encoded in `playwright.config.ts`, selected by environment variable. The three identity specs each run in their own step because they have incompatible auth-store preconditions (auth.spec needs an empty store for the first-run wizard; admin.spec self-seeds an admin; guest.spec configures the Guest scope), so each must boot against a fresh `--auth-state-dir`:
 
 | Run | Env set | Specs exercised |
 |-----|---------|-----------------|
-| default (unauthenticated) | none | every spec except auth |
-| auth enabled | `AQUALINK_AUTH_TOKEN` | token-gated WebSocket auth |
+| default (unauthenticated) | none | every spec except the identity ones |
+| identity — first-run + sessions | `AQUALINK_AUTH_MODE=enabled`, `npx playwright test e2e/auth.spec.ts` | setup wizard, login/logout, session management |
+| identity — admin management | `AQUALINK_AUTH_MODE=enabled`, `npx playwright test e2e/admin.spec.ts` | users/groups/entitlements/API-key admin UI |
+| identity — guest mode + kiosk PIN | `AQUALINK_AUTH_MODE=enabled`, `npx playwright test e2e/guest.spec.ts` | anonymous guest browsing, affordance gating, kiosk PIN |
 | history enabled | `AQUALINK_HISTORY_DB` | recorded series + chart |
 | scheduler enabled | `AQUALINK_SCHEDULES_FILE` | schedule CRUD |
 

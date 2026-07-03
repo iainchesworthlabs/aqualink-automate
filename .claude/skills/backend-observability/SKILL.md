@@ -66,8 +66,23 @@ zone->Value(resp.body().size());   // attach a scalar metric (size/count — nev
 **Add a new Channel — touch all four sites or it silently misbehaves**
 1. `logging_channels.h` — add the enumerator.
 2. `global_logger.h` — add `BOOST_LOG_GLOBAL_LOGGER(GlobalLogger_<Name>, Logger);`.
-3. `logging.h` — add a `case Channel::<Name>: return GlobalLogger_<Name>::get();` (else it falls through to `Main`).
-4. `logging_severity_filter.cpp` — add `{Channel::<Name>, DEFAULT_SEVERITY},` to the map (a missing key default-inserts as `Trace` — the latent bug currently affecting `Coroutines`/`Developer`).
+3. `logging.h` — add a `case Channel::<Name>: return GlobalLogger_<Name>::get();` (else it falls through to `Main`) **and bump the `static_assert(CHANNEL_COUNT == N)`**.
+4. `global_logger.cpp` — add the matching `BOOST_LOG_GLOBAL_LOGGER_CTOR_ARGS(...)`.
+   (The per-channel filter table in `logging_severity_filter.cpp` is now array-backed off the enum, so it needs no edit.)
+
+### C. Sinks (where records go)
+
+The sink layer (`src/core/logging/sinks/`, doc `docs/logging-sinks-redesign.md`) decides delivery; `LogX` call sites never change.
+- **`SinkRegistry`** owns installed sinks (`Add`/`FlushAll`/`RemoveAll`). `Logging::Initialise()` installs the bootstrap console; after options, `main` calls `Logging::Reconfigure(RuntimeConfig)`; `Logging::Shutdown()` flushes+removes on exit.
+- **Sink kinds:** `MakeConsoleSink` (text; sd-daemon `<N>` priority prefixes when journal-connected), `MakeNativeSink` (syslog on POSIX / Event Log on Windows, with the explicit `Severity→level` mapping from `severity_mappings.h`).
+- **`auto` policy** (`ResolveAutoSinks` over `DetectLogEnvironment`): TTY/pipe/container→console; systemd→console+`<N>`; native is opt-in on POSIX. Options: `--log-sinks`, `--log-syslog-facility` (area `Options::LogSinks`).
+- **Audit is NOT a Channel.** It is a subsystem (`Auth::AuditLog`): records carry the `is_audit` **source attribute** and reach only the audit sink (`MakeAuditFilter`, `LOG_AUTHPRIV`); operational sinks are built with `MakeOperationalFilter()` which excludes it.
+- **Gotcha — filters see source attributes only.** Boost.Log evaluates sink filters at record-*open* against **source** attributes (logger/global/thread), NOT streamed `add_value` attributes (those reach formatters only). Any attribute used to *route* a record to a sink MUST be a source attribute (`logger.add_attribute(...)`), never a stream manipulator.
+
+**Add / route a sink**
+1. Build it with `MakeConsoleSink`/`MakeNativeSink` (or a new `sink_*.{h,cpp}`), give it a filter from `sink_filters.h`.
+2. Install via `SinkRegistry::Add` inside `Logging::Reconfigure` (operational) or the auth bootstrap (audit).
+3. Operational sinks MUST use `MakeOperationalFilter()` so audit cannot leak. New source file → add to `src/core/CMakeLists.txt`.
 
 ## Gotchas
 

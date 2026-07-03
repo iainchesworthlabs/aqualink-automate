@@ -59,11 +59,22 @@ info:
     `active_body`/`bodies[].id` are body-of-water ids (`Pool`, `Spa`, `Shared`).
     The `AlertTransition` payload (fault-detection alerts) is
     `{ "condition": <string>, "state": "raised"|"cleared", "ts": <unix-seconds>,
-    "detail": <string> }`, where `condition` is one of `chlorinator_fault`,
-    `chlorinator_warning`, `salt_low`, `service_mode`, `serial_comms_loss`.
+    "detail": <string>, "params": <object, optional> }`, where `condition` is one
+    of `chlorinator_fault`, `chlorinator_warning`, `salt_low`, `service_mode`,
+    `serial_comms_loss`, `temperature_stale`. `detail` is the human-readable
+    ENGLISH description (stable contract); `params` carries the structured values
+    behind it — e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}` for `salt_low` or
+    `{"health": "Warning_LowSalt"}` for the chlorinator conditions — so
+    consumers (the web UI's translated alerts, automations) can act on the data
+    without parsing prose. The same shape is POSTed by the alert webhook.
     `chlorinator_warning` covers the cell warnings (no flow, low/high salt, clean
     cell, low/high voltage/current, low temperature); the specific warning is
-    named in `detail`.
+    named in `detail` and carried as the raw enum name in `params.health`.
+    `temperature_stale` raises when the filter pump is running but the active
+    body's water temperature has not refreshed within the staleness threshold
+    (`--temperature-staleness-threshold`); pump-off staleness is expected and
+    never raises. Its `params` are `{"body": "pool"|"spa",
+    "threshold_seconds": <int>}`.
   version: 1.0.0
   contact:
     name: Aqualink Automate
@@ -89,6 +100,8 @@ tags:
     description: Temperature setpoint control
   - name: Diagnostics
     description: Diagnostics and logging configuration
+  - name: Administration
+    description: User, group, entitlement, API-key and session management (system.admin)
 
 # Authentication is optional (opt-in). The empty requirement object `{}` permits
 # unauthenticated access (the default when no API auth token is configured);
@@ -197,6 +210,707 @@ paths:
                 authenticated: true
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get the resolved subject for the calling request
+      description: >
+        Returns the identity the request resolved to — the global identity-system
+        posture (`--auth-mode`), the subject id, whether the caller is
+        authenticated, the credential provider, group memberships, and the
+        effective entitlements — so a client (the SPA) can gate its affordances
+        (lock icons, hidden admin navigation) from one source of truth. The
+        server-side policy engine remains the actual enforcement point.
+
+        When `--auth-mode enabled`, this route deliberately declares no
+        entitlement requirement: an anonymous/guest caller can always ask
+        "who am I and what may I do?" (the answer being the Guest scope).
+        With auth-mode disabled the subject is root-anonymous and
+        `entitlements` is empty — everything is permitted by posture, so
+        entitlements are not enumerated. The documented `401` occurs only under
+        the legacy shared-token model (auth-mode disabled with an API auth token
+        configured), where this route is bearer-gated like every other route.
+      operationId: getAuthMe
+      responses:
+        '200':
+          description: The resolved subject
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posture:
+                    type: string
+                    enum: [disabled, enabled]
+                    description: Global identity-system posture (--auth-mode)
+                  setup_required:
+                    type: boolean
+                    description: True while first-run setup is open (auth-mode enabled + zero users)
+                  kiosk_enabled:
+                    type: boolean
+                    description: True when kiosk PIN elevation is configured (offer PIN entry on the login screen)
+                  id:
+                    type: string
+                    description: Stable subject identity ("anonymous" when unauthenticated)
+                  username:
+                    type: string
+                    description: >-
+                      Human-readable name for the subject — the local account's
+                      username, or an API key's label. Empty when the provider
+                      has no natural name (anonymous, kiosk PIN sessions);
+                      clients should fall back to `id`.
+                  authenticated:
+                    type: boolean
+                    description: True only when a valid credential was presented and verified
+                  provider:
+                    type: string
+                    enum: [Anonymous, Local, ApiKey, Oidc, Proxy, KioskPin]
+                    description: The credential source the subject was resolved from
+                  groups:
+                    type: array
+                    items:
+                      type: string
+                    description: Group memberships (the anonymous subject carries Guest when auth-mode is enabled)
+                  entitlements:
+                    type: array
+                    items:
+                      type: string
+                    description: Effective entitlements, sorted and deterministic (the same shape as the JWT `ent` claim)
+              example:
+                posture: enabled
+                id: anonymous
+                username: ''
+                authenticated: false
+                provider: Anonymous
+                groups:
+                  - Guest
+                entitlements: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Log in with a username and password
+      description: >
+        Verifies a local account and, on success, issues a short-lived access
+        JWT plus a rotating refresh token. Available only when `--auth-mode
+        enabled`. Declares no entitlement requirement — this is how a subject
+        acquires a credential. The password is verified with argon2id off the
+        kernel thread; an unknown username is verified against a decoy hash so
+        response timing does not reveal whether the account exists. Failed
+        attempts are counted per account and lock the account out after a
+        threshold.
+      operationId: authLogin
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+            example:
+              username: alice
+              password: a-long-enough-password
+      responses:
+        '200':
+          description: Authenticated; the session credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  session_id: { type: string }
+                  token_type: { type: string, enum: [Bearer] }
+              example:
+                access_token: "eyJhbGciOi..."
+                refresh_token: "art_..."
+                session_id: "2b0e9d3f-5a67-4c1d-9e8f-7a6b5c4d3e2f"
+                token_type: Bearer
+        '400': { description: Missing or non-string username/password }
+        '401': { description: Invalid username or password }
+        '405': { description: Method not allowed (POST required) }
+        '429':
+          description: >
+            The account is locked out after too many failed attempts; retry
+            after the window (Retry-After header).
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Exchange a refresh token for a fresh token pair
+      description: >
+        Rotates the (single-use) refresh token and mints a new access token.
+        Available only when `--auth-mode enabled`. Declares no entitlement
+        requirement — the refresh token IS the credential. Replaying a
+        rotated-out token is treated as theft: the whole session is revoked and
+        the reuse is audited.
+      operationId: authRefresh
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+            example:
+              refresh_token: "art_..."
+      responses:
+        '200':
+          description: A fresh access token and rotated refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  token_type: { type: string, enum: [Bearer] }
+              example:
+                access_token: "eyJhbGciOi..."
+                refresh_token: "art_..."
+                token_type: Bearer
+        '400': { description: Missing or non-string refresh_token }
+        '401': { description: Invalid/expired session, or a revoked (reused) token }
+        '405': { description: Method not allowed (POST required) }
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Log out a session (or every session)
+      description: >
+        Revokes the session identified by the presented refresh token. Always
+        answers 204 — it never discloses whether the token was live. With
+        `{"everywhere": true}` it revokes every session for the authenticated
+        caller and bumps the token version so outstanding access tokens die
+        too; that variant requires an authenticated subject. Available only
+        when `--auth-mode enabled`.
+      operationId: authLogout
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+                everywhere:
+                  type: boolean
+                  description: Revoke every session for the authenticated caller
+            example:
+              refresh_token: "art_..."
+      responses:
+        '204': { description: Logged out (whether or not the token was live) }
+        '400': { description: Missing or non-string refresh_token }
+        '401': { description: everywhere logout requested without an authenticated subject }
+        '405': { description: Method not allowed (POST required) }
+
+  /api/auth/setup:
+    post:
+      tags:
+        - Authentication
+      summary: Create the first administrator (first-run setup)
+      description: >
+        Self-sealing first-run setup: creates the first administrator when the
+        user store is empty. Once any user exists it answers 403 and is gone
+        for good, so it can never mint a second admin. Available only when
+        `--auth-mode enabled`. The password is hashed with argon2id off the
+        kernel thread and must satisfy the policy (at least 12 characters).
+      operationId: authSetup
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+            example:
+              username: admin
+              password: a-long-enough-password
+      responses:
+        '201':
+          description: The first administrator was created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id: { type: string }
+                  username: { type: string }
+              example:
+                user_id: "0f8fad5b-d9cb-469f-a165-70867728950e"
+                username: admin
+        '400': { description: Missing fields, empty username, or a password under 12 characters }
+        '403': { description: Setup has already been completed }
+        '405': { description: Method not allowed (POST required) }
+
+  /api/auth/pin:
+    post:
+      tags:
+        - Authentication
+      summary: Kiosk PIN elevation (guest mode)
+      description: >
+        Elevate an anonymous visitor into the admin-configured target group by
+        PIN. On success returns an ordinary session (provider = KioskPin,
+        revocable and session-listed under the `kiosk` subject id). The PIN is
+        verified with argon2id off the kernel thread, timing-equalised against a
+        decoy so a disabled kiosk is indistinguishable, and rate-limited with a
+        lockout. Available only when `--auth-mode enabled`.
+      operationId: authPin
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin]
+              properties:
+                pin: { type: string }
+            example: { pin: "2468" }
+      responses:
+        '200':
+          description: Elevated; a kiosk session in the target group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  session_id: { type: string }
+                  token_type: { type: string, example: Bearer }
+        '400': { description: Missing or malformed pin }
+        '401': { description: Wrong PIN or kiosk not enabled (one indistinguishable error) }
+        '429': { description: Too many attempts; see Retry-After }
+
+  /api/kiosk:
+    get:
+      tags: [Administration]
+      summary: Get kiosk PIN configuration
+      description: >
+        Report whether kiosk PIN elevation is enabled and which group it targets.
+        The PIN and its hash are write-only and never returned. Requires
+        `system.admin`.
+      operationId: kioskGet
+      responses:
+        '200':
+          description: Kiosk status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean }
+                  target_group: { type: string }
+              example: { enabled: true, target_group: Household }
+        '401': { description: Anonymous request }
+        '403': { description: Authenticated but not system.admin }
+    put:
+      tags: [Administration]
+      summary: Set or replace the kiosk PIN
+      description: >
+        Configure kiosk PIN elevation into `target_group`. The PIN (min 4
+        characters) is hashed with argon2id off the kernel thread. Bumps the
+        kiosk token version — invalidating any outstanding kiosk access tokens —
+        and revokes prior kiosk refresh sessions. Requires `system.admin`.
+      operationId: kioskPut
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin, target_group]
+              properties:
+                pin: { type: string }
+                target_group: { type: string }
+            example: { pin: "2468", target_group: Household }
+      responses:
+        '204': { description: The kiosk PIN was set }
+        '400': { description: PIN under 4 characters, or an unknown target group }
+        '401': { description: Anonymous request }
+        '403': { description: Authenticated but not system.admin }
+    delete:
+      tags: [Administration]
+      summary: Disable the kiosk PIN
+      description: >
+        Disable kiosk PIN elevation, clear the stored PIN, and revoke all live
+        kiosk sessions. Requires `system.admin`.
+      operationId: kioskDelete
+      responses:
+        '204': { description: Kiosk PIN elevation disabled }
+        '401': { description: Anonymous request }
+        '403': { description: Authenticated but not system.admin }
+
+  /api/users:
+    get:
+      tags: [Administration]
+      summary: List user accounts
+      description: >
+        Returns every local account: id, username, group memberships, direct
+        entitlements, disabled flag and token version. Password hashes are
+        never returned. Requires the `system.admin` entitlement (`403`
+        otherwise; `401` when anonymous), like every Administration route.
+      operationId: listUsers
+      responses:
+        '200':
+          description: The user list
+          content:
+            application/json:
+              example:
+                - id: "0f8fad5b-d9cb-469f-a165-70867728950e"
+                  username: alice
+                  groups: [Administrators]
+                  direct_entitlements: []
+                  disabled: false
+                  tokver: 3
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      summary: Create a user account
+      description: >
+        Creates a local account. The password must satisfy the policy (at
+        least 12 characters; the hash is computed off the kernel thread) and
+        every direct entitlement must parse and use a known vocabulary action.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              username: carol
+              password: a-long-enough-password
+              groups: [Staff]
+              direct_entitlements: ["equipment.view"]
+      responses:
+        '201': { description: Created; the new user record (no password material) }
+        '400': { description: Weak password, or unknown/malformed entitlements (listed in the error) }
+        '409': { description: Username already exists }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/users/{user_id}:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Administration]
+      summary: Get a user account
+      operationId: getUser
+      responses:
+        '200': { description: The user record (no password material) }
+        '404': { description: Unknown user }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [Administration]
+      summary: Update a user account
+      description: >
+        Partial update: `username`, `groups`, `direct_entitlements` and
+        `disabled` may each be supplied. A groups/entitlements change bumps the
+        user's token version so outstanding access tokens go stale immediately
+        (still-valid refresh tokens re-mint with the new grants); `disabled:
+        true` additionally revokes every session. A change that would remove
+        the last enabled administrator - or claim an existing username - is
+        refused with `409`.
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              groups: [Staff]
+              disabled: false
+      responses:
+        '200': { description: The updated user record }
+        '400': { description: Validation error (unknown entitlements are listed) }
+        '404': { description: Unknown user }
+        '409': { description: Duplicate username, or last-admin protection refused the change }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Administration]
+      summary: Delete a user account
+      description: >
+        Removes the account and revokes its refresh sessions; audit entries
+        are retained (keyed by the former user id). Deleting the last enabled
+        administrator is refused with `409`.
+      operationId: deleteUser
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Unknown user }
+        '409': { description: Last-admin protection refused the deletion }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/users/{user_id}/password:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Administration]
+      summary: Set a user's password
+      description: >
+        An administrator (`system.admin`) may set anyone's password; any other
+        authenticated subject may only set their OWN (`403` otherwise). On
+        success the user's token version is bumped and every refresh session
+        is revoked - a password change invalidates everything - and the change
+        is audited (`auth.password_changed`). Unlike the other Administration
+        routes this one is gated only on being authenticated (`prefs.self`).
+      operationId: setUserPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              password: a-brand-new-password
+      responses:
+        '204': { description: Password changed; every session and token for the user is now invalid }
+        '400': { description: Password fails the policy (minimum 12 characters) }
+        '403': { description: A non-admin subject may only set their own password }
+        '404': { description: Unknown user }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/groups:
+    get:
+      tags: [Administration]
+      summary: List groups
+      description: >
+        Returns every group with its entitlement set and whether it is a
+        built-in (Everyone/Guest/Administrators - editable but undeletable).
+      operationId: listGroups
+      responses:
+        '200':
+          description: The group list
+          content:
+            application/json:
+              example:
+                - name: Administrators
+                  entitlements: ["system.admin"]
+                  built_in: true
+                - name: Staff
+                  entitlements: ["equipment.view", "schedules.view"]
+                  built_in: false
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      summary: Create or update a group
+      description: >
+        Upserts a group by name. Every entitlement must parse
+        (`<domain>.<action>[:<selector>]`) and use a known vocabulary action
+        (`GET /api/entitlements`); rejects are listed in the `400` error.
+        Changing a group's entitlements bumps every member's token version so
+        the grant change propagates within one request.
+      operationId: upsertGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              name: Staff
+              entitlements: ["equipment.view", "equipment.control.aux:*"]
+      responses:
+        '200': { description: The upserted group }
+        '400': { description: Unknown or malformed entitlements (listed in the error) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/groups/{group_name}:
+    parameters:
+      - name: group_name
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Administration]
+      summary: Delete a group
+      description: >
+        Removes a (non-built-in) group. Member users keep their membership
+        reference, which degrades safely to no entitlements; their token
+        versions are bumped so the lost grants propagate immediately.
+      operationId: deleteGroup
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Unknown group }
+        '409': { description: Built-in groups cannot be removed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/entitlements:
+    get:
+      tags: [Administration]
+      summary: List the entitlement action vocabulary
+      description: >
+        Returns the known entitlement actions so the admin UI can enumerate
+        what is assignable to groups, direct grants and API keys. Selectors
+        (`:AUX3`, `:*`) are composed client-side onto these actions.
+      operationId: listEntitlements
+      responses:
+        '200':
+          description: The action vocabulary
+          content:
+            application/json:
+              example:
+                actions: ["system.admin", "equipment.view", "equipment.control.aux"]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/apikeys:
+    get:
+      tags: [Administration]
+      summary: List API keys
+      description: >
+        Returns every key's metadata - id, label, entitlements, expiry,
+        last-used and revoked flag. The secret (and its digest) is never
+        returned; it is shown exactly once, at creation.
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: The API-key list
+          content:
+            application/json:
+              example:
+                - id: "9c1d1c9e-8f2a-4a7e-b0d3-1f0f6a2b3c4d"
+                  label: ha-bridge
+                  entitlements: ["equipment.view"]
+                  expiry_unix: 0
+                  last_used_unix: 1767225600
+                  revoked: false
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      summary: Create an API key
+      description: >
+        Creates an entitlement-scoped machine credential. The response carries
+        the ONE-TIME secret (`aak_...`) plus a `warning` field; only its
+        digest is persisted, so the secret can never be retrieved again.
+        Entitlements are validated like a group's. `expiry_unix` is optional
+        (0 or absent = never expires).
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              label: ha-bridge
+              entitlements: ["equipment.view"]
+              expiry_unix: 1798761600
+      responses:
+        '201':
+          description: Created; includes the shown-once secret
+          content:
+            application/json:
+              example:
+                id: "9c1d1c9e-8f2a-4a7e-b0d3-1f0f6a2b3c4d"
+                label: ha-bridge
+                entitlements: ["equipment.view"]
+                expiry_unix: 1798761600
+                last_used_unix: 0
+                revoked: false
+                secret: "aak_..."
+                warning: "Store this secret now; it cannot be retrieved again"
+        '400': { description: Missing label, or unknown/malformed entitlements (listed in the error) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/apikeys/{key_id}:
+    parameters:
+      - name: key_id
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Administration]
+      summary: Revoke an API key
+      description: >
+        Revokes the key - it stays listed (revoked, for hygiene audits) but
+        authenticates nothing from the next request on. Audited.
+      operationId: revokeApiKey
+      responses:
+        '204': { description: Revoked }
+        '404': { description: Unknown key }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/sessions:
+    get:
+      tags: [Administration]
+      summary: List active sessions
+      description: >
+        Returns the refresh-token sessions ("active devices"): id, user id,
+        issued/expiry/last-seen timestamps, user agent and peer address. A
+        subject holding `system.admin` sees every session; any other
+        authenticated subject sees only their OWN (the route is gated on
+        `prefs.self`, i.e. simply being authenticated).
+      operationId: listSessions
+      responses:
+        '200':
+          description: The session list (scoped to the caller unless admin)
+          content:
+            application/json:
+              example:
+                - id: "2b0e9d3f-5a67-4c1d-9e8f-7a6b5c4d3e2f"
+                  user_id: "0f8fad5b-d9cb-469f-a165-70867728950e"
+                  issued_unix: 1767225600
+                  expiry_unix: 1768435200
+                  last_seen_unix: 1767312000
+                  user_agent: "Mozilla/5.0 ..."
+                  peer_ip: "192.168.1.50"
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/sessions/{session_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Administration]
+      summary: Revoke a session ("log out that browser")
+      description: >
+        Terminates one refresh session. An admin (`system.admin`) may revoke
+        ANY session; any other authenticated subject only their OWN - a
+        non-owned id answers `404`, indistinguishable from an unknown one, so
+        session ids are not enumerable. Audited.
+      operationId: revokeSession
+      responses:
+        '204': { description: Revoked; the session's refresh token is dead }
+        '404': { description: Unknown session (or not owned by a non-admin caller) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /api/health:
     get:
@@ -538,7 +1252,7 @@ paths:
                 history: { retention_days: 90 }
                 label_overrides: { "Aux1": "Pool Light", "Aux2": "Waterfall" }
                 show_aux_id_in_label: false
-                ui: { chemistryBands: {} }
+                ui: { chemistryBands: {}, locale: "en" }
         '401':
           $ref: '#/components/responses/Unauthorized'
     put:
@@ -553,8 +1267,11 @@ paths:
         label_overrides an object of canonical-label -> friendly-name strings,
         show_aux_id_in_label a boolean (when true the display name is suffixed with
         the protocol aux id, e.g. "Pool Light (Aux5)"; affects display only, not the
-        canonical label used for dispatch/MQTT/Home Assistant). A single invalid
-        field rejects the whole request (nothing is applied).
+        canonical label used for dispatch/MQTT/Home Assistant). The opaque `ui`
+        object merges shallowly at its top level: a PUT of `{ui: {locale: "fr"}}`
+        updates only `ui.locale` and leaves other `ui.*` keys (e.g.
+        `ui.chemistryBands`) intact; a top-level `ui.*` value of null deletes that
+        key. A single invalid field rejects the whole request (nothing is applied).
       operationId: updatePreferences
       requestBody:
         required: true
@@ -1721,6 +2438,30 @@ paths:
 
 components:
   schemas:
+    ApiError:
+      type: object
+      description: >
+        Structured error body returned by JSON endpoints on 4xx/5xx (additive
+        contract): `error` is the stable human-readable ENGLISH message,
+        `code` is a stable snake_case identifier the web UI maps to a
+        translated message (catalog key `error.<code>`, see docs/i18n.md),
+        and `params` carries any values that translation interpolates
+        (omitted when empty). New codes must be added to every locale
+        catalog (enforced by the i18n-catalogs CI job).
+      required: [error, code]
+      properties:
+        error:
+          type: string
+          description: Human-readable English message (stable API contract).
+          example: "Setpoint 'pool' out of range"
+        code:
+          type: string
+          description: Stable snake_case error identifier.
+          example: setpoint_out_of_range
+        params:
+          type: object
+          description: Values behind the message, for translation/automation.
+          example: { target: pool, min: -10, max: 50 }
     VersionInfo:
       type: object
       properties:
@@ -2127,6 +2868,14 @@ components:
                 not reported. Read-only (decode documented but not yet live-validated).
             spa_setpoint:
               $ref: '#/components/schemas/Temperature'
+            staleness_threshold_seconds:
+              type: integer
+              format: int64
+              description: >-
+                The server's staleness threshold (--temperature-staleness-threshold, default
+                600) that the per-temperature `stale` flags are computed against. Surfaced so
+                clients can age readings live between fetches with the same clock.
+              example: 600
         chemistry:
           type: object
           description: >-
@@ -2767,6 +3516,17 @@ components:
           schema:
             type: string
             example: "Unauthorized"
+
+    Forbidden:
+      description: |
+        The request was authenticated but the subject lacks the route's
+        required entitlement (Administration routes require `system.admin`).
+        Only returned when the identity system (`--auth-mode enabled`) is on.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: "Forbidden: not entitled."
 
     NotFound:
       description: The specified resource was not found

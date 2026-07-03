@@ -33,7 +33,11 @@
     --radius-xl: 1.5rem;
     --transition: 0.2s ease;
     --grid-color: rgba(0, 0, 0, 0.06);
-    --font-family: 'Hanken Grotesk', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Per-glyph fallback: Latin renders from the brand faces; Arabic/Hebrew
+       glyphs fall through to the vendored Noto Sans faces (their @font-face
+       rules are unicode-range-limited to their scripts); everything else
+       lands on system-ui. */
+    --font-family: 'Hanken Grotesk', 'Noto Sans Arabic', 'Noto Sans Hebrew', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html.dark {
@@ -69,13 +73,28 @@ html.dark {
    each view is migrated; new surfaces use the tokens below.
    ============================================================================ */
 :root {
-    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif;
-    --font-ui: 'Hanken Grotesk', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Noto Sans Arabic', 'Noto Sans Hebrew', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'Noto Sans Arabic', 'Noto Sans Hebrew', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     --radius-card: 22px;
     --radius-row: 16px;
     --radius-chip: 11px;
     --content-max: 1180px;
+}
+
+/* CJK: name the platform Japanese faces explicitly so kana/kanji render on a
+   consistent, high-quality face on every OS (Latin still comes from the brand
+   faces via per-glyph fallback). system-ui remains the final net. */
+html[lang='ja'] {
+    --font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+}
+
+html[lang='zh'] {
+    --font-family: 'Hanken Grotesk', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    --font-ui: 'Hanken Grotesk', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
 }
 
 :root[data-theme="dark"],
@@ -355,6 +374,7 @@ nav .nav-controls {
 }
 
 .login-card {
+    position: relative;
     width: min(360px, 90vw);
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -362,6 +382,96 @@ nav .nav-controls {
     padding: 2rem;
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Dismiss control — only rendered for guests, who may back out to the dashboard. */
+.login-close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radius-sm, 8px);
+}
+.login-close:hover { color: var(--text-primary); background: var(--surface-3, rgba(255,255,255,0.06)); }
+
+/* Kiosk PIN entry on the login card. */
+.login-pin { margin-top: 0.5rem; }
+.login-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.9rem 0;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.75rem;
+}
+.login-divider::before,
+.login-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+.login-pin-submit {
+    background: var(--surface-3, rgba(255,255,255,0.06));
+    color: var(--text-primary);
+}
+
+/* Admin kiosk tab form layout. */
+.admin-field { display: block; margin-bottom: 0.75rem; text-align: left; }
+.admin-field-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 0.3rem;
+}
+.admin-kiosk-status {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+/* "Guest" status pill next to the header Sign-in affordance. */
+.guest-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--accent, #0ea5e9);
+    background: var(--accent-soft, rgba(14,165,233,0.12));
+    border: 1px solid var(--accent, #0ea5e9);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    margin-right: 0.35rem;
+}
+
+/* Locked control affordances for guests / unentitled subjects. The disabled
+   attribute already blocks interaction; these cues make it legible. */
+.eq-control.is-locked,
+.heater-toggle.is-locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.eq-control .eq-lock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #94a3b8);
+    margin-left: auto;
+}
+.eq-control .eq-lock svg { width: 18px; height: 18px; }
+.swg-locked-note {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    font-style: italic;
 }
 
 .login-logo { width: 56px; height: 56px; margin-bottom: 0.5rem; }
@@ -391,7 +501,8 @@ nav .nav-controls {
     margin-bottom: 1rem;
 }
 
-.login-submit {
+.login-submit,
+.login-pin-submit {
     width: 100%;
     padding: 0.6rem;
     background: var(--accent);
@@ -403,8 +514,152 @@ nav .nav-controls {
     font-size: 0.95rem;
 }
 
-.login-submit:disabled { opacity: 0.6; cursor: default; }
+.login-submit:disabled,
+.login-pin-submit:disabled { opacity: 0.6; cursor: default; }
 .login-error { color: #ef4444; font-size: 0.8rem; margin-top: 0.75rem; }
+.login-hint {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.75rem;
+    text-align: left;
+    margin: -0.4rem 0 0.6rem;
+}
+
+/* ---- Account overlay (Wave A) ------------------------------------------- */
+.account-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.8);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+}
+
+.account-card {
+    width: min(440px, 96vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.account-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.account-title { font-size: 1.15rem; margin: 0; color: var(--text-primary); }
+
+.account-close {
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+}
+.account-close:hover { color: var(--text-primary); }
+
+.account-section {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.account-section:last-child { border-bottom: none; }
+
+.account-subhead {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #94a3b8);
+    margin: 0 0 0.75rem;
+}
+
+.account-identity { display: flex; align-items: center; gap: 0.85rem; }
+
+.account-avatar {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.account-username { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+
+.account-groups { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+.account-group-chip {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted, #94a3b8);
+}
+
+.account-btn {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm, 8px);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.account-btn:disabled { opacity: 0.6; cursor: default; }
+.account-btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.account-btn-danger { background: #ef4444; }
+
+.account-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.account-ok { color: var(--good, #22c55e); font-size: 0.8rem; margin-top: 0.6rem; }
+.account-muted { color: var(--text-muted, #94a3b8); font-size: 0.85rem; }
+
+.account-session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.account-session {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+}
+.account-session-device { font-size: 0.9rem; color: var(--text-primary); }
+.account-session-meta { font-size: 0.75rem; color: var(--text-muted, #94a3b8); margin-top: 0.15rem; }
+.account-revoke {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.7rem;
+    background: none;
+    color: #ef4444;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.account-revoke:hover { border-color: #ef4444; }
 
 /* ---- Trends view (WS2) -------------------------------------------------- */
 .trends-head {
@@ -456,7 +711,7 @@ nav .nav-controls {
 .trends-ro-row { display: flex; align-items: center; gap: 0.4rem; margin: 0.12rem 0; }
 .trends-ro-sw { width: 0.5rem; height: 0.5rem; border-radius: 2px; flex: none; }
 .trends-ro-name { color: var(--text-secondary); }
-.trends-ro-val { margin-left: auto; font-weight: 600; color: var(--text-primary); }
+.trends-ro-val { margin-inline-start: auto; font-weight: 600; color: var(--text-primary); }
 .trends-ro-on { color: var(--gauge-good, #10b981); }
 .trends-ro-off { color: var(--text-muted); }
 
@@ -587,7 +842,7 @@ nav .nav-controls {
     letter-spacing: 0.03em;
     padding: 0.1rem 0.4rem;
     border-radius: var(--radius-sm, 8px);
-    margin-right: 0.4rem;
+    margin-inline-end: 0.4rem;
     vertical-align: 0.05rem;
 }
 .sched-owner-tag.tag-controller { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-hover); }
@@ -597,7 +852,7 @@ nav .nav-controls {
 .sched-row-disabled { opacity: 0.55; }
 .sched-row-conflict { border-color: var(--gauge-bad); box-shadow: inset 3px 0 0 var(--gauge-bad); }
 .sched-conflict-flag {
-    margin-left: 0.4rem;
+    margin-inline-start: 0.4rem;
     font-size: 0.62rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -628,14 +883,14 @@ nav .nav-controls {
 .lg-swatch.lg-conflict { background: var(--gauge-bad); transform: rotate(45deg); border-radius: 1px; }
 .sched-axis {
     display: flex; justify-content: space-between;
-    padding-left: 118px;
+    padding-inline-start: 118px;
     margin-top: 0.6rem;
     font-size: 0.68rem; color: var(--text-muted, #94a3b8);
 }
 .sched-trk-row { display: grid; grid-template-columns: 118px 1fr; align-items: center; }
-.sched-trk-label { font-size: 0.78rem; color: var(--text-primary); padding-right: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sched-trk-label { font-size: 0.78rem; color: var(--text-primary); padding-inline-end: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sched-trk { position: relative; height: 34px; border-bottom: 1px solid var(--border-color); }
-.sched-grid { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--border-color); }
+.sched-grid { position: absolute; top: 0; bottom: 0; width: 0; border-inline-start: 1px dashed var(--border-color); }
 .sched-bar {
     position: absolute; top: 7px; height: 20px;
     background: color-mix(in srgb, var(--accent) 55%, transparent);
@@ -722,7 +977,7 @@ nav .nav-controls {
     border-radius: var(--radius-sm);
     background: var(--bg-secondary);
     color: var(--text-muted);
-    margin-left: 0.25rem;
+    margin-inline-start: 0.25rem;
     vertical-align: middle;
 }
 
@@ -903,7 +1158,7 @@ html.dark .card {
 .mb-1 { margin-bottom: 0.5rem; }
 .mb-2 { margin-bottom: 1rem; }
 .mb-3 { margin-bottom: 1.5rem; }
-.ml-1 { margin-left: 0.5rem; }
+.ml-1 { margin-inline-start: 0.5rem; }
 .p-0 { padding: 0; }
 .p-2 { padding: 1rem; }
 .py-3 { padding: 2rem 0; }
@@ -924,7 +1179,7 @@ html.dark .card {
 .toast-container {
     position: fixed;
     bottom: 1rem;
-    right: 1rem;
+    inset-inline-end: 1rem;
     z-index: 300;
     display: flex;
     flex-direction: column;
@@ -971,7 +1226,7 @@ html.dark .card {
     cursor: pointer;
     font-size: 1rem;
     padding: 0;
-    margin-left: auto;
+    margin-inline-start: auto;
     line-height: 1;
 }
 
@@ -1005,7 +1260,7 @@ a:hover {
 }
 
 .data-table th {
-    text-align: left;
+    text-align: start;
     padding: 0.6rem 0.75rem;
     border-bottom: 2px solid var(--border-color);
     color: var(--text-secondary);
@@ -1113,7 +1368,7 @@ a:hover {
 
 
 .device-status-time {
-    margin-left: auto;
+    margin-inline-start: auto;
     color: var(--text-muted);
     font-size: 0.7rem;
     font-variant-numeric: tabular-nums;
@@ -1221,7 +1476,6 @@ a:hover {
 
 .settings-field .settings-input {
     width: 100%;
-    max-width: 440px;
     height: auto;
 }
 
@@ -1280,7 +1534,7 @@ nav.app-nav .nav-inner {
 }
 /* nav-links takes the slack so the status pill + all header buttons group into
    one right-aligned cluster (instead of space-between spreading them apart). */
-nav.app-nav .nav-links { margin-right: auto; }
+nav.app-nav .nav-links { margin-inline-end: auto; }
 
 nav.app-nav .nav-brand {
     font-family: var(--font-display);
@@ -1395,10 +1649,17 @@ nav.app-nav .theme-toggle.active { color: var(--accent); border-color: var(--acc
 nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad); }
 
 /* --- Alerts dropdown ----------------------------------------------------- */
-.alerts-wrap { position: relative; display: inline-flex; }
+/* The dropdown is NOT anchored to the bell: at narrow widths the nav wraps
+   (where depends on the locale's label lengths) and the bell can end up near
+   the inline-start edge, where a 320px bell-anchored panel would overflow the
+   viewport. Instead it anchors to .nav-inner and hangs below the nav at its
+   inline-end, which is viewport-safe at every width in both LTR and RTL. */
+nav .nav-inner { position: relative; }
+.alerts-wrap { display: inline-flex; }
+.alerts-bell { position: relative; } /* anchors .alerts-badge */
 .alerts-badge {
     position: absolute;
-    top: -5px; right: -5px;
+    top: -5px; inset-inline-end: -5px;
     min-width: 16px; height: 16px;
     padding: 0 4px;
     border-radius: 99px;
@@ -1409,7 +1670,8 @@ nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad
 }
 .alerts-dropdown {
     position: absolute;
-    top: 44px; right: 0;
+    top: calc(100% + 10px);
+    inset-inline-end: 24px; /* aligns with .nav-inner's inline padding */
     z-index: 120;
     width: 320px;
     background: var(--surface-1);
@@ -1442,6 +1704,14 @@ nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad
 .alerts-dd-detail { font: 500 12px/1.35 var(--font-ui); color: var(--text-dim); margin-top: 2px; }
 .alerts-dd-foot   { padding: 10px 16px; font: 500 11.5px/1.4 var(--font-ui); color: var(--text-faint); background: var(--surface-2); }
 
+/* On small screens stretch the dropdown into a full-width sheet below the nav. */
+@media (max-width: 820px) {
+    .alerts-dropdown {
+        inset-inline: 12px;
+        width: auto;
+    }
+}
+
 /* --- Banners ------------------------------------------------------------- */
 .startup-banner, .service-banner {
     border: none;
@@ -1456,3 +1726,258 @@ nav.app-nav .alerts-bell.has-alerts { color: var(--bad); border-color: var(--bad
 }
 .startup-banner { background: oklch(0.83 0.11 82 / .12); color: var(--warn); border-bottom: 1px solid var(--border); }
 .service-banner { background: oklch(0.83 0.11 82 / .14); color: var(--warn); border-bottom: 1px solid var(--border); }
+
+/* ---- Administration overlay (Slice 2 Wave B) ---------------------------- */
+/* Mirrors the .account-overlay / .account-card language, widened for the
+   tabbed management surface. Reuses the existing overlay tokens throughout. */
+.admin-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+    background: rgba(15, 23, 42, 0.8);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+}
+
+.admin-card {
+    width: min(860px, 96vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.admin-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.admin-title { font-size: 1.15rem; margin: 0; color: var(--text-primary); }
+
+.admin-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.6rem 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+.admin-tab {
+    padding: 0.5rem 0.9rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.admin-tab:hover { color: var(--text-primary); }
+.admin-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.admin-body { padding: 1.25rem 1.5rem; overflow-y: auto; }
+
+.admin-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+.admin-subhead {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #94a3b8);
+    margin: 0;
+}
+.admin-section-actions { display: flex; gap: 0.5rem; }
+.admin-btn-inline { width: auto; padding: 0.4rem 0.8rem; font-size: 0.82rem; }
+
+/* Row list */
+.admin-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.admin-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+    padding: 0.75rem 0.9rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+}
+.admin-row-main { min-width: 0; }
+.admin-row-title { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.98rem; font-weight: 600; color: var(--text-primary); }
+.admin-row-meta { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.4rem; font-size: 0.78rem; }
+.admin-row-actions { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.admin-empty { padding: 1rem 0; }
+
+.admin-mini-btn {
+    padding: 0.3rem 0.65rem;
+    background: none;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+.admin-mini-btn:hover { border-color: var(--accent); }
+.admin-mini-danger { color: #ef4444; }
+.admin-mini-danger:hover { border-color: #ef4444; }
+.admin-mini-note { font-size: 0.72rem; color: var(--text-muted, #94a3b8); font-style: italic; }
+.admin-tokver { font-size: 0.72rem; color: var(--text-muted, #94a3b8); }
+
+/* Badges */
+.admin-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.admin-badge-off { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.admin-badge-builtin { background: var(--accent-soft, rgba(14, 165, 233, 0.15)); color: var(--accent); }
+.admin-badge-guest { background: oklch(0.83 0.11 82 / .18); color: var(--warn, #d97706); }
+
+.ent-chip { font-family: var(--font-mono, monospace); }
+
+/* Inline panels (create / edit / confirm) */
+.admin-panel {
+    margin: 0.75rem 0 0.25rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+}
+.admin-panel-inline { grid-column: 1 / -1; margin-top: 0.75rem; }
+.admin-panel-danger { border-color: rgba(239, 68, 68, 0.4); }
+.admin-panel-title { margin: 0 0 0.75rem; font-size: 0.95rem; color: var(--text-primary); }
+.admin-panel-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.9rem; }
+.admin-panel-actions .account-btn { width: auto; padding: 0.5rem 1rem; }
+.admin-confirm-text { color: var(--text-primary); font-size: 0.9rem; margin: 0 0 0.5rem; }
+
+.admin-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem 0.9rem;
+    margin-bottom: 0.5rem;
+}
+.admin-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.admin-field > span { font-size: 0.78rem; color: var(--text-muted, #94a3b8); }
+.admin-field .login-input { margin-bottom: 0; }
+.admin-toggle { margin-bottom: 0.75rem; }
+
+.admin-group-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #94a3b8);
+    margin: 0.75rem 0 0.4rem;
+}
+
+/* Checkbox chips (groups + entitlement actions + aux devices) */
+.admin-chip-set { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.admin-check-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary, #64748b);
+    border-radius: var(--radius-sm, 8px);
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+.admin-check-chip.on { border-color: var(--accent); color: var(--text-primary); }
+.admin-check-chip input { accent-color: var(--accent); }
+
+/* Entitlement editor */
+.ent-editor { margin-top: 0.25rem; }
+.ent-admin { display: flex; margin-bottom: 0.6rem; font-weight: 600; }
+.ent-actions { border-top: 1px dashed var(--border-color); padding-top: 0.6rem; }
+.ent-aux { margin-top: 0.75rem; }
+.ent-aux-modes { display: inline-flex; gap: 0.25rem; background: var(--bg-primary); padding: 0.2rem; border-radius: var(--radius-sm, 8px); }
+.ent-aux-devices { margin-top: 0.5rem; }
+
+.admin-guest-note,
+.admin-secret-warn {
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--text-primary);
+    background: oklch(0.83 0.11 82 / .14);
+    border: 1px solid oklch(0.83 0.11 82 / .35);
+    border-radius: var(--radius-sm, 8px);
+    padding: 0.6rem 0.75rem;
+    margin: 0 0 0.75rem;
+}
+
+/* Entitlement vocabulary reference */
+.admin-vocab-group { margin-bottom: 1rem; }
+.admin-vocab-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.admin-vocab-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+    font-size: 0.82rem;
+}
+.admin-vocab-item code { color: var(--accent); font-family: var(--font-mono, monospace); white-space: nowrap; }
+
+/* One-time API key secret modal */
+.admin-secret-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.85);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+.admin-secret-card {
+    width: min(480px, 96vw);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 12px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    padding: 1.5rem;
+}
+.admin-secret-row { display: flex; gap: 0.5rem; align-items: stretch; }
+.admin-secret-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 8px);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    word-break: break-all;
+    user-select: all;
+}
+.admin-secret-row .account-btn { flex: 0 0 auto; }
+.admin-secret-label { margin-top: 0.6rem; }
+
+@media (max-width: 640px) {
+    .admin-row { grid-template-columns: 1fr; }
+    .admin-row-actions { justify-content: flex-start; }
+}

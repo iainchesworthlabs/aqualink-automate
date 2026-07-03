@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "kernel/data_hub.h"
+#include "kernel/preferences_hub.h"
 #include "mqtt/mqtt_client.h"
 #include "options/options_mqtt_options.h"
 
@@ -36,6 +37,12 @@ namespace AqualinkAutomate::Mqtt
 
 		/// Store a weak reference to the data hub for reading device info.
 		void ConnectDataHub(const std::shared_ptr<Kernel::DataHub>& data_hub);
+
+		/// Store a weak reference to the preferences hub. Drives the setpoint
+		/// NUMBER entities' unit (see AddSetpointComponents): unlike sensors,
+		/// HA does not convert number entities to its own unit system, so they
+		/// follow the user's Temperature_DisplayUnits preference instead.
+		void ConnectPreferencesHub(const std::shared_ptr<Kernel::PreferencesHub>& preferences_hub);
 
 		/// Publish all discovery configs (fixed sensors + dynamic devices).
 		void PublishDiscoveryConfigs();
@@ -131,6 +138,7 @@ namespace AqualinkAutomate::Mqtt
 		std::shared_ptr<MqttClient> m_Client;
 		Options::Mqtt::MqttSettings m_Settings;
 		std::weak_ptr<Kernel::DataHub> m_DataHub;
+		std::weak_ptr<Kernel::PreferencesHub> m_PreferencesHub;
 
 		// Discovery component keys published last cycle (key -> platform "p"). A component that
 		// disappears - a removed/relabelled device, or a config-gated entity (e.g. the Spa sensor

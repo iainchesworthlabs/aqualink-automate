@@ -9,9 +9,12 @@
 #include "http/server/responses/response_405.h"
 #include "http/server/responses/response_503.h"
 #include "http/server/server_fields.h"
+#include "http/server/routing/routing.h"
 #include "http/server/server_types.h"
 #include "http/webroute_schedules.h"
+#include "kernel/data_hub.h"
 #include "profiling/factories/profiling_unit_factory.h"
+#include "scheduling/schedule_authorization.h"
 #include "scheduling/scheduler_service.h"
 
 namespace AqualinkAutomate::HTTP
@@ -44,14 +47,37 @@ namespace AqualinkAutomate::HTTP
 			}
 			return Scheduling::FromJson(json, error);
 		}
+
+		// D14 anti-escalation: the saving subject must be entitled to the
+		// action the schedule performs.  Returns a 403 response on denial (or
+		// nullopt to proceed).  A null DataHub / auth-off posture makes this a
+		// no-op.  See scheduling/schedule_authorization.h.
+		std::optional<HTTP::Response> AuthorizeSave(const HTTP::Request& req, const Scheduling::Schedule& schedule, Kernel::DataHub* data_hub)
+		{
+			const bool auth_enabled = HTTP::Routing::GetSecurityConfig().AuthModeEnabled;
+
+			if (!auth_enabled || (nullptr == data_hub))
+			{
+				return std::nullopt;
+			}
+
+			std::string auth_error;
+			if (!Scheduling::AuthorizeScheduleAction(HTTP::Routing::CurrentSubject(), schedule, *data_hub, auth_enabled, auth_error))
+			{
+				return MakeResponse(req, HTTP::Status::forbidden, ContentTypes::TEXT_PLAIN, auth_error);
+			}
+
+			return std::nullopt;
+		}
 	}
 	// unnamed namespace
 
 	//-------------------------------------------------------------------------
 	// Collection: /api/schedules
 	//-------------------------------------------------------------------------
-	WebRoute_Schedules::WebRoute_Schedules(std::shared_ptr<Scheduling::SchedulerService> service) :
-		m_Service(std::move(service))
+	WebRoute_Schedules::WebRoute_Schedules(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub) :
+		m_Service(std::move(service)),
+		m_DataHub(std::move(data_hub))
 	{
 	}
 
@@ -84,6 +110,10 @@ namespace AqualinkAutomate::HTTP
 			{
 				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, error);
 			}
+			if (auto denial = AuthorizeSave(req, *schedule, m_DataHub.get()); denial.has_value())
+			{
+				return std::move(*denial);
+			}
 			auto created = m_Service->Create(std::move(*schedule));
 			return MakeJsonResponse(req, HTTP::Status::created, Scheduling::ToJson(created).dump());
 		}
@@ -96,8 +126,9 @@ namespace AqualinkAutomate::HTTP
 	//-------------------------------------------------------------------------
 	// Item: /api/schedules/{uuid}
 	//-------------------------------------------------------------------------
-	WebRoute_Schedule::WebRoute_Schedule(std::shared_ptr<Scheduling::SchedulerService> service) :
-		m_Service(std::move(service))
+	WebRoute_Schedule::WebRoute_Schedule(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub) :
+		m_Service(std::move(service)),
+		m_DataHub(std::move(data_hub))
 	{
 	}
 
@@ -134,6 +165,10 @@ namespace AqualinkAutomate::HTTP
 			if (!schedule.has_value())
 			{
 				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, error);
+			}
+			if (auto denial = AuthorizeSave(req, *schedule, m_DataHub.get()); denial.has_value())
+			{
+				return std::move(*denial);
 			}
 			if (!m_Service->Replace(*uuid, std::move(*schedule)))
 			{

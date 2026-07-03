@@ -109,12 +109,19 @@ document.addEventListener('alpine:init', () => {
                     }
                 };
 
-                ws.onclose = () => {
+                ws.onclose = (event) => {
                     onDown();
                     if (name === 'equipment') {
-                        Alpine.store('toast').show('Connection lost — retrying...', 'warn');
+                        Alpine.store('toast').show(window.AquaI18n.t('toast.conn_lost_retrying'), 'warn');
                     }
-                    this._scheduleReconnect(name);
+                    // #20: the server closes sockets when a session is revoked or
+                    // its access token expires. A browser can't read the upgrade's
+                    // 401/403 status, so treat a close while we hold a token (under
+                    // the identity system) as a possible auth rejection: refresh the
+                    // access token BEFORE reconnecting so the new socket carries a
+                    // valid bearer subprotocol. If the refresh fails the session is
+                    // dead — surface the login card instead of looping.
+                    this._reconnectWithAuth(name, event);
                 };
 
                 ws.onerror = (event) => {
@@ -163,6 +170,47 @@ document.addEventListener('alpine:init', () => {
             this.statsConnected = false;
         },
 
+        /**
+         * Reconnect after a close, refreshing the access token first when the
+         * close might be an auth rejection (#20). No token / posture-off => the
+         * ordinary backoff reconnect. Holding a token => try one silent refresh;
+         * on success the scheduled reconnect naturally uses the rotated token, on
+         * failure the auth store shows the login card and we stop retrying.
+         */
+        _reconnectWithAuth(name, event) {
+            const auth = window.AqualinkAuth;
+            const authStore = (typeof Alpine !== 'undefined') ? Alpine.store('auth') : null;
+            const identityOn = authStore && authStore.posture === 'enabled';
+            const haveToken = auth && auth.token && auth.token();
+
+            // Browsers report a rejected/aborted upgrade as an abnormal close
+            // (1006) and a policy/auth close as 1008/1011; a clean 1000/1001 is a
+            // normal teardown (e.g. server restart) that just needs a plain
+            // reconnect. Only spend a single-use refresh token on the abnormal
+            // codes, and only under the identity system with a token in hand.
+            const code = event && typeof event.code === 'number' ? event.code : 1006;
+            const maybeAuthClose = code !== 1000 && code !== 1001;
+
+            if (!identityOn || !haveToken || !maybeAuthClose || typeof auth.tryRefresh !== 'function') {
+                this._scheduleReconnect(name);
+                return;
+            }
+
+            auth.tryRefresh().then((ok) => {
+                if (ok) {
+                    // Fresh token in hand — reconnect promptly with it.
+                    this._scheduleReconnect(name);
+                } else {
+                    // Session is dead: drop tokens and surface login; do not loop.
+                    if (typeof authStore._localSignOut === 'function') {
+                        authStore._localSignOut();
+                    } else {
+                        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+                    }
+                }
+            }).catch(() => this._scheduleReconnect(name));
+        },
+
         _scheduleReconnect(name) {
             const conn = this._conns[name];
             // A reconnect is already pending — do not stack another timer.
@@ -178,5 +226,20 @@ document.addEventListener('alpine:init', () => {
             }, conn.delay);
             conn.delay = Math.min(conn.delay * 2, WS_RECONNECT_MAX_DELAY_MS);
         }
+    });
+
+    // Re-open both sockets whenever auth state settles — not just at boot.
+    // `auth:ready` fires again after a successful login/logout (auth.js's
+    // check()), and browsers can't attach a bearer token to an in-flight
+    // WebSocket, so a socket opened before login stays anonymous forever
+    // unless it's explicitly recreated here (mirrors prefs-sync.js's
+    // un-gated `auth:ready` listener). _connect() safely replaces any
+    // existing socket, so a redundant call right after app.js's own
+    // first-boot connect is a harmless no-op.
+    window.addEventListener('auth:ready', () => {
+        const ws = Alpine.store('ws');
+        if (!ws) return;
+        ws.connectEquipment();
+        ws.connectStats();
     });
 });

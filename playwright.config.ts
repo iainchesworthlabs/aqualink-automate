@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /**
@@ -39,21 +40,35 @@ import { join } from 'node:path';
  */
 
 // Every per-channel log level the developer options expose; --replay-filename
-// requires each to be present (see option_dependency_helper.cpp).
+// requires each to be present (see option_dependency_helper.cpp). Note: audit is
+// deliberately absent — it is a separate subsystem, not an operational log channel
+// (docs/logging-sinks-redesign.md §10), so there is no --loglevel-audit.
 const LOG_CHANNELS = [
-  'main', 'certificates', 'coroutines', 'developer', 'devices', 'equipment',
-  'exceptions', 'messages', 'mqtt', 'navigation', 'options', 'platform',
-  'profiling', 'protocol', 'scraping', 'serial', 'signals', 'web',
+  'main', 'certificates', 'coroutines', 'developer', 'devices',
+  'equipment', 'exceptions', 'messages', 'mqtt', 'navigation', 'options',
+  'platform', 'profiling', 'protocol', 'scraping', 'serial', 'signals', 'web',
 ];
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.AQUALINK_TEST_PORT ?? 18080);
 const BASE_URL = `http://${HOST}:${PORT}`;
 
-// WS5 auth mode: when AQUALINK_AUTH_TOKEN is set, boot the app with
-// --api-auth-token and run ONLY the auth spec; otherwise run every other spec
-// against an unauthenticated server (proving the default path is unchanged).
-const AUTH_TOKEN = process.env.AQUALINK_AUTH_TOKEN;
+// Wave A identity mode: when AQUALINK_AUTH_MODE=enabled, boot the app with the
+// full identity system (`--auth-mode enabled`) against a FRESH temp
+// --auth-state-dir so the user store starts EMPTY (setup_required = true). The
+// auth spec then drives the first-run wizard, login/logout, and session flows.
+// No bootstrap admin is created: the spec's first test creates it via the setup
+// wizard and the empty-store precondition is exactly what that test needs.
+//
+// To instead boot with a pre-seeded administrator (e.g. to run only the
+// login/session tests), set AQUALINK_BOOTSTRAP_ADMIN + AQUALINK_BOOTSTRAP_ADMIN_PASSWORD;
+// the config passes `--bootstrap-admin <user>` and hands the password to the
+// binary via the AQUALINK_BOOTSTRAP_ADMIN_PASSWORD env it already reads.
+const AUTH_MODE = process.env.AQUALINK_AUTH_MODE === 'enabled';
+const BOOTSTRAP_ADMIN = process.env.AQUALINK_BOOTSTRAP_ADMIN;
+const AUTH_STATE_DIR = AUTH_MODE
+  ? (process.env.AQUALINK_AUTH_STATE_DIR ?? mkdtempSync(join(tmpdir(), 'aqualink-auth-')))
+  : undefined;
 
 // WS2 history mode: when AQUALINK_HISTORY_DB is set, boot with --history-db and
 // run ONLY the trends spec (which then expects recorded series + a chart).
@@ -86,12 +101,24 @@ if (!existsSync(APP_EXE)) {
 
 export default defineConfig({
   testDir: './e2e',
-  // The auth spec needs a token-protected server; everything else needs an
-  // unauthenticated one. Select by the AQUALINK_AUTH_TOKEN env (see above).
-  testMatch: AUTH_TOKEN
-    ? ['**/auth.spec.ts']
+  // The identity specs (auth + admin + guest) need an identity-enabled server
+  // (AQUALINK_AUTH_MODE=enabled); everything else needs an unauthenticated one.
+  //
+  // IMPORTANT: the identity specs have INCOMPATIBLE store preconditions and share
+  // one webServer + auth-state dir per run — auth.spec's first test needs an EMPTY
+  // store to exercise the first-run setup wizard, while admin.spec self-seeds an
+  // admin (setup-if-empty, else login). Run them in SEPARATE invocations so each
+  // gets its own fresh state dir:
+  //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/auth.spec.ts
+  //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/admin.spec.ts
+  //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/guest.spec.ts
+  // (the positional filter narrows the match to one file). A bare auth-mode run
+  // would run admin.spec first (alphabetical), seeding the store and breaking
+  // auth.spec's wizard assertion — which is why CI drives one spec per step.
+  testMatch: AUTH_MODE
+    ? ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts']
     : (HISTORY_DB ? ['**/trends.spec.ts'] : (SCHEDULES_FILE ? ['**/schedules.spec.ts'] : undefined)),
-  testIgnore: (AUTH_TOKEN || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts'],
+  testIgnore: (AUTH_MODE || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts'],
   // Replay is deterministic but the UI is global mutable state behind one backend;
   // run serially so command-button tests don't race each other's optimistic updates.
   fullyParallel: false,
@@ -128,7 +155,13 @@ export default defineConfig({
       '--jandy-disable-emulation',
       '--profiler tracy',
       ...LOG_CHANNELS.map((ch) => `--loglevel-${ch} info`),
-      ...(AUTH_TOKEN ? [`--api-auth-token ${AUTH_TOKEN}`] : []),
+      ...(AUTH_MODE
+        ? [
+            '--auth-mode enabled',
+            `--auth-state-dir "${AUTH_STATE_DIR}"`,
+            ...(BOOTSTRAP_ADMIN ? [`--bootstrap-admin ${BOOTSTRAP_ADMIN}`] : []),
+          ]
+        : []),
       ...(HISTORY_DB ? [`--history-db "${HISTORY_DB}"`, '--history-flush-seconds 1'] : []),
       ...(SCHEDULES_FILE ? [`--schedules-file "${SCHEDULES_FILE}"`] : []),
     ].join(' '),
@@ -137,6 +170,11 @@ export default defineConfig({
     timeout: 120_000,
     stdout: 'pipe',
     stderr: 'pipe',
+    // The bootstrap password (when seeding an admin) is passed via the env the
+    // binary reads, never on the command line.
+    env: BOOTSTRAP_ADMIN && process.env.AQUALINK_BOOTSTRAP_ADMIN_PASSWORD
+      ? { AQUALINK_BOOTSTRAP_ADMIN_PASSWORD: process.env.AQUALINK_BOOTSTRAP_ADMIN_PASSWORD }
+      : undefined,
     // Stop the app with a *catchable* signal instead of Playwright's default
     // SIGKILL. The binary installs a boost::asio signal_set on SIGINT/SIGTERM
     // (see aqualink-automate.cpp) and returns from main on receipt, so a clean

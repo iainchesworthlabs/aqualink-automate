@@ -8,8 +8,12 @@ Aqualink Automate is a C++ service that talks to your pool equipment over an
 RS-485 serial link and exposes it on your own network. It reads status from the
 panel and lets you control it through a built-in Web UI, an HTTP and WebSocket
 API, MQTT (with Home Assistant discovery), and a Matter bridge for Apple Home,
-Google Home, Alexa, and SmartThings. Everything runs on hardware you own;
-nothing is sent to a vendor cloud.
+Google Home, Alexa, and SmartThings. The web UI is available in nine languages
+(with full right-to-left support), and [community translations are easy to
+add](CONTRIBUTING.md#contributing-translations). Everything runs on hardware
+you own; nothing is sent to a vendor cloud.
+
+![The Aqualink Automate web dashboard](assets/aqualink-automate-dashboard.png)
 
 ## Install
 
@@ -39,8 +43,10 @@ For pre-built binaries, dev containers, Docker, and building from source, see th
 
 !!! warning "Before exposing it on your network"
 
-    By default the web server binds to `127.0.0.1` (localhost only) and HTTP
-    authentication is off. Review the [Security guide](SECURITY.md) and the
+    By default the web server binds to `127.0.0.1` (localhost only) and
+    authentication is off. Enable the built-in identity system with
+    `--auth-mode enabled` (first-run wizard, users/groups, API keys, guest and
+    kiosk access), and review the [Security guide](SECURITY.md) and the
     [Configuration reference](configuration.md) first.
 
 ## Where to next

@@ -33,7 +33,7 @@ function equipmentButton() {
         },
 
         statusLabel(button) {
-            return String(button.status || 'Unknown');
+            return ui.buttonStatusLabel ? ui.buttonStatusLabel(button.status || 'Unknown') : String(button.status || 'Unknown');
         },
 
         cmdState(button) {

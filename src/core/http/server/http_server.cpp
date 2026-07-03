@@ -11,6 +11,7 @@
 #include "formatters/beast_stringview_formatter.h"
 #include "http/server/http_server.h"
 #include "http/server/routing/routing.h"
+#include "http/server/websocket_timeouts.h"
 #include "http/server/responses/response_404.h"
 #include "logging/logging.h"
 #include "profiling/factories/profiler_factory.h"
@@ -57,6 +58,29 @@ namespace AqualinkAutomate::HTTP
 	void HttpSessionState::Poll()
 	{
 		if (m_Done) return;
+
+		// Periodically re-validate the live connection's credential: a token
+		// that has expired or been revoked (tokver bump / account disable /
+		// entitlement loss) closes the socket, so the client reconnects with a
+		// fresh credential.  Throttled — token state changes on the order of
+		// seconds, not frames.  No revalidator (auth-mode off) => never closes.
+		if (m_WsActive && m_WsRevalidator && (++m_WsRevalidateTick >= WS_REVALIDATE_INTERVAL))
+		{
+			m_WsRevalidateTick = 0;
+
+			if (!m_WsRevalidator())
+			{
+				LogInfo(Channel::Web, [&] { return std::format("Closing WebSocket connection {}: credential no longer authorised", m_WsConnectionId); });
+
+				if (m_WsHandler)
+				{
+					m_WsHandler->OnClose(m_WsConnectionId);
+				}
+
+				Close();
+				return;
+			}
+		}
 
 		if (m_WsActive && !m_WsWriting)
 		{
@@ -228,6 +252,12 @@ namespace AqualinkAutomate::HTTP
 				return;
 			}
 
+			// Capture the connection's revalidator NOW (valid only right after a
+			// successful AuthorizeWebSocketUpgrade): Poll() re-checks it so a
+			// revoked/expired credential closes the live socket (D15/D2). Empty
+			// when auth-mode is off — then Poll performs no revalidation.
+			m_WsRevalidator = Routing::CurrentWebSocketRevalidator();
+
 			m_WsHandler = Routing::WS_OnAccept(req.target());
 			if (!m_WsHandler)
 			{
@@ -244,9 +274,16 @@ namespace AqualinkAutomate::HTTP
 		zone->Text(std::string(req.target().data(), req.target().size()));
 #endif
 
-		auto msg = Routing::HTTP_OnRequest(req, m_PeerIp);
-
-		DoWrite(std::move(msg));
+		// Completion-based dispatch: every stock route completes inline (same
+		// behaviour as the old synchronous call), while deferred-response
+		// routes (login's off-thread argon2 verify) invoke the completion
+		// later on this same io_context.  The session is kept alive by the
+		// captured shared_ptr; DoWrite ignores completions after MarkDone.
+		Routing::HTTP_OnRequestDispatch(std::move(req), m_PeerIp,
+			[self = shared_from_this()](Message&& msg)
+			{
+				self->DoWrite(std::move(msg));
+			});
 	}
 
 	//--- HTTP Write -------------------------------------------------------
@@ -351,9 +388,11 @@ namespace AqualinkAutomate::HTTP
 
 		const bool dispatched = WithWsStream([self = shared_from_this(), &req, offered_aqualink](auto& ws)
 			{
-				ws.set_option(
-					boost::beast::websocket::stream_base::timeout::suggested(
-						boost::beast::role_type::server));
+				// Explicit keepalive policy (not suggested(server)): the equipment
+				// channel is change-driven and can idle for minutes, and Beast's
+				// suggested 300s profile pings too late to stop reverse proxies
+				// from severing the quiet connection. See websocket_timeouts.h.
+				ws.set_option(WebSocketServerTimeout());
 
 				// Echo the negotiated subprotocol when the client offered `aqualink`.
 				ws.set_option(boost::beast::websocket::stream_base::decorator(

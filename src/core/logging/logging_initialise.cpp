@@ -1,48 +1,99 @@
-#include <iostream>
-
-#include <boost/core/null_deleter.hpp>
+#include <boost/log/attributes/named_scope.hpp>
 #include <boost/log/core.hpp>
-#include <boost/log/sinks/sync_frontend.hpp>
-#include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/phoenix/bind/bind_function.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/smart_ptr/make_shared_object.hpp>
 
-#include "logging/logging_attributes.h"
-#include "logging/logging_channels.h"
-#include "logging/logging_formatter.h"
+#include "logging/logging.h"
 #include "logging/logging_initialise.h"
-#include "logging/logging_severity_filter.h"
-#include "logging/logging_severity_levels.h"
+#include "logging/sinks/log_environment.h"
+#include "logging/sinks/sink_console.h"
+#include "logging/sinks/sink_file.h"
+#include "logging/sinks/sink_filters.h"
+#include "logging/sinks/sink_journald.h"
+#include "logging/sinks/sink_native.h"
+#include "logging/sinks/sink_registry.h"
 
 namespace AqualinkAutomate::Logging
 {
 
-void Initialise()
+void Initialise(LogFormat format)
 {
-	typedef boost::log::sinks::synchronous_sink<boost::log::sinks::text_ostream_backend> text_sink;
-	boost::shared_ptr<text_sink> sink = boost::make_shared<text_sink>();
-	boost::log::core::get()->add_sink(sink);
+	// Bootstrap console sink, installed via the registry before options are parsed
+	// so start-up diagnostics are visible. This resolves the `auto` console arm:
+	// text (or JSON, if main's argv pre-scan detected --log-format json), plus
+	// sd-daemon "<N>" priority prefixes when stderr is connected to the journal
+	// (StandardOutput=journal under systemd). The native/file sinks and any
+	// --log-sinks overrides are applied after options are processed (the reconfigure
+	// step); the console format is finalised there too.
+	Sinks::ConsoleSinkConfig console_config;
+	console_config.JournaldPrefixes = Sinks::DetectLogEnvironment().StderrIsJournal;
+	console_config.Format = format;
 
-	sink->set_formatter(&Formatter);
-
-	auto severity_filter = boost::phoenix::bind(&SeverityFiltering::PerChannelTest, channel_type::or_default(SeverityFiltering::DEFAULT_CHANNEL), severity_type::or_default(SeverityFiltering::DEFAULT_SEVERITY));
-	sink->set_filter(severity_filter);
-
-	boost::shared_ptr<std::ostream> stream(&std::clog, boost::null_deleter());
-	sink->locked_backend()->add_stream(stream);
-
-	// Flush the underlying stream after every record. std::clog is fully buffered,
-	// so without this the records sit in the C++ stream buffer and are not written
-	// to stderr until the buffer fills or the process exits. Under a container
-	// (stdout/stderr is a pipe, not a TTY) that buffering makes `docker logs` appear
-	// to stall or truncate mid-startup and loses any buffered tail on a crash.
-	// auto_flush trades a little throughput for real-time, crash-safe log delivery.
-	sink->locked_backend()->auto_flush(true);
+	Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(console_config));
 
 	boost::log::add_common_attributes();
 	boost::log::core::get()->add_global_attribute("Scope", boost::log::attributes::named_scope());
+}
+
+void Reconfigure(const RuntimeConfig& config)
+{
+	// Drop the bootstrap console and install the resolved operational sink set.
+	// (The audit sink is installed separately by the auth bootstrap and is not
+	// tracked here, so it is untouched.)
+	Sinks::SinkRegistry::RemoveAll();
+
+	if (config.Selection.Console)
+	{
+		Sinks::ConsoleSinkConfig console_config;
+		console_config.JournaldPrefixes = config.Selection.ConsoleJournaldPrefixes;
+		console_config.Format = config.Format;
+		Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(console_config));
+	}
+
+	if (config.Selection.Native)
+	{
+		Sinks::SinkRegistry::Add(Sinks::MakeNativeSink(Sinks::NativeSinkConfig{
+			.Filter = Sinks::MakeOperationalFilter(),
+			.Facility = config.GeneralNativeFacility }));
+	}
+
+	if (config.Selection.Journald)
+	{
+		// MakeJournaldSink returns null on non-Linux (stub) or when libsystemd is
+		// absent, so no platform #ifdef is needed here.
+		auto journald_sink = Sinks::MakeJournaldSink(Sinks::JournaldSinkConfig{ .Filter = Sinks::MakeOperationalFilter() });
+
+		if (journald_sink)
+		{
+			Sinks::SinkRegistry::Add(journald_sink);
+		}
+		else
+		{
+			// journald was requested (e.g. --log-sinks journald) but is not available
+			// (non-Linux, or libsystemd absent): fall back to the console with priority
+			// prefixes so priorities still reach the journal, and say so.
+			LogWarning(Channel::Main, "journald sink unavailable (no libsystemd); using console with priority prefixes instead");
+
+			Sinks::ConsoleSinkConfig fallback_console;
+			fallback_console.JournaldPrefixes = true;
+			fallback_console.Format = config.Format;
+			Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(fallback_console));
+		}
+	}
+
+	if (config.Selection.File && config.LogFilePath.has_value())
+	{
+		Sinks::SinkRegistry::Add(Sinks::MakeFileSink(Sinks::FileSinkConfig{
+			.Path = *config.LogFilePath,
+			.MaxFileBytes = config.LogFileMaxBytes,
+			.MaxFiles = config.LogFileMaxFiles,
+			.Format = config.Format }));
+	}
+}
+
+void Shutdown()
+{
+	Sinks::SinkRegistry::FlushAll();
+	Sinks::SinkRegistry::RemoveAll();
 }
 
 }

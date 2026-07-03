@@ -162,6 +162,22 @@ The built-in HTTP/HTTPS server that hosts the web UI and the REST/WebSocket API.
 
 Conflicts: `--disable-http` vs `--http-port`; `--disable-https` vs each of `--https-port`, `--cert`, `--cert-key`, `--cachain-cert`. Because the conflict checker [ignores defaulted options](#conflict-and-dependency-matrix), `--disable-https` is accepted even though `--cert`/`--cert-key` carry default values — only an *explicit* `--cert` collides with it.
 
+## Authentication and identity options
+
+The opt-in identity system — subjects, entitlements, and the policy engine (see [SECURITY.md](SECURITY.md) for the enforcement model and [auth-redesign.md](auth-redesign.md) for the design). Lives in the `Authentication` settings area. Slice 1 ships the framework only: login and user management arrive in a later slice, so the app cannot yet issue tokens itself.
+
+| Option | Short | Type | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--auth-mode` | | enum | `disabled` | Identity-system posture: `disabled` (historical behaviour — no identity resolution, every policy decision is Permit) or `enabled` (every request resolves to a subject and routes are gated by entitlements; anonymous callers get the deny-by-default Guest group). When `enabled`, the legacy `--api-auth-token` shared-token check is superseded — bearer credentials are interpreted by the subject resolver instead. |
+| `--auth-state-dir` | | string | none (platform secure state dir) | Directory for authentication state (JWT signing keys and the user/group/API-key/session/kiosk stores). When unset, an `auth/` subdirectory of the platform's secure state directory is used (the same fallback chain as the generated TLS key). The directory is prepared owner-only; startup fails if no usable secure directory can be prepared. |
+| `--jwt-access-ttl` | | uint32 | `15` | Access-token lifetime in minutes. Must be at least 1. |
+| `--bootstrap-admin` | | string | none | Username of a first administrator to create at startup. Only fires when `--auth-mode enabled` **and** the user store is empty; idempotent (a no-op once any user exists). The password comes from `--bootstrap-admin-password-file` or `AQUALINK_BOOTSTRAP_ADMIN_PASSWORD` — never a CLI argument. |
+| `--bootstrap-admin-password-file` | | string | none | File whose first line (newline-terminated) is the bootstrap administrator's password. Used only with `--bootstrap-admin`. |
+
+An `--auth-mode` value other than `disabled`/`enabled`, or a `--jwt-access-ttl` of `0`, fails validation and stops startup.
+
+**Headless first-admin bootstrap.** `--bootstrap-admin <username>` creates the first administrator without the interactive setup screen — useful for containers and unattended installs. It only acts when `--auth-mode enabled` and no users exist yet; with any user already on file it is silently a no-op (so a stale flag can never mint a second admin). The password is **never** passed on the command line, where it would be visible in the process table. Instead it is read from the first line of the file named by `--bootstrap-admin-password-file`, or, if that is unset, from the `AQUALINK_BOOTSTRAP_ADMIN_PASSWORD` environment variable. If `--bootstrap-admin` is given but no password can be found from either source, no administrator is created and a startup warning is logged. The password must satisfy the same policy as everywhere else (at least 12 characters).
+
 ## MQTT and Home Assistant options
 
 Publishing pool state to an MQTT broker, optionally with Home Assistant auto-discovery. Lives in the `MQTT` settings area. This is a summary — for the full topic layout, entity types, and discovery payloads, see the [MQTT and Home Assistant guide](mqtt-home-assistant.md).
@@ -319,12 +335,81 @@ Diagnostics, capture recording, and deterministic replay. Lives in the `Develope
 There is one `--loglevel-<channel>` option per logging channel. The 18 channels are:
 
 ```
-certificates  coroutines  developer  devices    equipment  exceptions
-main          messages    mqtt       navigation options    platform
-profiling     protocol    scraping   serial     signals    web
+certificates  coroutines  developer   devices     equipment  exceptions
+main          messages    mqtt        navigation  options     platform
+profiling     protocol    scraping    serial      signals     web
 ```
 
 Each takes a severity (case-insensitive): `Trace`, `Debug`, `Info`, `Notify`, `Warning`, `Error`, `Fatal`. For example `--loglevel-protocol Debug`.
+
+> **Audit is not a log channel.** The security audit trail (auth decisions,
+> privileged actions) is a separate subsystem, not an operational log channel, so
+> there is deliberately no `--loglevel-audit`. See
+> [Security → Audit trail](SECURITY.md) for where audit events are routed.
+
+### Logging sinks
+
+Where operational log records are delivered is configured by the **Logging**
+options. By default (`--log-sinks auto`) the destination is derived from the run
+environment: an interactive terminal or a container gets the console; under
+systemd the console additionally carries sd-daemon `<N>` priority prefixes so
+`journalctl -u aqualink-automate -p warning` works.
+
+| Option | Type | Default | Notes |
+|---|---|---|---|
+| `--log-sinks` | string | `auto` | `auto` (environment-derived) or a comma-separated list of `console`, `native`, `file`, `journald`. `native` adds the OS-native operational sink (syslog on POSIX, the Windows Event Log); `file` requires `--log-file`; `journald` is the structured native journal sink on Linux when libsystemd is present at runtime (elsewhere it falls back to console with priority prefixes). Under `auto`: `--log-file` implies the file sink, and under systemd (stderr is the journal) with libsystemd available, `journald` is used automatically. |
+| `--log-syslog-facility` | enum | `daemon` | POSIX syslog facility for the general `native` sink: `daemon`, `user`, `local0`–`local7` (case-insensitive). Ignored on Windows. The audit sink always uses `authpriv` regardless. |
+| `--log-format` | enum | `text` | Record format for the **console and file** sinks: `text` (human) or `json` (one JSON object per line, for container / SIEM pipelines). The native/syslog sink is always message-only. |
+| `--log-file` | path | *(unset)* | Write logs to this file (enables the file sink). Rotated and size-bounded; on shutdown the active file is rotated into the kept set. |
+| `--log-file-max-size` | bytes | `10485760` (10 MiB) | Rotate the log file when it would exceed this many bytes. |
+| `--log-file-max-files` | count | `5` | Keep at most this many rotated log files (oldest deleted). |
+
+Examples: `--log-sinks console,native --log-syslog-facility local0` (console plus
+a syslog `local0` operational sink); `--log-file /var/log/aqualink/app.log
+--log-format json` (console **and** a rotating JSON file, since `auto` adds the
+file sink when a path is given); `--log-sinks console --log-format json` (JSON to
+the console only, ideal behind a container log driver).
+
+**Platform-native sinks.** On Linux, when `libsystemd.so.0` is present (it is on any
+systemd host), `journald` delivers records to the journal with structured fields
+(query with e.g. `journalctl AA_CHANNEL=Web`), and `auto` selects it when running
+under systemd. libsystemd is loaded at runtime (`dlopen`), so it is neither a build
+nor a hard runtime dependency — if it is absent, logging falls back to the console. On macOS the
+native sink uses the unified logging system (`os_log`; view with Console.app or
+`log show`). On **Windows**, the Event Log source is registered once, elevated,
+with `--register-log-source` (and removed with `--unregister-log-source`); the
+running service never needs elevation because the sink itself does not write the
+registry. `--install-service` performs this registration too, so a service install is
+clean in one step. The executable embeds a message-table resource matching the sink's
+event IDs, so once the source is registered Event Viewer renders each entry verbatim;
+until that one-time registration, events still appear in the Application log, just
+wrapped in a generic description.
+
+### Running as a Windows service
+
+On Windows the application can run as a managed service (the analogue of the Linux
+systemd unit): auto-start at boot, survives logoff, restarts on failure, and logs to the
+Windows Event Log. Install it from an **elevated** prompt:
+
+```
+aqualink-automate.exe --install-service --config "C:\ProgramData\Aqualink Automate\aqualink-automate.conf"
+```
+
+`--install-service` registers an auto-starting (delayed) service running as the built-in
+least-privilege `NT AUTHORITY\LocalService` account, sets restart-on-failure recovery,
+and registers the Event Log source. Any flags you pass alongside `--install-service`
+(`--config`, ports, `--mqtt-*`, …) are **baked into the service command line**, mirroring
+the systemd unit's `ExecStart` — so that is where the service reads its configuration
+from. If you omit `--config`, it defaults to
+`%ProgramData%\Aqualink Automate\aqualink-automate.conf`, creating that folder and a
+starter file. Use **absolute** paths: a service's working directory is `System32`.
+
+Manage it with the standard tools — `sc start Aqualink-Automate` /
+`Start-Service Aqualink-Automate`, `Stop-Service`, `Get-Service`, `sc qc Aqualink-Automate`
+(shows the baked-in command line) — and remove it with an elevated
+`aqualink-automate.exe --uninstall-service` (which also removes the Event Log source).
+Run from a normal console (no `--install-service`) the application behaves exactly as
+before — a foreground process that shuts down cleanly on Ctrl-C.
 
 **Important — the big replay gotcha:** `--replay-filename` has hard dependencies. A bare `--dev-mode --replay-filename file.cap` **fails validation**. `--replay-filename` requires *all* of:
 

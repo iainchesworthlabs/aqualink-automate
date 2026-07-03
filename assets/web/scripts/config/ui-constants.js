@@ -71,12 +71,109 @@
         return keywords.some((kw) => l.includes(kw));
     }
 
+    // ---- Chlorinator (SWG) health display keys --------------------------------
+    // Catalog key for a backend ChlorinatorHealth enum name (see docs/i18n.md),
+    // or null for an unknown value (callers fall back to the raw name).
+    // Shared by the pool store's health label and the alerts store's
+    // chlorinator alert details.
+    const SWG_HEALTH_KEYS = {
+        'Ok': 'swg_health.ok',
+        'TurningOff': 'swg_health.turning_off',
+        'Warning_NoFlow': 'swg_health.no_flow',
+        'Warning_LowSalt': 'swg_health.low_salt',
+        'Warning_HighSalt': 'swg_health.high_salt',
+        'Warning_HighCurrent': 'swg_health.high_current',
+        'Warning_CleanCell': 'swg_health.clean_cell',
+        'Warning_LowVoltage': 'swg_health.low_voltage',
+        'Warning_LowTemperature': 'swg_health.low_temperature',
+        'Error_CheckPCB': 'swg_health.check_pcb',
+        'GeneralFault': 'swg_health.general_fault',
+        'Unknown': 'common.unknown'
+    };
+
+    function swgHealthKey(health) {
+        return SWG_HEALTH_KEYS[String(health)] || null;
+    }
+
+    // ---- Device operating-state display keys ----------------------------------
+    // Catalog key for a backend OperatingStates enum name (magic_enum::enum_name
+    // over IAQDevice/OneTouchDevice's OperatingStates — a cross-boundary contract,
+    // see diagnostics-view.js's operatingStateClass), or null for an unknown value
+    // (callers fall back to the raw name). Shared by the diagnostics device cards
+    // and the dashboard/detail equipment status badges.
+    const OPERATING_STATE_KEYS = {
+        'ColdStart': 'devcard.op_state_coldstart',
+        'StartUp': 'devcard.op_state_startup',
+        'Scraping': 'devcard.op_state_scraping',
+        'NormalOperation': 'devcard.op_state_normal',
+        'ScrapingFaulted': 'devcard.op_state_scraping_faulted',
+        'FaultHasOccurred': 'devcard.op_state_fault',
+        'NotPresent': 'devcard.op_state_not_present'
+    };
+
+    function operatingStateKey(state) {
+        return OPERATING_STATE_KEYS[String(state)] || null;
+    }
+
+    // ---- Equipment button status display keys ----------------------------------
+    // Catalog key for a backend button-status enum name (magic_enum names over
+    // Auxillary/Pump/Heater status — see equipment-button.js's header comment for
+    // the full per-device-type value list), or null for an unknown value (callers
+    // fall back to the raw name). Shared by the dashboard equipment cards and the
+    // Detailed view's per-body equipment rows, so both render the same label for
+    // the same wire value.
+    const BUTTON_STATUS_KEYS = {
+        On: 'common.on',
+        Off: 'common.off',
+        Enabled: 'common.enabled',
+        Pending: 'status.pending',
+        Unknown: 'common.unknown',
+        Running: 'common.running',
+        Heating: 'status.heating',
+        NotInstalled: 'status.not_installed',
+    };
+
+    function buttonStatusKey(status) {
+        return BUTTON_STATUS_KEYS[String(status)] || null;
+    }
+
+    // Ready-to-render label: translated status, raw fallback for an unknown
+    // value, or '--' for no status at all.
+    function buttonStatusLabel(status) {
+        if (!status) { return '--'; }
+        const key = buttonStatusKey(status);
+        return key ? window.AquaI18n.t(key) : String(status);
+    }
+
+    // ---- Equipment version field labels ----------------------------------------
+    // Catalog key for the backend's EquipmentVersionField.label — a small, fixed
+    // set of English labels sent verbatim in the /api/equipment "version.fields"
+    // array (see json_equipment.cpp's GenerateJson_Equipment_Version). An unknown
+    // label (custom equipment) falls back to the raw string, matching every other
+    // wire-enum display convention in this app.
+    const EQUIPMENT_VERSION_LABEL_KEYS = {
+        'Model': 'about.model',
+        'Type': 'about.type',
+        'Revision': 'about.revision',
+    };
+
+    function equipmentVersionLabel(label) {
+        if (!label) { return ''; }
+        const key = EQUIPMENT_VERSION_LABEL_KEYS[String(label)];
+        return key ? window.AquaI18n.t(key) : String(label);
+    }
+
     global.AquaUI = {
         CHEMISTRY_BANDS_KEY,
         CHEMISTRY_BAND_DEFAULTS,
         ACTIVE_STATUS_VALUES,
         isActiveStatus,
         DEVICE_KEYWORDS,
-        labelMatchesKeywords
+        labelMatchesKeywords,
+        swgHealthKey,
+        operatingStateKey,
+        buttonStatusKey,
+        buttonStatusLabel,
+        equipmentVersionLabel
     };
 })(typeof window !== 'undefined' ? window : globalThis);

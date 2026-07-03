@@ -52,6 +52,7 @@ The frontend must never perform authoritative calculations. All validation happe
 17. After adding/modifying a message type: update C++ enum, JS constants, TypeScript types (if any), PROTOCOL.md, and write a test.
 18. After modifying an API endpoint: rebuild backend, run integration tests, update any consuming JS code.
 19. Run E2E tests (Playwright) before marking any cross-stack feature complete.
+20. After a visible UI change (layout, theme, navigation, new/renamed views or controls, auth screens, language list): regenerate the affected documentation screenshots in `docs/assets/` with `scripts/capture-doc-screenshots.js` and commit them with the change (see "Documentation screenshots" in CLAUDE.md).
 
 ## Verification Commands
 

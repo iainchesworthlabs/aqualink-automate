@@ -43,6 +43,11 @@ namespace AqualinkAutomate::Preferences
 		// invalid field nothing is applied and `error` describes the problem.
 		bool ApplyJson(const nlohmann::json& json, std::string& error);
 
+		// As above, additionally surfacing a stable snake_case `error_code` the
+		// web UI maps to a translated message (catalog key `error.<code>`,
+		// docs/i18n.md).
+		bool ApplyJson(const nlohmann::json& json, std::string& error, std::string& error_code);
+
 		// Record a single REQUESTED spa-switch button->function assignment (keyed
 		// "<switch>:<button>") into PreferencesHub::SpaSwitchButtons and persist. Called by the
 		// spaside assign route when a controller accepts a programming request, so the desired

@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 
+#include "application/log_source_registration.h"
+#include "application/service_host.h"
 #include "exceptions/exception_optionshelporversion.h"
 #include "logging/logging.h"
 #include "logging/logging_severity_filter.h"
@@ -104,10 +106,93 @@ namespace AqualinkAutomate::Options::App
 		}
 	}
 
+	void HandleLogSourceRegistration(boost::program_options::variables_map& vm)
+	{
+		const bool do_register = (0 < vm.count("register-log-source"));
+		const bool do_unregister = (0 < vm.count("unregister-log-source"));
+
+		if (!do_register && !do_unregister)
+		{
+			return;
+		}
+
+		// The runtime Event Log sink and this registration must name the same source.
+		static const std::string source_name{ "Aqualink-Automate" };
+
+		// The action is dispatched to the platform layer (Windows writes/removes the
+		// Event Log source key; every other platform returns Unsupported). Branching on
+		// the result keeps this shared handler free of an OS #ifdef — see
+		// docs/platform-isolation.md.
+		const auto result = do_register
+			? Application::RegisterLogSource(source_name)
+			: Application::UnregisterLogSource(source_name);
+
+		switch (result)
+		{
+		case Application::LogSourceRegistrationResult::Succeeded:
+			std::cout << (do_register ? "Registered" : "Unregistered") << " Windows Event Log source '" << source_name << "'.\n";
+			break;
+
+		case Application::LogSourceRegistrationResult::Failed:
+			std::cout << "Failed to " << (do_register ? "register" : "unregister")
+				<< " Windows Event Log source '" << source_name << "' (administrator privileges are required).\n";
+			break;
+
+		case Application::LogSourceRegistrationResult::Unsupported:
+			std::cout << "--register-log-source / --unregister-log-source are only supported on Windows.\n";
+			break;
+		}
+
+		// One-shot action: exit cleanly (same mechanism as --help/--version).
+		throw Exceptions::OptionsHelpOrVersion();
+	}
+
+	void HandleServiceInstallation(boost::program_options::variables_map& vm)
+	{
+		const bool do_install = (0 < vm.count("install-service"));
+		const bool do_uninstall = (0 < vm.count("uninstall-service"));
+
+		if (!do_install && !do_uninstall)
+		{
+			return;
+		}
+
+		if (do_install && do_uninstall)
+		{
+			std::cout << "Specify only one of --install-service / --uninstall-service.\n";
+			throw Exceptions::OptionsHelpOrVersion();
+		}
+
+		// Dispatched to the platform layer (Windows talks to the SCM; every other
+		// platform returns Unsupported), so this shared handler needs no OS #ifdef
+		// — see docs/platform-isolation.md.
+		const auto result = do_install
+			? Application::InstallService()
+			: Application::UninstallService();
+
+		switch (result)
+		{
+		case Application::ServiceActionResult::Succeeded:
+		case Application::ServiceActionResult::Failed:
+			// The Install/Uninstall actions print their own detailed result (binary path,
+			// account, Event Log source, error reason) to stdout.
+			break;
+
+		case Application::ServiceActionResult::Unsupported:
+			std::cout << "--install-service / --uninstall-service are only supported on Windows.\n";
+			break;
+		}
+
+		// One-shot action: exit cleanly (same mechanism as --help/--version).
+		throw Exceptions::OptionsHelpOrVersion();
+	}
+
 	void HandleHelpAndVersion(boost::program_options::variables_map& vm, boost::program_options::options_description& options)
 	{
 		HandleHelp(vm, options);
 		HandleVersion(vm);
+		HandleLogSourceRegistration(vm);
+		HandleServiceInstallation(vm);
 	}
 
 }

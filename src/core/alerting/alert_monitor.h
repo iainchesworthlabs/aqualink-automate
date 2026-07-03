@@ -75,6 +75,7 @@ namespace AqualinkAutomate::Alerting
 		void EvaluateChlorinatorFault();
 		void EvaluateServiceMode();
 		void EvaluateSerialCommsLoss();
+		void EvaluateTemperatureStale();
 
 	public:
 		// Inject a deterministic clock (unix seconds).  Must be called before
@@ -89,7 +90,7 @@ namespace AqualinkAutomate::Alerting
 		nlohmann::json BuildStateJson() const;
 
 	private:
-		void SetCondition(std::string_view key, bool raised, std::string detail);
+		void SetCondition(std::string_view key, bool raised, std::string detail, nlohmann::json params = nlohmann::json::object());
 		void ScheduleCommsTimer();
 
 	private:

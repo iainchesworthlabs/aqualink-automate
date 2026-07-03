@@ -21,15 +21,18 @@
 const _trends = { data: {}, geom: null, hoverIdx: null, bound: false };
 
 // Canvas <ctx.font> can't read CSS custom properties, so the reskin UI font is
-// spelled out here as a literal stack (matches --font-ui / 'Hanken Grotesk').
-const TREND_FONT = "\"Hanken Grotesk\", system-ui, sans-serif";
+// spelled out here as a literal stack (matches --font-ui, including the
+// vendored Arabic/Hebrew faces for translated panel labels).
+const TREND_FONT = "\"Hanken Grotesk\", \"Noto Sans Arabic\", \"Noto Sans Hebrew\", system-ui, sans-serif";
 
+// Labels resolve through the i18n catalog at render time (see the `ranges`
+// getter) — duration abbreviations differ per language ("7d" vs "٧ ي" vs "7日").
 const TREND_RANGES = [
-    { label: '1h', seconds: 3600 },
-    { label: '6h', seconds: 21600 },
-    { label: '24h', seconds: 86400 },
-    { label: '7d', seconds: 604800 },
-    { label: '30d', seconds: 2592000 },
+    { n: 1, unitKey: 'time.abbr_hours', seconds: 3600 },
+    { n: 6, unitKey: 'time.abbr_hours', seconds: 21600 },
+    { n: 24, unitKey: 'time.abbr_hours', seconds: 86400 },
+    { n: 7, unitKey: 'time.abbr_days', seconds: 604800 },
+    { n: 30, unitKey: 'time.abbr_days', seconds: 2592000 },
 ];
 
 // Stable colours for the well-known analog series, tied to the reskin design
@@ -50,9 +53,12 @@ const DEVICE_PALETTE = [
     'oklch(0.70 0.14 300)', 'oklch(0.76 0.13 130)',
 ];
 
-const TREND_LABELS = {
-    'temp/pool': 'Pool', 'temp/spa': 'Spa', 'temp/air': 'Air',
-    'chem/salt_ppm': 'Salt', 'chem/ph': 'pH', 'chem/orp': 'ORP', 'swg/percent': 'SWG',
+// Catalog keys for the well-known analog series; resolved at display time so a
+// locale switch re-renders them. Device series use their (device-originated)
+// labels verbatim.
+const TREND_LABEL_KEYS = {
+    'temp/pool': 'common.pool', 'temp/spa': 'common.spa', 'temp/air': 'common.air',
+    'chem/salt_ppm': 'chem.salt', 'chem/ph': 'chem.ph', 'chem/orp': 'chem.orp', 'swg/percent': 'chem.swg',
 };
 
 function _titleCase(s) {
@@ -68,7 +74,7 @@ function _groupOf(key) {
 }
 
 function _displayName(s) {
-    if (TREND_LABELS[s.key]) return TREND_LABELS[s.key];
+    if (TREND_LABEL_KEYS[s.key]) return window.AquaI18n.t(TREND_LABEL_KEYS[s.key]);
     if (s.key.startsWith('device/')) {
         if (s.label) return s.label;
         // Legacy label-keyed series: device/<slug>/state.
@@ -78,15 +84,29 @@ function _displayName(s) {
     return _titleCase(s.key.replace(/^[^/]+\//, '').replace(/\/state$/, ''));
 }
 
-// Per-series value formatting for the readout / stats / chips.
+// Active temperature display units (the server preference, mirrored into the
+// pool store) — history samples are stored in °C and converted at display time.
+function _displayUnits() {
+    const pool = window.Alpine && window.Alpine.store('pool');
+    return (pool && pool.displayUnits) === 'Fahrenheit' ? 'Fahrenheit' : 'Celsius';
+}
+function _tempToDisplay(c) {
+    return _displayUnits() === 'Fahrenheit' ? (c * 9 / 5 + 32) : c;
+}
+
+// Per-series value formatting for the readout / stats / chips. Digits follow
+// the active locale; temperatures follow the display-units preference (the
+// temperature panel's axis converts with them in draw(), so readout and axis
+// always agree).
 function _fmt(key, unit, v) {
+    const n = window.AquaI18n.formatNumber;
     if (v == null || Number.isNaN(v)) return '—';
-    if (key === 'chem/salt_ppm' || unit === 'ppm') return Math.round(v).toLocaleString() + ' ppm';
-    if (key === 'chem/ph' || unit === 'pH') return v.toFixed(2);
-    if (key === 'chem/orp' || unit === 'mV') return Math.round(v) + ' mV';
-    if (key === 'swg/percent' || unit === '%') return Math.round(v) + '%';
-    if (key.startsWith('temp/') || unit === 'C') return v.toFixed(1) + '°C';
-    return v.toFixed(1);
+    if (key === 'chem/salt_ppm' || unit === 'ppm') return n(Math.round(v)) + ' ' + window.AquaI18n.t('settings.ppm_unit');
+    if (key === 'chem/ph' || unit === 'pH') return n(v, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (key === 'chem/orp' || unit === 'mV') return n(Math.round(v)) + ' mV';
+    if (key === 'swg/percent' || unit === '%') return n(Math.round(v)) + '%';
+    if (key.startsWith('temp/') || unit === 'C') return window.AquaI18n.formatTemperature(v, _displayUnits());
+    return n(v, { maximumFractionDigits: 1 });
 }
 
 function _cssVar(name, fallback) {
@@ -114,7 +134,9 @@ function trendsView() {
         showInactive: false,
         selected: {},        // key -> bool
         rangeSeconds: 86400,
-        ranges: TREND_RANGES,
+        get ranges() {
+            return TREND_RANGES.map((r) => ({ ...r, label: window.AquaI18n.t(r.unitKey, { n: r.n }) }));
+        },
         _loaded: false,
         _model: [],          // full model incl. hidden/inactive
 
@@ -153,7 +175,7 @@ function trendsView() {
                 const resp = await fetch('/api/history/series');
                 if (resp.status === 503) { this.available = false; return; }
                 this.available = true;
-                if (!resp.ok) { this.error = 'Failed to load history series.'; return; }
+                if (!resp.ok) { this.error = window.AquaI18n.t('trends.load_failed'); return; }
 
                 const raw = await resp.json();
                 this._model = raw.map((s) => ({
@@ -186,7 +208,7 @@ function trendsView() {
                 }
                 await this.refresh();
             } catch (e) {
-                this.error = 'Failed to load history series.';
+                this.error = window.AquaI18n.t('trends.load_failed');
             } finally {
                 this.loading = false;
             }
@@ -339,11 +361,16 @@ function trendsView() {
             const hx = _trends.hoverIdx != null ? (GL + _trends.hoverIdx * plotW) : null;
             const ht = _trends.hoverIdx != null ? (from + _trends.hoverIdx * span) : null;
 
-            // ---- Temperature panel: real °C axis ----
-            this._panelLabel(ctx, 'Temperature  °C', GL, tempY, muted);
+            // ---- Temperature panel: real axis in the display unit ----
+            // History stores °C; convert per-point here so the axis, lines and
+            // hover dots all live in the preferred unit together with _fmt().
+            this._panelLabel(ctx, window.AquaI18n.t('trends.panel_temperature'), GL, tempY, muted,
+                _displayUnits() === 'Fahrenheit' ? '°F' : '°C');
             if (tsel.length) {
+                const disp = {};
+                tsel.forEach((s) => { disp[s.key] = (_trends.data[s.key] || []).map((p) => ({ t: p.t, v: _tempToDisplay(p.v) })); });
                 let lo = Infinity, hi = -Infinity;
-                tsel.forEach((s) => (_trends.data[s.key] || []).forEach((p) => { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }));
+                tsel.forEach((s) => disp[s.key].forEach((p) => { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }));
                 if (!isFinite(lo)) { lo = 0; hi = 1; }
                 const pad = (hi - lo) * 0.15 || 1; lo -= pad; hi += pad;
                 ctx.strokeStyle = grid; ctx.fillStyle = muted; ctx.lineWidth = 0.5;
@@ -351,13 +378,13 @@ function trendsView() {
                 for (let k = 0; k < 3; k++) {
                     const yy = tempY + 8 + k * (TH - 16) / 2, vv = hi - (hi - lo) * k / 2;
                     ctx.beginPath(); ctx.moveTo(GL, yy); ctx.lineTo(cssW - GR, yy); ctx.stroke();
-                    ctx.fillText(vv.toFixed(1), GL - 6, yy);
+                    ctx.fillText(window.AquaI18n.formatNumber(vv, { minimumFractionDigits: 1, maximumFractionDigits: 1 }), GL - 6, yy);
                 }
-                tsel.forEach((s) => this._line(ctx, _trends.data[s.key], tempY + 8, TH - 16, lo, hi, _resolveColor(s.color), xAt, ht));
+                tsel.forEach((s) => this._line(ctx, disp[s.key], tempY + 8, TH - 16, lo, hi, _resolveColor(s.color), xAt, ht));
             } else this._empty(ctx, GL, plotW, tempY, TH, muted);
 
             // ---- Chemistry panel: auto-scaled overlay ----
-            this._panelLabel(ctx, 'Water chemistry', GL, chemY, muted, 'auto-scaled to compare shapes');
+            this._panelLabel(ctx, window.AquaI18n.t('trends.water_chemistry'), GL, chemY, muted, window.AquaI18n.t('trends.autoscaled_note'));
             if (csel.length) {
                 ctx.strokeStyle = grid; ctx.lineWidth = 0.5;
                 for (let k = 0; k < 3; k++) {
@@ -374,7 +401,7 @@ function trendsView() {
             } else this._empty(ctx, GL, plotW, chemY, CH, muted);
 
             // ---- Equipment runtime timeline ----
-            this._panelLabel(ctx, 'Equipment runtime', GL, eqY, muted);
+            this._panelLabel(ctx, window.AquaI18n.t('trends.equipment_runtime'), GL, eqY, muted);
             if (esel.length) {
                 esel.forEach((s, r) => {
                     const ry = eqY + 16 + r * 20 + 5;
@@ -456,7 +483,7 @@ function trendsView() {
         _empty(ctx, GL, plotW, py, ph, muted) {
             ctx.fillStyle = muted; ctx.font = `11px ${TREND_FONT}`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('No series selected', GL + plotW / 2, py + ph / 2);
+            ctx.fillText(window.AquaI18n.t('trends.no_series_selected'), GL + plotW / 2, py + ph / 2);
         },
 
         _nearest(pts, t) {
@@ -475,15 +502,22 @@ function trendsView() {
             return state;
         },
 
+        // Axis tick labels through the catalog: duration abbreviations differ
+        // per language, and number-typed params localize the digits too.
         _timeTicks() {
+            const t = window.AquaI18n.t;
+            const now = t('time.now');
+            const m = (n) => t('time.abbr_minutes', { n });
+            const h = (n) => t('time.abbr_hours', { n });
+            const d = (n) => t('time.abbr_days', { n });
             const map = {
-                3600: ['60m', '45m', '30m', '15m', 'now'],
-                21600: ['6h', '4h', '2h', '1h', 'now'],
-                86400: ['24h', '18h', '12h', '6h', 'now'],
-                604800: ['7d', '5d', '3d', '1d', 'now'],
-                2592000: ['30d', '21d', '14d', '7d', 'now'],
+                3600: [m(60), m(45), m(30), m(15), now],
+                21600: [h(6), h(4), h(2), h(1), now],
+                86400: [h(24), h(18), h(12), h(6), now],
+                604800: [d(7), d(5), d(3), d(1), now],
+                2592000: [d(30), d(21), d(14), d(7), now],
             };
-            return map[this.rangeSeconds] || ['', '', 'now'];
+            return map[this.rangeSeconds] || ['', '', now];
         },
 
         updateReadout(mx) {
@@ -491,7 +525,7 @@ function trendsView() {
             const ro = this.$refs.trendsReadout;
             const ht = g.from + _trends.hoverIdx * g.span;
             const ago = Math.max(0, g.to - ht);
-            const when = ago < 90 ? 'now' : this._humanAgo(ago) + ' ago';
+            const when = ago < 90 ? window.AquaI18n.t('time.now') : this._humanAgo(ago);
 
             let rows = '';
             ['temp', 'chem'].forEach((grp) => {
@@ -502,7 +536,8 @@ function trendsView() {
             });
             this.selectedGroup('device').forEach((s) => {
                 const st = this._stateAt(_trends.data[s.key] || [], ht);
-                rows += this._roRow(s.color, s.name, st ? 'on' : 'off', st ? 'on' : 'off');
+                rows += this._roRow(s.color, s.name,
+                    window.AquaI18n.t(st ? 'common.on' : 'common.off'), st ? 'on' : 'off');
             });
 
             ro.innerHTML = `<div class="trends-ro-when">${when}</div>${rows}`;
@@ -521,9 +556,10 @@ function trendsView() {
         },
 
         _humanAgo(sec) {
-            if (sec < 3600) return Math.round(sec / 60) + 'm';
-            if (sec < 86400) return Math.round(sec / 3600) + 'h';
-            return Math.round(sec / 86400) + 'd';
+            const t = window.AquaI18n.t;
+            if (sec < 3600) return t('time.minutes_ago', { n: Math.round(sec / 60) });
+            if (sec < 86400) return t('time.hours_ago', { n: Math.round(sec / 3600) });
+            return t('time.days_ago', { n: Math.round(sec / 86400) });
         },
 
         // --- stat strip ---------------------------------------------------
@@ -538,7 +574,11 @@ function trendsView() {
                     cards.push({
                         key: s.key, color: s.color, name: s.name,
                         now: _fmt(s.key, s.unit, pts[pts.length - 1].v),
-                        sub: `min ${_fmt(s.key, s.unit, mn)} · max ${_fmt(s.key, s.unit, mx)} · avg ${_fmt(s.key, s.unit, sum / pts.length)}`,
+                        sub: window.AquaI18n.t('trends.min_max_avg', {
+                            min: _fmt(s.key, s.unit, mn),
+                            max: _fmt(s.key, s.unit, mx),
+                            avg: _fmt(s.key, s.unit, sum / pts.length),
+                        }),
                     });
                 });
             });
@@ -547,7 +587,7 @@ function trendsView() {
                 cards.push({
                     key: s.key, color: s.color, name: s.name,
                     now: Math.round(this._runtimeFraction(pts) * 100) + '%',
-                    sub: 'runtime in window',
+                    sub: window.AquaI18n.t('trends.runtime_in_window'),
                 });
             });
             this.statCards = cards;

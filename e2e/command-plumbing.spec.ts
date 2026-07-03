@@ -31,12 +31,15 @@ test('chlorinator is read-only in chemistry, and the command endpoint still hand
   await expect(page.locator('.section-title', { hasText: 'Water Chemistry' })).toBeVisible();
   await expect(page.locator('.eq-control').filter({ hasText: /AquaPure/i })).toHaveCount(0);
 
-  // Commands are enabled in replay mode (system reports "ready").
-  const commandsEnabled = await page.evaluate(() => {
-    // @ts-expect-error Alpine is a global injected by alpine.min.js
-    return window.Alpine?.store('system')?.commandsEnabled;
-  });
-  expect(commandsEnabled, 'system store should report commands enabled in replay mode').toBe(true);
+  // Commands are enabled in replay mode (system reports "ready"). The flag
+  // flips when the system status arrives after the auth gate opens — poll
+  // instead of sampling once at load.
+  await expect
+    .poll(async () => page.evaluate(() => {
+      // @ts-expect-error Alpine is a global injected by alpine.min.js
+      return window.Alpine?.store('system')?.commandsEnabled;
+    }), { message: 'system store should report commands enabled in replay mode' })
+    .toBe(true);
 
   // The command endpoint still resolves the device id and handles the POST.
   const buttons = (await (await page.request.get('/api/equipment/buttons')).json()).buttons;

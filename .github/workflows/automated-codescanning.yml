@@ -292,13 +292,32 @@ jobs:
       env:
         AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
 
-    - name: E2E — auth enabled
+    # Identity system (AQUALINK_AUTH_MODE=enabled) — one spec per step; the three
+    # identity specs have incompatible auth-store preconditions, so each runs in its
+    # own invocation against a fresh --auth-state-dir (see playwright.config.ts).
+    - name: E2E — identity (first-run + sessions)
       continue-on-error: true
       shell: bash
-      run: npx playwright test
+      run: npx playwright test e2e/auth.spec.ts
       env:
         AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
-        AQUALINK_AUTH_TOKEN: e2e-secret-token
+        AQUALINK_AUTH_MODE: enabled
+
+    - name: E2E — identity (admin management)
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test e2e/admin.spec.ts
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_AUTH_MODE: enabled
+
+    - name: E2E — identity (guest mode + kiosk PIN)
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test e2e/guest.spec.ts
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_AUTH_MODE: enabled
 
     - name: E2E — history enabled
       continue-on-error: true

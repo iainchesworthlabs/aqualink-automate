@@ -37,14 +37,15 @@ document.addEventListener('alpine:init', () => {
         get uptime() {
             const s = this.uptimeSeconds;
             if (s == null) return '';
+            const t = window.AquaI18n.t;
             const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
-            if (d) return `${d}d ${h}h`;
-            if (h) return `${h}h ${m}m`;
-            return `${m}m`;
+            if (d) return t('time.days_hours', { d, h });
+            if (h) return t('time.hours_minutes', { h, m });
+            return t('time.minutes', { m });
         },
         get startedAt() {
             if (!this.serverStartTime) return '';
-            try { return new Date(this.serverStartTime).toLocaleString(); } catch (_) { return this.serverStartTime; }
+            try { return window.AquaI18n.formatDateTime(this.serverStartTime); } catch (_) { return this.serverStartTime; }
         },
 
         get state() {
@@ -62,11 +63,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         get disableReason() {
+            const t = window.AquaI18n.t;
             switch (this.state) {
-                case 'ServiceMode': return 'Service Mode is active on the controller';
-                case 'Starting': return 'System is starting up';
-                case 'Disconnected': return 'Connection to server lost';
-                case 'MonitorOnly': return 'Monitor-only mode is enabled';
+                case 'ServiceMode': return t('system.reason_service');
+                case 'Starting': return t('system.reason_starting');
+                case 'Disconnected': return t('system.reason_disconnected');
+                case 'MonitorOnly': return t('system.reason_monitor');
                 default: return '';
             }
         },
@@ -139,7 +141,7 @@ document.addEventListener('alpine:init', () => {
                         sourceName: p.source_name,
                         sourceType: p.source_type || '',
                         statusType: p.status_type,
-                        lastSeen: new Date().toLocaleTimeString()
+                        lastSeen: window.AquaI18n.formatTime(new Date())
                     };
                     if (idx !== -1) {
                         this.deviceStatuses[idx] = entry;

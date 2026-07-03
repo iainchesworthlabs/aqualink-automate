@@ -187,6 +187,15 @@ namespace AqualinkAutomate::Alerting
 		payload["state"] = transition.raised ? "raised" : "cleared";
 		payload["ts"] = transition.ts;
 		payload["detail"] = transition.detail;
+
+		// Structured values behind the detail prose (additive; omitted when the
+		// transition carries none) so automations can act on the data without
+		// parsing English text.
+		if (transition.params.is_object() && !transition.params.empty())
+		{
+			payload["params"] = transition.params;
+		}
+
 		return payload.dump();
 	}
 

@@ -37,11 +37,14 @@ function settingsView() {
     }
 
     return {
-        gauges: [
-            { key: 'ph', label: 'pH', step: 0.1 },
-            { key: 'orp', label: 'ORP (mV)', step: 10 },
-            { key: 'salt', label: 'Salt (ppm)', step: 100 }
-        ],
+        get gauges() {
+            const t = window.AquaI18n.t;
+            return [
+                { key: 'ph', label: t('settings.gauge_ph'), step: 0.1 },
+                { key: 'orp', label: t('settings.gauge_orp'), step: 10 },
+                { key: 'salt', label: t('settings.gauge_salt'), step: 100 }
+            ];
+        },
         values,
         errors: {},
 
@@ -73,9 +76,33 @@ function settingsView() {
         _matterQrPayload: null,
 
         // Alpine auto-calls init() on the component.
-        async init() {
-            this.fetchMatter();
-            this.fetchProfiling();
+        init() {
+            // These endpoints (preferences, matter, profiling) require auth
+            // under the identity system. Defer the initial load until the
+            // session is ready (authorised, or posture disabled) so a first
+            // paint before login does not fire 401s. If already ready — e.g.
+            // navigating here after login — load immediately.
+            const auth = window.Alpine && Alpine.store('auth');
+            if (auth && !auth.ready) {
+                window.addEventListener('auth:ready', () => this._loadInitial(), { once: true });
+            } else {
+                this._loadInitial();
+            }
+        },
+
+        async _loadInitial() {
+            const auth = window.Alpine && Alpine.store('auth');
+            // Matter + profiling are diagnostics.view surfaces; only fetch them
+            // when the subject may see diagnostics (an anonymous guest usually
+            // cannot — skip to avoid a pointless 401).
+            if (!auth || auth.can('diagnostics.view')) {
+                this.fetchMatter();
+                this.fetchProfiling();
+            }
+            // Per-user server preferences require a session (prefs.self). A guest
+            // has none, so keep the localStorage first-paint values (D7) and skip
+            // the server round-trip entirely.
+            if (auth && !auth.authenticated) { return; }
             try {
                 const resp = await fetch('/api/preferences');
                 if (!resp.ok) { return; }
@@ -141,7 +168,7 @@ function settingsView() {
             const v = this.values[gaugeKey];
             let error = '';
             if (v.goodMin > v.goodMax || v.okayMin > v.okayMax || v.badMin > v.badMax) {
-                error = 'Each tier minimum must be less than or equal to its maximum.';
+                error = window.AquaI18n.t('settings.tier_min_max_error');
             }
             this.errors[gaugeKey] = error;
             return error === '';
@@ -183,10 +210,18 @@ function settingsView() {
             }
         },
 
+        // Temperature units apply instantly, like theme/accent/language — no Save
+        // button, and no shared "Saved" flash (that badge belongs to the System
+        // Preferences / Device Names cards' explicit batch-save actions).
+        async setTemperatureUnits(value) {
+            this.prefs.temperature_units = value;
+            if (this.$store.pool) { this.$store.pool.displayUnits = value; }
+            await this._putPrefs({ temperature_units: value }, { flash: false });
+        },
+
         // ---- Server-backed preferences ----
         async saveServerPrefs() {
             await this._putPrefs({
-                temperature_units: this.prefs.temperature_units,
                 alert: {
                     salt_low_ppm: Number(this.prefs.salt_low_ppm),
                     comms_timeout_seconds: Number(this.prefs.comms_timeout_seconds),
@@ -196,7 +231,7 @@ function settingsView() {
             });
         },
 
-        async _putPrefs(payload) {
+        async _putPrefs(payload, { flash = true } = {}) {
             this.prefsError = '';
             try {
                 const resp = await fetch('/api/preferences', {
@@ -205,15 +240,22 @@ function settingsView() {
                     body: JSON.stringify(payload),
                 });
                 if (!resp.ok) {
+                    // Structured error body ({error, code, params} — docs/i18n.md):
+                    // show the translated message for the code when we have one.
                     let detail = '';
-                    try { detail = await resp.text(); } catch (_) { /* ignore */ }
-                    this.prefsError = `Save failed (${resp.status})${detail ? ': ' + detail : ''}`;
+                    try {
+                        const data = await resp.json();
+                        detail = window.AquaI18n.apiError(data, '');
+                    } catch (_) { /* non-JSON body */ }
+                    this.prefsError = window.AquaI18n.t('settings.save_failed_status', { status: resp.status }) + (detail ? ': ' + detail : '');
                     return;
                 }
-                this.savedFlash = true;
-                setTimeout(() => { this.savedFlash = false; }, 1500);
+                if (flash) {
+                    this.savedFlash = true;
+                    setTimeout(() => { this.savedFlash = false; }, 1500);
+                }
             } catch (e) {
-                this.prefsError = 'Save failed (network).';
+                this.prefsError = window.AquaI18n.t('settings.save_failed_network');
             }
         },
 
@@ -258,13 +300,13 @@ function settingsView() {
                 });
                 const data = await resp.json().catch(() => ({}));
                 if (resp.ok) { this.profiling = data; Alpine.store('toast').show(okMessage, 'info'); }
-                else { Alpine.store('toast').show(data.error || failMessage, 'error'); }
+                else { Alpine.store('toast').show(window.AquaI18n.apiError(data, failMessage), 'error'); }
             } catch (e) { Alpine.store('toast').show(failMessage, 'error'); }
             finally { this.profilingBusy = false; }
         },
 
-        async startProfiling() { await this._postProfiling({ action: 'start' }, 'Profiling resumed', 'Failed to resume profiling'); },
-        async stopProfiling() { await this._postProfiling({ action: 'stop' }, 'Profiling paused', 'Failed to pause profiling'); },
-        async selectProfilingBackend(backend) { if (!backend) return; await this._postProfiling({ action: 'select', backend }, `Profiling backend set to ${backend}`, 'Failed to select backend'); },
+        async startProfiling() { await this._postProfiling({ action: 'start' }, window.AquaI18n.t('toast.profiling_resumed'), window.AquaI18n.t('toast.profiling_resume_failed')); },
+        async stopProfiling() { await this._postProfiling({ action: 'stop' }, window.AquaI18n.t('toast.profiling_paused'), window.AquaI18n.t('toast.profiling_pause_failed')); },
+        async selectProfilingBackend(backend) { if (!backend) return; await this._postProfiling({ action: 'select', backend }, window.AquaI18n.t('toast.profiling_backend_set', { backend }), window.AquaI18n.t('toast.profiling_backend_failed')); },
     };
 }

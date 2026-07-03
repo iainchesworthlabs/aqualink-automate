@@ -13,6 +13,24 @@ target_sources(
 	alerting/alert_monitor.cpp
 	alerting/webhook_sink.cpp
 	application/application_defaults.cpp
+	auth/api_key_store.cpp
+	auth/audit_log.cpp
+	auth/auth_store_file.cpp
+	auth/bootstrap.cpp
+	auth/entitlement.cpp
+	auth/group_store.cpp
+	auth/password_hasher.cpp
+	auth/user_store.cpp
+	auth/entitlement_vocabulary.cpp
+	auth/group.cpp
+	auth/jwt_codec.cpp
+	auth/jwt_key_store.cpp
+	auth/kiosk_service.cpp
+	auth/kiosk_store.cpp
+	auth/policy_engine.cpp
+	auth/session_service.cpp
+	auth/session_store.cpp
+	auth/subject_resolver.cpp
 	certificates/certificate_management.cpp
 	concepts/is_option_processor.cpp
 	devices/capabilities/command_history.cpp
@@ -55,7 +73,16 @@ target_sources(
 	formatters/units_dimensionless_formatter.cpp 
 	formatters/units_electric_potential_formatter.cpp 
 	formatters/url_segments_encoded_view_formatter.cpp 
+	http/webroute_apikey.cpp
+	http/webroute_apikeys.cpp
 	http/webroute_auth_check.cpp
+	http/webroute_auth_login.cpp
+	http/webroute_auth_logout.cpp
+	http/webroute_auth_me.cpp
+	http/webroute_auth_pin.cpp
+	http/webroute_auth_refresh.cpp
+	http/webroute_auth_setup.cpp
+	http/webroute_kiosk.cpp
 	http/webroute_diagnostics_actualdevices.cpp
 	http/webroute_diagnostics_devices.cpp
 	http/webroute_diagnostics_logging.cpp
@@ -75,6 +102,9 @@ target_sources(
 	http/webroute_equipment_devices.cpp
 	http/webroute_equipment_setpoints.cpp
 	http/webroute_equipment_version.cpp
+	http/webroute_entitlements.cpp
+	http/webroute_group.cpp
+	http/webroute_groups.cpp
 	http/webroute_controller_schedules.cpp
 	http/webroute_health.cpp
 	http/webroute_health_detailed.cpp
@@ -82,6 +112,11 @@ target_sources(
 	http/webroute_metrics.cpp
 	http/webroute_preferences.cpp
 	http/webroute_schedules.cpp
+	http/webroute_session.cpp
+	http/webroute_sessions.cpp
+	http/webroute_user.cpp
+	http/webroute_user_password.cpp
+	http/webroute_users.cpp
 	http/webroute_version.cpp
 	http/websocket_event.cpp 
 	http/websocket_event_types.cpp 
@@ -170,7 +205,6 @@ target_sources(
 	kernel/device_graph/device_graph_filter_by_trait.cpp 
 	logging/formatters/logging_formatters.cpp
 	kernel/device_graph/device_graph_types.cpp
-	localisation/translations_and_units_formatter.cpp 
 	logging/global_logger.cpp
 	logging/logging.cpp
 	logging/logging_attributes.cpp
@@ -179,6 +213,12 @@ target_sources(
 	logging/logging_initialise.cpp
 	logging/logging_severity_filter.cpp
 	logging/logging_severity_levels.cpp
+	logging/sinks/severity_mappings.cpp
+	logging/sinks/log_environment.cpp
+	logging/sinks/sink_console.cpp
+	logging/sinks/sink_file.cpp
+	logging/sinks/sink_filters.cpp
+	logging/sinks/sink_registry.cpp
 	mqtt/ha_discovery.cpp
 	mqtt/mqtt_client.cpp
 	mqtt/mqtt_hub.cpp
@@ -190,9 +230,11 @@ target_sources(
 	options/options_developer_options.cpp
 	options/options_equipment_options.cpp
 	options/options_history_options.cpp
+	options/options_logging_options.cpp
 	options/options_matter_options.cpp
 	options/options_mqtt_options.cpp
 	options/options_option_type.cpp
+	options/options_auth_options.cpp
 	options/options_preferences_options.cpp
 	options/options_registry.cpp
 	options/options_scheduling_options.cpp
@@ -203,7 +245,9 @@ target_sources(
 	options/helpers/option_dependency_helper.cpp 
 	options/validators/profiler_type_validator.cpp
 	options/validators/severity_level_validator.cpp
+	options/validators/syslog_facility_validator.cpp
 	preferences/preferences_service.cpp
+	preferences/user_preferences_store.cpp
 	profiling/noop_profiler.cpp
 	profiling/profiling.cpp
 	profiling/profiling_controller.cpp
@@ -235,6 +279,7 @@ target_sources(
 	protocol/protocol_thread.cpp
 	scheduling/controller_schedule.cpp
 	scheduling/schedule.cpp
+	scheduling/schedule_authorization.cpp
 	scheduling/scheduler_service.cpp
 	serial/serial_initialise.cpp
 	serial/serial_port.cpp	
@@ -281,11 +326,17 @@ target_sources(
 	platform/windows/physical_serial_port_timeout.cpp
 	platform/windows/network_serial_port_timeout.cpp
 	platform/windows/safe_ctime.cpp
+	platform/windows/log_source_registration.cpp
+	platform/windows/native_log_sink.cpp
+	platform/windows/journald_log_sink.cpp
+	platform/windows/log_environment_probes.cpp
+	platform/windows/aligned_alloc.cpp
+	platform/windows/windows_service.cpp
 )
 
 target_compile_definitions(
-	libaqualink-automate 
-	PUBLIC 
+	libaqualink-automate
+	PUBLIC
 	-D_SCL_SECURE_NO_WARNINGS
 	-D_CRT_SECURE_NO_WARNINGS
 	-D_WIN32_WINNT=0x0A00 
@@ -304,6 +355,8 @@ target_link_libraries(
 	comsuppw
 	ole32
 	oleaut32
+	advapi32   # Service Control Manager + Event Log registry (OpenSCManager/CreateService/SetServiceStatus)
+	shell32    # CommandLineToArgvW (compose the service binary path from the process command line)
 )
 endif(WIN32)
 
@@ -317,7 +370,14 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/log_environment_probes.cpp
+	platform/posix/aligned_alloc.cpp
+	platform/posix/log_source_registration.cpp
+	platform/posix/service_host.cpp
 	platform/linux/physical_serial_port_timeout.cpp
+	platform/linux/native_log_sink.cpp
+	platform/linux/journald_log_sink.cpp
+	platform/linux/get_terminal_column_width_prefix.cpp
 )
 endif(LINUX)
 
@@ -331,7 +391,14 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/log_environment_probes.cpp
+	platform/posix/aligned_alloc.cpp
+	platform/posix/log_source_registration.cpp
+	platform/posix/service_host.cpp
 	platform/macos/physical_serial_port_timeout.cpp
+	platform/macos/native_log_sink.cpp
+	platform/macos/journald_log_sink.cpp
+	platform/macos/get_terminal_column_width_prefix.cpp
 )
 endif(APPLE)
 
@@ -382,10 +449,12 @@ target_link_libraries(
 	Boost::program_options
 	Boost::system
 	Boost::url
+	jwt-cpp::jwt-cpp
 	magic_enum::magic_enum
 	nlohmann_json::nlohmann_json
-	OpenSSL::SSL 
+	OpenSSL::SSL
 	OpenSSL::Crypto
+	unofficial-sodium::sodium
 	unofficial::sqlite3::sqlite3
 	ZLIB::ZLIB
 	$<$<AND:$<BOOL:${ENABLE_PROFILING}>,$<BOOL:${UProf_FOUND}>>:${UProf_LIBRARIES}>

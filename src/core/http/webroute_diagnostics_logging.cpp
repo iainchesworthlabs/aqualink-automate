@@ -30,7 +30,7 @@ namespace AqualinkAutomate::HTTP
 			return HandlePost(req);
 
 		default:
-			return MakeJsonResponse(req, HTTP::Status::method_not_allowed, R"({"error":"Method not allowed. Use GET or POST."})");
+			return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET or POST.", {{"allowed", "GET, POST"}});
 		}
 	}
 
@@ -73,7 +73,7 @@ namespace AqualinkAutomate::HTTP
 
 				if (!severity.has_value())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Invalid severity level"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_severity", "Invalid severity level");
 				}
 
 				SeverityFiltering::SetGlobalFilterLevel(severity.value());
@@ -90,7 +90,7 @@ namespace AqualinkAutomate::HTTP
 
 				if (!channel.has_value() || !severity.has_value())
 				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Invalid channel or severity level"})");
+					return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_channel_or_severity", "Invalid channel or severity level");
 				}
 
 				SeverityFiltering::SetChannelFilterLevel(channel.value(), severity.value());
@@ -99,14 +99,14 @@ namespace AqualinkAutomate::HTTP
 			}
 			else
 			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Request must contain 'global' or both 'channel' and 'level'"})");
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "logging_missing_fields", "Request must contain 'global' or both 'channel' and 'level'");
 			}
 
 			return MakeJsonResponse(req, HTTP::Status::ok, R"({"status":"ok"})");
 		}
 		catch (const nlohmann::json::exception&)
 		{
-			return MakeJsonResponse(req, HTTP::Status::bad_request, R"({"error":"Invalid JSON in request body"})");
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
 		}
 	}
 

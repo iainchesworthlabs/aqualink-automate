@@ -8,6 +8,7 @@
 #include <boost/beast/core/flat_buffer.hpp>
 
 #include "concepts/is_c_array.h"
+#include "interfaces/iwebroute.h"
 
 namespace AqualinkAutomate::Interfaces
 {
@@ -22,6 +23,13 @@ namespace AqualinkAutomate::Interfaces
 
     public:
         virtual const std::string_view Route() const = 0;
+
+    public:
+        // The entitlement required to complete the upgrade handshake (evaluated
+        // by AuthorizeWebSocketUpgrade when --auth-mode is enabled).  Live-data
+        // sockets declare equipment.view; binary in v1 (D13) so there is no
+        // per-subject payload filtering behind it.
+        virtual AccessRequirement RequiredAccess() const { return {}; }
 
     public:
         virtual std::optional<std::string> DequeueMessage(ConnectionId connId) = 0;

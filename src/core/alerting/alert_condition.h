@@ -5,6 +5,8 @@
 #include <string>
 #include <string_view>
 
+#include <nlohmann/json.hpp>
+
 namespace AqualinkAutomate::Alerting
 {
 
@@ -24,6 +26,7 @@ namespace AqualinkAutomate::Alerting
 		inline constexpr std::string_view SaltLow{ "salt_low" };
 		inline constexpr std::string_view ServiceMode{ "service_mode" };
 		inline constexpr std::string_view SerialCommsLoss{ "serial_comms_loss" };
+		inline constexpr std::string_view TemperatureStale{ "temperature_stale" };
 	}
 	// namespace ConditionKeys
 
@@ -41,13 +44,14 @@ namespace AqualinkAutomate::Alerting
 	// DataHub traits without emitting a per-device status event, so a generic
 	// "device lost comms" cannot be detected cleanly without new hub plumbing.
 	// It can be added as a fifth entry once such a signal exists.
-	inline constexpr std::array<AlertConditionInfo, 5> AlertConditions
+	inline constexpr std::array<AlertConditionInfo, 6> AlertConditions
 	{ {
 		{ ConditionKeys::ChlorinatorFault,   "Chlorinator Fault" },
 		{ ConditionKeys::ChlorinatorWarning, "Chlorinator Warning" },
 		{ ConditionKeys::SaltLow,            "Salt Low" },
 		{ ConditionKeys::ServiceMode,        "Service Mode" },
 		{ ConditionKeys::SerialCommsLoss,    "Serial Comms Loss" },
+		{ ConditionKeys::TemperatureStale,   "Temperature Stale" },
 	} };
 
 	// Subtopic (appended to the MQTT topic prefix via MqttClient::BuildTopic)
@@ -62,7 +66,12 @@ namespace AqualinkAutomate::Alerting
 		std::string condition;     // one of ConditionKeys
 		bool raised{ false };      // true = raised, false = cleared
 		std::int64_t ts{ 0 };      // unix seconds (UTC)
-		std::string detail;        // human-readable description
+		std::string detail;        // human-readable ENGLISH description (stable contract)
+		// Structured values behind the detail text (e.g. {"salt_ppm": 2400,
+		// "threshold_ppm": 2700} or {"health": "Warning_LowSalt"}), so consumers
+		// — the web UI's translated alerts, webhook automations — can act on the
+		// data without parsing prose. Empty object when a transition carries none.
+		nlohmann::json params = nlohmann::json::object();
 	};
 
 }

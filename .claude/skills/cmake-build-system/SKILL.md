@@ -19,6 +19,14 @@ Where build logic must branch:
 
 If you're tempted to add a compiler/platform conditional to a `src/` CMakeLists, it belongs in a toolchain or triplet instead.
 
+**The corollary — no OS macros in shared *source* code.** The OS is chosen by CMake source-selection, so OS divergence must NOT reappear as a preprocessor `#ifdef` in a shared `.cpp`/`.h`. OS-specific code lives in `src/core/platform/<os>/` behind a shared header; the `if(WIN32)/if(LINUX)/if(APPLE)` blocks pick the impl. A `#elif !defined(__APPLE__)` in shared code is a defect. Full reference: **`docs/platform-isolation.md`**.
+
+- **`platform/posix/` is the shared Unix impl** — list it in *both* the `if(LINUX)` and `if(APPLE)` blocks. Leaf `platform/linux/` / `platform/macos/` files exist **only** on genuine per-Unix divergence (e.g. `physical_serial_port_timeout.cpp`, the native log sinks).
+- **Windows-only defines/link-libs** (`-D_WIN32_WINNT=…`, `comsuppw`/`ole32`) stay scoped *inside* the `if(WIN32)` block, never the shared unconditional `target_compile_definitions()`.
+- **Reusing a seam is free:** adding `SafeGmTime`/`SafeLocalTime` to `platform/safe_ctime.h` needs **zero** CMake change (`safe_ctime.cpp` already compiles in all three blocks). Adding a genuinely-divergent function needs a new leaf `.cpp` added to the matching block.
+- **Allowed exceptions** (NOT OS selection, so permitted): compiler macros (`_MSC_VER` — pragmas/intrinsics), arch macros (`__x86_64__` — ISA intrinsics), build-feature macros (`TRACY_ENABLE` — CMake `option()` switches). The whole-file `#if defined(TRACY_ENABLE)` guard is fine; when extracting a platform `.cpp` from such a TU, carry the same feature guard (or add it to CMake only when the feature is on).
+- **Enforcement:** `scripts/check-os-macros.ps1` (CI job **Platform Macros**, a required check) greps `#if`/`#ifdef`/`#ifndef`/`#elif` lines for OS tokens (`_WIN32`, `__APPLE__`, `__linux__`, …) across `src/`, exempting `src/core/platform/**`, `cmake/**`, `deps/**`, vendored trees. It does NOT flag compiler/arch/feature macros. Run locally: `pwsh scripts/check-os-macros.ps1 -Root .`.
+
 ## 1. Root `CMakeLists.txt`
 
 - `cmake_minimum_required(VERSION 3.31)`. Global: `CMAKE_CXX_STANDARD 23`, `CXX_EXTENSIONS OFF`, `CMAKE_COMPILE_WARNING_AS_ERROR ON`, `CMAKE_POSITION_INDEPENDENT_CODE ON`, `CMAKE_EXPORT_COMPILE_COMMANDS ON`, `CMAKE_CXX_SCAN_FOR_MODULES OFF` (headers, not modules; keeps clang-tidy working).

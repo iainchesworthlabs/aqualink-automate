@@ -62,6 +62,24 @@ On load the page:
 
 The WebSocket client opens `/ws/equipment` and `/ws/equipment/stats`, matching the page protocol (`ws://` for HTTP, `wss://` for HTTPS). It reconnects with exponential backoff from 1 s up to 30 s. When a token is stored it is attached as the `['aqualink', 'bearer.<token>']` WebSocket subprotocols.
 
+Beyond the main dashboard (pictured in the [README](../README.md)), the UI includes a Trends view over the recorded history (`--history-db`), a Schedules view for the app scheduler (`--schedules-file`), and a Settings view combining per-browser appearance options with server-side system preferences:
+
+![The Trends view — temperature, water-chemistry, and equipment-runtime history](assets/webui-trends.png)
+
+![The Schedules view — app-managed schedules with a list/timeline toggle](assets/webui-schedules.png)
+
+![The Settings view — appearance (theme, accent, language, units) and server-side system preferences](assets/webui-settings-language.png)
+
+### Languages
+
+The web UI ships in nine languages — English, German, Spanish, French, Arabic, Hebrew, Japanese, Simplified Chinese, and Yiddish — selected under **Settings → Appearance → Language** (the available languages are also listed on the About page). By default the UI follows the browser's language; an explicit choice is stored locally for instant boot and mirrored to the server under `preferences.ui.locale`, so it follows you across devices.
+
+Right-to-left languages (Arabic, Hebrew, Yiddish) mirror the layout automatically, and numbers, dates, and temperatures format per the active locale — Arabic renders Eastern Arabic-Indic digits, and temperatures follow the °C/°F display-units preference everywhere, including the Trends charts.
+
+![The dashboard in Arabic — the layout mirrors right-to-left and numbers render as Eastern Arabic-Indic digits](assets/webui-dashboard-arabic-rtl.png)
+
+Translations live in plain-text catalogs and are easy to contribute — see [Contributing translations](CONTRIBUTING.md#contributing-translations) for the workflow and [docs/i18n.md](i18n.md) for the mechanics.
+
 ## Security model
 
 Authentication is **opt-in** and **off by default**. With no token configured the server behaves exactly as an open, unauthenticated service — every route is reachable without credentials.
@@ -73,12 +91,16 @@ To require authentication, set a bearer token via `--api-auth-token <token>` (co
 - **`GET /api/health` is intentionally served without authentication.** The liveness probe must be reachable by a container/orchestrator health check without baking in the operator's token. It returns only `{"status":"ok","uptime_seconds":N}` — no sensitive data. The richer `GET /api/health/detailed` is **not** exempt: it exposes internal subsystem state and is gated by the bearer-token policy like every other route.
 - **WebSocket upgrades are gated by the same policy.** Browsers cannot set an `Authorization` header on a WebSocket upgrade, so the token rides in the `Sec-WebSocket-Protocol` header as a `bearer.<token>` entry alongside the `aqualink` marker (for example `Sec-WebSocket-Protocol: aqualink, bearer.<token>`). On success the handshake echoes back the `aqualink` subprotocol.
 
-Two further hardening layers are built into the routing layer but are **not currently exposed by any CLI flag or config key** — only `--api-auth-token` (the bearer token above) is wired today, so these are reachable only programmatically (and in tests). If they were enabled, they would behave as follows:
+Two further hardening layers are built into the routing layer and are exposed via CLI flags / config keys (see the [Configuration reference](configuration.md)):
 
-- **Origin allow-list.** A request whose `Origin` header is not on the list is rejected with `403 Forbidden`.
-- **CSRF header.** State-changing methods (`POST`, `PUT`, `DELETE`, …) must send an `X-Requested-With` header or they are rejected with `403 Forbidden`. This check does not apply to the WebSocket upgrade, which is always a `GET`.
+- **Origin allow-list.** Set one or more allowed origins with the repeatable `--api-allowed-origin` flag (config key `api-allowed-origin`). When at least one origin is configured, a request or WebSocket upgrade whose `Origin` header is not on the list is rejected with `403 Forbidden`.
+- **CSRF header.** Enable `--api-require-csrf-header` (config key `api-require-csrf-header`) so that state-changing methods (`POST`, `PUT`, `DELETE`, …) must send an `X-Requested-With` header or they are rejected with `403 Forbidden`. This check does not apply to the WebSocket upgrade, which is always a `GET`.
 
 **Security:** A token over plain HTTP travels in cleartext. Pair `--api-auth-token` with HTTPS (see the TLS options in the [Configuration reference](configuration.md)) whenever the server is reachable beyond `localhost`.
+
+### Identity system (`--auth-mode`)
+
+Beyond the shared token, an opt-in identity system is available (design: [auth-redesign.md](auth-redesign.md); enforcement model: [SECURITY.md](SECURITY.md)). With `--auth-mode enabled`, every request resolves to a *subject*, and each route declares the **entitlement action** it requires — drawn from the v1 vocabulary in [auth-redesign.md §4](auth-redesign.md) (`equipment.view`, the `equipment.control.*` family, `schedules.view`/`schedules.edit`, `diagnostics.view`, `prefs.self`, `system.admin`) — which a default-deny policy engine checks on every request; routes with per-resource grain (e.g. `POST /api/equipment/buttons/{button_id}`) are checked against the specific resource id in the path, so selector-scoped grants like `equipment.control.aux:AUX3` are enforced by the router. A denied request answers `401` when the subject is anonymous and `403` when it is authenticated but not entitled; an unknown `/api/*` path still answers `401` for an unauthenticated subject (no route enumeration). When `--auth-mode enabled`, the legacy `--api-auth-token` shared-token check is superseded — bearer credentials are interpreted by the subject resolver instead. The login and administration flows are fully implemented: username/password sessions with refresh rotation ([Sessions](#sessions-slice-2)), guest browsing and kiosk PIN elevation ([Guest mode](#guest-mode)), and user/group/entitlement/API-key management ([Administration](#administration)). Anonymous callers carry the built-in Guest group's entitlements — empty by default, deny until granted.
 
 ## HTTP API conventions
 
@@ -187,7 +209,7 @@ both into one timeline. Writing controller schedules is not yet supported.
 | Method | Path | Success | Other codes |
 |---|---|---|---|
 | GET | `/api/preferences` | `200` JSON | `503` when the service is unavailable. |
-| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. |
+| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. The opaque `ui` object merges shallowly at its top level (a `ui.*` value of null deletes that key) so independent UI features never clobber each other's keys. |
 
 ### Metrics
 
@@ -200,6 +222,55 @@ both into one timeline. Writing controller schedules is not yet supported.
 | Method | Path | Success | Notes |
 |---|---|---|---|
 | GET | `/api/auth/check` | `200` `{"authenticated":true}` | Only reached when already authorized or auth is disabled; the routing layer answers `401` upstream otherwise. |
+| GET | `/api/auth/me` | `200` JSON | The resolved subject for the calling request: `posture` (`"disabled"`/`"enabled"`), `id`, `username` (human-readable name — the local account's username or an API key's label; empty when the provider has no natural name, fall back to `id`), `authenticated`, `provider`, `groups[]`, `entitlements[]` — the SPA's single source of truth for gating affordances (enforcement stays server-side). Declares **no entitlement requirement**, so with `--auth-mode enabled` an anonymous/guest caller can always probe its own scope. With auth-mode disabled the subject is root-anonymous and `entitlements` is empty (everything is permitted by posture, so nothing is enumerated). |
+
+#### Sessions (Slice 2)
+
+These routes exist only when `--auth-mode enabled`. They are the local-account login flow; all four declare **no entitlement requirement** (they are how a subject acquires or drops a credential), so the router gate is open — enforcement is by the credential in the body.
+
+| Method | Path | Entitlement | Behaviour |
+|---|---|---|---|
+| POST | `/api/auth/login` | open | Verify `{username, password}`; on success return `{access_token, refresh_token, session_id, token_type:"Bearer"}`. `401` on bad credentials; `429` (`Retry-After: 900`) when the account is locked out after repeated failures. Argon2id runs off the kernel thread. |
+| POST | `/api/auth/refresh` | open | Exchange `{refresh_token}` for a fresh `{access_token, refresh_token}` pair (single-use rotation). `401` when invalid/expired, or when a rotated-out token is replayed (the session is then revoked). |
+| POST | `/api/auth/logout` | open (`everywhere` needs auth) | Revoke the session for `{refresh_token}`; always answers `204` (never discloses whether the token was live). With `{"everywhere":true}` it revokes **every** session for the caller and bumps `tokver` — this variant requires an authenticated subject (`401` otherwise). |
+| POST | `/api/auth/setup` | open | First-run only: create the first administrator from `{username, password}` when the user store is empty. `201` on success; `403` once setup has already been completed (self-sealing); `400` on a weak password (min 12) or missing fields. |
+| POST | `/api/auth/pin` | open | **Kiosk PIN elevation** (guest mode): verify `{pin}` and, on success, return a `{access_token, refresh_token, session_id, token_type:"Bearer"}` session in the admin-configured target group. `401` on a wrong/disabled PIN (one indistinguishable error); `429` (`Retry-After: 900`) when the PIN endpoint is locked out. Argon2id runs off the kernel thread. |
+
+### Guest mode
+
+`/api/auth/me` additionally reports `kiosk_enabled` so the login screen can offer PIN entry. Guest browsing is governed entirely by the built-in **Guest** group's entitlements (edit it via `POST /api/groups`): grant it `equipment.view` to let anonymous visitors reach the dashboard (login-to-elevate stays available); leave it empty for a login wall. Kiosk PIN elevation is configured here:
+
+| Method | Path | Entitlement | Behaviour |
+|---|---|---|---|
+| GET | `/api/kiosk` | `system.admin` | Report `{enabled, target_group}`. The PIN and its hash are write-only and never returned. |
+| PUT | `/api/kiosk` | `system.admin` | Set/replace the PIN from `{pin, target_group}` (argon2id off-thread). Bumps a kiosk `tokver` (invalidating prior kiosk sessions) and revokes their refresh tokens. `400` on a short PIN (min 4) or an unknown target group. `204` on success. |
+| DELETE | `/api/kiosk` | `system.admin` | Disable kiosk PIN elevation, clear the PIN, and revoke all live kiosk sessions. `204`. |
+
+Kiosk sessions are ordinary JWT sessions (`provider = KioskPin`) — revocable and listed in `/api/sessions` under the `kiosk` subject id — but carry no `prefs.self` (a shared terminal has no per-user preferences). The subject resolver validates them against the kiosk store's enabled flag + `tokver` rather than the user store, so disabling the kiosk (or replacing the PIN) drops outstanding kiosk sessions straight back to the Guest scope.
+
+### Administration
+
+These routes exist only when `--auth-mode enabled`. Most require the `system.admin` entitlement; the self-service exceptions (own password, own sessions) are gated on `prefs.self` — i.e. simply being authenticated — with the admin-vs-self distinction enforced in-handler. A denied request answers `401` when anonymous and `403` when authenticated-but-unentitled.
+
+| Method | Path | Entitlement | Behaviour |
+|---|---|---|---|
+| GET | `/api/users` | `system.admin` | List local accounts (id, username, groups, direct entitlements, disabled, tokver; never the password hash). |
+| POST | `/api/users` | `system.admin` | Create an account from `{username, password, groups?, direct_entitlements?}`. `400` weak password / unknown entitlements; `409` duplicate username. |
+| GET | `/api/users/{user_id}` | `system.admin` | Fetch one account record. `404` unknown. |
+| PUT | `/api/users/{user_id}` | `system.admin` | Partial update of `username`/`groups`/`direct_entitlements`/`disabled`. A grant change bumps `tokver`; `disabled:true` also revokes every session. `409` on duplicate username or last-admin protection. |
+| DELETE | `/api/users/{user_id}` | `system.admin` | Delete the account, revoke its sessions, forget its per-user prefs (audit retained). `409` for the last enabled admin. |
+| PUT | `/api/users/{user_id}/password` | `prefs.self` | Set a password. An admin may set anyone's; any other subject only their own (`403` otherwise). On success bumps `tokver` and revokes every session. `400` if under 12 chars. |
+| GET | `/api/groups` | `system.admin` | List groups (name, entitlements, `built_in`). |
+| POST | `/api/groups` | `system.admin` | Upsert a group by name from `{name, entitlements}`. A change bumps every member's `tokver`. `400` on unknown/malformed entitlements. |
+| DELETE | `/api/groups/{group_name}` | `system.admin` | Delete a non-built-in group (members' `tokver` bumped). `404` unknown; `409` built-in. |
+| GET | `/api/entitlements` | `system.admin` | List the known entitlement-action vocabulary (`{"actions":[...]}`) so the UI can enumerate what is assignable. |
+| GET | `/api/apikeys` | `system.admin` | List API-key metadata (id, label, entitlements, expiry, last-used, revoked); never the secret. |
+| POST | `/api/apikeys` | `system.admin` | Create an entitlement-scoped key from `{label, entitlements, expiry_unix?}`. The `201` body carries the **shown-once** `secret` (`aak_...`) plus a `warning`. `400` missing label / bad entitlements. |
+| DELETE | `/api/apikeys/{key_id}` | `system.admin` | Revoke a key (stays listed as revoked). `404` unknown. |
+| GET | `/api/sessions` | `prefs.self` | List active refresh-token sessions. An admin sees every session; any other subject only their own. |
+| DELETE | `/api/sessions/{session_id}` | `prefs.self` | Revoke one session ("log out that browser"). An admin may revoke any; any other subject only their own — a non-owned id answers `404` (indistinguishable from unknown, so ids are not enumerable). |
+
+**Preferences are per-user.** When the identity system is on and the caller is authenticated, `GET`/`PUT /api/preferences` becomes subject-aware. The per-user fields — `temperature_units`, `theme`, `accent`, and `chemistry_bands` — are stored per account and synced server-side; a `GET` returns the live global defaults with the caller's overrides layered on top. Every other field is a **system/admin** preference (alert thresholds, history retention, label overrides, spa-switch mapping, …) and a `PUT` touching one requires `system.admin` (`403` otherwise). An anonymous caller (or auth-mode disabled) reaches none of the per-user machinery — the whole document is global, and the SPA keeps an anonymous visitor's units/theme/accent choices in `localStorage`.
 
 ## Key request and response examples
 
@@ -210,11 +281,12 @@ Returns the full equipment state. The top-level keys are `temperatures`, `chemis
 ```json
 {
   "temperatures": {
-    "pool": { "celsius": 28, "fahrenheit": 82 },
+    "pool": { "celsius": 28, "fahrenheit": 82, "last_updated": 1782600000, "stale": false },
     "spa": null,
-    "air": { "celsius": 24, "fahrenheit": 75 },
+    "air": { "celsius": 24, "fahrenheit": 75, "last_updated": 1782600000, "stale": false },
     "pool_setpoint": { "celsius": 28, "fahrenheit": 82 },
-    "spa_setpoint": { "celsius": 38, "fahrenheit": 100 }
+    "spa_setpoint": { "celsius": 38, "fahrenheit": 100 },
+    "staleness_threshold_seconds": 600
   },
   "chemistry": {
     "salt_ppm": 3200,
@@ -488,7 +560,7 @@ Every frame is a JSON object with two fields:
 - `CirculationUpdate` — circulation/heater mode changes
 - `ButtonStateChange`
 - `SystemStatusChange`
-- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ... }`
+- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ..., "params": <object, optional> }` — `detail` is the English description; `params` carries the structured values behind it (e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}`) for translated UI text / automations (docs/i18n.md). Conditions: `chlorinator_fault`, `chlorinator_warning`, `salt_low`, `service_mode`, `serial_comms_loss`, and `temperature_stale` (pump running but the active body's water temperature has outlived `--temperature-staleness-threshold`; pump-off staleness is expected and never raises — the UI just ages the reading)
 
 On connect, `/ws/equipment` enqueues exactly one `SystemStateUpdate` so a freshly connected client knows the current state immediately:
 
@@ -513,7 +585,7 @@ These are the fields the UI consumes from each frame's `payload`:
 
 | Event type | Payload fields |
 |---|---|
-| `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` |
+| `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` — each a raw dual-unit object `{celsius, fahrenheit}` (same shape as REST `/api/equipment`; display formatting is the frontend's job, see `docs/i18n.md`) |
 | `ChemistryUpdate` | `ph`, `orp`, `salt_level` |
 | `ButtonStateChange` | `button_id`, `status`, `label` (optional) |
 | `SystemStateUpdate` | `state`, `pool_configuration`, `equipment_mode` |
@@ -524,6 +596,12 @@ These are the fields the UI consumes from each frame's `payload`:
 - Each connection has an outbound queue capped at **100** messages. When full, the oldest message is dropped (with a rate-limited warning) before the new one is enqueued.
 - Inbound WebSocket frames are capped at **64 KiB**.
 - The same HTTP limits apply to the upgrade request: a **10000-byte** body limit, at most **1000** concurrent connections, and a **30-second** idle timeout.
+
+### Keepalive and reverse proxies
+
+Both endpoints send a WebSocket protocol-level ping after roughly **30 seconds** of silence (the server runs a 60-second idle timeout with keep-alive pings enabled — see `WebSocketServerTimeout()` in `src/core/http/server/websocket_timeouts.h`). This matters because `/ws/equipment` is change-driven: with the pool in a steady state no data frames flow for minutes, and without the pings a reverse proxy in front of the app would sever the quiet connection at its own idle timeout (nginx defaults `proxy_read_timeout` to 60 s; Cloudflare closes idle WebSockets after ~100 s), causing a spurious "Connection lost — retrying..." toast in the UI. Browsers answer pings automatically — clients do not need to implement anything.
+
+If you run a reverse proxy in front of the application, any WebSocket/upstream idle timeout of **60 seconds or more** works out of the box. A proxy configured tighter than ~30 seconds will still drop quiet connections. A peer that stops answering pings is torn down by the server within the 60-second idle timeout.
 
 ## Prometheus metrics
 
