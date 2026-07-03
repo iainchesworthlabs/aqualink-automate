@@ -16,6 +16,7 @@
 #include "kernel/data_hub.h"
 #include "kernel/hub_locator.h"
 #include "logging/logging.h"
+#include "platform/safe_ctime.h"
 #include "scheduling/scheduler_service.h"
 
 using namespace AqualinkAutomate::Logging;
@@ -80,11 +81,7 @@ namespace AqualinkAutomate::Scheduling
 	{
 		const std::time_t tt = std::chrono::system_clock::to_time_t(tp);
 		std::tm tm{};
-#ifdef _WIN32
-		(void)localtime_s(&tm, &tt);
-#else
-		(void)localtime_r(&tt, &tm);
-#endif
+		(void)Platform::SafeLocalTime(tm, tt);
 		LocalMinute lm;
 		// tm_wday is 0=Sunday..6=Saturday; remap to Monday=0..Sunday=6.
 		lm.weekday = (tm.tm_wday + 6) % 7;

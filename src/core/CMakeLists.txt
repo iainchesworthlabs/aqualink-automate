@@ -329,6 +329,8 @@ target_sources(
 	platform/windows/log_source_registration.cpp
 	platform/windows/native_log_sink.cpp
 	platform/windows/journald_log_sink.cpp
+	platform/windows/log_environment_probes.cpp
+	platform/windows/aligned_alloc.cpp
 )
 
 target_compile_definitions(
@@ -365,9 +367,13 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/log_environment_probes.cpp
+	platform/posix/aligned_alloc.cpp
+	platform/posix/log_source_registration.cpp
 	platform/linux/physical_serial_port_timeout.cpp
 	platform/linux/native_log_sink.cpp
 	platform/linux/journald_log_sink.cpp
+	platform/linux/get_terminal_column_width_prefix.cpp
 )
 endif(LINUX)
 
@@ -381,9 +387,13 @@ target_sources(
 	platform/posix/network_serial_port_timeout.cpp
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
+	platform/posix/log_environment_probes.cpp
+	platform/posix/aligned_alloc.cpp
+	platform/posix/log_source_registration.cpp
 	platform/macos/physical_serial_port_timeout.cpp
 	platform/macos/native_log_sink.cpp
 	platform/macos/journald_log_sink.cpp
+	platform/macos/get_terminal_column_width_prefix.cpp
 )
 endif(APPLE)
 

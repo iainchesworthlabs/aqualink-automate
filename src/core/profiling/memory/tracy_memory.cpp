@@ -15,10 +15,6 @@
 #include <cstdlib>
 #include <new>
 
-#ifdef _WIN32
-#include <malloc.h> // _aligned_malloc / _aligned_free
-#endif
-
 #if defined(_MSC_VER)
 #include <intrin.h>
 #elif defined(__x86_64__) || defined(__i386__)
@@ -27,6 +23,8 @@
 
 #include <tracy/Tracy.hpp>
 #include <client/TracyProfiler.hpp>
+
+#include "platform/aligned_alloc.h"
 
 // ============================================================================
 // Overview
@@ -281,22 +279,12 @@ static void TrackFree(void* ptr)
 
 static void* AlignedMalloc(std::size_t size, std::size_t alignment)
 {
-#ifdef _WIN32
-	return _aligned_malloc(size, alignment);
-#else
-	// C11 aligned_alloc requires size to be a multiple of alignment
-	std::size_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
-	return aligned_alloc(alignment, aligned_size);
-#endif
+	return AqualinkAutomate::Platform::AlignedMalloc(size, alignment);
 }
 
 static void AlignedFree(void* ptr)
 {
-#ifdef _WIN32
-	_aligned_free(ptr);
-#else
-	std::free(ptr);
-#endif
+	AqualinkAutomate::Platform::AlignedFree(ptr);
 }
 
 // ============================================================================

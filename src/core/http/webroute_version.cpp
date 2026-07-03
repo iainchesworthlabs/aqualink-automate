@@ -5,6 +5,7 @@
 
 #include "http/webroute_version.h"
 #include "http/server/server_fields.h"
+#include "platform/safe_ctime.h"
 #include "profiling/factories/profiling_unit_factory.h"
 #include "version/version.h"
 
@@ -18,11 +19,7 @@ namespace AqualinkAutomate::HTTP
 		{
 			auto time_t_val = std::chrono::system_clock::to_time_t(tp);
 			std::tm tm_buf{};
-#ifdef _WIN32
-			(void)gmtime_s(&tm_buf, &time_t_val);
-#else
-			(void)gmtime_r(&time_t_val, &tm_buf);
-#endif
+			(void)Platform::SafeGmTime(tm_buf, time_t_val);
 			char buf[32];
 			(void)std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm_buf);
 			return buf;

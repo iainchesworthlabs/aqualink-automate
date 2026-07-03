@@ -8,5 +8,15 @@ namespace AqualinkAutomate::Platform
 		return ctime_r(time_t_val, buf);
 	}
 
+	bool SafeGmTime(std::tm& out, const std::time_t& t) noexcept
+	{
+		return gmtime_r(&t, &out) != nullptr;
+	}
+
+	bool SafeLocalTime(std::tm& out, const std::time_t& t) noexcept
+	{
+		return localtime_r(&t, &out) != nullptr;
+	}
+
 }
 // namespace AqualinkAutomate::Platform

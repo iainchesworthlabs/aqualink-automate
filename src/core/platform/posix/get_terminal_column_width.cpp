@@ -9,23 +9,12 @@
 using namespace AqualinkAutomate;
 using namespace AqualinkAutomate::Logging;
 
-namespace
-{
-
-	// The only divergence between the previous per-OS POSIX implementations was the
-	// log-line prefix; derive it once here so the rest of the implementation is shared.
-#if defined(__APPLE__)
-	constexpr std::string_view PLATFORM_LOG_PREFIX{ "macOS:" };
-#else
-	constexpr std::string_view PLATFORM_LOG_PREFIX{ "LINUX:" };
-#endif
-
-}
-// namespace
-
 namespace AqualinkAutomate::Utility
 {
 
+	// The only divergence between the Unix variants is the log-line prefix
+	// (Utility::PLATFORM_LOG_PREFIX), defined per-OS under platform/<os>/ and selected
+	// by CMake; the probe body below is shared across every POSIX platform.
 	uint32_t get_terminal_column_width()
 	{
 		uint32_t column_width = 0;

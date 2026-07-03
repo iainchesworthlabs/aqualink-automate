@@ -5,15 +5,8 @@
 #include <string>
 #include <string_view>
 
-#if defined(_WIN32)
-#include <io.h>
-#include <cstdio>
-#else
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
-
 #include "logging/sinks/log_environment.h"
+#include "logging/sinks/log_environment_probes.h"
 
 namespace AqualinkAutomate::Logging::Sinks
 {
@@ -39,15 +32,6 @@ namespace AqualinkAutomate::Logging::Sinks
 			return std::nullopt;
 		}
 
-		[[nodiscard]] bool RealStderrIsTty() noexcept
-		{
-#if defined(_WIN32)
-			return _isatty(_fileno(stderr)) != 0;
-#else
-			return isatty(STDERR_FILENO) != 0;
-#endif
-		}
-
 		[[nodiscard]] std::optional<std::string> RealGetEnvVar(const char* name)
 		{
 			if (const char* value = std::getenv(name); nullptr != value)
@@ -57,33 +41,17 @@ namespace AqualinkAutomate::Logging::Sinks
 
 			return std::nullopt;
 		}
-
-		[[nodiscard]] std::optional<DevIno> RealStatStderr() noexcept
-		{
-#if defined(_WIN32)
-			// Windows has no journald and no meaningful device/inode identity for the
-			// stderr handle in this sense; JOURNAL_STREAM never applies, so report
-			// "unknown" and let JournalStreamMatches() fail closed.
-			return std::nullopt;
-#else
-			struct stat st{};
-			if (0 == ::fstat(STDERR_FILENO, &st))
-			{
-				return DevIno{ static_cast<std::uint64_t>(st.st_dev), static_cast<std::uint64_t>(st.st_ino) };
-			}
-
-			return std::nullopt;
-#endif
-		}
 	}
 	// namespace (anonymous)
 
 	EnvironmentProbes DefaultProbes()
 	{
 		return EnvironmentProbes{
-			.StderrIsTty = &RealStderrIsTty,
+			// The OS-native stderr probes live in platform/<os>/log_environment_probes.cpp
+			// (CMake-selected); GetEnvVar is portable and stays here.
+			.StderrIsTty = &PlatformStderrIsTty,
 			.GetEnvVar = &RealGetEnvVar,
-			.StatStderr = &RealStatStderr,
+			.StatStderr = &PlatformStatStderr,
 			// No Windows service wrapper exists yet; a future service entry point
 			// replaces this probe with one that returns true in service context.
 			.WindowsServiceContext = [] { return false; }

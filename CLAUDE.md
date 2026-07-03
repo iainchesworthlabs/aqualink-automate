@@ -70,3 +70,18 @@ To add a CLI option / config setting:
 4. Add conflict/dependency checks in `Validate()` if needed (`Helper_CheckForConflictingOptions` / `Helper_ValidateOptionDependencies`; both ignore defaulted options).
 5. Read it via `settings.Get<Options::Xxx::XxxSettings>()`.
 6. Add a test under `test/unit/options/` (the config-file key needs no extra code — it is the option long name). Only a brand-new `.cpp` (new area/validator) needs a `CMakeLists.txt` entry.
+
+## Platform Isolation — No OS Macros in Shared Code
+
+**The operating system is a CMake decision, not a preprocessor decision.** OS-divergent code lives in `src/core/platform/<os>/` and `src/core/CMakeLists.txt` selects which `.cpp` compiles via `if(WIN32)`/`if(LINUX)`/`if(APPLE)`. Any shared, non-platform source file (outside `src/core/platform/**`) **must be free of OS macros** (`_WIN32`, `__APPLE__`, `__linux__`, `__unix__`, …). A line like `#elif !defined(__APPLE__)` should exist nowhere. Full reference + rationale: **`docs/platform-isolation.md`**.
+
+Mechanical rules when code diverges by OS:
+
+1. **Declare** the OS-agnostic interface in a shared header (`src/core/platform/<name>.h` or the subsystem's own header).
+2. **Implement** one `.cpp` per OS: `platform/windows/<name>.cpp` and `platform/posix/<name>.cpp` (the **shared Unix** impl, listed in *both* the `if(LINUX)` and `if(APPLE)` blocks). Add a leaf `platform/linux/` or `platform/macos/` file **only** on genuine per-Unix divergence.
+3. **Wire** each new `.cpp` into the right CMake `if()` block. Reusing an existing seam (e.g. adding a function to `safe_ctime.h`, already compiled everywhere) needs **no** CMake change.
+4. **Never** add an OS `#if`/`#ifdef`/`#elif` to shared code, **never** use a negative-OS `#else` ("assume Linux"), and **never** use `$<PLATFORM_ID>` in `src/` CMake.
+
+**Allowed exceptions (a separate concern, not flagged):** compiler macros (`_MSC_VER`, `__GNUC__`, `__clang__` — pragmas/intrinsic shims), architecture macros (`__x86_64__`, `__aarch64__` — ISA intrinsics), and build-feature macros (`TRACY_ENABLE`, … — CMake feature switches). Prefer a small shim header over spreading raw guards.
+
+**Enforcement:** `scripts/check-os-macros.ps1` (CI job *Platform Macros*, a required check) fails the build on a new OS macro in shared code. Run it locally with `pwsh scripts/check-os-macros.ps1 -Root .`.

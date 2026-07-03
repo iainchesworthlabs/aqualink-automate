@@ -202,6 +202,10 @@ On Windows the equivalent presets are `config-windows-msvc-debug`, `build-window
 
 All tests must pass and your change must include tests covering it. A bug fix must add a regression test that fails before the fix and passes after it.
 
+### Platform-specific code
+
+The operating system is a CMake decision, not a preprocessor decision. Code that differs by OS goes in `src/core/platform/<os>/` behind a shared header and is selected by the `if(WIN32)/if(LINUX)/if(APPLE)` blocks in `src/core/CMakeLists.txt` — never behind an `#ifdef _WIN32`/`#elif !defined(__APPLE__)` in shared code. The full principle, the add-a-platform-function workflow, and the allowed exceptions (compiler/arch/build-feature macros) are in [docs/platform-isolation.md](platform-isolation.md). The **Platform Macros** CI check (`scripts/check-os-macros.ps1`) blocks a PR that introduces an OS macro into shared code.
+
 ## Keeping documentation in sync
 
 Documentation is part of the change, not a follow-up. When a pull request alters observable behavior, update the doc that describes it **in the same pull request** — a doc that contradicts the code is treated as a defect in review.

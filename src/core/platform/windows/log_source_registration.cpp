@@ -18,7 +18,7 @@ namespace AqualinkAutomate::Application
 	}
 	// namespace (anonymous)
 
-	bool RegisterLogSource(const std::string& source_name)
+	LogSourceRegistrationResult RegisterLogSource(const std::string& source_name)
 	{
 		const std::string key_path = SourceKeyPath(source_name);
 
@@ -27,7 +27,7 @@ namespace AqualinkAutomate::Application
 			REG_OPTION_NON_VOLATILE, KEY_SET_VALUE, nullptr, &key, nullptr))
 		{
 			// Almost always ERROR_ACCESS_DENIED when not running elevated.
-			return false;
+			return LogSourceRegistrationResult::Failed;
 		}
 
 		bool ok = true;
@@ -49,15 +49,17 @@ namespace AqualinkAutomate::Application
 			reinterpret_cast<const BYTE*>(&types_supported), sizeof(types_supported)));
 
 		::RegCloseKey(key);
-		return ok;
+		return ok ? LogSourceRegistrationResult::Succeeded : LogSourceRegistrationResult::Failed;
 	}
 
-	bool UnregisterLogSource(const std::string& source_name)
+	LogSourceRegistrationResult UnregisterLogSource(const std::string& source_name)
 	{
 		const std::string key_path = SourceKeyPath(source_name);
 
 		const LSTATUS rc = ::RegDeleteKeyExA(HKEY_LOCAL_MACHINE, key_path.c_str(), KEY_WOW64_64KEY, 0);
-		return (ERROR_SUCCESS == rc) || (ERROR_FILE_NOT_FOUND == rc);
+		return ((ERROR_SUCCESS == rc) || (ERROR_FILE_NOT_FOUND == rc))
+			? LogSourceRegistrationResult::Succeeded
+			: LogSourceRegistrationResult::Failed;
 	}
 
 }

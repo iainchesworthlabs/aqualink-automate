@@ -13,5 +13,15 @@ namespace AqualinkAutomate::Platform
 		return nullptr;
 	}
 
+	bool SafeGmTime(std::tm& out, const std::time_t& t) noexcept
+	{
+		return gmtime_s(&out, &t) == 0;
+	}
+
+	bool SafeLocalTime(std::tm& out, const std::time_t& t) noexcept
+	{
+		return localtime_s(&out, &t) == 0;
+	}
+
 }
 // namespace AqualinkAutomate::Platform

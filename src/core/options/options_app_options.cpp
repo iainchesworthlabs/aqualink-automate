@@ -118,23 +118,29 @@ namespace AqualinkAutomate::Options::App
 		// The runtime Event Log sink and this registration must name the same source.
 		static const std::string source_name{ "Aqualink-Automate" };
 
-#if defined(_WIN32)
-		const bool ok = do_register
+		// The action is dispatched to the platform layer (Windows writes/removes the
+		// Event Log source key; every other platform returns Unsupported). Branching on
+		// the result keeps this shared handler free of an OS #ifdef — see
+		// docs/platform-isolation.md.
+		const auto result = do_register
 			? Application::RegisterLogSource(source_name)
 			: Application::UnregisterLogSource(source_name);
 
-		if (ok)
+		switch (result)
 		{
+		case Application::LogSourceRegistrationResult::Succeeded:
 			std::cout << (do_register ? "Registered" : "Unregistered") << " Windows Event Log source '" << source_name << "'.\n";
-		}
-		else
-		{
+			break;
+
+		case Application::LogSourceRegistrationResult::Failed:
 			std::cout << "Failed to " << (do_register ? "register" : "unregister")
 				<< " Windows Event Log source '" << source_name << "' (administrator privileges are required).\n";
+			break;
+
+		case Application::LogSourceRegistrationResult::Unsupported:
+			std::cout << "--register-log-source / --unregister-log-source are only supported on Windows.\n";
+			break;
 		}
-#else
-		std::cout << "--register-log-source / --unregister-log-source are only supported on Windows.\n";
-#endif
 
 		// One-shot action: exit cleanly (same mechanism as --help/--version).
 		throw Exceptions::OptionsHelpOrVersion();

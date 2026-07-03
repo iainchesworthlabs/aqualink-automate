@@ -117,6 +117,21 @@ jobs:
         shell: pwsh
         run: ./scripts/check-i18n-keys.ps1 -Root $PWD
 
+  # Enforce the platform-isolation principle (docs/platform-isolation.md): no
+  # OPERATING-SYSTEM preprocessor macro (_WIN32, __APPLE__, __linux__, …) may gate
+  # any shared, non-platform source file. OS-divergent code belongs in
+  # src/core/platform/<os>/ selected by the if(WIN32)/if(LINUX)/if(APPLE) CMake
+  # blocks. Compiler/arch/build-feature macros are a separate concern and are not
+  # flagged. A source-only check, so it runs cheaply on every PR (no build needed).
+  platform-macros:
+    name: Platform Macros
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Check for OS macros in shared code
+        shell: pwsh
+        run: ./scripts/check-os-macros.ps1 -Root $PWD
+
   # The configure/build/test matrix lives in the reusable _build.yml so CI and the
   # release pipeline share one definition and can never drift. Runner selection
   # (vars.RUNNER_LINUX / RUNNER_WINDOWS) is handled inside that workflow.
@@ -373,7 +388,7 @@ jobs:
   ci-status:
     name: CI Status
     if: always()
-    needs: [changes, build-and-test, e2e-ui, matter-bridge, docker-verify, i18n-catalogs]
+    needs: [changes, build-and-test, e2e-ui, matter-bridge, docker-verify, i18n-catalogs, platform-macros]
     runs-on: ubuntu-latest
     steps:
       - name: Gate on required job results
@@ -385,10 +400,11 @@ jobs:
           R_MATTER: ${{ needs.matter-bridge.result }}
           R_DOCKER: ${{ needs.docker-verify.result }}
           R_I18N: ${{ needs.i18n-catalogs.result }}
+          R_OSMACROS: ${{ needs.platform-macros.result }}
         run: |
           set -euo pipefail
           fail=0
-          for pair in "changes:$R_CHANGES" "build-and-test:$R_BUILD" "e2e-ui:$R_E2E" "matter-bridge:$R_MATTER" "docker-verify:$R_DOCKER" "i18n-catalogs:$R_I18N"; do
+          for pair in "changes:$R_CHANGES" "build-and-test:$R_BUILD" "e2e-ui:$R_E2E" "matter-bridge:$R_MATTER" "docker-verify:$R_DOCKER" "i18n-catalogs:$R_I18N" "platform-macros:$R_OSMACROS"; do
             job="${pair%%:*}"; result="${pair#*:}"
             echo "  $job: $result"
             if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then
