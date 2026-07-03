@@ -221,6 +221,8 @@ Prefer durable references (symbols, route URLs, option long-names, section headi
 
 The web UI is fully internationalized: every user-visible string resolves through a per-language catalog, and adding or improving a language never touches C++ or the build system. The full mechanics are in [docs/i18n.md](i18n.md); this section is the contributor workflow. Translation-only pull requests are very welcome — the shipped non-English catalogs were machine-translated and reviewed for structure, so native-speaker improvements are genuinely valuable.
 
+![The About page lists every shipped language; new locales appear here automatically once registered](assets/webui-about-languages.png)
+
 ### Improving an existing translation
 
 Catalogs are plain JavaScript files under `assets/web/i18n/<code>.js` — one flat `'namespace.key': 'string'` map per language. To improve a translation, edit the **value** (never the key) and open a pull request typed `fix(webui)`.
