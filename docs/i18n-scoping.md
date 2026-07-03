@@ -41,6 +41,28 @@
 > rendered face is consistent across platforms instead of whatever `system-ui`
 > resolves to; CJK stays on named system faces. See docs/i18n.md "Fonts and
 > scripts".
+>
+> **Reconciliation 2026-07-03: Phase 5 is implemented** on `feat/i18n-phase5` —
+> four more locales (es, fr, he, zh), bringing the shipped set to eight. Hebrew
+> is the second RTL locale (it exercised the Phase 3 work unchanged) and got a
+> vendored Noto Sans Hebrew per-glyph fallback; Chinese got a `html[lang='zh']`
+> system-font stack. The pseudo-locale, catalog-parity CI check, and
+> contributor workflow this phase planned had already shipped with Phase 0;
+> the "owner decision" on first languages was overtaken by shipping de/ar/ja
+> in Phase 0 directly. Also fixed here: the parity checker only matched
+> single-quoted catalog values, silently skipping the ~14 keys whose English
+> text contains an apostrophe (real key count 587, not the 573 it reported).
+>
+> Phase 5 also absorbed the first real guard-rail catch: the auth/identity
+> feature merged to develop mid-phase with its login/account/administration
+> UI hardcoded in English (47 visible offenders on one route). All ~182
+> strings were extracted into `auth.*`/`account.*`/`admin.*` keys and
+> translated into all seven locales, and two auth-integration defects were
+> fixed: server preferences were token-gated (silently disabling per-user
+> prefs/locale sync for the default auth-off posture — now gated on
+> `can('prefs.self')`), and the boot-time server-locale pull could stomp a
+> locale chosen while its request was in flight (now yields to an explicit
+> in-session choice).
 
 ## Goal
 
