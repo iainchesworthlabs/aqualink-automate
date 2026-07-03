@@ -382,6 +382,16 @@ test.describe('i18n guard rails', () => {
         if (style.display === 'none' || style.visibility === 'hidden') continue;
         if (el.closest(EXEMPT_SELECTOR)) continue;
         if (el.closest('[x-cloak]')) continue;                  // never shown in this state
+        // Inner elements of an x-html binding (e.g. an <a> or <strong> inside
+        // a translated sentence) split the value into marker-less leaf text
+        // nodes. If the holder's full text carries BOTH pseudo-brackets, the
+        // whole value came from the catalog by construction — x-html replaces
+        // the holder's content entirely, so nothing inside can be hardcoded.
+        const holder = el.closest('[x-html]');
+        if (holder) {
+          const ht = holder.textContent || '';
+          if (ht.includes('⟦') && ht.includes('⟧')) continue;
+        }
         bad.add(`${el.tagName.toLowerCase()}.${el.className}: "${text.slice(0, 80)}"`);
       }
 

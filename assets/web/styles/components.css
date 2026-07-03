@@ -2874,6 +2874,24 @@ main input[type="range"] { accent-color: var(--accent); }
     .device-cards { grid-template-columns: 1fr; }
 }
 
+/* --- About → Language support ------------------------------------------ */
+/* Endonym chips rendered from the locale registry; every language shows in
+   its own script (the per-glyph font fallbacks cover Arabic/Hebrew/CJK). */
+.about-lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.about-lang-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-chip);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+.about-lang-chip.on { border-color: var(--accent); color: var(--text); }
+.about-lang-active {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--accent);
+}
+
 /* =====================================================================
    RTL direction fixes (docs/i18n.md, Phase 3)
 
