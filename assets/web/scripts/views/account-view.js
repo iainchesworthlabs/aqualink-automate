@@ -46,7 +46,13 @@ function accountView() {
         },
 
         // ---- Identity (read from the auth store) ----
-        get identity() { return this.$store.auth.id || window.AquaI18n.t('account.unknown_user'); },
+        // Prefer the human-readable username; the id (a stable UUID for local
+        // accounts) is only the fallback for subjects with no natural name
+        // (e.g. the kiosk session's synthetic "kiosk" id).
+        get identity() {
+            const auth = this.$store.auth;
+            return auth.username || auth.id || window.AquaI18n.t('account.unknown_user');
+        },
         get groups() { return this.$store.auth.groups || []; },
 
         _resetPasswordForm() {
