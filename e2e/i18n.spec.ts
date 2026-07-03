@@ -360,6 +360,8 @@ test.describe('i18n guard rails', () => {
         '.health-endpoint', '.sched-empty-pill', '.trends-empty-pill', // endpoint literals
         '.info-grid dd',                                    // About values (server version data / brand fallback)
         '.trends-error',                                    // snapshot error string (translated at assignment time)
+        '.sched-bar', '.sched-mk',                          // timeline hover titles embed schedule/device names
+        '.accent-swatch',                                   // aria-label carries the theme name (client config value)
       ].join(',');
       // Token shapes that are legitimately untranslated wherever they appear.
       const TOKEN_RE = /^(?:[-–—·.,:;()%°#'"\/\\+\d\s]|GET|POST|PUT|HTTP|API|MQTT|TLS|SWG|ORP|pH|ppm|mV|µs|ms|kB|KB|MB|GB|B|P\d+|v\d[\w.]*|0x[0-9a-fA-F]+|--|…)+$/;
@@ -381,6 +383,27 @@ test.describe('i18n guard rails', () => {
         if (el.closest(EXEMPT_SELECTOR)) continue;
         if (el.closest('[x-cloak]')) continue;                  // never shown in this state
         bad.add(`${el.tagName.toLowerCase()}.${el.className}: "${text.slice(0, 80)}"`);
+      }
+
+      // Attribute pass: tooltips, placeholders and screen-reader labels are
+      // user-visible too but never appear as text nodes. Hidden elements are
+      // deliberately NOT skipped — a static attribute is authored markup, and
+      // posture-gated affordances (e.g. the guest lock hints) must come from
+      // the catalog even when this run's auth posture never displays them.
+      const ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
+      // Attribute values that are legitimately untranslated: URLs and
+      // example filenames (input placeholders showing a literal file name).
+      const ATTR_SHAPE_RE = /^(?:https?:\/\/\S+|[\w-]+\.[a-z0-9]{2,5})$/i;
+      for (const el of Array.from(document.body.querySelectorAll('[title],[placeholder],[aria-label],[alt]'))) {
+        if (el.closest(EXEMPT_SELECTOR) || el.closest('[x-cloak]')) continue;
+        for (const attr of ATTRS) {
+          const v = (el.getAttribute(attr) || '').trim();
+          // As with text nodes, either pseudo-bracket proves catalog origin.
+          if (!v || v.includes('⟦') || v.includes('⟧')) continue;
+          if (!/[A-Za-z]{3,}/.test(v)) continue;
+          if (TOKEN_RE.test(v) || ATTR_SHAPE_RE.test(v)) continue;
+          bad.add(`${el.tagName.toLowerCase()}.${el.className}[${attr}]: "${v.slice(0, 80)}"`);
+        }
       }
       return [...bad].sort();
     });

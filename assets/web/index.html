@@ -1155,7 +1155,7 @@
                                 <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
                             </div>
                         </template>
-                        <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak>Sign in to adjust</span>
+                        <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
                     </div>
                 </div>
             </div>
@@ -1215,7 +1215,7 @@
                             :class="{ active: isActive(button), 'is-locked': !$store.auth.can('equipment.control.aux', button.id), 'cmd-sending': cmdState(button) === 'sending', 'cmd-flash-ok': cmdState(button) === 'applied', 'cmd-flash-bad': cmdState(button) === 'rejected' || cmdState(button) === 'timedout' }"
                             :aria-pressed="isActive(button)"
                             :disabled="!$store.auth.can('equipment.control.aux', button.id)"
-                            :aria-label="(button.display_label || button.label) + ' — ' + statusLabel(button) + (!$store.auth.can('equipment.control.aux', button.id) ? ' (sign in to control)' : '')"
+                            :aria-label="(button.display_label || button.label) + ' — ' + statusLabel(button) + (!$store.auth.can('equipment.control.aux', button.id) ? ' ' + $t('auth.locked_control_suffix') : '')"
                             @click="toggle(button)">
                         <svg class="eq-control-icon" aria-hidden="true" viewBox="0 0 24 24"><use :href="'#icon-' + iconKey(button)"></use></svg>
                         <span class="eq-control-body">
@@ -1224,7 +1224,7 @@
                         </span>
                         <!-- Locked affordance for guests / unentitled subjects. -->
                         <span class="eq-lock" x-show="!$store.auth.can('equipment.control.aux', button.id)" x-cloak
-                              title="Sign in to control this device" aria-hidden="true">
+                              :title="$t('auth.locked_device')" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         </span>
                         <span class="eq-switch" x-show="$store.auth.can('equipment.control.aux', button.id)" :class="{ on: isActive(button) }" aria-hidden="true">
