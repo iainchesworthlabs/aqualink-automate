@@ -363,6 +363,13 @@
         'devcard.active_emulator': 'アクティブエミュレーター',
         'devcard.suppressed_note': '実デバイスを検出 — エミュレーションを停止し、パッシブに移行しました。',
         'devcard.passive_note': 'パッシブスヌーパー — バスへは一切送信しません。',
+        'devcard.op_state_coldstart': 'コールドスタート',
+        'devcard.op_state_startup': '起動中',
+        'devcard.op_state_scraping': 'スクレイピング',
+        'devcard.op_state_normal': '正常',
+        'devcard.op_state_scraping_faulted': 'スクレイピング（障害）',
+        'devcard.op_state_fault': '障害',
+        'devcard.op_state_not_present': '非搭載',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': 'トレンド',

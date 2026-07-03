@@ -363,6 +363,13 @@
         'devcard.active_emulator': 'محاكٍ نشط',
         'devcard.suppressed_note': 'اكتُشف جهاز حقيقي — أُوقفت المحاكاة وأصبح الوضع سلبيًا.',
         'devcard.passive_note': 'متنصّت سلبي — لا يرسل على الناقل أبدًا.',
+        'devcard.op_state_coldstart': 'بدء بارد',
+        'devcard.op_state_startup': 'قيد البدء',
+        'devcard.op_state_scraping': 'الاستخلاص',
+        'devcard.op_state_normal': 'طبيعي',
+        'devcard.op_state_scraping_faulted': 'الاستخلاص (بخطأ)',
+        'devcard.op_state_fault': 'خطأ',
+        'devcard.op_state_not_present': 'غير موجود',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': 'الاتجاهات',

@@ -361,6 +361,13 @@
         'devcard.active_emulator': 'אַקטיווער עמולאַטאָר',
         'devcard.suppressed_note': 'ריכטיקער אַפּאַראַט דערזען — עמולאַציע פֿאַרשטיקט, איצט פּאַסיוו.',
         'devcard.passive_note': 'פּאַסיווער שנײַפער — שיקט קיינמאָל ניט אויפֿן בוס.',
+        'devcard.op_state_coldstart': 'קאַלטער אָנהייב',
+        'devcard.op_state_startup': 'הייבט אָן',
+        'devcard.op_state_scraping': 'קלײַבט',
+        'devcard.op_state_normal': 'נאָרמאַל',
+        'devcard.op_state_scraping_faulted': 'קלײַבט (דעפֿעקט)',
+        'devcard.op_state_fault': 'דעפֿעקט',
+        'devcard.op_state_not_present': 'ניט פֿאַראַן',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': 'טענדענצן',

@@ -363,6 +363,13 @@
         'devcard.active_emulator': 'אמולטור פעיל',
         'devcard.suppressed_note': 'זוהה התקן אמיתי — האמולציה הושבתה, כעת במצב פסיבי.',
         'devcard.passive_note': 'מאזין פסיבי — לעולם אינו משדר על האפיק.',
+        'devcard.op_state_coldstart': 'אתחול קר',
+        'devcard.op_state_startup': 'מתחיל',
+        'devcard.op_state_scraping': 'קריאת מסך',
+        'devcard.op_state_normal': 'תקין',
+        'devcard.op_state_scraping_faulted': 'קריאת מסך (תקלה)',
+        'devcard.op_state_fault': 'תקלה',
+        'devcard.op_state_not_present': 'לא קיים',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': 'מגמות',

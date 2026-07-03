@@ -368,6 +368,13 @@
         'devcard.active_emulator': 'Active emulator',
         'devcard.suppressed_note': 'Real device detected — emulation suppressed, now passive.',
         'devcard.passive_note': 'Passive snooper — never transmits on the bus.',
+        'devcard.op_state_coldstart': 'Cold start',
+        'devcard.op_state_startup': 'Starting up',
+        'devcard.op_state_scraping': 'Scraping',
+        'devcard.op_state_normal': 'Normal',
+        'devcard.op_state_scraping_faulted': 'Scraping (faulted)',
+        'devcard.op_state_fault': 'Fault',
+        'devcard.op_state_not_present': 'Not present',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': 'Trends',
