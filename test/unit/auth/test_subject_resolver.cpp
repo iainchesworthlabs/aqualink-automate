@@ -231,6 +231,27 @@ BOOST_FIXTURE_TEST_CASE(Test_Resolver_WebSocketUpgradeAuthenticatesViaSubprotoco
 	BOOST_CHECK(!ResolveWebSocketUpgrade().Authenticated);
 }
 
+BOOST_FIXTURE_TEST_CASE(Test_Resolver_SubjectCarriesHumanReadableName_Regression, ResolverFixture)
+{
+	// Regression: the account overlay rendered the raw user UUID because the
+	// resolved Subject only carried the stable Id — no display surface could
+	// reach the username without its own store lookup.
+
+	// Local session: the username travels with the subject (store-authoritative,
+	// so a rename applies on the next request, like group membership).
+	const auto local = Resolve(MintFor(*Users->FindById(AliceId)));
+	BOOST_CHECK_EQUAL(local.Username, "alice");
+	BOOST_CHECK_EQUAL(local.Id, AliceId);
+
+	// API key: the key's label is its natural human-readable name.
+	std::string key_id;
+	const auto secret = ApiKeys->Create("ha-bridge", Auth::EntitlementSet::Parse({ "equipment.view" }), 0, key_id);
+	BOOST_CHECK_EQUAL(Resolve(secret).Username, "ha-bridge");
+
+	// Anonymous: no natural name — empty, clients fall back to Id.
+	BOOST_CHECK_EQUAL(Resolve().Username, "");
+}
+
 BOOST_FIXTURE_TEST_CASE(Test_Resolver_LegacyTokenFoldsInAsBootstrapAdmin, ResolverFixture)
 {
 	ApiKeys->SeedBootstrapKey("operator-legacy-token-value");

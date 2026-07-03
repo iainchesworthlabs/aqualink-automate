@@ -61,15 +61,20 @@ info:
     `{ "condition": <string>, "state": "raised"|"cleared", "ts": <unix-seconds>,
     "detail": <string>, "params": <object, optional> }`, where `condition` is one
     of `chlorinator_fault`, `chlorinator_warning`, `salt_low`, `service_mode`,
-    `serial_comms_loss`. `detail` is the human-readable ENGLISH description
-    (stable contract); `params` carries the structured values behind it — e.g.
-    `{"salt_ppm": 2400, "threshold_ppm": 2700}` for `salt_low` or
+    `serial_comms_loss`, `temperature_stale`. `detail` is the human-readable
+    ENGLISH description (stable contract); `params` carries the structured values
+    behind it — e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}` for `salt_low` or
     `{"health": "Warning_LowSalt"}` for the chlorinator conditions — so
     consumers (the web UI's translated alerts, automations) can act on the data
     without parsing prose. The same shape is POSTed by the alert webhook.
     `chlorinator_warning` covers the cell warnings (no flow, low/high salt, clean
     cell, low/high voltage/current, low temperature); the specific warning is
     named in `detail` and carried as the raw enum name in `params.health`.
+    `temperature_stale` raises when the filter pump is running but the active
+    body's water temperature has not refreshed within the staleness threshold
+    (`--temperature-staleness-threshold`); pump-off staleness is expected and
+    never raises. Its `params` are `{"body": "pool"|"spa",
+    "threshold_seconds": <int>}`.
   version: 1.0.0
   contact:
     name: Aqualink Automate
@@ -249,6 +254,13 @@ paths:
                   id:
                     type: string
                     description: Stable subject identity ("anonymous" when unauthenticated)
+                  username:
+                    type: string
+                    description: >-
+                      Human-readable name for the subject — the local account's
+                      username, or an API key's label. Empty when the provider
+                      has no natural name (anonymous, kiosk PIN sessions);
+                      clients should fall back to `id`.
                   authenticated:
                     type: boolean
                     description: True only when a valid credential was presented and verified
@@ -269,6 +281,7 @@ paths:
               example:
                 posture: enabled
                 id: anonymous
+                username: ''
                 authenticated: false
                 provider: Anonymous
                 groups:
@@ -2855,6 +2868,14 @@ components:
                 not reported. Read-only (decode documented but not yet live-validated).
             spa_setpoint:
               $ref: '#/components/schemas/Temperature'
+            staleness_threshold_seconds:
+              type: integer
+              format: int64
+              description: >-
+                The server's staleness threshold (--temperature-staleness-threshold, default
+                600) that the per-temperature `stale` flags are computed against. Surfaced so
+                clients can age readings live between fetches with the same clock.
+              example: 600
         chemistry:
           type: object
           description: >-

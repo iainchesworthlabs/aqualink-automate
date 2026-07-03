@@ -125,6 +125,10 @@
         // ---- Dashboard ---------------------------------------------------------
         'dash.summary_aria': 'Pool and spa temperature overview and equipment status',
         'dash.set_value': 'Set {value}',
+        'dash.last_reading': 'Last reading {ago}',
+        'dash.no_reading': 'No reading yet',
+        'dash.not_measuring': 'Pump off — not measuring',
+        'dash.not_circulating': 'Not circulating',
         'dash.pump_state': 'Pump {state}',
         'dash.heater_state': 'Heater {state}',
         'dash.chlorinator_state': 'Chlorinator {state}',
@@ -463,6 +467,7 @@
         'accent.violet': 'Violet',
         'settings.language': 'Language',
         'settings.language_hint': 'Applies to this interface; remembered on this device and synced to the server.',
+        'settings.temp_units_hint': 'Display units for all temperatures; applied instantly and saved to the server.',
         'settings.system_prefs': 'System Preferences',
         'settings.saved': 'Saved ✓',
         'settings.server_stored': 'Stored on the server and applied live — no restart, shared across devices.',
@@ -552,6 +557,7 @@
         'alert.salt_low': 'Salt low',
         'alert.service_mode': 'Service mode',
         'alert.serial_comms_loss': 'Serial comms lost',
+        'alert.temperature_stale': 'Water temperature stale',
         'alert.raised': '{label}: {detail}',
         'alert.fault_detected': 'fault detected',
         'alert.cleared': '{label} cleared',
@@ -645,6 +651,7 @@
         'alert_detail.chlorinator_fault': '{health}',
         'alert_detail.service_mode': 'The controller is in Service mode',
         'alert_detail.serial_comms_loss': 'No protocol message decoded for {timeout_seconds} s',
+        'alert_detail.temperature_stale': 'No fresh {body} temperature for over {threshold_seconds} s while the pump is running',
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'Software Information',

@@ -47,7 +47,14 @@ namespace AqualinkAutomate::Test
 		};
 
 	public:
-		explicit MockOidcProvider(Config config = {});
+		// No `Config config = {}` default here: a default argument evaluated
+		// from within the enclosing class relies on the nested Config's default
+		// member initializers before MockOidcProvider is complete. MSVC accepts
+		// this non-conformingly; GCC/Clang correctly reject it (same shape as
+		// PasswordHasher::Hash, see its header comment). The no-arg overload
+		// below is defined out-of-line instead, where the class is complete.
+		explicit MockOidcProvider(Config config);
+		MockOidcProvider();
 
 	public:
 		// OIDC discovery document (RFC 8414 / OpenID Connect Discovery 1.0).
@@ -59,13 +66,23 @@ namespace AqualinkAutomate::Test
 		// An RS256-signed ID token carrying iss/aud/sub/iat/exp, the groups
 		// claim (named per Config::GroupsClaim), a space-delimited "scope"
 		// claim (when scopes are supplied) and any extra claims.
+		//
+		// Split into two overloads for the same reason as the constructor
+		// above: `TokenOptions options = {}` cannot be a default argument here.
+		std::string IssueIdToken(
+			const std::string& subject,
+			const std::vector<std::string>& groups,
+			const std::vector<std::string>& scopes,
+			const nlohmann::json& extra_claims,
+			std::chrono::seconds ttl,
+			TokenOptions options) const;
+
 		std::string IssueIdToken(
 			const std::string& subject,
 			const std::vector<std::string>& groups = {},
 			const std::vector<std::string>& scopes = {},
 			const nlohmann::json& extra_claims = nlohmann::json::object(),
-			std::chrono::seconds ttl = std::chrono::minutes{ 5 },
-			TokenOptions options = {}) const;
+			std::chrono::seconds ttl = std::chrono::minutes{ 5 }) const;
 
 	public:
 		const Config& GetConfig() const

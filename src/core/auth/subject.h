@@ -34,6 +34,12 @@ namespace AqualinkAutomate::Auth
 		// id, or provider-scoped id otherwise).
 		std::string Id{ "anonymous" };
 
+		// Human-readable name for display surfaces: the local account's
+		// username, an API key's label.  Empty when the provider has no natural
+		// name (anonymous, kiosk) — clients fall back to Id.  Like groups,
+		// NEVER a decision input.
+		std::string Username{};
+
 		// True only when a valid credential was presented and verified.
 		bool Authenticated{ false };
 

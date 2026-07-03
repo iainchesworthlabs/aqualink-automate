@@ -121,6 +121,10 @@
         // ---- Dashboard ---------------------------------------------------------
         'dash.summary_aria': 'Vue d’ensemble des températures piscine et spa et de l’état des équipements',
         'dash.set_value': 'Régler {value}',
+        'dash.last_reading': 'Dernier relevé {ago}',
+        'dash.no_reading': 'Aucun relevé pour l’instant',
+        'dash.not_measuring': 'Pompe arrêtée — pas de mesure',
+        'dash.not_circulating': 'Pas de circulation',
         'dash.pump_state': 'Pompe {state}',
         'dash.heater_state': 'Réchauffeur {state}',
         'dash.chlorinator_state': 'Chlorateur {state}',
@@ -459,6 +463,7 @@
         'accent.violet': 'Violet',
         'settings.language': 'Langue',
         'settings.language_hint': 'S’applique à cette interface ; mémorisé sur cet appareil et synchronisé avec le serveur.',
+        'settings.temp_units_hint': 'Unités d’affichage pour toutes les températures ; appliquées instantanément et enregistrées sur le serveur.',
         'settings.system_prefs': 'Préférences système',
         'settings.saved': 'Enregistré ✓',
         'settings.server_stored': 'Stocké sur le serveur et appliqué en direct — sans redémarrage, partagé entre les appareils.',
@@ -548,6 +553,7 @@
         'alert.salt_low': 'Sel bas',
         'alert.service_mode': 'Mode service',
         'alert.serial_comms_loss': 'Communication série perdue',
+        'alert.temperature_stale': 'Température de l’eau obsolète',
         'alert.raised': '{label} : {detail}',
         'alert.fault_detected': 'défaut détecté',
         'alert.cleared': '{label} : résolu',
@@ -641,6 +647,7 @@
         'alert_detail.chlorinator_fault': '{health}',
         'alert_detail.service_mode': 'Le contrôleur est en mode service',
         'alert_detail.serial_comms_loss': 'Aucun message de protocole décodé depuis {timeout_seconds} s',
+        'alert_detail.temperature_stale': 'Aucune température {body} récente depuis plus de {threshold_seconds} s alors que la pompe fonctionne',
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'Informations logicielles',

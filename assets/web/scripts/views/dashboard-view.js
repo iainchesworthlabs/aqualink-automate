@@ -47,6 +47,11 @@ function dashboardView() {
             return b.device_type === 'Heater' || (b.label && b.label.toLowerCase().includes('heat'));
         },
 
+        // Which body's water temperature a heater row displays.
+        heaterTempField(b) {
+            return (b.label || '').toLowerCase().includes('spa') ? 'spaTemp' : 'poolTemp';
+        },
+
         heaterButtons() {
             return Alpine.store('pool').buttons.filter(b => this.isHeater(b));
         },

@@ -62,11 +62,21 @@ On load the page:
 
 The WebSocket client opens `/ws/equipment` and `/ws/equipment/stats`, matching the page protocol (`ws://` for HTTP, `wss://` for HTTPS). It reconnects with exponential backoff from 1 s up to 30 s. When a token is stored it is attached as the `['aqualink', 'bearer.<token>']` WebSocket subprotocols.
 
+Beyond the main dashboard (pictured in the [README](../README.md)), the UI includes a Trends view over the recorded history (`--history-db`), a Schedules view for the app scheduler (`--schedules-file`), and a Settings view combining per-browser appearance options with server-side system preferences:
+
+![The Trends view — temperature, water-chemistry, and equipment-runtime history](assets/webui-trends.png)
+
+![The Schedules view — app-managed schedules with a list/timeline toggle](assets/webui-schedules.png)
+
+![The Settings view — appearance (theme, accent, language, units) and server-side system preferences](assets/webui-settings-language.png)
+
 ### Languages
 
-The web UI ships in eight languages — English, German, Spanish, French, Arabic, Hebrew, Japanese, and Simplified Chinese — selected under **Settings → Appearance → Language** (the available languages are also listed on the About page). By default the UI follows the browser's language; an explicit choice is stored locally for instant boot and mirrored to the server under `preferences.ui.locale`, so it follows you across devices.
+The web UI ships in nine languages — English, German, Spanish, French, Arabic, Hebrew, Japanese, Simplified Chinese, and Yiddish — selected under **Settings → Appearance → Language** (the available languages are also listed on the About page). By default the UI follows the browser's language; an explicit choice is stored locally for instant boot and mirrored to the server under `preferences.ui.locale`, so it follows you across devices.
 
-Right-to-left languages (Arabic, Hebrew) mirror the layout automatically, and numbers, dates, and temperatures format per the active locale — Arabic renders Eastern Arabic-Indic digits, and temperatures follow the °C/°F display-units preference everywhere, including the Trends charts.
+Right-to-left languages (Arabic, Hebrew, Yiddish) mirror the layout automatically, and numbers, dates, and temperatures format per the active locale — Arabic renders Eastern Arabic-Indic digits, and temperatures follow the °C/°F display-units preference everywhere, including the Trends charts.
+
+![The dashboard in Arabic — the layout mirrors right-to-left and numbers render as Eastern Arabic-Indic digits](assets/webui-dashboard-arabic-rtl.png)
 
 Translations live in plain-text catalogs and are easy to contribute — see [Contributing translations](CONTRIBUTING.md#contributing-translations) for the workflow and [docs/i18n.md](i18n.md) for the mechanics.
 
@@ -88,9 +98,9 @@ Two further hardening layers are built into the routing layer and are exposed vi
 
 **Security:** A token over plain HTTP travels in cleartext. Pair `--api-auth-token` with HTTPS (see the TLS options in the [Configuration reference](configuration.md)) whenever the server is reachable beyond `localhost`.
 
-### Identity system (`--auth-mode`) — Slice 1
+### Identity system (`--auth-mode`)
 
-Beyond the shared token, an opt-in identity system is being introduced (design: [auth-redesign.md](auth-redesign.md); enforcement model: [SECURITY.md](SECURITY.md)). With `--auth-mode enabled`, every request resolves to a *subject*, and each route declares the **entitlement action** it requires — drawn from the v1 vocabulary in [auth-redesign.md §4](auth-redesign.md) (`equipment.view`, the `equipment.control.*` family, `schedules.view`/`schedules.edit`, `diagnostics.view`, `prefs.self`, `system.admin`) — which a default-deny policy engine checks on every request; routes with per-resource grain (e.g. `POST /api/equipment/buttons/{button_id}`) are checked against the specific resource id in the path, so selector-scoped grants like `equipment.control.aux:AUX3` are enforced by the router. A denied request answers `401` when the subject is anonymous and `403` when it is authenticated but not entitled; an unknown `/api/*` path still answers `401` for an unauthenticated subject (no route enumeration). When `--auth-mode enabled`, the legacy `--api-auth-token` shared-token check is superseded — bearer credentials are interpreted by the subject resolver instead. **Slice 1 is the substrate only**: login and user management arrive in a later slice, so today tokens can only be minted by the test harness and anonymous callers carry the empty (deny-by-default) Guest scope.
+Beyond the shared token, an opt-in identity system is available (design: [auth-redesign.md](auth-redesign.md); enforcement model: [SECURITY.md](SECURITY.md)). With `--auth-mode enabled`, every request resolves to a *subject*, and each route declares the **entitlement action** it requires — drawn from the v1 vocabulary in [auth-redesign.md §4](auth-redesign.md) (`equipment.view`, the `equipment.control.*` family, `schedules.view`/`schedules.edit`, `diagnostics.view`, `prefs.self`, `system.admin`) — which a default-deny policy engine checks on every request; routes with per-resource grain (e.g. `POST /api/equipment/buttons/{button_id}`) are checked against the specific resource id in the path, so selector-scoped grants like `equipment.control.aux:AUX3` are enforced by the router. A denied request answers `401` when the subject is anonymous and `403` when it is authenticated but not entitled; an unknown `/api/*` path still answers `401` for an unauthenticated subject (no route enumeration). When `--auth-mode enabled`, the legacy `--api-auth-token` shared-token check is superseded — bearer credentials are interpreted by the subject resolver instead. The login and administration flows are fully implemented: username/password sessions with refresh rotation ([Sessions](#sessions-slice-2)), guest browsing and kiosk PIN elevation ([Guest mode](#guest-mode)), and user/group/entitlement/API-key management ([Administration](#administration)). Anonymous callers carry the built-in Guest group's entitlements — empty by default, deny until granted.
 
 ## HTTP API conventions
 
@@ -212,7 +222,7 @@ both into one timeline. Writing controller schedules is not yet supported.
 | Method | Path | Success | Notes |
 |---|---|---|---|
 | GET | `/api/auth/check` | `200` `{"authenticated":true}` | Only reached when already authorized or auth is disabled; the routing layer answers `401` upstream otherwise. |
-| GET | `/api/auth/me` | `200` JSON | The resolved subject for the calling request: `posture` (`"disabled"`/`"enabled"`), `id`, `authenticated`, `provider`, `groups[]`, `entitlements[]` — the SPA's single source of truth for gating affordances (enforcement stays server-side). Declares **no entitlement requirement**, so with `--auth-mode enabled` an anonymous/guest caller can always probe its own scope. With auth-mode disabled the subject is root-anonymous and `entitlements` is empty (everything is permitted by posture, so nothing is enumerated). |
+| GET | `/api/auth/me` | `200` JSON | The resolved subject for the calling request: `posture` (`"disabled"`/`"enabled"`), `id`, `username` (human-readable name — the local account's username or an API key's label; empty when the provider has no natural name, fall back to `id`), `authenticated`, `provider`, `groups[]`, `entitlements[]` — the SPA's single source of truth for gating affordances (enforcement stays server-side). Declares **no entitlement requirement**, so with `--auth-mode enabled` an anonymous/guest caller can always probe its own scope. With auth-mode disabled the subject is root-anonymous and `entitlements` is empty (everything is permitted by posture, so nothing is enumerated). |
 
 #### Sessions (Slice 2)
 
@@ -271,11 +281,12 @@ Returns the full equipment state. The top-level keys are `temperatures`, `chemis
 ```json
 {
   "temperatures": {
-    "pool": { "celsius": 28, "fahrenheit": 82 },
+    "pool": { "celsius": 28, "fahrenheit": 82, "last_updated": 1782600000, "stale": false },
     "spa": null,
-    "air": { "celsius": 24, "fahrenheit": 75 },
+    "air": { "celsius": 24, "fahrenheit": 75, "last_updated": 1782600000, "stale": false },
     "pool_setpoint": { "celsius": 28, "fahrenheit": 82 },
-    "spa_setpoint": { "celsius": 38, "fahrenheit": 100 }
+    "spa_setpoint": { "celsius": 38, "fahrenheit": 100 },
+    "staleness_threshold_seconds": 600
   },
   "chemistry": {
     "salt_ppm": 3200,
@@ -549,7 +560,7 @@ Every frame is a JSON object with two fields:
 - `CirculationUpdate` — circulation/heater mode changes
 - `ButtonStateChange`
 - `SystemStatusChange`
-- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ..., "params": <object, optional> }` — `detail` is the English description; `params` carries the structured values behind it (e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}`) for translated UI text / automations (docs/i18n.md)
+- `AlertTransition` — `{ "condition": ..., "state": "raised" | "cleared", "ts": ..., "detail": ..., "params": <object, optional> }` — `detail` is the English description; `params` carries the structured values behind it (e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}`) for translated UI text / automations (docs/i18n.md). Conditions: `chlorinator_fault`, `chlorinator_warning`, `salt_low`, `service_mode`, `serial_comms_loss`, and `temperature_stale` (pump running but the active body's water temperature has outlived `--temperature-staleness-threshold`; pump-off staleness is expected and never raises — the UI just ages the reading)
 
 On connect, `/ws/equipment` enqueues exactly one `SystemStateUpdate` so a freshly connected client knows the current state immediately:
 

@@ -4,6 +4,8 @@ Local control of Jandy/Zodiac (Fluidra) Aqualink RS pool controllers over RS-485
 
 Aqualink Automate is a C++ service that talks to your pool equipment over an RS-485 serial link and exposes it on your own network. It reads status from the panel and lets you control it through a built-in Web UI, an HTTP and WebSocket API, MQTT (with Home Assistant discovery), and a Matter bridge for Apple Home, Google Home, Alexa, and SmartThings. Everything runs on hardware you own; nothing is sent to a vendor cloud.
 
+![The Aqualink Automate web dashboard — temperatures, circulation, water chemistry, and equipment controls](docs/assets/aqualink-automate-dashboard.png)
+
 ## Table of contents
 
 - [Features](#features)
@@ -20,14 +22,15 @@ Aqualink Automate is a C++ service that talks to your pool equipment over an RS-
 - Local control of your pool system over RS-485, with no cloud service required.
 - Two RS-485 protocols supported: Jandy/Zodiac (Fluidra) Aqualink RS and Pentair. The active protocol is auto-detected from the wire traffic.
 - A built-in web user interface for control and monitoring.
-- The web UI speaks eight languages (English, German, Spanish, French, Arabic, Hebrew, Japanese, Simplified Chinese) with full right-to-left support and locale-aware formatting — and [community translations are easy to add](docs/CONTRIBUTING.md#contributing-translations).
+- The web UI speaks nine languages (English, German, Spanish, French, Arabic, Hebrew, Japanese, Simplified Chinese, Yiddish) with full right-to-left support and locale-aware formatting — and [community translations are easy to add](docs/CONTRIBUTING.md#contributing-translations).
 - HTTP and WebSocket API for custom integrations.
+- Opt-in authentication and authorization: local user accounts and groups with fine-grained entitlements, scoped API keys, anonymous guest browsing, and kiosk PIN elevation for shared terminals — see [SECURITY.md](docs/SECURITY.md).
 - MQTT publishing with Home Assistant auto-discovery.
 - A Matter bridge so the pool can be paired into Apple Home, Google Home, Alexa, or SmartThings by scanning a QR code. On by default — see [docs/MATTER.md](docs/MATTER.md).
 - Connectivity over a physical USB-to-RS485 adapter or a remote serial port (serial-over-ethernet) using RFC2217 or raw TCP.
 - Detailed status reporting for your Aqualink RS system.
 
-**Security:** By default the web server binds to `127.0.0.1` (localhost only) and HTTP authentication is off. Review [SECURITY.md](docs/SECURITY.md) and the [configuration reference](docs/configuration.md) before exposing the service on your network.
+**Security:** By default the web server binds to `127.0.0.1` (localhost only) and authentication is off. Enable the identity system with `--auth-mode enabled` (first-run wizard, users/groups/entitlements, API keys, guest and kiosk access) before exposing the service on your network — review [SECURITY.md](docs/SECURITY.md) and the [configuration reference](docs/configuration.md).
 
 ## Quick start
 

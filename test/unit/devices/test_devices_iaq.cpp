@@ -225,10 +225,10 @@ namespace
 		payload.push_back(0x00);       // spa OFF (Pool mode)
 		payload.push_back(0x00);       // spa heater = Off
 		payload.push_back(0x00);       // solar = Off
-		push_temp_be(payload, 28);     // pool_target  = 28C -> reported as PoolTemp (== 82F)
-		push_temp_be(payload, 32);     // spa_target   = 32C
+		push_temp_be(payload, 28);     // pool_target  = 28C (pool heat SETPOINT)
+		push_temp_be(payload, 32);     // spa_target   = 32C (spa heat SETPOINT)
 		push_temp_be(payload, 24);     // air          = 24C (== 75F)
-		push_temp_be(payload, 27);     // water_current = 27C -> reported as SpaTemp (== 81F)
+		push_temp_be(payload, 27);     // water_current = 27C -> pool ACTUAL temp (pool mode, pump on; == 81F)
 		return payload;
 	}
 }
@@ -273,10 +273,13 @@ BOOST_AUTO_TEST_CASE(MainStatus_RendersKnownSystemStatusPage)
 	BOOST_CHECK(joined.find("System Status") != std::string::npos);
 	BOOST_CHECK(joined.find("Pool Temp") != std::string::npos);
 	BOOST_CHECK(joined.find("Pump: On") != std::string::npos);
-	// Current-format MainStatus reports PoolTemp = pool_target (28C == 82F) and
-	// SpaTemp = water_current (27C == 81F); both whole-degree values must render.
-	BOOST_CHECK(joined.find("82F") != std::string::npos);
-	BOOST_CHECK(joined.find("81F") != std::string::npos);
+	// Pool mode + pump on: water_current (27C == 81F) renders as the pool's actual
+	// temperature and air (24C == 75F) renders; the spa has no reading, so it must
+	// show "--" -- and the pool SETPOINT (28C == 82F) must NOT appear as a temp line.
+	BOOST_CHECK(joined.find("Pool Temp: 81F") != std::string::npos);
+	BOOST_CHECK(joined.find("Air Temp:  75F") != std::string::npos);
+	BOOST_CHECK(joined.find("Spa Temp:  --") != std::string::npos);
+	BOOST_CHECK(joined.find("Pool Temp: 82F") == std::string::npos);
 }
 
 BOOST_AUTO_TEST_CASE(PageSurvey_OnHomeEstablished_QueuesNavigation)
@@ -511,13 +514,55 @@ BOOST_AUTO_TEST_CASE(MainStatus_PopulatesDataHubTemperatures)
 	auto air = hub->AirTemp();
 
 	BOOST_REQUIRE(pool.has_value());
-	BOOST_REQUIRE(spa.has_value());
 	BOOST_REQUIRE(air.has_value());
 
-	// PoolTemp = pool_target (28C), SpaTemp = water_current (27C), AirTemp = air (24C).
-	BOOST_CHECK_CLOSE(pool.value().InCelsius().value(), 28.0, 0.01);
-	BOOST_CHECK_CLOSE(spa.value().InCelsius().value(), 27.0, 0.01);
+	// Pool mode + pump on: PoolTemp = water_current (27C actual), AirTemp = air (24C).
+	// The spa is not circulating, so no spa reading may be written.
+	BOOST_CHECK_CLOSE(pool.value().InCelsius().value(), 27.0, 0.01);
+	BOOST_CHECK(!spa.has_value());
 	BOOST_CHECK_CLOSE(air.value().InCelsius().value(), 24.0, 0.01);
+
+	// Both heat setpoints are decoded from the targets on every message.
+	auto pool_sp = hub->PoolTempSetpoint();
+	auto spa_sp = hub->SpaTempSetpoint();
+	BOOST_REQUIRE(pool_sp.has_value());
+	BOOST_REQUIRE(spa_sp.has_value());
+	BOOST_CHECK_CLOSE(pool_sp.value().InCelsius().value(), 28.0, 0.01);
+	BOOST_CHECK_CLOSE(spa_sp.value().InCelsius().value(), 32.0, 0.01);
+}
+
+BOOST_AUTO_TEST_CASE(MainStatus_PumpOff_DoesNotFabricateOrOverwriteTemperatures)
+{
+	// Regression: with the pump off the controller stops measuring water temperature
+	// (water_current carries a sentinel) but keeps sending MainStatus every second.
+	// Previously each of those messages wrote the pool SETPOINT into PoolTemp, so the
+	// UI showed e.g. "30C" (fresh, never stale) instead of flagging the reading as
+	// stale.  A pump-off MainStatus must leave the last real reading (and its
+	// timestamp) untouched.
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	IAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/false);
+
+	// Pump on: a real pool reading (27C) lands.
+	ReplayMainStatus(harness, MakeMainStatusPayload_CurrentFormat());
+	auto hub = harness.DataHub();
+	BOOST_REQUIRE(hub->PoolTemp().has_value());
+	const auto updated_at_before = hub->PoolTempUpdatedAt();
+	BOOST_REQUIRE(updated_at_before.has_value());
+
+	// Pump off: water_current degrades to the 0x0001 sentinel.
+	auto payload_off = MakeMainStatusPayload_CurrentFormat();
+	payload_off[4] = 0x00;         // pump OFF (byte after the 3 device IDs)
+	payload_off[15] = 0x00;        // water_current high byte
+	payload_off[16] = 0x01;        // water_current low byte = 0x0001 sentinel
+	ReplayMainStatus(harness, payload_off);
+
+	// The last real reading survives: still 27C (NOT the 28C setpoint) and its
+	// timestamp was not refreshed, so staleness tracking can age it out.
+	BOOST_REQUIRE(hub->PoolTemp().has_value());
+	BOOST_CHECK_CLOSE(hub->PoolTemp().value().InCelsius().value(), 27.0, 0.01);
+	BOOST_REQUIRE(hub->PoolTempUpdatedAt().has_value());
+	BOOST_CHECK(hub->PoolTempUpdatedAt().value() == updated_at_before.value());
 }
 
 BOOST_AUTO_TEST_CASE(MainStatus_PoolMode_SetsCirculationPool)

@@ -976,9 +976,19 @@
                     <span class="summary-accent summary-accent--pool" aria-hidden="true"></span>
                     <div class="summary-section-body">
                         <span class="summary-label" x-text="$t('common.pool')"></span>
-                        <span class="summary-temp" x-text="poolTempDisplay"></span>
-                        <span class="summary-setpoint" x-show="$store.pool.poolSetpoint !== '--'"
+                        <span class="summary-temp" :class="$store.pool.tempStateClass('poolTemp')" x-text="poolTempDisplay"></span>
+                        <!-- One sub-line: setpoint while live; a clock + age caption once the
+                             reading goes stale (amber only for the unexpected pump-running
+                             flavour); a reason line when there is no reading at all. -->
+                        <span class="summary-setpoint" x-show="$store.pool.tempFreshness('poolTemp') === 'live' && $store.pool.poolSetpoint !== '--'"
                               x-text="$t('dash.set_value', { value: $store.pool.poolSetpointDisplay })"></span>
+                        <span class="summary-freshness" x-show="$store.pool.tempFreshness('poolTemp') === 'stale'" x-cloak
+                              :class="{ 'is-warn': $store.pool.tempStaleUnexpected('poolTemp') }">
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.4V6l1.8 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                            <span x-text="$store.pool.tempCaption('poolTemp')"></span>
+                        </span>
+                        <span class="summary-freshness" x-show="$store.pool.tempFreshness('poolTemp') === 'none'" x-cloak
+                              x-text="$store.pool.tempReason('poolTemp')"></span>
                     </div>
                 </div>
 
@@ -988,9 +998,16 @@
                     <span class="summary-accent summary-accent--spa" aria-hidden="true"></span>
                     <div class="summary-section-body">
                         <span class="summary-label" x-text="$t('common.spa')"></span>
-                        <span class="summary-temp" x-text="spaTempDisplay"></span>
-                        <span class="summary-setpoint" x-show="$store.pool.spaSetpoint !== '--'"
+                        <span class="summary-temp" :class="$store.pool.tempStateClass('spaTemp')" x-text="spaTempDisplay"></span>
+                        <span class="summary-setpoint" x-show="$store.pool.tempFreshness('spaTemp') === 'live' && $store.pool.spaSetpoint !== '--'"
                               x-text="$t('dash.set_value', { value: $store.pool.spaSetpointDisplay })"></span>
+                        <span class="summary-freshness" x-show="$store.pool.tempFreshness('spaTemp') === 'stale'" x-cloak
+                              :class="{ 'is-warn': $store.pool.tempStaleUnexpected('spaTemp') }">
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.4V6l1.8 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                            <span x-text="$store.pool.tempCaption('spaTemp')"></span>
+                        </span>
+                        <span class="summary-freshness" x-show="$store.pool.tempFreshness('spaTemp') === 'none'" x-cloak
+                              x-text="$store.pool.tempReason('spaTemp')"></span>
                     </div>
                 </div>
                 </template>
@@ -999,7 +1016,13 @@
                 <div class="summary-section">
                     <div class="summary-section-body">
                         <span class="summary-label" x-text="$t('common.air')"></span>
-                        <span class="summary-temp" x-text="airTempDisplay"></span>
+                        <span class="summary-temp" :class="$store.pool.tempStateClass('airTemp')" x-text="airTempDisplay"></span>
+                        <span class="summary-freshness" x-show="$store.pool.tempFreshness('airTemp') === 'stale'" x-cloak>
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.4V6l1.8 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                            <span x-text="$store.pool.tempCaption('airTemp')"></span>
+                        </span>
+                        <span class="summary-freshness" x-show="$store.pool.tempFreshness('airTemp') === 'none'" x-cloak
+                              x-text="$store.pool.tempReason('airTemp')"></span>
                     </div>
                 </div>
 
@@ -1184,7 +1207,9 @@
                                               'badge-status-danger-glow': String(button.status).toLowerCase() === 'heating'
                                           }"
                                           x-text="statusLabel(button)"></span>
-                                    <span class="heater-temp" x-text="button.label.toLowerCase().includes('spa') ? $store.pool.spaTemp : $store.pool.poolTemp"></span>
+                                    <span class="heater-temp" :class="$store.pool.tempStateClass(heaterTempField(button))"
+                                          :title="$store.pool.tempFreshness(heaterTempField(button)) === 'stale' ? $store.pool.tempCaption(heaterTempField(button)) : null"
+                                          x-text="$store.pool[heaterTempField(button)]"></span>
                                     <span class="heater-setpoint text-muted" x-text="button.label.toLowerCase().includes('spa')
                                         ? $store.pool.spaSetpointDisplay
                                         : $store.pool.poolSetpointDisplay"></span>
@@ -1275,15 +1300,15 @@
                 <div class="card detail-card">
                     <div class="card-header" x-text="$t('detail.temperatures')"></div>
                     <div class="detail-kv">
-                        <div class="kv-row"><span class="kv-k" x-text="$t('common.pool')"></span><span class="kv-v" x-text="$store.pool.poolTemp"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('common.pool')"></span><span class="kv-v" :class="$store.pool.tempStateClass('poolTemp')"><span x-text="$store.pool.poolTemp"></span><span class="kv-age" x-show="$store.pool.tempFreshness('poolTemp') === 'stale'" x-cloak x-text="$store.pool.tempAgeLabel('poolTemp')"></span></span></div>
                         <div class="kv-row"><span class="kv-k" x-text="$t('detail.pool_setpoint')"></span><span class="kv-v" x-text="$store.pool.poolSetpointDisplay"></span></div>
                         <template x-if="$store.pool.hasDualBody">
                             <div>
-                                <div class="kv-row"><span class="kv-k" x-text="$t('common.spa')"></span><span class="kv-v" x-text="$store.pool.spaTemp"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('common.spa')"></span><span class="kv-v" :class="$store.pool.tempStateClass('spaTemp')"><span x-text="$store.pool.spaTemp"></span><span class="kv-age" x-show="$store.pool.tempFreshness('spaTemp') === 'stale'" x-cloak x-text="$store.pool.tempAgeLabel('spaTemp')"></span></span></div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.spa_setpoint')"></span><span class="kv-v" x-text="$store.pool.spaSetpointDisplay"></span></div>
                             </div>
                         </template>
-                        <div class="kv-row"><span class="kv-k" x-text="$t('common.air')"></span><span class="kv-v" x-text="$store.pool.airTemp"></span></div>
+                        <div class="kv-row"><span class="kv-k" x-text="$t('common.air')"></span><span class="kv-v" :class="$store.pool.tempStateClass('airTemp')"><span x-text="$store.pool.airTemp"></span><span class="kv-age" x-show="$store.pool.tempFreshness('airTemp') === 'stale'" x-cloak x-text="$store.pool.tempAgeLabel('airTemp')"></span></span></div>
                     </div>
                 </div>
 
@@ -2378,7 +2403,7 @@
                                 <option value="Celsius" x-text="$t('settings.celsius')"></option>
                                 <option value="Fahrenheit" x-text="$t('settings.fahrenheit')"></option>
                             </select>
-                            <span class="settings-hint" x-text="$t('settings.language_hint')"></span>
+                            <span class="settings-hint" x-text="$t('settings.temp_units_hint')"></span>
                         </div>
                     </div>
                 </div>

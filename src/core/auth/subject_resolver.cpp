@@ -155,9 +155,10 @@ namespace AqualinkAutomate::Auth
 					return std::nullopt;
 				}
 
-				// The store is authoritative for group membership even when the
-				// token carried its own snapshot.
+				// The store is authoritative for group membership and the
+				// username even when the token carried its own snapshot.
 				subject.Groups = user->Groups;
+				subject.Username = user->Username;
 
 				if (claims->EntitlementsInToken)
 				{
@@ -207,6 +208,7 @@ namespace AqualinkAutomate::Auth
 
 			Subject subject;
 			subject.Id = key->Id;
+			subject.Username = key->Label;
 			subject.Authenticated = true;
 			subject.Provider = SubjectProvider::ApiKey;
 			subject.Entitlements = key->Entitlements;

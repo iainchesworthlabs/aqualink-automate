@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -270,6 +271,100 @@ BOOST_AUTO_TEST_CASE(SerialCommsLoss_RaisesAfterTimeout_ClearsOnTraffic)
 	monitor.Stop();
 }
 
+// temperature_stale raises only for the UNEXPECTED flavour of staleness: the
+// pump is running (so the active body's sensor should be reporting) yet the
+// reading is older than the staleness threshold.  Pump-off staleness is the
+// nightly normal — the UI ages the reading quietly and no alert may fire.
+BOOST_AUTO_TEST_CASE(TemperatureStale_RaisesOnlyWhilePumpRunning)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	auto data_hub = Find<Kernel::DataHub>();
+
+	// A filter pump, currently running.
+	auto pump = std::make_shared<Kernel::AuxillaryDevice>();
+	{
+		using namespace Kernel::AuxillaryTraitsTypes;
+		pump->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Pump);
+		pump->AuxillaryTraits.Set(LabelTrait{}, LabelTrait::COMMON_LABEL_FILTER_PUMP);
+		pump->AuxillaryTraits.Set(PumpTypeTrait{}, Kernel::PumpTypes::FilterCirculation);
+		pump->AuxillaryTraits.Set(PumpStatusTrait{}, Kernel::PumpStatuses::Running);
+	}
+	data_hub->Devices.Add(pump);
+
+	// Pump running but NO reading ever received -> not raised (*IsStale() is pure
+	// age and false for a never-set reading; total silence is serial_comms_loss).
+	monitor.EvaluateTemperatureStale();
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::TemperatureStale));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::TemperatureStale), 0u);
+
+	// A pool reading exists and the threshold is negative, so it is instantly
+	// "older than the threshold" without the test having to sleep.
+	data_hub->PoolTemp(Kernel::Temperature::ConvertToTemperatureInCelsius(27.0));
+	data_hub->TemperatureStalenessThreshold = std::chrono::seconds(-1);
+	monitor.EvaluateTemperatureStale();
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::TemperatureStale));
+	BOOST_REQUIRE_EQUAL(rec.CountFor(ConditionKeys::TemperatureStale), 1u);
+	BOOST_CHECK_EQUAL("pool", rec.transitions.back().params.at("body").get<std::string>());
+
+	// Pump stops -> the same staleness becomes the EXPECTED flavour -> clears.
+	pump->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::PumpStatusTrait{}, Kernel::PumpStatuses::Off);
+	monitor.EvaluateTemperatureStale();
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::TemperatureStale));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::TemperatureStale), 2u);
+
+	// Pump resumes with a sane threshold and the reading fresh again -> stays clear.
+	pump->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::PumpStatusTrait{}, Kernel::PumpStatuses::Running);
+	data_hub->TemperatureStalenessThreshold = std::chrono::seconds(600);
+	data_hub->PoolTemp(Kernel::Temperature::ConvertToTemperatureInCelsius(27.5));
+	monitor.EvaluateTemperatureStale();
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::TemperatureStale));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::TemperatureStale), 2u);   // no new transition
+}
+
+// In spa mode the ACTIVE body is the spa: a stale spa reading raises (body=spa)
+// even though the pool reading is absent, and a stale POOL reading is ignored.
+BOOST_AUTO_TEST_CASE(TemperatureStale_FollowsActiveBody)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	auto data_hub = Find<Kernel::DataHub>();
+
+	auto pump = std::make_shared<Kernel::AuxillaryDevice>();
+	{
+		using namespace Kernel::AuxillaryTraitsTypes;
+		pump->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Pump);
+		pump->AuxillaryTraits.Set(LabelTrait{}, LabelTrait::COMMON_LABEL_FILTER_PUMP);
+		pump->AuxillaryTraits.Set(PumpTypeTrait{}, Kernel::PumpTypes::FilterCirculation);
+		pump->AuxillaryTraits.Set(PumpStatusTrait{}, Kernel::PumpStatuses::Running);
+	}
+	data_hub->Devices.Add(pump);
+
+	data_hub->CirculationMode = Kernel::CirculationModes::Spa;
+	data_hub->TemperatureStalenessThreshold = std::chrono::seconds(-1);
+
+	// Only the POOL reading exists (and is stale) -> ignored while the spa is active.
+	data_hub->PoolTemp(Kernel::Temperature::ConvertToTemperatureInCelsius(27.0));
+	monitor.EvaluateTemperatureStale();
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::TemperatureStale));
+
+	// A (stale) SPA reading appears -> raises, naming the spa.
+	data_hub->SpaTemp(Kernel::Temperature::ConvertToTemperatureInCelsius(36.0));
+	monitor.EvaluateTemperatureStale();
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::TemperatureStale));
+	BOOST_CHECK_EQUAL("spa", rec.transitions.back().params.at("body").get<std::string>());
+}
+
 // BuildStateJson reports every catalogue condition as a "true"/"false" string
 // matching the latched state (read by the HA binary_sensors).
 BOOST_AUTO_TEST_CASE(BuildStateJson_ReflectsLatchedState)
@@ -288,6 +383,7 @@ BOOST_AUTO_TEST_CASE(BuildStateJson_ReflectsLatchedState)
 	BOOST_CHECK_EQUAL(state[std::string{ ConditionKeys::ChlorinatorFault }], "false");
 	BOOST_CHECK_EQUAL(state[std::string{ ConditionKeys::ChlorinatorWarning }], "false");
 	BOOST_CHECK_EQUAL(state[std::string{ ConditionKeys::SerialCommsLoss }], "false");
+	BOOST_CHECK_EQUAL(state[std::string{ ConditionKeys::TemperatureStale }], "false");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

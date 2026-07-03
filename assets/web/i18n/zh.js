@@ -119,6 +119,10 @@
         // ---- Dashboard ---------------------------------------------------------
         'dash.summary_aria': '泳池和水疗池温度概览及设备状态',
         'dash.set_value': '设为 {value}',
+        'dash.last_reading': '最后读数 {ago}',
+        'dash.no_reading': '暂无读数',
+        'dash.not_measuring': '水泵已关 — 未测量',
+        'dash.not_circulating': '未循环',
         'dash.pump_state': '水泵 {state}',
         'dash.heater_state': '加热器 {state}',
         'dash.chlorinator_state': '盐氯机 {state}',
@@ -457,6 +461,7 @@
         'accent.violet': '紫罗兰色',
         'settings.language': '语言',
         'settings.language_hint': '应用于此界面；在此设备上记住并同步到服务器。',
+        'settings.temp_units_hint': '所有温度的显示单位；即时应用并保存到服务器。',
         'settings.system_prefs': '系统偏好设置',
         'settings.saved': '已保存 ✓',
         'settings.server_stored': '保存在服务器上并即时生效 — 无需重启，所有设备共用。',
@@ -546,6 +551,7 @@
         'alert.salt_low': '盐度过低',
         'alert.service_mode': '维护模式',
         'alert.serial_comms_loss': '串口通信中断',
+        'alert.temperature_stale': '水温数据过期',
         'alert.raised': '{label}：{detail}',
         'alert.fault_detected': '检测到故障',
         'alert.cleared': '{label} 已解除',
@@ -639,6 +645,7 @@
         'alert_detail.chlorinator_fault': '{health}',
         'alert_detail.service_mode': '控制器处于维护模式',
         'alert_detail.serial_comms_loss': '已 {timeout_seconds} 秒未解码任何协议消息',
+        'alert_detail.temperature_stale': '水泵运行中，{body}温度已超过 {threshold_seconds} 秒未更新',
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': '软件信息',

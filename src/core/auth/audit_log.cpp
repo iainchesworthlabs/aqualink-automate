@@ -164,7 +164,9 @@ namespace AqualinkAutomate::Auth
 		// facility on POSIX (so distros route it to a restricted-mode auth log), or a
 		// dedicated Windows Event Log source. Accepts only audit records. Returns null
 		// (after a warning) when the platform sink cannot be installed — the JSONL
-		// trail remains the local fallback (docs/logging-sinks-redesign.md §10).
+		// trail remains the local fallback (docs/logging-sinks-redesign.md §10). The
+		// platform specifics live in the sink layer (sink_native.cpp / sink_oslog.cpp),
+		// so this stays free of #ifdefs.
 		auto sink = Sinks::MakeNativeSink(Sinks::NativeSinkConfig{
 			.Filter = Sinks::MakeAuditFilter(),
 			.Facility = Sinks::SyslogFacility::AuthPriv,

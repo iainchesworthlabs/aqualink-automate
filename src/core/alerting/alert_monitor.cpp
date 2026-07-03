@@ -10,6 +10,7 @@
 
 #include "alerting/alert_monitor.h"
 #include "kernel/auxillary_devices/chlorinator_status.h"
+#include "kernel/auxillary_devices/pump_status.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 #include "kernel/data_hub.h"
 #include "kernel/equipment_hub.h"
@@ -192,6 +193,7 @@ namespace AqualinkAutomate::Alerting
 		EvaluateChlorinatorFault();
 		EvaluateServiceMode();
 		EvaluateSerialCommsLoss();
+		EvaluateTemperatureStale();
 	}
 
 	void AlertMonitor::EvaluateSaltLow()
@@ -328,6 +330,49 @@ namespace AqualinkAutomate::Alerting
 				std::format("No protocol message decoded for {} s", comms_timeout),
 				{ { "timeout_seconds", comms_timeout } });
 		}
+	}
+
+	void AlertMonitor::EvaluateTemperatureStale()
+	{
+		if (!m_DataHub)
+		{
+			return;
+		}
+
+		// A water temperature going stale is EXPECTED while the pump is off (no flow
+		// past the sensor) — the UI ages the reading quietly and no alert is raised.
+		// While the pump IS running the active body's sensor should be reporting, so
+		// a reading older than the staleness threshold suggests something is wrong
+		// (sensor fault, decode gap, wiring).
+		bool pump_running = false;
+		for (const auto& pump : m_DataHub->FilterPumps())
+		{
+			auto status = pump->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::PumpStatusTrait{});
+			if (status.has_value() && Kernel::PumpStatuses::Running == status.value())
+			{
+				pump_running = true;
+				break;
+			}
+		}
+
+		// The active body is the one the pump circulates — the only body whose sensor
+		// can report.  *IsStale() is pure age and false for a never-set reading, so a
+		// fresh boot with no reading yet does not raise (serial_comms_loss covers total
+		// silence).
+		const bool spa_active = m_DataHub->SpaMode();
+		const bool is_stale = spa_active ? m_DataHub->SpaTempIsStale() : m_DataHub->PoolTempIsStale();
+
+		const bool raised = pump_running && is_stale;
+		const auto threshold_seconds = m_DataHub->TemperatureStalenessThreshold.count();
+		const std::string_view body = spa_active ? "spa" : "pool";
+
+		SetCondition(ConditionKeys::TemperatureStale, raised,
+			raised
+				? std::format("No fresh {} temperature for over {} s while the pump is running", body, threshold_seconds)
+				: "Water temperature reporting is fresh",
+			raised
+				? nlohmann::json{ { "body", body }, { "threshold_seconds", threshold_seconds } }
+				: nlohmann::json::object());
 	}
 
 	void AlertMonitor::SetCondition(std::string_view key, bool raised, std::string detail, nlohmann::json params)

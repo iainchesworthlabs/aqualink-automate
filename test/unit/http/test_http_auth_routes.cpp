@@ -31,6 +31,7 @@
 #include "http/server/server_types.h"
 #include "http/webroute_auth_login.h"
 #include "http/webroute_auth_logout.h"
+#include "http/webroute_auth_me.h"
 #include "http/webroute_auth_refresh.h"
 #include "http/webroute_auth_setup.h"
 #include "interfaces/iwebroute.h"
@@ -111,6 +112,8 @@ namespace
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthRefresh>(*Service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthLogout>(*Service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthSetup>(*Users, *Audit, Offload, Auth::PasswordHasher::TestParams(), IoContext.get_executor()));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_AuthMe>(
+				[users = Users]() { return (nullptr != users) && users->Empty(); }));
 			HTTP::Routing::Add(std::make_unique<TestGatedRoute>());
 
 			HTTP::Routing::SecurityConfig security;
@@ -342,6 +345,34 @@ BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_SetupRefusedOnceUsersExist, AuthRoutesFi
 {
 	// The seeded fixture already has an owner: setup is sealed.
 	BOOST_CHECK(boost::beast::http::status::forbidden == Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/setup", { { "username", "intruder" }, { "password", "another-long-password" } })).result());
+}
+
+//-----------------------------------------------------------------------------
+// REGRESSION: the web UI's account overlay rendered the raw user UUID because
+// GET /api/auth/me carried only the stable subject id and no human-readable
+// name.  The payload must also carry `username` — the local account's
+// username for a logged-in session, empty for subjects with no natural name
+// (anonymous) so clients can fall back to the id.
+//-----------------------------------------------------------------------------
+
+BOOST_FIXTURE_TEST_CASE(Test_AuthRoutes_MeCarriesUsername_Regression, AuthRoutesFixture)
+{
+	// Anonymous probe: the field is present but empty.
+	const auto anon = BodyOf(Dispatch(MakeRequest(boost::beast::http::verb::get, "/api/auth/me")));
+	BOOST_REQUIRE_MESSAGE(anon.contains("username"), "GET /api/auth/me does not carry a username field");
+	BOOST_CHECK_EQUAL(anon["username"].get<std::string>(), "");
+	BOOST_CHECK_EQUAL(anon.value("id", ""), "anonymous");
+
+	// Logged-in local session: `username` is the account name from the user
+	// store, while `id` stays the stable UUID (the two must differ — showing
+	// the id in the account card was the bug).
+	const auto login = BodyOf(Dispatch(MakeRequest(boost::beast::http::verb::post, "/api/auth/login", { { "username", "alice" }, { "password", "correct-horse-battery" } })));
+	const auto me = BodyOf(Dispatch(MakeRequest(boost::beast::http::verb::get, "/api/auth/me", {}, login["access_token"].get<std::string>())));
+
+	BOOST_CHECK(me.value("authenticated", false));
+	BOOST_CHECK_EQUAL(me.value("username", ""), "alice");
+	BOOST_CHECK(!me.value("id", "").empty());
+	BOOST_CHECK(me.value("id", "") != "alice");
 }
 
 //-----------------------------------------------------------------------------

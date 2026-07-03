@@ -20,6 +20,10 @@ namespace AqualinkAutomate::Messages
 		constexpr uint8_t SENTINEL_BYTE_FIRST{ 0x0e };
 		constexpr uint8_t SENTINEL_BYTE_SECOND{ 0x0f };
 
+		// Current-format water_current reads 0x0000/0x0001 when the pump is off (no
+		// flow past the sensor) — a "no reading" marker, never a real temperature.
+		constexpr uint16_t WATER_TEMP_NO_READING_MAX{ 0x0001 };
+
 		// Convert raw MainStatus heater byte to HeaterStatuses enum.
 		// Protocol values: 0x00=off, 0x01=heating, 0x03=enabled (standby).
 		Kernel::HeaterStatuses RawToHeaterStatus(uint8_t raw)
@@ -57,19 +61,29 @@ namespace AqualinkAutomate::Messages
 		return m_SpaMode;
 	}
 
-	Kernel::Temperature IAQMessage_MainStatus::PoolTemperature() const
+	std::optional<Kernel::Temperature> IAQMessage_MainStatus::PoolTemperature() const
 	{
 		return m_PoolTemp;
 	}
 
-	Kernel::Temperature IAQMessage_MainStatus::SpaTemperature() const
+	std::optional<Kernel::Temperature> IAQMessage_MainStatus::SpaTemperature() const
 	{
 		return m_SpaTemp;
 	}
 
-	Kernel::Temperature IAQMessage_MainStatus::AirTemperature() const
+	std::optional<Kernel::Temperature> IAQMessage_MainStatus::AirTemperature() const
 	{
 		return m_AirTemp;
+	}
+
+	std::optional<Kernel::Temperature> IAQMessage_MainStatus::PoolSetpoint() const
+	{
+		return m_PoolSetpoint;
+	}
+
+	std::optional<Kernel::Temperature> IAQMessage_MainStatus::SpaSetpoint() const
+	{
+		return m_SpaSetpoint;
 	}
 
 	std::optional<Kernel::Temperature> IAQMessage_MainStatus::HeaterSetpoint() const
@@ -99,6 +113,11 @@ namespace AqualinkAutomate::Messages
 
 	std::string IAQMessage_MainStatus::ToString() const
 	{
+		auto temp_str = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+		{
+			return temp.has_value() ? std::format("{:.1f}C", temp->InCelsius().value()) : "n/a";
+		};
+
 		std::string heater_str;
 		if (m_HeaterSetpoint.has_value())
 		{
@@ -106,13 +125,13 @@ namespace AqualinkAutomate::Messages
 		}
 
 		return std::format(
-			"Packet: {} || Pump: {}, Spa Mode: {}, Pool: {:.1f}C, Spa: {:.1f}C, Air: {:.1f}C, PoolHeat: {}, SpaHeat: {}, Solar: {}{}",
+			"Packet: {} || Pump: {}, Spa Mode: {}, Pool: {}, Spa: {}, Air: {}, PoolHeat: {}, SpaHeat: {}, Solar: {}{}",
 			IAQMessage::ToString(),
 			m_PumpOn ? "ON" : "OFF",
 			m_SpaMode ? "ON" : "OFF",
-			m_PoolTemp.InCelsius().value(),
-			m_SpaTemp.InCelsius().value(),
-			m_AirTemp.InCelsius().value(),
+			temp_str(m_PoolTemp),
+			temp_str(m_SpaTemp),
+			temp_str(m_AirTemp),
 			magic_enum::enum_name(m_PoolHeaterStatus),
 			magic_enum::enum_name(m_SpaHeaterStatus),
 			magic_enum::enum_name(m_SolarHeaterStatus),
@@ -183,12 +202,18 @@ namespace AqualinkAutomate::Messages
 		LogTrace(Channel::Messages, [device_count, has_sentinel, pos]() { return std::format("IAQMessage_MainStatus: device_count={}, sentinel={}, status_offset={}",
 			device_count, has_sentinel, pos); });
 
-		// Read temperature helper — big-endian uint16.
-		auto read_temp_be = [&payload, &pos](double scale) -> Kernel::Temperature
+		// Read a big-endian uint16 raw value; conversion to Kernel::Temperature is
+		// separate so the current format can sentinel-check the raw value first.
+		auto read_raw_be = [&payload, &pos]() -> uint16_t
 		{
 			uint16_t raw = (static_cast<uint16_t>(payload[pos]) << 8) | static_cast<uint16_t>(payload[pos + 1]);
 			pos += 2;
-			return Kernel::Temperature::ConvertToTemperatureInCelsius(raw * scale);
+			return raw;
+		};
+
+		auto read_temp_be = [&read_raw_be](double scale) -> Kernel::Temperature
+		{
+			return Kernel::Temperature::ConvertToTemperatureInCelsius(read_raw_be() * scale);
 		};
 
 		if (has_sentinel)
@@ -249,26 +274,48 @@ namespace AqualinkAutomate::Messages
 				return false;
 			}
 
-			auto pool_target = read_temp_be(1.0);
-			auto spa_target = read_temp_be(1.0);
+			m_PoolSetpoint = read_temp_be(1.0);
+			m_SpaSetpoint = read_temp_be(1.0);
 			m_AirTemp = read_temp_be(1.0);
-			auto water_current = read_temp_be(1.0);
 
-			m_PoolTemp = pool_target;
-			m_SpaTemp = water_current;
-			m_HeaterSetpoint = m_SpaMode ? spa_target : pool_target;
+			// water_current is the ACTUAL temperature of whichever body the pump is
+			// circulating (spa in spa mode, else pool). It is only meaningful while
+			// the pump runs; with the pump off the controller reports the sentinel
+			// (see WATER_TEMP_NO_READING_MAX). The targets above must never be
+			// reported as measured temperatures.
+			const uint16_t water_current_raw = read_raw_be();
+			if (m_PumpOn && (WATER_TEMP_NO_READING_MAX < water_current_raw))
+			{
+				auto water_current = Kernel::Temperature::ConvertToTemperatureInCelsius(static_cast<double>(water_current_raw));
+				if (m_SpaMode)
+				{
+					m_SpaTemp = water_current;
+				}
+				else
+				{
+					m_PoolTemp = water_current;
+				}
+			}
+
+			m_HeaterSetpoint = m_SpaMode ? m_SpaSetpoint : m_PoolSetpoint;
 		}
 
-		LogDebug(Channel::Messages, [this]() { return std::format(
-			"Deserialised IAQMessage_MainStatus: Pump={}, SpaMode={}, Pool={:.1f}C, Spa={:.1f}C, Air={:.1f}C, PoolHeat={}, SpaHeat={}, Solar={}",
-			m_PumpOn, m_SpaMode,
-			m_PoolTemp.InCelsius().value(),
-			m_SpaTemp.InCelsius().value(),
-			m_AirTemp.InCelsius().value(),
-			magic_enum::enum_name(m_PoolHeaterStatus),
-			magic_enum::enum_name(m_SpaHeaterStatus),
-			magic_enum::enum_name(m_SolarHeaterStatus)
-		); });
+		LogDebug(Channel::Messages, [this]() {
+			auto temp_str = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+			{
+				return temp.has_value() ? std::format("{:.1f}C", temp->InCelsius().value()) : "n/a";
+			};
+
+			return std::format(
+				"Deserialised IAQMessage_MainStatus: Pump={}, SpaMode={}, Pool={}, Spa={}, Air={}, PoolHeat={}, SpaHeat={}, Solar={}",
+				m_PumpOn, m_SpaMode,
+				temp_str(m_PoolTemp),
+				temp_str(m_SpaTemp),
+				temp_str(m_AirTemp),
+				magic_enum::enum_name(m_PoolHeaterStatus),
+				magic_enum::enum_name(m_SpaHeaterStatus),
+				magic_enum::enum_name(m_SolarHeaterStatus)
+			); });
 
 		return true;
 	}

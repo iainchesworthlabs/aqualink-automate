@@ -125,8 +125,15 @@ test.describe.serial('UI authentication (identity system)', () => {
     await loginViaCard(page, ADMIN_USER, ADMIN_PASS, true);
     await expectLiveDashboard(page);
 
-    // Open the account menu and sign out.
+    // Open the account menu.
     await page.locator('button[title="Account"]').click();
+
+    // Regression: the identity line used to render the raw user UUID because
+    // GET /api/auth/me carried no human-readable name — it must show the
+    // username the admin was created with.
+    await expect(page.locator('.account-card .account-username')).toHaveText(ADMIN_USER);
+
+    // Sign out.
     await page.locator('.account-card').getByRole('button', { name: 'Sign out', exact: true }).click();
 
     // Back to the login card.
