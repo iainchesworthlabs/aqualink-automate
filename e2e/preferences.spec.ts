@@ -58,13 +58,26 @@ test('Settings view shows and saves server preferences', async ({ page }) => {
 
   await expect(page.getByText('System Preferences')).toBeVisible();
 
-  // Change the temperature units and save -> a "Saved" confirmation appears.
-  const sysCard = page.locator('.settings-card', { hasText: 'System Preferences' });
-  await sysCard.locator('select[x-model="prefs.temperature_units"]').selectOption('Fahrenheit');
-  await sysCard.getByRole('button', { name: 'Save' }).click();
-  await expect(sysCard.getByText('Saved ✓')).toBeVisible({ timeout: 5_000 });
+  // Temperature units live in the Appearance card and apply instantly on
+  // change (no Save button) — wait for the PUT that the change fires.
+  const appearanceCard = page.locator('.settings-card', { hasText: 'Appearance' });
+  const unitsPut = page.waitForResponse(
+    (r) => r.url().includes('/api/preferences') && r.request().method() === 'PUT',
+  );
+  await appearanceCard.locator('#pref-units').selectOption('Fahrenheit');
+  expect((await unitsPut).ok()).toBeTruthy();
 
   // The change is reflected by the API.
   const prefs = await (await page.request.get('/api/preferences')).json();
   expect(prefs.temperature_units).toBe('Fahrenheit');
+
+  // The System Preferences card batch-saves the alert/history fields via its
+  // Save button and confirms with a "Saved" flash.
+  const sysCard = page.locator('.settings-card', { hasText: 'System Preferences' });
+  await sysCard.locator('#pref-retention').fill('120');
+  await sysCard.getByRole('button', { name: 'Save' }).click();
+  await expect(sysCard.getByText('Saved ✓')).toBeVisible({ timeout: 5_000 });
+
+  const after = await (await page.request.get('/api/preferences')).json();
+  expect(after.history.retention_days).toBe(120);
 });
