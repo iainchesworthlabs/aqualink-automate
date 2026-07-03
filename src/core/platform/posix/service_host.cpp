@@ -17,5 +17,19 @@ namespace AqualinkAutomate::Application
 		return entry(argc, argv, AppHostHooks{});
 	}
 
+	// No OS service manager to install into on POSIX; report Unsupported so the CLI
+	// handler prints the "only supported on Windows" notice without an OS #ifdef.
+	// See docs/platform-isolation.md.
+
+	ServiceActionResult InstallService()
+	{
+		return ServiceActionResult::Unsupported;
+	}
+
+	ServiceActionResult UninstallService()
+	{
+		return ServiceActionResult::Unsupported;
+	}
+
 }
 // namespace AqualinkAutomate::Application

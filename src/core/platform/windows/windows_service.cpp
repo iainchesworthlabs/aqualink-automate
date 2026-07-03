@@ -403,7 +403,7 @@ namespace AqualinkAutomate::Application
 		return entry(argc, argv, AppHostHooks{});
 	}
 
-	bool InstallService()
+	static bool InstallServiceImpl()
 	{
 		const std::wstring exe_path = ModuleFilePath();
 		if (exe_path.empty())
@@ -509,7 +509,7 @@ namespace AqualinkAutomate::Application
 
 		// Register the Event Log source in the same elevated action so Event Viewer
 		// renders the service's log entries cleanly from the first run.
-		const bool log_source_ok = RegisterLogSource("Aqualink-Automate");
+		const bool log_source_ok = (LogSourceRegistrationResult::Succeeded == RegisterLogSource("Aqualink-Automate"));
 
 		std::cout << "Installed Windows service 'Aqualink-Automate' (account: NT AUTHORITY\\LocalService, start: automatic-delayed, restart-on-failure).\n"
 			<< "  Binary path: " << Narrow(bin_path) << "\n"
@@ -518,7 +518,7 @@ namespace AqualinkAutomate::Application
 		return true;
 	}
 
-	bool UninstallService()
+	static bool UninstallServiceImpl()
 	{
 		SC_HANDLE scm = ::OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
 		if (nullptr == scm)
@@ -570,7 +570,7 @@ namespace AqualinkAutomate::Application
 		::CloseServiceHandle(service);
 		::CloseServiceHandle(scm);
 
-		const bool log_source_ok = UnregisterLogSource("Aqualink-Automate");
+		const bool log_source_ok = (LogSourceRegistrationResult::Succeeded == UnregisterLogSource("Aqualink-Automate"));
 
 		if (deleted || (ERROR_SERVICE_MARKED_FOR_DELETE == delete_err))
 		{
@@ -581,6 +581,19 @@ namespace AqualinkAutomate::Application
 
 		std::cout << "Failed to delete the service (error " << delete_err << ").\n";
 		return false;
+	}
+
+	// Public OS-neutral entry points: the SCM mechanics above stay file-local, and the
+	// shared CLI handler branches on ServiceActionResult (never an OS #ifdef). The impls
+	// print their own detailed outcome, so only Succeeded/Failed distinction is surfaced.
+	ServiceActionResult InstallService()
+	{
+		return InstallServiceImpl() ? ServiceActionResult::Succeeded : ServiceActionResult::Failed;
+	}
+
+	ServiceActionResult UninstallService()
+	{
+		return UninstallServiceImpl() ? ServiceActionResult::Succeeded : ServiceActionResult::Failed;
 	}
 
 }

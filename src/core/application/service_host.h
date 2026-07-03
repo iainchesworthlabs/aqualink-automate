@@ -48,15 +48,29 @@ namespace AqualinkAutomate::Application
 	int RunHosted(int argc, char** argv, const AppEntry& entry);
 
 	//
-	// One-shot, elevated CLI actions that register/remove the Windows service (and its
-	// Event Log source). Implemented ONLY on Windows (platform/windows/windows_service.cpp);
-	// callers guard the reference with #if defined(_WIN32), mirroring RegisterLogSource.
-	// InstallService derives the service binary path from the current process command
-	// line (so --config and any other flags supplied alongside --install-service are
-	// baked in). Both return true on success, false on failure (e.g. not elevated).
+	// Outcome of an install/uninstall action. `Unsupported` is returned on every
+	// platform without an OS service manager to install into (i.e. everything but
+	// Windows), so the CLI handler branches on this result instead of an OS #ifdef
+	// (see docs/platform-isolation.md).
 	//
-	bool InstallService();
-	bool UninstallService();
+	enum class ServiceActionResult
+	{
+		Succeeded,    // the service was installed / removed
+		Failed,       // supported here, but the action failed (e.g. not elevated)
+		Unsupported,  // this platform has no OS service manager to install into
+	};
+
+	//
+	// One-shot, elevated CLI actions that register/remove the Windows service (and its
+	// Event Log source). The Windows implementation lives in
+	// platform/windows/windows_service.cpp; every other platform gets the Unsupported
+	// stub in platform/posix/service_host.cpp (CMake selects which compiles), so callers
+	// need no OS #ifdef. InstallService derives the service binary path from the current
+	// process command line (so --config and any other flags supplied alongside
+	// --install-service are baked in).
+	//
+	ServiceActionResult InstallService();
+	ServiceActionResult UninstallService();
 
 }
 // namespace AqualinkAutomate::Application

@@ -163,20 +163,25 @@ namespace AqualinkAutomate::Options::App
 			throw Exceptions::OptionsHelpOrVersion();
 		}
 
-#if defined(_WIN32)
-		// The Install/Uninstall actions print their own detailed result (binary path,
-		// account, Event Log source, error reason) to stdout.
-		if (do_install)
+		// Dispatched to the platform layer (Windows talks to the SCM; every other
+		// platform returns Unsupported), so this shared handler needs no OS #ifdef
+		// — see docs/platform-isolation.md.
+		const auto result = do_install
+			? Application::InstallService()
+			: Application::UninstallService();
+
+		switch (result)
 		{
-			Application::InstallService();
+		case Application::ServiceActionResult::Succeeded:
+		case Application::ServiceActionResult::Failed:
+			// The Install/Uninstall actions print their own detailed result (binary path,
+			// account, Event Log source, error reason) to stdout.
+			break;
+
+		case Application::ServiceActionResult::Unsupported:
+			std::cout << "--install-service / --uninstall-service are only supported on Windows.\n";
+			break;
 		}
-		else
-		{
-			Application::UninstallService();
-		}
-#else
-		std::cout << "--install-service / --uninstall-service are only supported on Windows.\n";
-#endif
 
 		// One-shot action: exit cleanly (same mechanism as --help/--version).
 		throw Exceptions::OptionsHelpOrVersion();
