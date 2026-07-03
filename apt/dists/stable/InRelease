@@ -4,44 +4,44 @@ Hash: SHA512
 Origin: Aqualink Automate
 Label: Aqualink Automate
 Codename: stable
-Date: Thu, 02 Jul 2026 04:22:36 UTC
+Date: Fri, 03 Jul 2026 23:12:07 UTC
 Architectures: amd64 arm64
 Components: main
 Description: Aqualink Automate APT repository
 MD5Sum:
- 1065ea78965b883257d0d76050d16e32 6288 main/binary-amd64/Packages
- 7402a95238279824524816a2c12cd044 2730 main/binary-amd64/Packages.gz
+ 5bdb59a7ac420eb00baa53e75c3d6b4c 7100 main/binary-amd64/Packages
+ 5753b5496d5f18d2623b37eddee5f165 3109 main/binary-amd64/Packages.gz
  d971d3bbe41152811ef0fd506cc8c6c1 133 main/binary-amd64/Release
- ec2349625580b74819a8a585286dce4c 6288 main/binary-arm64/Packages
- 41d30fd388b77e05330356e448f90a69 2734 main/binary-arm64/Packages.gz
+ b4d294a9576b8f634e8d9e6b3c64e6b6 7100 main/binary-arm64/Packages
+ f4acdf4314897d63baa348b1ef3bd677 3106 main/binary-arm64/Packages.gz
  17df63a7897ce330d6be74a7840c3061 133 main/binary-arm64/Release
 SHA1:
- 46142a822e8d577106f24cc10db5711c181528ad 6288 main/binary-amd64/Packages
- e0c4451e545d32cc2ebd261a3383969a721460bc 2730 main/binary-amd64/Packages.gz
+ 107548211c306b8bb1c4e216aaf899728a4220ad 7100 main/binary-amd64/Packages
+ fbe97f472f9287b69d73d0ce4f4c94086b9b164e 3109 main/binary-amd64/Packages.gz
  49b9046ea11419384cb6b70972826d28bcf18e79 133 main/binary-amd64/Release
- 16e7e5d08ad523520f1f90a36421ea31349288e3 6288 main/binary-arm64/Packages
- 2e778ea81dba9293c36f7a95550ac08f0e4c2ec6 2734 main/binary-arm64/Packages.gz
+ c919ffecc5935932de992f42596ba2b47642877f 7100 main/binary-arm64/Packages
+ 9c9c0071474e21d6d082ed20b3330824306c677d 3106 main/binary-arm64/Packages.gz
  f734ef360d77d822fbd223b5183408a8900757dd 133 main/binary-arm64/Release
 SHA256:
- 58a325747764ca00e073bfe35dd85b9fb0da4571a8ac428f693786eeba4129a0 6288 main/binary-amd64/Packages
- 3efa72e778e494a17c7cbba853d80750e28d0a1f38c40402c038c78efb21b85b 2730 main/binary-amd64/Packages.gz
+ 6cf52bb23048f81fe6cf1812f56bd5b3f9635f276e1976d48d3a3ca659e49427 7100 main/binary-amd64/Packages
+ 1f4463eb28c65a869a76c73487612951ba4bdc563d34b515e4a3a6233795a557 3109 main/binary-amd64/Packages.gz
  b930f48053dc93e634356edbe7f7e233fcaeb2689c3d5d59e92bdd64cfc8c76c 133 main/binary-amd64/Release
- cb08a48ee0d43b647282a94bcf7b8c8710f0d3da1dbd257e2fb5a1691e7d215a 6288 main/binary-arm64/Packages
- 8e873da6965ca4ea799640929e999340ea639a4aa34f3993b4f9c124a58e8fea 2734 main/binary-arm64/Packages.gz
+ 8a06912743aa51ce9f5cb4493578c27180e7322237218d6892bd09437bdf0f0f 7100 main/binary-arm64/Packages
+ f80fc1576754ee5463641a09f6ccae3c0806c3d779d3bad7b37d5ec7b78a29f4 3106 main/binary-arm64/Packages.gz
  7e3e72911a1127ccccfdd8769b410fe8d8e6a5f4af24a19080e79afdc9234f48 133 main/binary-arm64/Release
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEExKp+OO+ZF5ZXHZEfgeRxctW1XrAFAmpF54wACgkQgeRxctW1
-XrC7lg/8DU4Tr3chLSNjBnw+fG7LwNbUQ9ebU90kuHBcKDNis+801nxPi1t4zo0D
-z31xF0+yYyrXiIH2pvc1kROITCImMgq5jlVgsMqFuGi+G/2kgRIHTQ6ITBdHwW/X
-snRindFZivhqU4PA+xEH9GVf+1Ge9fny8yHtxJZH5FBhQGYu2q1rKte/It3WOYf2
-G4LigJORs3JcXtvvv0MUsnRw8v/QnDPnXGuKrqY/DUaSMLrXOrrr7lpiw/YsylQj
-2h1vZyo5NAwvzz3wCrhVWgqNYSCFW5UZWlNPIXoL4MruBjZNDkZOHK/9POHsOw4V
-lgQrk3SO6g0XkJeCK9AQOMyjZlk0eGlT5Jfn7WHVtQoplDcNyx6n7eK0gb/sgM7/
-6s0IBUuXWbHBG1GiMDoU07JRue2BxTbG2TZzAO2oZKX9gm7UFw+OKSPiCu4mazfg
-C2i7lY12N9GdmEFNJ3J1NCYJLnUKKqMFC3G5F52wvu13D3b/Yo5EVNAMoudZx8Ay
-2/3nXXtjqgzI1k/yGXMr1lPZScaYCBmR4L7bJCFZDlmer6sKhLj8XiuLL6rd3zDC
-EkBr1a1E5pa+jX6prIoz/5RXvkrFIZ6fBNfHMDGGTRnaDgKU2SOLUwskebh3KzQU
-hrKcwwOPBnr/TBvu68+nj7FX77x70wg9L+YvRBwZfDsUbzkpxms=
-=PEMg
+iQIzBAEBCgAdFiEExKp+OO+ZF5ZXHZEfgeRxctW1XrAFAmpIQccACgkQgeRxctW1
+XrDTHQ/8DAxDqklYs6QV/ixdRADZTSfgQ2qnJohosYN26L+IpmWMCm08bVSPE0jm
+S+XtoVCeHTG09MAh0YY2ToESoUYajc40E12//oNVgI3940P/hdJ9XRbyM9l+46MD
+FUIiWjW2zP51kGjt7q3JMYY+joORr8UTnXZwEHIw2lCEpCj9yrvHeFX+wL+7KA3E
+sw4my5C6JkOayVzEcFEK7cc6sQtRz7tXdEJ0VrPCiKxz61rbZm2VKx/8YB/NDOgj
+FGM+U14xNmQTm/mS4R0Z3Xfeup3lqfNlEJ4ONtCCBYljIrNZkqvETVpMPWGCIABA
+VJ3eMKyDDgiK4afNFZvau3TATMzHmzeVDoraVE+jmPLhBT/PFgc1oRU64k3NiMUC
+V/RxAbXNntZhW2j5IUDwGZPncjBh1Ch4H1l6gnSmHc3DVlecOUJiwYsd9fX7ZLd0
+Xxbzc9BQMr9C+8gZVsyXW3VJCTUpGpsVI3ElJDd/ynWNhx4Rh+Rz8QP0eABUKmpm
+4lRKoBRqahHZ+2lGXKRw8SDyKtUjLHLMyK1ruAMVE2PZ1Vgd8IPS2oqxIoeCp5ac
+Eiu0zb+OMO62CbO7SpGe1vcxg5HHI5858nIbTRAzSq8EP4MrOXq3dalBIFO5j0in
+em9P7Acmzvdh26Tm5kNP96v7ONzCrpEwoCO2f4z7r5i52vkX8xE=
+=UO3D
 -----END PGP SIGNATURE-----

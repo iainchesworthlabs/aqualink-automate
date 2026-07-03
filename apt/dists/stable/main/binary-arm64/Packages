@@ -3,17 +3,19 @@ Architecture: arm64
 Depends: libc6 (>= 2.36), systemd
 Priority: optional
 Section: net
-Filename: pool/main/a/aqualink-automate/aqualink-automate_0.10.0~beta.1_arm64.deb
-Size: 12570284
-SHA256: 3cd95a30a94d3fb64b9d9c476aa739b28e6d46631e88c89e68282a24a016e6e7
-SHA1: 22c532f38c2e21af0ec43a3a9760af2adae8f4bd
-MD5sum: 400248873ad99f8562744a9df75afac7
+Filename: pool/main/a/aqualink-automate/aqualink-automate_0.11.0~beta.1_arm64.deb
+Size: 13426952
+SHA256: d0eb2f78e7f9c96df167b60ce14cbbd12d27cc679caa779e7088a9e9aa3ac54f
+SHA1: 0d3bddd77873b417aaa87abbe4f3c44ae00ac50d
+MD5sum: 906006610cdae079ec252b702e053671
 Description: Control Jandy Aqualink RS pool equipment via common IoT integrations
  # Aqualink Automate
  .
  Local control of Jandy/Zodiac (Fluidra) Aqualink RS pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.
  .
  Aqualink Automate is a C++ service that talks to your pool equipment over an RS-485 serial link and exposes it on your own network. It reads status from the panel and lets you control it through a built-in Web UI, an HTTP and WebSocket API, MQTT (with Home Assistant discovery), and a Matter bridge for Apple Home, Google Home, Alexa, and SmartThings. Everything runs on hardware you own; nothing is sent to a vendor cloud.
+ .
+ ![The Aqualink Automate web dashboard — temperatures, circulation, water chemistry, and equipment controls](docs/assets/aqualink-automate-dashboard.png)
  .
  ## Table of contents
  .
@@ -31,13 +33,15 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  - Local control of your pool system over RS-485, with no cloud service required.
  - Two RS-485 protocols supported: Jandy/Zodiac (Fluidra) Aqualink RS and Pentair. The active protocol is auto-detected from the wire traffic.
  - A built-in web user interface for control and monitoring.
+ - The web UI speaks nine languages (English, German, Spanish, French, Arabic, Hebrew, Japanese, Simplified Chinese, Yiddish) with full right-to-left support and locale-aware formatting — and [community translations are easy to add](docs/CONTRIBUTING.md#contributing-translations).
  - HTTP and WebSocket API for custom integrations.
+ - Opt-in authentication and authorization: local user accounts and groups with fine-grained entitlements, scoped API keys, anonymous guest browsing, and kiosk PIN elevation for shared terminals — see [SECURITY.md](docs/SECURITY.md).
  - MQTT publishing with Home Assistant auto-discovery.
  - A Matter bridge so the pool can be paired into Apple Home, Google Home, Alexa, or SmartThings by scanning a QR code. On by default — see [docs/MATTER.md](docs/MATTER.md).
  - Connectivity over a physical USB-to-RS485 adapter or a remote serial port (serial-over-ethernet) using RFC2217 or raw TCP.
  - Detailed status reporting for your Aqualink RS system.
  .
- **Security:** By default the web server binds to `127.0.0.1` (localhost only) and HTTP authentication is off. Review [SECURITY.md](docs/SECURITY.md) and the [configuration reference](docs/configuration.md) before exposing the service on your network.
+ **Security:** By default the web server binds to `127.0.0.1` (localhost only) and authentication is off. Enable the identity system with `--auth-mode enabled` (first-run wizard, users/groups/entitlements, API keys, guest and kiosk access) before exposing the service on your network — review [SECURITY.md](docs/SECURITY.md) and the [configuration reference](docs/configuration.md).
  .
  ## Quick start
  .
@@ -103,6 +107,6 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  This project was influenced by sfeakes&apos; [AqualinkD](https://github.com/sfeakes/AqualinkD). The original goal was a variant that also runs on Windows and macOS.
 Homepage: https://github.com/iainchesworth/aqualink-automate
 Maintainer: Iain Chesworth
-Version: 0.10.0~beta.1
-Installed-Size: 59641
+Version: 0.11.0~beta.1
+Installed-Size: 62872
 
