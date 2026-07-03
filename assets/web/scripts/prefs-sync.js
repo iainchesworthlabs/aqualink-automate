@@ -18,7 +18,13 @@
 (function () {
     'use strict';
 
+    // "Server prefs reachable": a disabled posture permits everyone (the
+    // pre-identity behavior — auth-off installs keep cross-device prefs), an
+    // enabled posture requires prefs.self. Falls back to the raw token while
+    // the auth store's /api/auth/me check is still in flight.
     function isAuthenticated() {
+        const auth = window.Alpine && window.Alpine.store('auth');
+        if (auth && auth.ready) { return auth.can('prefs.self'); }
         return !!(window.AqualinkAuth && window.AqualinkAuth.token && window.AqualinkAuth.token());
     }
 
