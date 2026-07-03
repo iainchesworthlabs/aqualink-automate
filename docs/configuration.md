@@ -332,12 +332,13 @@ Diagnostics, capture recording, and deterministic replay. Lives in the `Develope
 | `--profiler` | | enum | none | Profiling tool. Accepted: `tracy`, `uprof`, `vtune` (case-insensitive). |
 | `--loglevel-<channel>` | | enum | none | Set the log level for one logging channel. One option per channel (see below). |
 
-There is one `--loglevel-<channel>` option per logging channel. The 18 channels are:
+There is one `--loglevel-<channel>` option per logging channel. The 19 channels are:
 
 ```
-certificates  coroutines  developer  devices    equipment  exceptions
-main          messages    mqtt       navigation options    platform
-profiling     protocol    scraping   serial     signals    web
+audit         certificates  coroutines  developer  devices    equipment
+exceptions    main          messages    mqtt       navigation options
+platform      profiling     protocol    scraping   serial     signals
+web
 ```
 
 Each takes a severity (case-insensitive): `Trace`, `Debug`, `Info`, `Notify`, `Warning`, `Error`, `Fatal`. For example `--loglevel-protocol Debug`.
@@ -346,7 +347,7 @@ Each takes a severity (case-insensitive): `Trace`, `Debug`, `Info`, `Notify`, `W
 
 - `--dev-mode`
 - `--profiler <tool>`
-- *every* `--loglevel-<channel>` option (all 18 must be present)
+- *every* `--loglevel-<channel>` option (all 19 must be present)
 
 It also conflicts with `--record-serial`. A complete, validation-passing replay invocation is in the [Worked examples](#developer-replay).
 
@@ -448,6 +449,7 @@ aqualink-automate \
   --http-port 18080 --address 127.0.0.1 --disable-https \
   --doc-root assets/web \
   --jandy-disable-emulation \
+  --loglevel-audit info \
   --loglevel-certificates info --loglevel-coroutines info \
   --loglevel-developer info --loglevel-devices info \
   --loglevel-equipment info --loglevel-exceptions info \
