@@ -58,10 +58,9 @@ void Reconfigure(const RuntimeConfig& config)
 
 	if (config.Selection.Journald)
 	{
-		boost::shared_ptr<boost::log::sinks::sink> journald_sink;
-#if defined(__linux__)
-		journald_sink = Sinks::MakeJournaldSink(Sinks::JournaldSinkConfig{ .Filter = Sinks::MakeOperationalFilter() });
-#endif
+		// MakeJournaldSink returns null on non-Linux (stub) or when libsystemd is
+		// absent, so no platform #ifdef is needed here.
+		auto journald_sink = Sinks::MakeJournaldSink(Sinks::JournaldSinkConfig{ .Filter = Sinks::MakeOperationalFilter() });
 
 		if (journald_sink)
 		{

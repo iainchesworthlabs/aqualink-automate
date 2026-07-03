@@ -1,10 +1,3 @@
-// journald is a Linux concept; libsystemd is resolved at RUNTIME via dlopen (no
-// build-time libsystemd-dev, no link dependency, no packaging/runtime coordination).
-// If the shared library is absent, IsJournaldAvailable() is false and the sink is
-// simply never selected (the auto policy falls back to console + "<N>" prefixes).
-#if defined(__linux__)
-
-#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,6 +16,14 @@
 #include "logging/sinks/severity_mappings.h"
 #include "logging/sinks/sink_journald.h"
 
+//
+// Linux implementation of the journald sink. libsystemd is resolved at RUNTIME via
+// dlopen (no build-time libsystemd-dev, no link dependency, no packaging/runtime
+// coordination). If the shared library is absent, IsJournaldAvailable() is false and
+// the sink is never selected (the auto policy falls back to console + "<N>" prefixes).
+// Windows/macOS provide stub implementations of these functions.
+//
+
 namespace AqualinkAutomate::Logging::Sinks
 {
 
@@ -34,8 +35,8 @@ namespace AqualinkAutomate::Logging::Sinks
 
 		// Resolve sd_journal_sendv once by dlopen'ing the versioned soname. The handle
 		// is intentionally never dlclose'd — the sink lives for the process lifetime,
-		// and (unlike a boost::log syslog_backend over boost::asio) this owns no
-		// global execution-context state to tear down at exit.
+		// and (unlike a boost::log syslog_backend over boost::asio) this owns no global
+		// execution-context state to tear down at exit.
 		SdJournalSendvFn ResolveSendv()
 		{
 			static SdJournalSendvFn resolved = []() -> SdJournalSendvFn
@@ -52,10 +53,6 @@ namespace AqualinkAutomate::Logging::Sinks
 			return resolved;
 		}
 
-		//
-		// Custom Boost.Log backend: forwards each record to the journal via the
-		// resolved sd_journal_sendv with structured fields.
-		//
 		class JournaldBackend : public boost::log::sinks::basic_formatted_sink_backend<char>
 		{
 		public:
@@ -141,5 +138,3 @@ namespace AqualinkAutomate::Logging::Sinks
 
 }
 // namespace AqualinkAutomate::Logging::Sinks
-
-#endif // __linux__

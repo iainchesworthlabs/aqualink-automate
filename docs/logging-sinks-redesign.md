@@ -65,8 +65,19 @@ test suite green (2296 cases). Deviations from the design above, for accuracy:
 
 Scope chosen: the logging natives, deferring the full Windows service wrapper
 (a separate app-lifecycle subsystem, §18.6). Most of this is platform code that
-cannot be verified on the Windows dev box — it is cleanly gated so the Windows
-build excludes it, and it compiles in the Linux/macOS CI legs.
+cannot be verified on the Windows dev box — it compiles in the Linux/macOS CI legs.
+
+**Architecture: OS-native sinks live in `platform/<os>/`, not behind `#ifdef` in
+shared sources** (the codebase's platform-isolation convention, wired by
+`if(WIN32)/if(LINUX)/if(APPLE)`). `MakeNativeSink` has three implementations —
+`platform/windows/native_log_sink.cpp` (Event Log), `platform/linux/native_log_sink.cpp`
+(syslog(3)), `platform/macos/native_log_sink.cpp` (os_log) — behind one shared
+declaration in `sink_native.h`. journald is `platform/linux/journald_log_sink.cpp`
+(the real dlopen impl) plus `platform/windows` + `platform/macos` stubs
+(`IsJournaldAvailable()==false`, `MakeJournaldSink()==null`), so the shared callers
+(`logging_initialise.cpp`, `main`) need no platform `#ifdef`. The earlier shared
+`sink_native.cpp`/`sink_journald.cpp`/`sink_oslog.{h,cpp}` with inline `#if` were
+removed in favour of this.
 
 - **journald** (`sink_journald.{h,cpp}`): a custom Boost.Log backend that calls
   `sd_journal_sendv` with structured fields (PRIORITY, SYSLOG_IDENTIFIER, MESSAGE,

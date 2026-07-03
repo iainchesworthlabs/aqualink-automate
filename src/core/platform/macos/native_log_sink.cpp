@@ -1,15 +1,20 @@
-#if defined(__APPLE__)
-
 #include <os/log.h>
 
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks/basic_sink_backend.hpp>
 #include <boost/log/sinks/sync_frontend.hpp>
 #include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 #include "logging/logging_attributes.h"
 #include "logging/logging_severity_levels.h"
-#include "logging/sinks/sink_oslog.h"
+#include "logging/sinks/sink_native.h"
+
+//
+// macOS implementation of MakeNativeSink: the unified logging system (os_log). OS-
+// specific, so it lives in the platform/ tree (wired by if(APPLE)). The syslog
+// facility in NativeSinkConfig is not meaningful here and is ignored.
+//
 
 namespace AqualinkAutomate::Logging::Sinks
 {
@@ -32,10 +37,6 @@ namespace AqualinkAutomate::Logging::Sinks
 			return OS_LOG_TYPE_DEFAULT;
 		}
 
-		//
-		// Custom Boost.Log backend forwarding the formatted message to os_log. The
-		// dedicated os_log_t handle (subsystem/category) lets `log` tools filter by it.
-		//
 		class OsLogBackend : public boost::log::sinks::basic_formatted_sink_backend<char>
 		{
 		public:
@@ -57,11 +58,12 @@ namespace AqualinkAutomate::Logging::Sinks
 	}
 	// namespace (anonymous)
 
-	boost::shared_ptr<boost::log::sinks::sink> MakeOsLogSink(const OsLogSinkConfig& config)
+	boost::shared_ptr<boost::log::sinks::sink> MakeNativeSink(const NativeSinkConfig& config)
 	{
+		namespace sinks = boost::log::sinks;
 		namespace expr = boost::log::expressions;
 
-		using oslog_sink = boost::log::sinks::synchronous_sink<OsLogBackend>;
+		using oslog_sink = sinks::synchronous_sink<OsLogBackend>;
 		auto sink = boost::make_shared<oslog_sink>(boost::make_shared<OsLogBackend>());
 
 		sink->set_filter(config.Filter);
@@ -72,5 +74,3 @@ namespace AqualinkAutomate::Logging::Sinks
 
 }
 // namespace AqualinkAutomate::Logging::Sinks
-
-#endif // __APPLE__

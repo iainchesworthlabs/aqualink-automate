@@ -218,9 +218,7 @@ target_sources(
 	logging/sinks/sink_console.cpp
 	logging/sinks/sink_file.cpp
 	logging/sinks/sink_filters.cpp
-	logging/sinks/sink_native.cpp
 	logging/sinks/sink_registry.cpp
-	logging/sinks/sink_journald.cpp
 	mqtt/ha_discovery.cpp
 	mqtt/mqtt_client.cpp
 	mqtt/mqtt_hub.cpp
@@ -329,6 +327,8 @@ target_sources(
 	platform/windows/network_serial_port_timeout.cpp
 	platform/windows/safe_ctime.cpp
 	platform/windows/log_source_registration.cpp
+	platform/windows/native_log_sink.cpp
+	platform/windows/journald_log_sink.cpp
 )
 
 target_compile_definitions(
@@ -366,6 +366,8 @@ target_sources(
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
 	platform/linux/physical_serial_port_timeout.cpp
+	platform/linux/native_log_sink.cpp
+	platform/linux/journald_log_sink.cpp
 )
 endif(LINUX)
 
@@ -380,7 +382,8 @@ target_sources(
 	platform/posix/safe_ctime.cpp
 	platform/posix/get_terminal_column_width.cpp
 	platform/macos/physical_serial_port_timeout.cpp
-	logging/sinks/sink_oslog.cpp
+	platform/macos/native_log_sink.cpp
+	platform/macos/journald_log_sink.cpp
 )
 endif(APPLE)
 

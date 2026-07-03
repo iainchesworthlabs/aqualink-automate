@@ -297,13 +297,9 @@ int main(int argc, char* argv[])
 			const auto log_environment = Sinks::DetectLogEnvironment();
 
 			// Whether the structured journald sink can be used: Linux with libsystemd
-			// resolvable at runtime (dlopen). Passed to the auto policy so it stays free
-			// of platform/runtime probing.
-#if defined(__linux__)
+			// resolvable at runtime (dlopen); false elsewhere via the platform stub.
+			// Passed to the auto policy so it stays free of platform/runtime probing.
 			const bool journald_available = Sinks::IsJournaldAvailable();
-#else
-			const bool journald_available = false;
-#endif
 
 			if (const auto logging_settings = settings.Get<Options::LogSinks::LoggingSettings>(); logging_settings.has_value())
 			{
