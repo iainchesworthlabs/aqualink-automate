@@ -24,7 +24,6 @@ RUN apt-get update \
         ccache \
         curl \
         git \
-        libsystemd-dev \
         libtool \
         linux-libc-dev \
         gcovr \

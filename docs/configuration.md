@@ -357,7 +357,7 @@ systemd the console additionally carries sd-daemon `<N>` priority prefixes so
 
 | Option | Type | Default | Notes |
 |---|---|---|---|
-| `--log-sinks` | string | `auto` | `auto` (environment-derived) or a comma-separated list of `console`, `native`, `file`, `journald`. `native` adds the OS-native operational sink (syslog on POSIX, the Windows Event Log); `file` requires `--log-file`; `journald` is the structured native journal sink on Linux/systemd builds (elsewhere it falls back to console with priority prefixes). Under `auto`: `--log-file` implies the file sink, and on a systemd build whose stderr is the journal, `journald` is used automatically. |
+| `--log-sinks` | string | `auto` | `auto` (environment-derived) or a comma-separated list of `console`, `native`, `file`, `journald`. `native` adds the OS-native operational sink (syslog on POSIX, the Windows Event Log); `file` requires `--log-file`; `journald` is the structured native journal sink on Linux when libsystemd is present at runtime (elsewhere it falls back to console with priority prefixes). Under `auto`: `--log-file` implies the file sink, and under systemd (stderr is the journal) with libsystemd available, `journald` is used automatically. |
 | `--log-syslog-facility` | enum | `daemon` | POSIX syslog facility for the general `native` sink: `daemon`, `user`, `local0`–`local7` (case-insensitive). Ignored on Windows. The audit sink always uses `authpriv` regardless. |
 | `--log-format` | enum | `text` | Record format for the **console and file** sinks: `text` (human) or `json` (one JSON object per line, for container / SIEM pipelines). The native/syslog sink is always message-only. |
 | `--log-file` | path | *(unset)* | Write logs to this file (enables the file sink). Rotated and size-bounded; on shutdown the active file is rotated into the kept set. |
@@ -370,9 +370,11 @@ a syslog `local0` operational sink); `--log-file /var/log/aqualink/app.log
 file sink when a path is given); `--log-sinks console --log-format json` (JSON to
 the console only, ideal behind a container log driver).
 
-**Platform-native sinks.** On a Linux build with libsystemd, `journald` delivers
-records to the journal with structured fields (query with e.g. `journalctl
-AA_CHANNEL=Web`), and `auto` selects it when running under systemd. On macOS the
+**Platform-native sinks.** On Linux, when `libsystemd.so.0` is present (it is on any
+systemd host), `journald` delivers records to the journal with structured fields
+(query with e.g. `journalctl AA_CHANNEL=Web`), and `auto` selects it when running
+under systemd. libsystemd is loaded at runtime (`dlopen`), so it is neither a build
+nor a hard runtime dependency — if it is absent, logging falls back to the console. On macOS the
 native sink uses the unified logging system (`os_log`; view with Console.app or
 `log show`). On **Windows**, the Event Log source is registered once, elevated,
 with `--register-log-source` (and removed with `--unregister-log-source`); the

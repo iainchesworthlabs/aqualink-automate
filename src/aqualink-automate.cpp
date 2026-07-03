@@ -22,6 +22,7 @@
 #include "interfaces/iserialportimpl.h"
 #include "logging/logging.h"
 #include "logging/logging_initialise.h"
+#include "logging/sinks/sink_journald.h"
 #include "logging/logging_severity_filter.h"
 #include "options/options.h"
 #include "profiling/profiling.h"
@@ -295,13 +296,13 @@ int main(int argc, char* argv[])
 			Logging::RuntimeConfig log_runtime_config;
 			const auto log_environment = Sinks::DetectLogEnvironment();
 
-			// Whether the structured journald sink is compiled into this build (Linux/
-			// systemd). Passed to the auto policy so this composition root, not the sink
-			// layer, owns the build-macro knowledge.
-#if defined(SYSTEMD_SUPPORT_ENABLED)
-			constexpr bool journald_available = true;
+			// Whether the structured journald sink can be used: Linux with libsystemd
+			// resolvable at runtime (dlopen). Passed to the auto policy so it stays free
+			// of platform/runtime probing.
+#if defined(__linux__)
+			const bool journald_available = Sinks::IsJournaldAvailable();
 #else
-			constexpr bool journald_available = false;
+			const bool journald_available = false;
 #endif
 
 			if (const auto logging_settings = settings.Get<Options::LogSinks::LoggingSettings>(); logging_settings.has_value())

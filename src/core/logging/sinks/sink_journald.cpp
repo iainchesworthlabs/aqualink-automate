@@ -1,11 +1,16 @@
-#if defined(SYSTEMD_SUPPORT_ENABLED)
+// journald is a Linux concept; libsystemd is resolved at RUNTIME via dlopen (no
+// build-time libsystemd-dev, no link dependency, no packaging/runtime coordination).
+// If the shared library is absent, IsJournaldAvailable() is false and the sink is
+// simply never selected (the auto policy falls back to console + "<N>" prefixes).
+#if defined(__linux__)
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include <dlfcn.h>
 #include <sys/uio.h>            // struct iovec
-#include <systemd/sd-journal.h>
 
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks/basic_sink_backend.hpp>
@@ -23,10 +28,33 @@ namespace AqualinkAutomate::Logging::Sinks
 
 	namespace
 	{
+		// Signature of systemd's sd_journal_sendv (declared here so we need no
+		// <systemd/sd-journal.h> at build time).
+		using SdJournalSendvFn = int (*)(const struct iovec*, int);
+
+		// Resolve sd_journal_sendv once by dlopen'ing the versioned soname. The handle
+		// is intentionally never dlclose'd — the sink lives for the process lifetime,
+		// and (unlike a boost::log syslog_backend over boost::asio) this owns no
+		// global execution-context state to tear down at exit.
+		SdJournalSendvFn ResolveSendv()
+		{
+			static SdJournalSendvFn resolved = []() -> SdJournalSendvFn
+			{
+				void* handle = ::dlopen("libsystemd.so.0", RTLD_LAZY | RTLD_GLOBAL);
+				if (nullptr == handle)
+				{
+					return nullptr;
+				}
+
+				return reinterpret_cast<SdJournalSendvFn>(::dlsym(handle, "sd_journal_sendv"));
+			}();
+
+			return resolved;
+		}
+
 		//
-		// Custom Boost.Log backend: forwards each record to the journal via
-		// sd_journal_sendv with structured fields. basic_formatted_sink_backend gives
-		// us the formatted MESSAGE text; the record supplies the rest.
+		// Custom Boost.Log backend: forwards each record to the journal via the
+		// resolved sd_journal_sendv with structured fields.
 		//
 		class JournaldBackend : public boost::log::sinks::basic_formatted_sink_backend<char>
 		{
@@ -38,6 +66,12 @@ namespace AqualinkAutomate::Logging::Sinks
 
 			void consume(boost::log::record_view const& rec, string_type const& formatted_message)
 			{
+				const auto send = ResolveSendv();
+				if (nullptr == send)
+				{
+					return;  // libsystemd vanished mid-run; nothing sensible to do
+				}
+
 				const auto record_severity = rec[severity].get<Severity>();
 
 				// Each field is a "NAME=value" string; sd_journal_sendv takes them as an
@@ -72,7 +106,7 @@ namespace AqualinkAutomate::Logging::Sinks
 					iov.push_back(iovec{ field.data(), field.size() });
 				}
 
-				sd_journal_sendv(iov.data(), static_cast<int>(iov.size()));
+				send(iov.data(), static_cast<int>(iov.size()));
 			}
 
 		private:
@@ -81,9 +115,19 @@ namespace AqualinkAutomate::Logging::Sinks
 	}
 	// namespace (anonymous)
 
+	bool IsJournaldAvailable()
+	{
+		return nullptr != ResolveSendv();
+	}
+
 	boost::shared_ptr<boost::log::sinks::sink> MakeJournaldSink(const JournaldSinkConfig& config)
 	{
 		namespace expr = boost::log::expressions;
+
+		if (!IsJournaldAvailable())
+		{
+			return {};
+		}
 
 		using journald_sink = boost::log::sinks::synchronous_sink<JournaldBackend>;
 		auto sink = boost::make_shared<journald_sink>(boost::make_shared<JournaldBackend>(config.SyslogIdentifier));
@@ -98,4 +142,4 @@ namespace AqualinkAutomate::Logging::Sinks
 }
 // namespace AqualinkAutomate::Logging::Sinks
 
-#endif // SYSTEMD_SUPPORT_ENABLED
+#endif // __linux__

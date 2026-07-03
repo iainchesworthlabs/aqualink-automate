@@ -1,9 +1,9 @@
 #pragma once
 
-// The journald sink exists only where libsystemd was found (Linux/systemd). On
-// every other platform SYSTEMD_SUPPORT_ENABLED is undefined and this header is
-// empty, so callers must guard use of MakeJournaldSink with the same macro.
-#if defined(SYSTEMD_SUPPORT_ENABLED)
+// The journald sink exists only on Linux, where libsystemd is resolved at RUNTIME
+// via dlopen (no build-time libsystemd-dev, no link dependency). Elsewhere this
+// header is empty; callers guard use of MakeJournaldSink with the same macro.
+#if defined(__linux__)
 
 #include <string>
 
@@ -23,16 +23,19 @@ namespace AqualinkAutomate::Logging::Sinks
 		std::string SyslogIdentifier{ "aqualink-automate" };
 	};
 
+	// True iff libsystemd.so.0 is present and sd_journal_sendv resolves at runtime.
+	// The auto policy uses this to decide between the journald sink and console+"<N>".
+	[[nodiscard]] bool IsJournaldAvailable();
+
 	//
 	// Build (but do NOT install) a native journald sink: each record is delivered via
-	// sd_journal_send with structured fields (PRIORITY, SYSLOG_IDENTIFIER, MESSAGE,
-	// AA_CHANNEL, and CODE_FILE/CODE_LINE for Trace/Debug). This is the richer upgrade
-	// over the console "<N>" priority-prefix path (docs/logging-sinks-redesign.md §5.3):
-	// journald records the real priority AND queryable fields (journalctl AA_CHANNEL=Web).
+	// the dlopen'd sd_journal_sendv with structured fields (PRIORITY, SYSLOG_IDENTIFIER,
+	// MESSAGE, AA_CHANNEL, and CODE_FILE/CODE_LINE for Trace/Debug). Returns null if
+	// journald is not available (libsystemd absent), so the caller can fall back.
 	//
 	[[nodiscard]] boost::shared_ptr<boost::log::sinks::sink> MakeJournaldSink(const JournaldSinkConfig& config);
 
 }
 // namespace AqualinkAutomate::Logging::Sinks
 
-#endif // SYSTEMD_SUPPORT_ENABLED
+#endif // __linux__

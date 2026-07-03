@@ -58,20 +58,27 @@ void Reconfigure(const RuntimeConfig& config)
 
 	if (config.Selection.Journald)
 	{
-#if defined(SYSTEMD_SUPPORT_ENABLED)
-		Sinks::SinkRegistry::Add(Sinks::MakeJournaldSink(Sinks::JournaldSinkConfig{
-			.Filter = Sinks::MakeOperationalFilter() }));
-#else
-		// Requested (e.g. --log-sinks journald) but this build has no systemd support:
-		// fall back to the console with priority prefixes so priorities still reach
-		// the journal, and say so.
-		LogWarning(Channel::Main, "journald sink requested but this build has no systemd support; using console with priority prefixes instead");
-
-		Sinks::ConsoleSinkConfig fallback_console;
-		fallback_console.JournaldPrefixes = true;
-		fallback_console.Format = config.Format;
-		Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(fallback_console));
+		boost::shared_ptr<boost::log::sinks::sink> journald_sink;
+#if defined(__linux__)
+		journald_sink = Sinks::MakeJournaldSink(Sinks::JournaldSinkConfig{ .Filter = Sinks::MakeOperationalFilter() });
 #endif
+
+		if (journald_sink)
+		{
+			Sinks::SinkRegistry::Add(journald_sink);
+		}
+		else
+		{
+			// journald was requested (e.g. --log-sinks journald) but is not available
+			// (non-Linux, or libsystemd absent): fall back to the console with priority
+			// prefixes so priorities still reach the journal, and say so.
+			LogWarning(Channel::Main, "journald sink unavailable (no libsystemd); using console with priority prefixes instead");
+
+			Sinks::ConsoleSinkConfig fallback_console;
+			fallback_console.JournaldPrefixes = true;
+			fallback_console.Format = config.Format;
+			Sinks::SinkRegistry::Add(Sinks::MakeConsoleSink(fallback_console));
+		}
 	}
 
 	if (config.Selection.File && config.LogFilePath.has_value())

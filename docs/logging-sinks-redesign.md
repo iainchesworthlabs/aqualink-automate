@@ -68,15 +68,21 @@ Scope chosen: the logging natives, deferring the full Windows service wrapper
 cannot be verified on the Windows dev box — it is cleanly gated so the Windows
 build excludes it, and it compiles in the Linux/macOS CI legs.
 
-- **journald** (`sink_journald.{h,cpp}`, `cmake/tools/Findsystemd.cmake`): a custom
-  Boost.Log backend that calls `sd_journal_sendv` with structured fields
-  (PRIORITY, SYSLOG_IDENTIFIER, MESSAGE, AA_CHANNEL, CODE_FILE/CODE_LINE). Gated on
-  `systemd_FOUND` → `SYSTEMD_SUPPORT_ENABLED` (feature detection, not platform-id);
-  `libsystemd-dev` added to the Docker/CI image. Selection: a `journald` token and
-  the `auto` policy (journal-connected + available → journald instead of
-  console+`<N>`), with a warn+console fallback when requested on a non-systemd
-  build. `SinkSelection.Journald` + `ResolveAutoSinks(..., journald_available)`;
-  main passes availability from the build macro so the sink layer stays macro-free.
+- **journald** (`sink_journald.{h,cpp}`): a custom Boost.Log backend that calls
+  `sd_journal_sendv` with structured fields (PRIORITY, SYSLOG_IDENTIFIER, MESSAGE,
+  AA_CHANNEL, CODE_FILE/CODE_LINE). **libsystemd is resolved at RUNTIME via
+  `dlopen("libsystemd.so.0")` + `dlsym`** — neither a build dependency (no
+  `libsystemd-dev`, no `find_package`, no link) nor a hard runtime dependency
+  (absent → journald simply unavailable). This avoids the cross-environment
+  build/packaging/container coordination a hard link would force (Dockerfile base +
+  runtime, the Packer runner image, the `_build.yml` release container, and CPack
+  DEB/RPM deps), and closes the gap where the release container lacked
+  `libsystemd-dev` and would have shipped *without* journald at all. Compiled under
+  `#if defined(__linux__)`. Selection: a `journald` token and the `auto` policy
+  (journal-connected + `IsJournaldAvailable()` → journald instead of console+`<N>`),
+  with a warn+console fallback otherwise. `SinkSelection.Journald` +
+  `ResolveAutoSinks(..., journald_available)`; main passes `IsJournaldAvailable()`
+  (a cached runtime `dlopen` probe) so the sink layer stays platform-free.
 - **macOS os_log** (`sink_oslog.{h,cpp}`): a custom backend calling
   `os_log_with_type` (Severity → os_log_type_t). `MakeNativeSink` delegates to it
   on `__APPLE__` instead of the syslog shim; the syslog helpers are `#if`-excluded
