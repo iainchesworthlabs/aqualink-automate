@@ -403,8 +403,9 @@ Two route classes in the same `src/core/http/webroute_schedules.h`: the collecti
 
 **Status: DONE.** The WebSocket-subprotocol auth transport, the login overlay, `GET /api/auth/check`
 (swagger documented), and the token-attaching fetch/WS helpers all shipped. The
-`E2E — auth enabled` job (`AQUALINK_AUTH_TOKEN`) runs `e2e/auth.spec.ts` against a token-gated
-build. With a token set, the web UI works (login → live WebSocket). The shipped auth surface is
+e2e-ui `identity` jobs (`AQUALINK_AUTH_MODE=enabled`) run `e2e/auth.spec.ts` (and, since Wave B,
+`admin.spec.ts` / `guest.spec.ts`) against an identity-enabled build; the earlier WS5 token-gated
+`auth.spec` was superseded by the identity system. The web UI works (login → live WebSocket). The shipped auth surface is
 documented in [usage-and-api.md](usage-and-api.md).
 
 **Size:** medium. **Risk:** medium (touches the security path). **Dependencies:** none.

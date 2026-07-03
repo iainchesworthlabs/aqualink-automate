@@ -53,11 +53,6 @@ const HOST = '127.0.0.1';
 const PORT = Number(process.env.AQUALINK_TEST_PORT ?? 18080);
 const BASE_URL = `http://${HOST}:${PORT}`;
 
-// WS5 legacy auth mode: when AQUALINK_AUTH_TOKEN is set, boot the app with the
-// old shared --api-auth-token (kept for backwards compatibility; the Wave A auth
-// spec no longer uses it).
-const AUTH_TOKEN = process.env.AQUALINK_AUTH_TOKEN;
-
 // Wave A identity mode: when AQUALINK_AUTH_MODE=enabled, boot the app with the
 // full identity system (`--auth-mode enabled`) against a FRESH temp
 // --auth-state-dir so the user store starts EMPTY (setup_required = true). The
@@ -106,24 +101,24 @@ if (!existsSync(APP_EXE)) {
 
 export default defineConfig({
   testDir: './e2e',
-  // The identity specs (auth + admin) need an identity-enabled server;
-  // everything else needs an unauthenticated one. Select by
-  // AQUALINK_AUTH_MODE / AQUALINK_AUTH_TOKEN.
+  // The identity specs (auth + admin + guest) need an identity-enabled server
+  // (AQUALINK_AUTH_MODE=enabled); everything else needs an unauthenticated one.
   //
-  // IMPORTANT: the two identity specs have INCOMPATIBLE store preconditions and
-  // share one webServer + auth-state dir per run — auth.spec's first test needs
-  // an EMPTY store to exercise the first-run setup wizard, while admin.spec
-  // self-seeds an admin (setup-if-empty, else login). Run them in SEPARATE
-  // invocations so each gets its own fresh state dir:
+  // IMPORTANT: the identity specs have INCOMPATIBLE store preconditions and share
+  // one webServer + auth-state dir per run — auth.spec's first test needs an EMPTY
+  // store to exercise the first-run setup wizard, while admin.spec self-seeds an
+  // admin (setup-if-empty, else login). Run them in SEPARATE invocations so each
+  // gets its own fresh state dir:
   //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/auth.spec.ts
   //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/admin.spec.ts
+  //   AQUALINK_AUTH_MODE=enabled npx playwright test e2e/guest.spec.ts
   // (the positional filter narrows the match to one file). A bare auth-mode run
   // would run admin.spec first (alphabetical), seeding the store and breaking
-  // auth.spec's wizard assertion.
-  testMatch: (AUTH_MODE || AUTH_TOKEN)
+  // auth.spec's wizard assertion — which is why CI drives one spec per step.
+  testMatch: AUTH_MODE
     ? ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts']
     : (HISTORY_DB ? ['**/trends.spec.ts'] : (SCHEDULES_FILE ? ['**/schedules.spec.ts'] : undefined)),
-  testIgnore: (AUTH_MODE || AUTH_TOKEN || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts'],
+  testIgnore: (AUTH_MODE || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts'],
   // Replay is deterministic but the UI is global mutable state behind one backend;
   // run serially so command-button tests don't race each other's optimistic updates.
   fullyParallel: false,
@@ -160,7 +155,6 @@ export default defineConfig({
       '--jandy-disable-emulation',
       '--profiler tracy',
       ...LOG_CHANNELS.map((ch) => `--loglevel-${ch} info`),
-      ...(AUTH_TOKEN ? [`--api-auth-token ${AUTH_TOKEN}`] : []),
       ...(AUTH_MODE
         ? [
             '--auth-mode enabled',
