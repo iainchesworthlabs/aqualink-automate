@@ -96,3 +96,4 @@ nav:
       - Git worktrees: worktrees.md
       - Record / replay: RECORD_REPLAY.md
       - Profiling: profiling.md
+      - Logging sinks: logging-sinks-redesign.md

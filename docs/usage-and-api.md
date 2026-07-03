@@ -62,7 +62,7 @@ On load the page:
 
 The WebSocket client opens `/ws/equipment` and `/ws/equipment/stats`, matching the page protocol (`ws://` for HTTP, `wss://` for HTTPS). It reconnects with exponential backoff from 1 s up to 30 s. When a token is stored it is attached as the `['aqualink', 'bearer.<token>']` WebSocket subprotocols.
 
-Beyond the main dashboard (pictured in the [README](../README.md)), the UI includes a Trends view over the recorded history (`--history-db`), a Schedules view for the app scheduler (`--schedules-file`), and a Settings view combining per-browser appearance options with server-side system preferences:
+Beyond the main dashboard (pictured in the [README](https://github.com/iainchesworth/aqualink-automate/blob/main/README.md)), the UI includes a Trends view over the recorded history (`--history-db`), a Schedules view for the app scheduler (`--schedules-file`), and a Settings view combining per-browser appearance options with server-side system preferences:
 
 ![The Trends view — temperature, water-chemistry, and equipment-runtime history](assets/webui-trends.png)
 

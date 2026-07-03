@@ -113,11 +113,11 @@ subject**; save is rejected if any action would be denied. Existing schedules co
 ### Enforcement change (the core refactor — Slice 1)
 
 Today `EvaluateSecurity()` is a single all-or-nothing gate in
-[`routing.cpp`](../src/core/http/server/routing/routing.cpp). New flow:
+[`routing.cpp`](https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/http/server/routing/routing.cpp). New flow:
 
 1. **Subject resolution** (new middleware): session JWT / API key / proxy header / anonymous → `Subject { id, entitlements, groups, attrs }`, attached to request context.
 2. **Coarse gate**: keep rate-limit, Origin, CSRF (see §5); rate-limiter gains per-account tracking for login and **trusted-proxy-aware client-IP** (X-Forwarded-For honored only from the configured trusted CIDR — otherwise every client behind a proxy shares one IP bucket).
-3. **Per-route authorization via PDP**: each route declares the `(action, resource-descriptor)` it needs; the handler resolves resource attributes (e.g. aux id from the path) and calls `PolicyEngine.Decide(...)`. Extends the per-route `RequiresAuthentication()` hook in [`iwebroute.h`](../src/core/interfaces/iwebroute.h) into a `RequiredAccess()` (action + resource-kind) concept.
+3. **Per-route authorization via PDP**: each route declares the `(action, resource-descriptor)` it needs; the handler resolves resource attributes (e.g. aux id from the path) and calls `PolicyEngine.Decide(...)`. Extends the per-route `RequiresAuthentication()` hook in [`iwebroute.h`](https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/interfaces/iwebroute.h) into a `RequiredAccess()` (action + resource-kind) concept.
 4. **Response filtering**: control affordances gated client- **and** server-side by PDP decisions. New **`/api/auth/me`** returns the resolved subject + effective entitlements so the SPA can gate affordances (lock icons, hidden admin nav) from one source of truth.
 
 ## 5. Sessions & tokens (D2, D11, D15)
@@ -160,7 +160,7 @@ operate the commissioned fabric has full control regardless of HTTP-side entitle
 
 - **Per-user** (server-synced when logged in; localStorage fallback/first-paint for anonymous): temperature units, theme, accent, chemistry display bands.
 - **System/admin** (global, `system.admin` only): alert thresholds, salt-low, comms-timeout, webhook URL, history retention, label overrides, spa-switch mapping.
-- **Model**: split [`PreferencesHub`](../src/core/kernel/preferences_hub.h)/[`PreferencesService`](../src/core/preferences/preferences_service.cpp) into a **system** store (existing global file) and a **per-user** store keyed by user id. `GET/PUT /api/preferences` becomes subject-aware (returns merged global-defaults + user overrides). Theme/accent stores in `assets/web/scripts/stores/` gain a server-sync path for logged-in users.
+- **Model**: split [`PreferencesHub`](https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/kernel/preferences_hub.h)/[`PreferencesService`](https://github.com/iainchesworth/aqualink-automate/blob/main/src/core/preferences/preferences_service.cpp) into a **system** store (existing global file) and a **per-user** store keyed by user id. `GET/PUT /api/preferences` becomes subject-aware (returns merged global-defaults + user overrides). Theme/accent stores in `assets/web/scripts/stores/` gain a server-sync path for logged-in users.
 
 ## 9. UI surface (D6)
 

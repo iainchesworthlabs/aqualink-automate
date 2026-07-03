@@ -8,6 +8,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.11.0-beta.1] - 2026-07-03
+
+The authentication and internationalization release. Aqualink Automate gains a full optional identity system (first-run admin setup, username/password sign-in, roles-free attribute-based access control, guest mode, and a users/groups/API-keys admin UI), and the entire web interface is now translatable, shipping in nine languages with full right-to-left support. Under the hood, a redesigned logging subsystem adds file and JSON logs plus platform-native sinks, the app can run as a managed Windows service, and temperature reporting is now honest about stale or missing readings. Authentication is off by default, so existing installs are unaffected until you turn it on.
+
+### Added
+
+- **Optional identity system.** `--auth-mode enabled` requires sign-in: a first-run wizard creates the initial administrator, then users log in with a username and password (argon2id-hashed). Off by default — the app behaves exactly as before.
+- **Attribute-based access control (ABAC).** Fine-grained entitlements resolved through person → group → entitlement, with a default-deny policy engine enforcing every request server-side. No fixed roles.
+- **Administration UI.** Manage users, groups, entitlements, API keys, and active sessions, with a full password lifecycle (change/reset and session revocation).
+- **Guest mode + kiosk PIN.** An administrator can grant anonymous visitors a read-only Guest scope for wall-panel/kiosk use, with locked controls that a kiosk PIN can elevate.
+- **Sessions and sign-in methods.** Local accounts, API keys, and a stateless JWT session model (login/refresh/logout); session revocation propagates immediately to live WebSocket connections. An in-app OIDC framework is scaffolded.
+- **Per-user preferences.** Temperature units, theme, accent, and chemistry bands are stored per user when signed in.
+- **Internationalization.** The web UI is fully translatable and ships with English, German, Spanish, French, Arabic, Hebrew, Japanese, Chinese, and Yiddish catalogs. Arabic, Hebrew, and Yiddish render with a fully mirrored right-to-left layout and vendored per-script fonts. Numbers, temperatures, digits, and durations format per locale; API errors and alert details are translated from structured payloads.
+- **File and JSON logs.** A rotating file sink (`--log-file`) and a structured JSON log format (`--log-format json`) alongside the console.
+- **Platform-native log sinks.** journald on systemd Linux, the Apple unified log on macOS, and the Windows Event Log, selected automatically or via `--log-sinks`; the security-audit trail is now a separate durable subsystem.
+- **Run as a managed Windows service.**
+- **Honest stale/missing temperature display**, backed by a new `temperature_stale` alert condition.
+
+### Changed
+
+- **Temperature display units flow everywhere** — the display-units preference is honored by the dashboard, the Trends chart, and MQTT / Home Assistant setpoint entities.
+
+### Fixed
+
+- **WebSocket authentication under the identity system** — the token now rides the WebSocket subprotocol, since browsers cannot set an `Authorization` header on the upgrade.
+- **Pool temperature no longer reports the heat setpoint** as the water temperature.
+- **Several GCC/Clang-only memory bugs** surfaced by full multi-platform CI (a preferences use-after-free, a JSON container that initialized as an array, and two static-teardown heap corruptions); Windows was unaffected.
+- **Idle WebSockets stay alive** through reverse-proxy timeouts.
+- Numerous i18n and web-UI polish fixes (viewport-clamped alerts dropdown, synchronous locale load at boot, Matter commissioning-QR scaling, settings-view auth timing).
+
 ## [0.10.0-beta.1] - 2026-07-02
 
 A major release headlined by a complete redesign of the web interface on a new "calm-premium" design system, plus a unified Schedules view, a net-new Detailed system view, and user-selectable theming. Under the hood the latency tracker gains a rolling 900-second window. All additions are backward-compatible.
