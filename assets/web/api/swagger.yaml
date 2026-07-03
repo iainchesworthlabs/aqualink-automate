@@ -254,6 +254,13 @@ paths:
                   id:
                     type: string
                     description: Stable subject identity ("anonymous" when unauthenticated)
+                  username:
+                    type: string
+                    description: >-
+                      Human-readable name for the subject — the local account's
+                      username, or an API key's label. Empty when the provider
+                      has no natural name (anonymous, kiosk PIN sessions);
+                      clients should fall back to `id`.
                   authenticated:
                     type: boolean
                     description: True only when a valid credential was presented and verified
@@ -274,6 +281,7 @@ paths:
               example:
                 posture: enabled
                 id: anonymous
+                username: ''
                 authenticated: false
                 provider: Anonymous
                 groups:

@@ -209,6 +209,7 @@ document.addEventListener('alpine:init', () => {
 
         // Resolved identity (from /api/auth/me)
         id: '',
+        username: '',
         provider: '',
         groups: [],
         entitlements: [],
@@ -270,6 +271,7 @@ document.addEventListener('alpine:init', () => {
             this.setupRequired = !!me.setup_required;
             this.kioskEnabled = !!me.kiosk_enabled;
             this.id = me.id || '';
+            this.username = me.username || '';
             this.provider = me.provider || '';
             this.groups = Array.isArray(me.groups) ? me.groups : [];
             this.entitlements = Array.isArray(me.entitlements) ? me.entitlements : [];
@@ -499,6 +501,7 @@ document.addEventListener('alpine:init', () => {
             this.ready = false;
             this.showLogin = true;
             this.id = '';
+            this.username = '';
             this.groups = [];
             this.entitlements = [];
             try {
