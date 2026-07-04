@@ -31,6 +31,13 @@ const DOC_ROOT = process.env.AQUALINK_DOC_ROOT ?? path.join(ROOT, 'assets', 'web
 const OUT = process.env.OUT_DIR ?? path.join(os.tmpdir(), 'aqualink-responsive-shots');
 const PORT = Number(process.env.PORT ?? 18200);
 
+// Auth-mode: boot the identity system with a bootstrapped admin so the login,
+// account and admin modals can be triggered and captured. Set AQUALINK_AUTH_MODE=enabled.
+const AUTH = process.env.AQUALINK_AUTH_MODE === 'enabled';
+const ADMIN_USER = 'admin';
+const ADMIN_PW = process.env.AQUALINK_BOOTSTRAP_ADMIN_PASSWORD || 'aqualink-test-pw-123456';
+const AUTH_STATE_DIR = AUTH ? fs.mkdtempSync(path.join(os.tmpdir(), 'aqualink-resp-auth-')) : null;
+
 // --replay-filename depends on --dev-mode, --profiler and every per-channel log
 // level (matches the manual boot recipe; the profiler falls back to no-op).
 const LOG_CHANNELS = [
@@ -100,6 +107,42 @@ async function seedSchedules(base) {
   } catch (e) { console.log('  (schedule seed skipped: ' + e.message + ')'); }
 }
 
+// Auth-mode: capture the login, account and admin modals at each viewport.
+async function captureAuthModals(browser, base) {
+  for (const vp of VIEWPORTS) {
+    const ctx = await browser.newContext({ baseURL: base, viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1, serviceWorkers: 'block' });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    // Login overlay appears (identity on, not authenticated).
+    await page.locator('.login-overlay .login-card').waitFor({ timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: path.join(OUT, `modal-login-${vp.name}.png`) });
+    console.log(`ok  modal-login-${vp.name}`);
+    // Sign in as the bootstrapped admin.
+    const inputs = page.locator('.login-overlay .login-input');
+    if ((await inputs.count()) >= 2) {
+      await inputs.nth(0).fill(ADMIN_USER);
+      await inputs.nth(1).fill(ADMIN_PW);
+      await page.locator('.login-overlay .login-submit').first().click();
+      await page.locator('.login-overlay').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(1200);
+    }
+    // Account modal.
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('account:open')));
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: path.join(OUT, `modal-account-${vp.name}.png`) });
+    console.log(`ok  modal-account-${vp.name}`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+    // Admin modal.
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('admin:open')));
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: path.join(OUT, `modal-admin-${vp.name}.png`) });
+    console.log(`ok  modal-admin-${vp.name}`);
+    await ctx.close();
+  }
+}
+
 if (!fs.existsSync(EXE)) {
   console.error(`Application binary not found at ${EXE}.\nSet AQUALINK_EXE to a built exe.`);
   process.exit(1);
@@ -120,7 +163,12 @@ function startApp() {
     '--jandy-disable-emulation',
     '--profiler', 'tracy',
     ...LOG_CHANNELS.flatMap((ch) => [`--loglevel-${ch}`, 'info']),
-  ], { cwd: path.dirname(EXE), stdio: ['ignore', 'pipe', 'pipe'] });
+    ...(AUTH ? ['--auth-mode', 'enabled', '--auth-state-dir', AUTH_STATE_DIR, '--bootstrap-admin', ADMIN_USER] : []),
+  ], {
+    cwd: path.dirname(EXE),
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: AUTH ? { ...process.env, AQUALINK_BOOTSTRAP_ADMIN_PASSWORD: ADMIN_PW } : process.env,
+  });
   child.stdout.pipe(log);
   child.stderr.pipe(log);
   return child;
@@ -144,6 +192,9 @@ async function waitReady(timeoutMs = 90_000) {
     await new Promise((r) => setTimeout(r, 10_000));
     browser = await chromium.launch();
     const base = `http://127.0.0.1:${PORT}`;
+    if (AUTH) {
+      await captureAuthModals(browser, base);
+    } else {
     await seedSchedules(base);
 
     for (const vp of VIEWPORTS) {
@@ -186,6 +237,7 @@ async function waitReady(timeoutMs = 90_000) {
         }
       }
       await ctx.close();
+    }
     }
   } finally {
     if (browser) await browser.close();
