@@ -36,6 +36,7 @@ namespace AqualinkAutomate::Scheduling
 		std::string id;
 		std::string name;
 		std::string target;             // equipment / circuit label the program drives
+		std::string group;              // program group this entry belongs to ("A"/"B" or a custom label)
 		bool enabled{ true };
 		std::uint8_t days_of_week{ 0 }; // bitmask, bit0 = Monday .. bit6 = Sunday
 		int on_hour{ 0 };               // 0..23 (local wall-clock)
@@ -66,18 +67,27 @@ namespace AqualinkAutomate::Scheduling
 		ControllerScheduleStatus Status() const { return m_Status; }
 		const std::vector<ControllerSchedule>& List() const { return m_Schedules; }
 
+		// The program group the snapshot was read from ("A"/"B" or a custom label).
+		// Only the currently-active group's programs are observable on the wire, so
+		// this identifies which group the listed schedules belong to (empty until a
+		// schedule page has been parsed).
+		const std::string& ActiveGroup() const { return m_ActiveGroup; }
+
 		// Replace the snapshot (called by the page processor after a successful
 		// parse). Setting Available with the parsed spans, or Unsupported when the
-		// present device is known not to expose a schedule menu.
-		void Replace(ControllerScheduleStatus status, std::vector<ControllerSchedule> schedules)
+		// present device is known not to expose a schedule menu. active_group names
+		// the program group the spans were read from.
+		void Replace(ControllerScheduleStatus status, std::vector<ControllerSchedule> schedules, std::string active_group = {})
 		{
 			m_Status = status;
 			m_Schedules = std::move(schedules);
+			m_ActiveGroup = std::move(active_group);
 		}
 
 	private:
 		ControllerScheduleStatus m_Status{ ControllerScheduleStatus::PendingCapture };
 		std::vector<ControllerSchedule> m_Schedules;
+		std::string m_ActiveGroup;
 	};
 
 }

@@ -87,6 +87,10 @@ namespace AqualinkAutomate::Devices
 
 		m_ProfilingDomain->Start();
 
+		// Read-only sink for the controller's internal schedules parsed off the
+		// Schedule list page. Absent on a passive/test rig that registers no store.
+		m_ControllerScheduleStore = hub_locator.TryFind<Scheduling::ControllerScheduleStore>();
+
 		m_SM_PageUpdate.initiate();
 		m_SM_TableUpdate.initiate();
 

@@ -20,6 +20,8 @@
 #include "devices/capabilities/setpoint_controller.h"
 #include "devices/capabilities/spa_switch_configurator.h"
 #include "devices/iaq/iaq_page_registry.h"
+#include "devices/iaq/iaq_schedule_parser.h"
+#include "scheduling/controller_schedule.h"
 #include "messages/jandy_message_probe.h"
 #include "messages/iaq/iaq_message_aux_status.h"
 #include "messages/iaq/iaq_message_command_ready.h"
@@ -50,6 +52,12 @@ namespace AqualinkAutomate::Devices
 		inline static const uint8_t IAQ_STATUS_PAGE_LINES = 18;
 		inline static const uint8_t IAQ_MESSAGE_TABLE_LINES = 18;
 		inline static const std::chrono::seconds IAQ_TIMEOUT_DURATION{ std::chrono::seconds(30) };
+
+		// PageStart id of the controller's Schedule list ("Schedule Group A/B"): its
+		// TableMessage (0x26) rows are the controller's internal program entries. RE'd
+		// from a live capture (docs/iaq_schedule_protocol.md); the row parser rejects
+		// non-schedule text, so a same-id page on another model cannot yield garbage.
+		inline static const uint8_t IAQ_SCHEDULE_PAGE_ID = 0x28;
 
 		enum class OperatingStates
 		{
@@ -216,6 +224,26 @@ namespace AqualinkAutomate::Devices
 		// detail). Used to page-GATE the spa-switch writer so it never issues a row-select/commit
 		// off the detail page.
 		uint8_t m_CurrentPageId{ 0x00 };
+
+		// Accumulators for reading the controller's internal schedules off the Schedule
+		// list page (IAQ_SCHEDULE_PAGE_ID). The page title carries the program group
+		// ("Schedule Group A"/"B" or a custom label); each schedule row arrives as a
+		// TableMessage (0x26) keyed by its Attribute byte (the 1-based entry ordinal;
+		// LineId is a constant 0 across rows so cannot distinguish them). Both are reset
+		// on PageStart and, when the completed page is the Schedule list, parsed into the
+		// ControllerScheduleStore on PageEnd.
+		std::string m_CurrentPageTitle;
+		std::map<uint8_t, std::string> m_ScheduleRows;
+
+		// Resolved from the HubLocator: the read-only snapshot of the controller's own
+		// internal schedules that the /api/controller/schedules route serves. Null-safe
+		// (a passive/test rig may not register one). Populated by PublishSchedulePage().
+		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore;
+
+		// Parse the just-completed Schedule list page (m_ScheduleRows + m_CurrentPageTitle)
+		// into ControllerSchedule spans and swap them into the store, tagged with the
+		// active program group. A no-op when the store is absent.
+		void PublishSchedulePage();
 
 		// The 4-Function detail page's device/function PICKER (group-0x01 TableMessages): the live
 		// slot(attr) -> function rows, rebuilt each time the picker page renders. The writer scrolls

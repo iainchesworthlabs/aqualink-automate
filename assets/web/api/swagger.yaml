@@ -1208,24 +1208,29 @@ paths:
         capable device is present but the page parser is not yet wired) or
         `unsupported` (no device exposes a schedule menu). Each entry is a SPAN
         (on_local..off_local) rather than a point action, distinguishing it from
-        the app-side /api/schedules entries in a unified view. Writing controller
+        the app-side /api/schedules entries in a unified view. The controller
+        stores two program groups (A/B); only the currently-active group's
+        schedules are observable, so `active_group` names the group the listed
+        entries belong to and each entry carries its `group`. Writing controller
         schedules is not yet supported.
       operationId: listControllerSchedules
       responses:
         '200':
-          description: Source status plus the array of controller schedules
+          description: Source status, active program group, plus the array of controller schedules
           content:
             application/json:
               example:
-                status: "pending_capture"
+                status: "available"
+                active_group: "A"
                 schedules:
-                  - id: "program-1"
-                    name: "Filter pump"
+                  - id: "iaq-A-1"
+                    name: "Filter Pump"
                     target: "Filter Pump"
+                    group: "A"
                     enabled: true
                     days_of_week: 127
-                    on_local: "08:00"
-                    off_local: "12:00"
+                    on_local: "11:00"
+                    off_local: "14:00"
         '503': { description: Controller schedule store is unavailable }
         '401':
           $ref: '#/components/responses/Unauthorized'

@@ -42,6 +42,17 @@ namespace AqualinkAutomate::Test
 	// flat byte vector.  Throws std::runtime_error if the file cannot be opened.
 	std::vector<uint8_t> LoadFixture(const std::string& fixture_path);
 
+	// As LoadFixture(), but split the flat stream into individual wire frames
+	// (each a DLE/STX .. DLE/ETX packet, DLE-stuffing respected). Bytes outside a
+	// frame are dropped. Use with Replay(frames) so each frame arrives in its own
+	// read/Poll -- a single flat Replay() only drains one read chunk per Poll, so a
+	// capture longer than one chunk would otherwise be truncated mid-stream.
+	std::vector<std::vector<uint8_t>> LoadFixtureFrames(const std::string& fixture_path);
+
+	// Convenience: LoadFixtureFrames() then Replay() each frame through the harness
+	// (one read/Poll per frame). Returns the frames replayed.
+	std::vector<std::vector<uint8_t>> ReplayFixtureFramed(MockReplayHarness& harness, const std::string& fixture_path);
+
 	// Convenience: LoadFixture() the given capture and Replay() the resulting
 	// byte stream through an already-constructed MockReplayHarness (devices the
 	// caller wants to assert on must already be AddDevice()'d).  Returns the bytes

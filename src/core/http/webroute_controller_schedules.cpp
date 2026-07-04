@@ -41,6 +41,7 @@ namespace AqualinkAutomate::HTTP
 
 			nlohmann::json body{
 				{ "status", std::string{ Scheduling::ControllerScheduleStatusToString(m_Store->Status()) } },
+				{ "active_group", m_Store->ActiveGroup() },
 				{ "schedules", std::move(arr) },
 			};
 			return MakeJsonResponse(req, HTTP::Status::ok, body.dump());

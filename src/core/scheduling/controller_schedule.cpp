@@ -22,6 +22,7 @@ namespace AqualinkAutomate::Scheduling
 			{ "id", schedule.id },
 			{ "name", schedule.name },
 			{ "target", schedule.target },
+			{ "group", schedule.group },
 			{ "enabled", schedule.enabled },
 			{ "days_of_week", schedule.days_of_week },
 			{ "on_local", std::format("{:02d}:{:02d}", schedule.on_hour, schedule.on_minute) },

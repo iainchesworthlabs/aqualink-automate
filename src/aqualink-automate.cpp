@@ -622,6 +622,15 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 		// SUPPORTED EQUIPMENT
 		//---------------------------------------------------------------------
 
+		// Read-only snapshot of the controller's own internal schedules. Always
+		// present (independent of --schedules-file) so the route can report a
+		// status; the OneTouch/IAQ Program page processors fill it in once a
+		// capture has been decoded. Registered BEFORE the equipment is configured so
+		// a statically-created emulated device can resolve and populate it in its
+		// constructor (auto-startup devices are created later, on the io_context).
+		auto controller_schedule_store = std::make_shared<Scheduling::ControllerScheduleStore>();
+		hub_locator.Register<Scheduling::ControllerScheduleStore>(controller_schedule_store);
+
 		Jandy::Configure(hub_locator, settings);
 		Pentair::Configure(hub_locator, settings);
 
@@ -742,14 +751,6 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 				LogInfo(Channel::Main, std::format("Scheduler enabled (file: {})", scheduling_settings.schedules_file));
 			}
 		}
-
-		// Read-only snapshot of the controller's own internal schedules. Always
-		// present (independent of --schedules-file) so the route can report a
-		// status; the OneTouch/IAQ Program page processors fill it in once a
-		// capture has been decoded. Registered so the Jandy device side can resolve
-		// and populate it.
-		auto controller_schedule_store = std::make_shared<Scheduling::ControllerScheduleStore>();
-		hub_locator.Register<Scheduling::ControllerScheduleStore>(controller_schedule_store);
 
 		auto web_settings_result = settings.Get<Options::Web::WebSettings>();
 
