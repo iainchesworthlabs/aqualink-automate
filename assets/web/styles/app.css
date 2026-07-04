@@ -1342,6 +1342,11 @@ a:hover {
 .info-grid dd {
     margin: 0;
     color: var(--text-primary);
+    /* Let the value column actually shrink to its track and break long
+       unbroken strings (e.g. the homepage URL), instead of forcing the grid
+       wider than its container (horizontal overflow on narrow screens). */
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 /* === Device Status (diagnostics) === */

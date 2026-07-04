@@ -3013,4 +3013,23 @@ main input[type="range"] { accent-color: var(--accent); }
        several lines. */
     .sched-row { flex-wrap: wrap; gap: 10px 14px; padding: 14px 16px; }
     .sched-actions, .sched-readonly { flex-basis: 100%; justify-content: flex-end; }
+
+    /* Diagnostics bandwidth-chart header: the Live indicator + window selector
+       (1m/5m/15m/…) is wider than a phone; let it wrap instead of overflowing. */
+    .bw-head-right { flex-wrap: wrap; }
+    .window-selector { flex-wrap: wrap; }
+
+    /* Diagnostics message-stats + MQTT cards: the grid already stacks to one
+       column, but each card's inner rows carry a fixed-width right block
+       (count/rate + last-seen = 110+80px) plus a non-wrapping type label, so the
+       card's min-content still exceeds a phone's width and overflows ~18px.
+       Let the cards (grid items) shrink below content, trim the right-column
+       widths, and let the type label / MQTT values ellipsis-or-wrap. */
+    .msg-stats-card, .mqtt-card { min-width: 0; padding: 18px 16px; }
+    .mstat-col-head, .mstat-row { gap: 10px; }
+    .mstat-cw-count { width: 88px; }
+    .mstat-cw-last  { width: 62px; }
+    .mstat-type { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mqtt-val { min-width: 0; overflow-wrap: anywhere; }
+    .mqtt-mono { overflow-wrap: anywhere; }
 }
