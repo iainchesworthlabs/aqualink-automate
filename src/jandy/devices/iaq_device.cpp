@@ -85,6 +85,12 @@ namespace AqualinkAutomate::Devices
 		constexpr uint8_t IAQ_CMD_OPEN_ON_FIELD{ 0x21 };
 		constexpr uint8_t IAQ_CMD_OPEN_OFF_FIELD{ 0x22 };
 		constexpr uint8_t IAQ_CMD_AMPM_TOGGLE{ 0x11 };
+		// Editing an existing program on the list (0x28): click program row R -> 0x22 + R (row1 0x23,
+		// row2 0x24, ...); Delete = 0x13 -> confirm dialog; Ok = 0x01 (Cancel = 0x02/Back). Verified
+		// against the 0x40 highlight in captures/iaq_editdelete.cap.
+		constexpr uint8_t IAQ_SCHEDULE_ROW_BASE{ 0x22 };   // click program row R -> 0x22 + R
+		constexpr uint8_t IAQ_CMD_DELETE_PROGRAM{ 0x13 };  // Delete -> confirm dialog
+		constexpr uint8_t IAQ_CMD_CONFIRM_OK{ 0x01 };      // Ok on the confirm dialog
 		// Day keys on the schedule list (0x28): the day-selection touch cells.
 		constexpr uint8_t IAQ_CMD_DAY_ALL{ 0x17 };
 		constexpr uint8_t IAQ_CMD_DAY_MON{ 0x18 };  // then Tue..Sun are consecutive
@@ -661,9 +667,42 @@ namespace AqualinkAutomate::Devices
 		}
 
 		ScheduleWriteGoal goal;
+		goal.op = ScheduleWriteOp::Create;
 		goal.program = program;
 		goal.desc = std::format("create controller program '{}'", program.target);
+		QueueScheduleWrite(std::move(goal));
+		return Capabilities::ActuationResult::Accepted;
+	}
 
+	Capabilities::ActuationResult IAQDevice::DeleteControllerProgram(const Scheduling::ControllerSchedule& program)
+	{
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::DeleteControllerProgram", std::source_location::current());
+
+		if (!IsEmulated())
+		{
+			LogDebug(Channel::Devices, [this]() { return std::format("IAQ ({}): DeleteControllerProgram rejected -- device is passive (not emulated)", DeviceId()); });
+			return Capabilities::ActuationResult::NotSupported;
+		}
+		if (m_PendingScheduleWrite.has_value() || m_PendingSpaSwitchWrite.has_value() || !m_CommandQueue.empty() || m_AwaitingControlReady)
+		{
+			LogWarning(Channel::Devices, [this]() { return std::format("IAQ ({}): busy - rejecting controller-schedule delete", DeviceId()); });
+			return Capabilities::ActuationResult::NotSupported;
+		}
+		if (program.target.empty())
+		{
+			return Capabilities::ActuationResult::InvalidValue;
+		}
+
+		ScheduleWriteGoal goal;
+		goal.op = ScheduleWriteOp::Delete;
+		goal.program = program;
+		goal.desc = std::format("delete controller program '{}'", program.target);
+		QueueScheduleWrite(std::move(goal));
+		return Capabilities::ActuationResult::Accepted;
+	}
+
+	void IAQDevice::QueueScheduleWrite(ScheduleWriteGoal goal)
+	{
 		m_PendingScheduleWrite = std::move(goal);
 		m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;
 		m_ScheduleWritePollCount = 0;
@@ -674,7 +713,6 @@ namespace AqualinkAutomate::Devices
 		m_ScheduleTimeFieldOpened = false;
 
 		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): queued {}", DeviceId(), m_PendingScheduleWrite->desc); });
-		return Capabilities::ActuationResult::Accepted;
 	}
 
 	void IAQDevice::ControllerScheduleWrite_ProcessStep()
@@ -774,6 +812,15 @@ namespace AqualinkAutomate::Devices
 			m_ScheduleWritePhase = next;
 		};
 
+		// Does a parsed list row match the goal's program (target + day + on/off times)?
+		auto matches_program = [&](const Scheduling::ControllerSchedule& row)
+		{
+			return eq_ci(row.target, goal.program.target)
+				&& row.days_of_week == goal.program.days_of_week
+				&& row.on_hour == goal.program.on_hour && row.on_minute == goal.program.on_minute
+				&& row.off_hour == goal.program.off_hour && row.off_minute == goal.program.off_minute;
+		};
+
 		switch (m_ScheduleWritePhase)
 		{
 		case ScheduleWritePhase::NavigateToList:
@@ -782,7 +829,10 @@ namespace AqualinkAutomate::Devices
 			switch (m_CurrentPageId)
 			{
 			case IAQ_SCHEDULE_PAGE_ID:
-				m_ScheduleWritePhase = ScheduleWritePhase::AddProgram;   // arrived; act next poll
+				// Arrived on the list: create adds a program, delete finds the row to remove.
+				m_ScheduleWritePhase = (goal.op == ScheduleWriteOp::Delete)
+					? ScheduleWritePhase::SelectRow
+					: ScheduleWritePhase::AddProgram;
 				return;
 
 			case IAQ_PAGE_MENU:
@@ -890,6 +940,67 @@ namespace AqualinkAutomate::Devices
 				}
 			}
 			m_PendingCommand = 0x00;   // dwell until the list re-renders (or the poll backstop fires)
+			return;
+		}
+
+		case ScheduleWritePhase::SelectRow:
+		{
+			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			{
+				m_PendingCommand = 0x00;   // dwell until the list renders
+				return;
+			}
+			if (m_ScheduleRows.empty())
+			{
+				m_PendingCommand = 0x00;   // list not populated yet; wait (poll backstop bounds it)
+				return;
+			}
+			// Click the row whose parsed contents match the program to delete.
+			for (const auto& [ordinal, text] : m_ScheduleRows)
+			{
+				if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && matches_program(parsed.value()))
+				{
+					issue(static_cast<uint8_t>(IAQ_SCHEDULE_ROW_BASE + ordinal));   // highlight the target row
+					m_ScheduleWritePhase = ScheduleWritePhase::PressDelete;
+					return;
+				}
+			}
+			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- no matching program row to delete (target='{}')", DeviceId(), goal.desc, goal.program.target); });
+			finish(false);
+			return;
+		}
+
+		case ScheduleWritePhase::PressDelete:
+		{
+			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			{
+				m_PendingCommand = 0x00;
+				return;
+			}
+			issue(IAQ_CMD_DELETE_PROGRAM);   // Delete -> the master raises the confirm dialog
+			m_ScheduleWritePhase = ScheduleWritePhase::ConfirmDelete;
+			return;
+		}
+
+		case ScheduleWritePhase::ConfirmDelete:
+		{
+			issue(IAQ_CMD_CONFIRM_OK);        // Ok on the confirm dialog -> removes the program
+			m_ScheduleWritePhase = ScheduleWritePhase::VerifyGone;
+			return;
+		}
+
+		case ScheduleWritePhase::VerifyGone:
+		{
+			// Complete once the target program is no longer present in the parsed list.
+			for (const auto& [ordinal, text] : m_ScheduleRows)
+			{
+				if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && matches_program(parsed.value()))
+				{
+					m_PendingCommand = 0x00;   // still listed; dwell until the list re-renders
+					return;
+				}
+			}
+			finish(true);
 			return;
 		}
 

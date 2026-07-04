@@ -151,6 +151,11 @@ namespace AqualinkAutomate::Devices
 		// (a non-emulated iAQ never transmits); Busy if a write is already in flight.
 		Capabilities::ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program);
 
+		// DELETE an existing controller program: navigate to the Schedule list, click the row whose
+		// parsed contents match `program` (target + day + on/off times), press Delete, and confirm.
+		// NotSupported when passive / busy; InvalidValue if no matching row is present to remove.
+		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program);
+
 	public:
 		// Operating-state queries (also exercised by the device tests).
 		bool IsInNormalOperation() const { return m_OpState == OperatingStates::NormalOperation; }
@@ -316,6 +321,11 @@ namespace AqualinkAutomate::Devices
 		// visible row R with command (IAQ_SCHEDULE_PICK_ROW_BASE + R), scroll with 0x12, confirm with
 		// 0x13. Times (SetOnTime/SetOffTime via 0x21/0x22 + the value-submit handshake) are decoded
 		// and land as the final increment; this build completes device selection + the day.
+		enum class ScheduleWriteOp
+		{
+			Create,   // add a new program (device -> times -> day)
+			Delete,   // remove an existing program (click its row -> Delete -> Ok)
+		};
 		enum class ScheduleWritePhase
 		{
 			NavigateToList,  // page-gated walk to the Schedule list (0x28)
@@ -325,12 +335,17 @@ namespace AqualinkAutomate::Devices
 			SetOffTime,      // open the OFF field (0x22) -> time picker -> AM/PM toggle + submit
 			SetDay,          // on the list, press the day key (0x17-0x20) for the desired selection
 			Verify,          // confirm the new program is present in the parsed list
+			SelectRow,       // (delete) click the target program's row (0x22 + ordinal) to highlight it
+			PressDelete,     // (delete) press Delete (0x13) -> the confirm dialog
+			ConfirmDelete,   // (delete) press Ok (0x01) on the confirm dialog
+			VerifyGone,      // (delete) confirm the program is no longer in the parsed list
 			Done,
 			Failed,
 		};
 		struct ScheduleWriteGoal
 		{
-			Scheduling::ControllerSchedule program;  // target device + on/off + day mask to write
+			ScheduleWriteOp op{ ScheduleWriteOp::Create };
+			Scheduling::ControllerSchedule program;  // target device + on/off + day mask to write / match
 			std::string desc;
 		};
 		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;
@@ -346,6 +361,9 @@ namespace AqualinkAutomate::Devices
 		// render from its group-0x00 TableMessages (attribute -> device label). Used to decide
 		// whether the target device is visible (else scroll).
 		std::map<uint8_t, std::string> m_DevicePickerRows;
+
+		// Arm a schedule-write goal (create or delete) and reset the per-goal state.
+		void QueueScheduleWrite(ScheduleWriteGoal goal);
 
 		// Service the pending schedule-write goal: examine the current page + decoded state and emit
 		// at most one command (into m_PendingCommand) per poll, page-gated on m_CurrentPageId.

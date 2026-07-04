@@ -268,4 +268,54 @@ BOOST_AUTO_TEST_CASE(Create_ScrollsPicker_WhenDeviceNotOnFirstPage)
 	BOOST_CHECK_EQUAL(static_cast<int>(cmds[3]), 0x13);   // OK
 }
 
+//--- delete an existing program ---------------------------------------------
+
+BOOST_AUTO_TEST_CASE(Delete_NotEmulated_IsNotSupported_EmptyTarget_IsInvalid)
+{
+	Test::MockReplayHarness harness;
+	auto id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_UI_ID));
+	IAQDevice passive(id, harness.HubLocatorRef(), /*is_emulated=*/false);
+	BOOST_CHECK(passive.DeleteControllerProgram(ValidProgram("Pool Heat")) == Capabilities::ActuationResult::NotSupported);
+
+	IAQDevice device(id, harness.HubLocatorRef(), /*is_emulated=*/true);
+	BOOST_CHECK(device.DeleteControllerProgram(ValidProgram("")) == Capabilities::ActuationResult::InvalidValue);
+}
+
+BOOST_AUTO_TEST_CASE(Delete_ClicksRow_Delete_Ok_AndCompletes)
+{
+	Test::MockReplayHarness harness;
+	auto id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_UI_ID));
+	IAQDevice device(id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	std::vector<uint8_t> cmds;
+	boost::signals2::scoped_connection conn = Messages::JandyMessage_Ack::GetPublisher()->connect(
+		[&cmds](std::reference_wrapper<const Messages::JandyMessage_Ack> r)
+		{ if (r.get().Command() != 0x00) { cmds.push_back(r.get().Command()); } });
+
+	auto poll_until = [&](std::size_t n)
+	{ for (int i = 0; (i < 40) && (cmds.size() < n); ++i) { harness.Replay({ Poll() }); } };
+
+	// Delete Pool Heat (row 2): all days, 11:00 AM -> 2:00 PM (matches the list row below).
+	Scheduling::ControllerSchedule target;
+	target.target = "Pool Heat"; target.days_of_week = 0x7f;
+	target.on_hour = 11; target.on_minute = 0; target.off_hour = 14; target.off_minute = 0;
+
+	ReplayList(harness, { "Filter Pump\t11:00 AM\t2:00 PM\tAll", "Pool Heat\t11:00 AM\t2:00 PM\tAll" });
+	BOOST_REQUIRE(device.DeleteControllerProgram(target) == Capabilities::ActuationResult::Accepted);
+
+	poll_until(3);   // SelectRow (click row 2 = 0x24) -> Delete (0x13) -> Ok (0x01)
+
+	// The program is gone: re-render the list without it -> VerifyGone completes.
+	ReplayList(harness, { "Filter Pump\t11:00 AM\t2:00 PM\tAll" });
+	for (int i = 0; i < 8; ++i) { harness.Replay({ Poll() }); }
+
+	BOOST_REQUIRE_EQUAL(cmds.size(), 3u);
+	BOOST_CHECK_EQUAL(static_cast<int>(cmds[0]), 0x24);   // click program row 2 (0x22 + 2)
+	BOOST_CHECK_EQUAL(static_cast<int>(cmds[1]), 0x13);   // Delete
+	BOOST_CHECK_EQUAL(static_cast<int>(cmds[2]), 0x01);   // Ok (confirm)
+
+	// Goal completed -> panel idle, a fresh request is accepted.
+	BOOST_CHECK(device.DeleteControllerProgram(target) == Capabilities::ActuationResult::Accepted);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

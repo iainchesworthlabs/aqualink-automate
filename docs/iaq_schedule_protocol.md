@@ -272,11 +272,22 @@ submit: open the field (`0x21`/`0x22`) → on the time picker read line 2, toggl
 to match, then `0x80` submit → the value rides the control-data response as `"1"+HH:MM`
 (12-hour), via the same `IAQ_ControlReady` handshake as the setpoint writer.
 
-### Still needs a capture
+### Edit / delete an existing program (`captures/iaq_editdelete.cap`, 2026-07-05) — decoded
 
-- **`Cancel` on the delete dialog** was not exercised (only Ok). Capture a cancelled delete to pin it.
-- **EDIT and DELETE** of an existing program (row-cursor select then Edit `0x12` / Delete `0x13`→Ok
-  `0x01`) reuse this machinery; a controlled edit/delete capture will confirm the row-cursor keys.
+Existing programs are rows in the list; **click program row R → `0x22 + R`** (row1 `0x23`,
+row2 `0x24`, …), confirmed against the `0x40 [00][row][sel]` highlight (pressing `0x23` highlights
+row 1, `0x24` highlights row 2). With a row highlighted:
+
+- **Edit = `0x12`** → enter edit mode, then change fields with the same keys as create
+  (ON `0x21` / OFF `0x22` + submit, days `0x17`-`0x20`).
+- **Delete = `0x13`** → the master shows the confirm dialog (PageSubMsg `0x2c`) → **Ok = `0x01`**
+  (deletes) or **Cancel = `0x02`/Back** (leaves it). Both paths observed: a cancelled delete of
+  row 1, then a confirmed delete of row 2 (= Pool Heat).
+
+So DELETE(program) = navigate to the list → find the program's row ordinal in the parsed rows →
+click it (`0x22 + ordinal`) → `0x13` → `0x01` → verify it is gone. EDIT reuses the create field
+phases after a row click + `0x12`. UI rules can add steps (e.g. a day change needing a `0x01`
+confirm); the writer tolerates extra renders via its settle/backstop.
 
 ## Implications for the store / model
 
