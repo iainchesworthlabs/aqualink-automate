@@ -11,6 +11,7 @@
 #include "devices/jandy_device_types.h"
 #include "devices/capabilities/chlorinator_controller.h"
 #include "devices/capabilities/command_history.h"
+#include "devices/capabilities/controller_schedule_writer.h"
 #include "devices/capabilities/describable.h"
 #include "devices/capabilities/device_actuator.h"
 #include "devices/capabilities/emulated.h"
@@ -47,7 +48,7 @@
 namespace AqualinkAutomate::Devices
 {
 
-	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory
+	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
 	{
 		inline static const uint8_t IAQ_STATUS_PAGE_LINES = 18;
 		inline static const uint8_t IAQ_MESSAGE_TABLE_LINES = 18;
@@ -149,12 +150,12 @@ namespace AqualinkAutomate::Devices
 		// Rejects (InvalidValue) any program the controller cannot represent -- the feasibility is
 		// the shared Scheduling::CheckControllerCandidate predicate. NotSupported when passive
 		// (a non-emulated iAQ never transmits); Busy if a write is already in flight.
-		Capabilities::ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program);
+		Capabilities::ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) override;
 
 		// DELETE an existing controller program: navigate to the Schedule list, click the row whose
 		// parsed contents match `program` (target + day + on/off times), press Delete, and confirm.
 		// NotSupported when passive / busy; InvalidValue if no matching row is present to remove.
-		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program);
+		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) override;
 
 	public:
 		// Operating-state queries (also exercised by the device tests).

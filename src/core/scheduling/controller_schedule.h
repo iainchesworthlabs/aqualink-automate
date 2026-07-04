@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -47,6 +48,14 @@ namespace AqualinkAutomate::Scheduling
 
 	// Serialise one span to the wire shape (times as "HH:MM").
 	nlohmann::json ToJson(const ControllerSchedule& schedule);
+
+	// Parse + validate a controller-program request body (as POSTed to
+	// /api/controller/schedules): { target, days_of_week, on_local "HH:MM",
+	// off_local "HH:MM", name?, group? }. Returns std::nullopt and sets `error` on
+	// any invalid field (missing/empty target, out-of-range days, bad time). id is
+	// left empty and enabled defaults true. (Named distinctly from the app-schedule
+	// FromJson, which shares the (json, error) signature.)
+	std::optional<ControllerSchedule> ControllerScheduleFromJson(const nlohmann::json& json, std::string& error);
 
 	//=========================================================================
 	// ControllerScheduleStore — the latest snapshot of the controller's internal

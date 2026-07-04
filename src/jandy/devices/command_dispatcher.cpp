@@ -7,6 +7,7 @@
 
 #include "devices/capabilities/chlorinator_controller.h"
 #include "devices/capabilities/circulation_controller.h"
+#include "devices/capabilities/controller_schedule_writer.h"
 #include "devices/capabilities/device_actuator.h"
 #include "devices/capabilities/heater_controller.h"
 #include "devices/capabilities/page_navigator.h"
@@ -15,6 +16,7 @@
 #include "devices/command_dispatcher.h"
 #include "kernel/auxillary_traits/auxillary_traits_helpers.h"
 #include "logging/logging.h"
+#include "scheduling/controller_schedule.h"
 
 using namespace AqualinkAutomate::Logging;
 
@@ -225,6 +227,22 @@ namespace AqualinkAutomate::Devices
 		return DispatchToCapable<Capabilities::HeaterController>(
 			std::format("{} {} heater", enable ? "enable" : "disable", magic_enum::enum_name(heater_body)),
 			[&](Capabilities::HeaterController& controller) { return controller.SetHeaterMode(heater_body, enable); },
+			CommandResult::NoSerialAdapter);
+	}
+
+	CommandDispatcher::CommandResult CommandDispatcher::CreateControllerProgram(const Scheduling::ControllerSchedule& program)
+	{
+		return DispatchToCapable<Capabilities::ControllerScheduleWriter>(
+			std::format("create controller program for '{}'", program.target),
+			[&](Capabilities::ControllerScheduleWriter& writer) { return writer.CreateControllerProgram(program); },
+			CommandResult::NoSerialAdapter);
+	}
+
+	CommandDispatcher::CommandResult CommandDispatcher::DeleteControllerProgram(const Scheduling::ControllerSchedule& program)
+	{
+		return DispatchToCapable<Capabilities::ControllerScheduleWriter>(
+			std::format("delete controller program for '{}'", program.target),
+			[&](Capabilities::ControllerScheduleWriter& writer) { return writer.DeleteControllerProgram(program); },
 			CommandResult::NoSerialAdapter);
 	}
 

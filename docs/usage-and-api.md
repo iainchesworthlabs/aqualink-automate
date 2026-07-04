@@ -197,17 +197,23 @@ Non-`GET` requests to the read-only diagnostics routes return `405` with a JSON 
 | PUT | `/api/schedules/{uuid}` | `200` JSON | `400`, `404`, `503`. |
 | DELETE | `/api/schedules/{uuid}` | `204` | `404`, `503`. |
 | GET | `/api/controller/schedules` | `200` `{status, active_group, schedules[]}` | `503` when the store is unavailable. |
+| POST | `/api/controller/schedules` | `200` `{status:"queued", schedule}` | `400` bad body / not representable (with `blockers[]`); `503` no writer. |
+| DELETE | `/api/controller/schedules/{id}` | `200` `{status:"queued"}` | `404` unknown id; `503` no writer. |
 
 App-side schedules (`/api/schedules`) are point actions the app fires; controller
 schedules (`/api/controller/schedules`) are the controller's own built-in
-on→off programs, read-only and reported as spans. `status` is `available`,
+on→off programs, reported as spans. `status` is `available`,
 `pending_capture` (parser not yet wired), or `unsupported`. The controller keeps
 two program groups (A/B) with only one active; `active_group` names it and each
 entry carries its `group`. Only the active group's schedules are observable on
-the wire. The web UI merges both sources into one timeline. Writing controller
-schedules is not yet supported. See [schedules-design.md](schedules-design.md)
-for the two-tier model and [iaq_schedule_protocol.md](iaq_schedule_protocol.md)
-for the wire decode.
+the wire. **Writing** a controller program (POST create / DELETE) drives a capable
+panel's Program menu over RS-485 and is **asynchronous** — a `200` means the write
+was *queued*, so poll GET to observe the result. Only a controller-representable
+span is accepted; an infeasible one is rejected `400` with stable `blockers` codes
+(the same `Scheduling::CheckControllerCandidate` predicate used for promotion). The
+web UI merges both sources into one timeline. See
+[schedules-design.md](schedules-design.md) for the two-tier model and
+[iaq_schedule_protocol.md](iaq_schedule_protocol.md) for the wire decode.
 
 ### Preferences
 

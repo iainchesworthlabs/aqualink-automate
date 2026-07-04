@@ -50,6 +50,8 @@ namespace
 		CommandResult SetCirculationMode(Kernel::CirculationModes) override { return CommandResult::Success; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds, bool) override { return CommandResult::Success; }
 		CommandResult SelectIAQPageButton(uint8_t) override { return CommandResult::Success; }
+		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
 	};
 
 	struct SetpointsFixture : public AqualinkAutomate::Test::HubLocatorInjector

@@ -54,6 +54,7 @@ target_sources(
 	unit/http/test_display_label.cpp
 	unit/http/test_http_chlorinator.cpp
 	unit/http/test_http_circulation.cpp
+	unit/http/test_http_controller_schedules.cpp
 	unit/http/test_http_heater.cpp
 	unit/http/test_http_diagnostics_devices.cpp
 	unit/http/test_http_diagnostics_profiling.cpp
