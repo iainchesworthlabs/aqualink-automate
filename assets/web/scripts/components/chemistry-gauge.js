@@ -80,9 +80,12 @@ function chemistryGauge(type) {
             return isNaN(v) ? null : v;
         },
 
-        get displayValue() {
-            if (this.numericValue === null) return '--';
-            return this.numericValue.toFixed(cfg.decimals) + cfg.unit;
+        // Unit suffix for the value. Salt's 'ppm' routes through the catalog to
+        // match the Detailed view; mV / '' are international symbols rendered
+        // verbatim (the same convention as detail-view.js's ORP row).
+        get unitLabel() {
+            if (type === 'salt') return window.AquaI18n.t('settings.ppm_unit');
+            return (cfg.unit || '').trim();
         },
 
         get percentage() {

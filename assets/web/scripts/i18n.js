@@ -191,7 +191,10 @@
     // Locale-digit number formatting. `options` passes through to
     // Intl.NumberFormat (e.g. {maximumFractionDigits: 1}).
     api.formatNumber = function (value, options) {
-        if (value === undefined || value === null || (typeof value === 'number' && !isFinite(value))) return String(value);
+        // Pass non-numbers through verbatim so call sites can wrap a value that
+        // may be a '--'/'–' placeholder — e.g. $n(count ?? '--') — without a
+        // guard. Only finite numbers are locale-formatted.
+        if (typeof value !== 'number' || !isFinite(value)) return String(value);
         const locale = activeFormatLocale();
         try {
             return cachedFormat('n', locale, options, () => new Intl.NumberFormat(locale, options)).format(value);

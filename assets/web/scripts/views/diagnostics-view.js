@@ -285,7 +285,7 @@ function diagnosticsView() {
                             beginAtZero: true,
                             max: 100,
                             ticks: {
-                                callback: v => v + '%',
+                                callback: v => window.AquaI18n.formatNumber(v) + '%',
                                 color: textColor
                             },
                             grid: { color: gridColor }
@@ -295,7 +295,7 @@ function diagnosticsView() {
                         // Built-in legend disabled — the left-hand .bw-legend chips
                         // are the interactive legend (see toggleBw()).
                         legend: { display: false },
-                        tooltip: { callbacks: { label: item => item.dataset.label + ': ' + item.parsed.y.toFixed(2) + '%' } }
+                        tooltip: { callbacks: { label: item => item.dataset.label + ': ' + window.AquaI18n.formatNumber(item.parsed.y, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%' } }
                     },
                     animation: { duration: 0 }
                 }
@@ -858,7 +858,7 @@ function diagnosticsView() {
             return rows.filter(m => (m.name || ('ID ' + m.id)).toLowerCase().includes(q));
         },
         msgLabel(m) { return m.name || window.AquaI18n.t('diag.msg_id', { id: m.id }); },
-        msgRate(m) { return window.AquaI18n.t('diag.rate_per_s', { value: (m.frequency || 0).toFixed(2) }); },
+        msgRate(m) { return window.AquaI18n.t('diag.rate_per_s', { value: window.AquaI18n.formatNumber(m.frequency || 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }); },
         msgLastSeen(m) { return m.lastSeen ? window.AquaI18n.formatTime(m.lastSeen) : '--'; },
 
         // ---- Log-levels modal -----------------------------------------------------

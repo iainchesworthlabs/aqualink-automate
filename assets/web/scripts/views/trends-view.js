@@ -586,7 +586,7 @@ function trendsView() {
                 const pts = _trends.data[s.key] || []; if (!pts.length) return;
                 cards.push({
                     key: s.key, color: s.color, name: s.name,
-                    now: Math.round(this._runtimeFraction(pts) * 100) + '%',
+                    now: window.AquaI18n.formatNumber(Math.round(this._runtimeFraction(pts) * 100)) + '%',
                     sub: window.AquaI18n.t('trends.runtime_in_window'),
                 });
             });

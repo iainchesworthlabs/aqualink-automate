@@ -38,7 +38,7 @@ function chlorinatorControl() {
 
         // Actual (reported) output.
         get actual() { const n = actualNum(); return n == null ? 0 : n; },
-        get actualLabel() { const n = actualNum(); return n == null ? '--' : (n + '%'); },
+        get actualLabel() { const n = actualNum(); return n == null ? '--' : (window.AquaI18n.formatNumber(n) + '%'); },
 
         // "Set" is meaningful when the target differs from the configured setpoint
         // (or, until that is known, the live actual output).
