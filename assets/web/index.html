@@ -1314,17 +1314,15 @@
                             :aria-label="(button.display_label || button.label) + ' — ' + statusLabel(button) + (!$store.auth.can('equipment.control.aux', button.id) ? ' ' + $t('auth.locked_control_suffix') : '')"
                             @click="toggle(button)">
                         <svg class="eq-control-icon" aria-hidden="true" viewBox="0 0 24 24"><use :href="'#icon-' + iconKey(button)"></use></svg>
+                        <!-- Tap-tile (Phase 2): icon + name; colour fills when active, so
+                             no separate switch or on/off text (state is carried by the fill). -->
                         <span class="eq-control-body">
                             <span class="eq-control-label" x-text="button.display_label || button.label"></span>
-                            <span class="eq-control-status" x-text="statusLabel(button)"></span>
                         </span>
                         <!-- Locked affordance for guests / unentitled subjects. -->
                         <span class="eq-lock" x-show="!$store.auth.can('equipment.control.aux', button.id)" x-cloak
                               :title="$t('auth.locked_device')" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        </span>
-                        <span class="eq-switch" x-show="$store.auth.can('equipment.control.aux', button.id)" :class="{ on: isActive(button) }" aria-hidden="true">
-                            <span class="eq-switch-knob"></span>
                         </span>
                         <!-- Command feedback -->
                         <span class="cmd-badge cmd-applied" x-show="cmdState(button) === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
