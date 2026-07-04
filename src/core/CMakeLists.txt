@@ -111,6 +111,7 @@ target_sources(
 	http/webroute_history.cpp
 	http/webroute_metrics.cpp
 	http/webroute_preferences.cpp
+	http/webroute_schedule_promote.cpp
 	http/webroute_schedules.cpp
 	http/webroute_session.cpp
 	http/webroute_sessions.cpp

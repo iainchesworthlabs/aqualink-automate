@@ -128,6 +128,7 @@
 #include "scheduling/controller_schedule.h"
 #include "scheduling/scheduler_service.h"
 #include "http/webroute_controller_schedules.h"
+#include "http/webroute_schedule_promote.h"
 #include "http/webroute_schedules.h"
 
 // Core — MQTT, serial, protocol
@@ -1052,6 +1053,7 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Preferences>(preferences_service, user_preferences_store));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedule>(scheduler_service, data_hub));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedules>(scheduler_service, data_hub));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_SchedulePromote>(scheduler_service, command_dispatcher));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedules>(controller_schedule_store, command_dispatcher));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedule>(controller_schedule_store, command_dispatcher));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Version>());

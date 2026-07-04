@@ -83,5 +83,39 @@ namespace AqualinkAutomate::Scheduling
 		return type == ActionType::ButtonOn || type == ActionType::ButtonOff;
 	}
 
+	std::optional<ControllerSchedule> BuildPromotionCandidate(const Schedule& on_schedule, const Schedule& off_schedule, std::string& error)
+	{
+		if (on_schedule.action.type != ActionType::ButtonOn)
+		{
+			error = "the ON schedule must be a button_on action";
+			return std::nullopt;
+		}
+		if (off_schedule.action.type != ActionType::ButtonOff)
+		{
+			error = "the OFF schedule must be a button_off action";
+			return std::nullopt;
+		}
+		if (on_schedule.action.target.empty() || on_schedule.action.target != off_schedule.action.target)
+		{
+			error = "the ON and OFF schedules must drive the same target device";
+			return std::nullopt;
+		}
+		if (on_schedule.days_of_week != off_schedule.days_of_week)
+		{
+			error = "the ON and OFF schedules must run on the same days";
+			return std::nullopt;
+		}
+
+		ControllerSchedule candidate;
+		candidate.target = on_schedule.action.target;
+		candidate.days_of_week = on_schedule.days_of_week;
+		candidate.on_hour = on_schedule.hour;
+		candidate.on_minute = on_schedule.minute;
+		candidate.off_hour = off_schedule.hour;
+		candidate.off_minute = off_schedule.minute;
+		candidate.enabled = true;
+		return candidate;
+	}
+
 }
 // namespace AqualinkAutomate::Scheduling

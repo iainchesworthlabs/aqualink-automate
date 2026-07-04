@@ -1194,6 +1194,41 @@ paths:
         '503': { description: Scheduler is disabled }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /api/schedules/{uuid}/promote:
+    post:
+      tags: [Schedules]
+      summary: Promote an app schedule to the controller
+      description: >
+        Pair this app schedule (a button_on or button_off point) with its
+        complement — the matching button_off/on on the same target and days — into
+        an on→off SPAN, check it against the controller's constraints, and, if
+        representable, create it on the controller (async, via the same POST
+        /api/controller/schedules write path). This is the "promote to controller"
+        action of the two-tier schedules model. Requires `schedules.edit`.
+      operationId: promoteSchedule
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Promotion queued
+          content:
+            application/json:
+              example:
+                status: "queued"
+                schedule: { target: "Filter Pump", days_of_week: 127, on_local: "09:00", off_local: "17:00" }
+        '400':
+          description: The paired span is not representable on the controller
+          content:
+            application/json:
+              example: { error: "the paired span is not representable on the controller", blockers: ["day_selection_not_expressible"] }
+        '404': { description: Unknown schedule }
+        '422': { description: Non-button action, or no complementary on/off schedule to form a span }
+        '503': { description: Scheduler disabled / no capable writer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /api/controller/schedules:
     get:
       tags:

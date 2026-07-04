@@ -196,6 +196,7 @@ Non-`GET` requests to the read-only diagnostics routes return `405` with a JSON 
 | GET | `/api/schedules/{uuid}` | `200` JSON | `404` unknown; `503`; `400` missing uuid. |
 | PUT | `/api/schedules/{uuid}` | `200` JSON | `400`, `404`, `503`. |
 | DELETE | `/api/schedules/{uuid}` | `204` | `404`, `503`. |
+| POST | `/api/schedules/{uuid}/promote` | `200` `{status:"queued", schedule}` | `404` unknown; `422` no on/off complement or non-button action; `400` not representable (`blockers[]`); `503`. |
 | GET | `/api/controller/schedules` | `200` `{status, active_group, schedules[]}` | `503` when the store is unavailable. |
 | POST | `/api/controller/schedules` | `200` `{status:"queued", schedule}` | `400` bad body / not representable (with `blockers[]`); `503` no writer. |
 | DELETE | `/api/controller/schedules/{id}` | `200` `{status:"queued"}` | `404` unknown id; `503` no writer. |

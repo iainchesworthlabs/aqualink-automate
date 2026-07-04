@@ -151,6 +151,64 @@ BOOST_AUTO_TEST_CASE(Action_OnlyOnOffRepresentable)
 // Stable code strings (consumed by the UI to localise).
 //=============================================================================
 
+//=============================================================================
+// Promotion pairing — form a controller span from an app on/off pair.
+//=============================================================================
+
+namespace
+{
+	Schedule AppSchedule(ActionType type, const std::string& target, std::uint8_t days, int hour, int minute)
+	{
+		Schedule s;
+		s.days_of_week = days;
+		s.hour = hour;
+		s.minute = minute;
+		s.action.type = type;
+		s.action.target = target;
+		return s;
+	}
+}
+
+BOOST_AUTO_TEST_CASE(Promote_ValidOnOffPair_BuildsSpan)
+{
+	const auto on = AppSchedule(ActionType::ButtonOn, "Filter Pump", 0x7f, 9, 0);
+	const auto off = AppSchedule(ActionType::ButtonOff, "Filter Pump", 0x7f, 17, 30);
+
+	std::string error;
+	const auto candidate = BuildPromotionCandidate(on, off, error);
+	BOOST_REQUIRE_MESSAGE(candidate.has_value(), error);
+	BOOST_CHECK_EQUAL(candidate->target, "Filter Pump");
+	BOOST_CHECK_EQUAL(candidate->days_of_week, 0x7f);
+	BOOST_CHECK_EQUAL(candidate->on_hour, 9);
+	BOOST_CHECK_EQUAL(candidate->on_minute, 0);
+	BOOST_CHECK_EQUAL(candidate->off_hour, 17);
+	BOOST_CHECK_EQUAL(candidate->off_minute, 30);
+
+	// And the span is representable on the controller.
+	BOOST_CHECK(CheckControllerCandidate(*candidate).promotable);
+}
+
+BOOST_AUTO_TEST_CASE(Promote_Rejects_BadPairs)
+{
+	std::string error;
+	// On is not a button_on.
+	BOOST_CHECK(!BuildPromotionCandidate(
+		AppSchedule(ActionType::ButtonToggle, "Filter Pump", 0x7f, 9, 0),
+		AppSchedule(ActionType::ButtonOff, "Filter Pump", 0x7f, 17, 0), error).has_value());
+	// Off is not a button_off.
+	BOOST_CHECK(!BuildPromotionCandidate(
+		AppSchedule(ActionType::ButtonOn, "Filter Pump", 0x7f, 9, 0),
+		AppSchedule(ActionType::ButtonOn, "Filter Pump", 0x7f, 17, 0), error).has_value());
+	// Different targets.
+	BOOST_CHECK(!BuildPromotionCandidate(
+		AppSchedule(ActionType::ButtonOn, "Filter Pump", 0x7f, 9, 0),
+		AppSchedule(ActionType::ButtonOff, "Spa", 0x7f, 17, 0), error).has_value());
+	// Different days.
+	BOOST_CHECK(!BuildPromotionCandidate(
+		AppSchedule(ActionType::ButtonOn, "Filter Pump", 0x1f, 9, 0),
+		AppSchedule(ActionType::ButtonOff, "Filter Pump", 0x7f, 17, 0), error).has_value());
+}
+
 BOOST_AUTO_TEST_CASE(Strings_Stable)
 {
 	BOOST_CHECK_EQUAL(ControllerDaySelectionToString(ControllerDaySelection::Weekdays), "weekdays");

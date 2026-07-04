@@ -56,6 +56,7 @@ target_sources(
 	unit/http/test_http_circulation.cpp
 	unit/http/test_http_controller_schedules.cpp
 	unit/http/test_http_heater.cpp
+	unit/http/test_http_schedule_promote.cpp
 	unit/http/test_http_diagnostics_devices.cpp
 	unit/http/test_http_diagnostics_profiling.cpp
 	unit/http/test_http_diagnostics_recording.cpp

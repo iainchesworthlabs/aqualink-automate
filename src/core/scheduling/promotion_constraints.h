@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -73,6 +74,13 @@ namespace AqualinkAutomate::Scheduling
 	// setpoints, chlorinator %, and circulation mode have no controller-program
 	// equivalent, so a schedule carrying them can never be promoted.
 	bool IsControllerRepresentableAction(ActionType type);
+
+	// Pair an app ON schedule with an app OFF schedule into a controller-program SPAN candidate for
+	// promotion. Both must drive the SAME target with button_on / button_off on the SAME days; the
+	// result spans the on-schedule's time to the off-schedule's time. Returns std::nullopt and sets
+	// `error` when the two do not form a valid span. The caller then runs CheckControllerCandidate
+	// to confirm the controller can actually represent it (day selection, etc.).
+	std::optional<ControllerSchedule> BuildPromotionCandidate(const Schedule& on_schedule, const Schedule& off_schedule, std::string& error);
 
 }
 // namespace AqualinkAutomate::Scheduling
