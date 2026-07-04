@@ -3001,4 +3001,9 @@ main input[type="range"] { accent-color: var(--accent); }
     .summary-label { font-size: 10px; }
     .summary-setpoint, .summary-freshness { font-size: 11.5px; margin-top: 2px; }
     .summary-accent { top: 10px; bottom: 10px; }
+
+    /* Diagnostics: the metric stat grids (serial utilisation / health / message
+       errors) pack two-up instead of one — the page was a very tall tower at
+       one card per row. The wide latency percentile cards stay full width. */
+    .stat-cards { grid-template-columns: 1fr 1fr; }
 }
