@@ -65,6 +65,42 @@ BOOST_AUTO_TEST_CASE(ObservedProbes_AlsoRecordsActiveControllerPolls)
 	BOOST_CHECK(env.ObservedProbes().contains(0x33));
 }
 
+BOOST_AUTO_TEST_CASE(OccupiedAddresses_ReportsAnAddressThatAckedTheMasterAfterAProbe)
+{
+	// A real device answers the master's probe: the master probes 0x41, then a device->master
+	// ACK (dest 0x00) follows. The environment attributes that ACK to the last-probed address, so
+	// 0x41 becomes an occupied address the coordinator can relocate off of.
+	Test::MockReplayHarness harness;
+	JandyStartupEnvironment env(harness.HubLocatorRef());
+
+	const auto cmd_probe = static_cast<std::uint8_t>(Messages::JandyMessageIds::Probe);
+	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x41, cmd_probe, {}));
+
+	// A device->master ACK (destination 0x00) right after that probe => 0x41 responded.
+	const auto cmd_ack = static_cast<std::uint8_t>(Messages::JandyMessageIds::Ack);
+	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x00, cmd_ack, { 0x00, 0x00 }));
+
+	const auto occupied = env.OccupiedAddresses();
+	BOOST_CHECK(occupied.contains(0x41));
+}
+
+BOOST_AUTO_TEST_CASE(OccupiedAddresses_ExcludesAnAddressWeEmulateEvenIfItAcked)
+{
+	// If an ACK is attributed to an address we ourselves emulate, it must NOT be reported as
+	// occupied -- our own emulation is never "a real device to relocate around".
+	Test::MockReplayHarness harness;
+	JandyStartupEnvironment env(harness.HubLocatorRef());
+
+	env.EmulateDevice(DeviceType::OneTouch, 0x41, "controller");
+
+	const auto cmd_probe = static_cast<std::uint8_t>(Messages::JandyMessageIds::Probe);
+	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x41, cmd_probe, {}));
+	const auto cmd_ack = static_cast<std::uint8_t>(Messages::JandyMessageIds::Ack);
+	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x00, cmd_ack, { 0x00, 0x00 }));
+
+	BOOST_CHECK(!env.OccupiedAddresses().contains(0x41));
+}
+
 BOOST_AUTO_TEST_CASE(EmulateDevice_StandsTheDeviceUpInTheEquipmentHub)
 {
 	Test::MockReplayHarness harness;
@@ -181,6 +217,29 @@ BOOST_AUTO_TEST_CASE(Collision_RealAdapterDetectedOnTheBus_RelocatesViaTheHandle
 	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x48, cmd_devstatus, { 0x0A, 0x00, 0x00, 0x00 }));
 
 	BOOST_CHECK(HubHasDeviceAt(harness, 0x49));   // emulation relocated to the free instance
+}
+
+BOOST_AUTO_TEST_CASE(RelocateEmulation_SkipsAnOccupiedRealInstanceWhenChoosingAFreeSlot)
+{
+	// Relocation must avoid any instance a REAL device answered from. We emulate a SerialAdapter
+	// at 0x48; a real adapter answers at 0x49 (its only other instance), so when 0x48 also collides
+	// there is no free instance left -> relocation fails. This drives the OccupiedAddresses() fold
+	// into the "taken" set inside RelocateEmulation.
+	Test::MockReplayHarness harness;
+	JandyStartupEnvironment env(harness.HubLocatorRef());
+
+	env.EmulateDevice(DeviceType::SerialAdapter, 0x48, "detector");
+
+	// A real adapter answers at 0x49: probe 0x49, then a device->master ACK.
+	const auto cmd_probe = static_cast<std::uint8_t>(Messages::JandyMessageIds::Probe);
+	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x49, cmd_probe, {}));
+	const auto cmd_ack = static_cast<std::uint8_t>(Messages::JandyMessageIds::Ack);
+	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x00, cmd_ack, { 0x00, 0x00 }));
+	BOOST_REQUIRE(env.OccupiedAddresses().contains(0x49));
+
+	// 0x48 (ours) and 0x49 (real) are the only SerialAdapter instances -> nowhere free.
+	BOOST_CHECK(!env.RelocateEmulation(DeviceType::SerialAdapter, 0x48));
+	BOOST_CHECK(!HubHasDeviceAt(harness, 0x49));   // never relocate onto the occupied instance
 }
 
 BOOST_AUTO_TEST_SUITE_END()

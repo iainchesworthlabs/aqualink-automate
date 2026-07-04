@@ -111,6 +111,7 @@ target_sources(
 	unit/startup/test_jandy_startup_planner.cpp
 	unit/startup/test_jandy_startup_coordinator.cpp
 	unit/startup/test_jandy_startup_environment.cpp
+	unit/startup/test_jandy_startup_service.cpp
 	unit/options/test_options_web.cpp
 	unit/options/test_options_matter.cpp
 	unit/messages/test_aquarite_message_getid.cpp
@@ -186,7 +187,11 @@ target_sources(
 	unit/devices/test_chlorinator_setpoint_refresh.cpp
 	unit/devices/test_devices_capabilities_command_history.cpp
 	unit/devices/test_devices_capabilities_restartable.cpp
+	unit/devices/test_devices_chemlink.cpp
 	unit/devices/test_devices_command_dispatcher.cpp
+	unit/devices/test_devices_emulated_factory.cpp
+	unit/devices/test_devices_epump.cpp
+	unit/devices/test_devices_heater.cpp
 	unit/devices/test_devices_iaq.cpp
 	unit/devices/test_devices_iaq_spaswitch_config.cpp
 	unit/devices/test_devices_onetouch_spaswitch_config.cpp

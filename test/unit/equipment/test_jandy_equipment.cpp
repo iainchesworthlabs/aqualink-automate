@@ -6,11 +6,18 @@
 
 #include "equipment/jandy_equipment.h"
 #include "interfaces/idevice.h"
+#include "jandy/jandy.h"
+#include "jandy/devices/jandy_device_id.h"
+#include "jandy/devices/jandy_device_types.h"
+#include "jandy/devices/jandy_emulated_device_types.h"
+#include "jandy/options/options_jandy.h"
 #include "kernel/data_hub.h"
 #include "kernel/equipment_hub.h"
 #include "kernel/statistics_hub.h"
 #include "messages/jandy_message_ack.h"
 #include "messages/jandy_message_ids.h"
+#include "options/options_developer_options.h"
+#include "options/options_settings.h"
 
 #include "support/unit_test_hublocatorinjector.h"
 #include "support/unit_test_protocolmessagebuilder.h"
@@ -148,6 +155,184 @@ BOOST_AUTO_TEST_CASE(NoReferenceCycle_HubExpiresAfterScope)
 
 	// Equipment + locator destroyed: nothing should still reference the hub.
 	BOOST_CHECK(hub_observer.expired());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// =============================================================================
+// Jandy::Configure -- the top-level equipment wiring driven from parsed Settings.
+// Adds the JandyEquipment to the hub, then (depending on flags) either defers to
+// the auto-startup coordinator, disables emulation, or stands up the statically
+// CLI-configured emulated-device set. These tests build a Settings map directly
+// (bypassing program_options) and assert the resulting hub / DataHub state.
+// =============================================================================
+
+BOOST_AUTO_TEST_SUITE(JandyConfigure_TestSuite)
+
+namespace
+{
+	// A Settings with the given JandySettings and (optionally) DeveloperSettings so
+	// Jandy::Configure can look both areas up by name.
+	Options::Settings MakeSettings(const Jandy::Options::JandySettings& jandy,
+		const Options::Developer::DeveloperSettings& developer = {})
+	{
+		Options::Settings settings;
+		settings.Set(Jandy::Options::JandySettings::AreaName(), jandy);
+		settings.Set(Options::Developer::DeveloperSettings::AreaName(), developer);
+		return settings;
+	}
+}
+
+BOOST_AUTO_TEST_CASE(Configure_MissingJandySettings_IsANoOp)
+{
+	// No Jandy area in the settings map -> Configure logs an error and returns before touching the
+	// EquipmentHub (no JandyEquipment registered).
+	Test::HubLocatorInjector hub_locator;
+	auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+
+	Options::Settings settings;   // empty -- no Jandy area
+
+	Jandy::Configure(hub_locator, settings);
+
+	BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(Configure_DefaultSettings_AddsEquipmentButNoStaticDevices)
+{
+	// Defaults: emulation enabled, auto-startup off, but no emulated_devices configured -> the
+	// JandyEquipment is registered and the static device loop stands nothing up.
+	Test::HubLocatorInjector hub_locator;
+	auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+	auto data_hub = hub_locator.Find<Kernel::DataHub>();
+
+	Jandy::Options::JandySettings jandy;   // all defaults
+	auto settings = MakeSettings(jandy);
+
+	Jandy::Configure(hub_locator, settings);
+
+	// No emulated devices, and neither disable flag was set.
+	BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), 0U);
+	BOOST_CHECK(!data_hub->EmulationDisabled);
+	BOOST_CHECK(!data_hub->PresenceGatingDisabled);
+}
+
+BOOST_AUTO_TEST_CASE(Configure_DecodeToMaster_IsWiredFromDeveloperSettings)
+{
+	// The developer decode-to-master flag flows through into Configure's observe-only wiring path
+	// (the branch that logs and passes decode_to_master into JandyEquipment). Configure must still
+	// complete cleanly with the flag on.
+	Test::HubLocatorInjector hub_locator;
+
+	Jandy::Options::JandySettings jandy;
+	Options::Developer::DeveloperSettings developer;
+	developer.decode_to_master_enabled = true;
+
+	auto settings = MakeSettings(jandy, developer);
+
+	BOOST_CHECK_NO_THROW(Jandy::Configure(hub_locator, settings));
+}
+
+BOOST_AUTO_TEST_CASE(Configure_DisableEmulation_SetsDataHubFlag_AndSkipsStaticDevices)
+{
+	Test::HubLocatorInjector hub_locator;
+	auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+	auto data_hub = hub_locator.Find<Kernel::DataHub>();
+
+	Jandy::Options::JandySettings jandy;
+	jandy.disable_emulation = true;
+	// Even with configured emulated devices, disable_emulation short-circuits the static loop.
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::OneTouch,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x41)));
+
+	auto settings = MakeSettings(jandy);
+
+	Jandy::Configure(hub_locator, settings);
+
+	BOOST_CHECK(data_hub->EmulationDisabled);
+	BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), 0U);   // static device loop skipped
+}
+
+BOOST_AUTO_TEST_CASE(Configure_DisablePresenceGating_SetsDataHubFlag)
+{
+	Test::HubLocatorInjector hub_locator;
+	auto data_hub = hub_locator.Find<Kernel::DataHub>();
+
+	Jandy::Options::JandySettings jandy;
+	jandy.disable_presence_gating = true;
+
+	auto settings = MakeSettings(jandy);
+
+	Jandy::Configure(hub_locator, settings);
+
+	BOOST_CHECK(data_hub->PresenceGatingDisabled);
+}
+
+BOOST_AUTO_TEST_CASE(Configure_AutoStartup_DefersStaticDeviceSelection)
+{
+	// Auto-startup on: the static, CLI-configured device set is skipped (the coordinator wired on
+	// the io_context stands the emulation up dynamically instead). Any configured emulated_devices
+	// are ignored here.
+	Test::HubLocatorInjector hub_locator;
+	auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+
+	Jandy::Options::JandySettings jandy;
+	jandy.auto_startup = true;
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::IAQ,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x33)));
+
+	auto settings = MakeSettings(jandy);
+
+	Jandy::Configure(hub_locator, settings);
+
+	BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), 0U);   // deferred to the coordinator
+}
+
+BOOST_AUTO_TEST_CASE(Configure_StaticEmulatedDevices_StandsUpEachConfiguredType)
+{
+	// The static path: with emulation enabled and auto-startup off, each configured
+	// (controller_type, device_type) pair stands a device up in the hub. Exercises the OneTouch
+	// (setpoint-refresh) and IAQ switch arms.
+	Test::HubLocatorInjector hub_locator;
+	auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+
+	Jandy::Options::JandySettings jandy;
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::OneTouch,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x41)));
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::IAQ,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x33)));
+
+	auto settings = MakeSettings(jandy);
+
+	Jandy::Configure(hub_locator, settings);
+
+	BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), 2U);
+}
+
+BOOST_AUTO_TEST_CASE(Configure_StaticEmulatedDevices_CoversEveryControllerTypeArm)
+{
+	// Drive each switch arm in Configure's static loop -- Keypad, PDA, SerialAdapter, Spaside --
+	// plus the Unknown default (which logs a warning and creates no device).
+	Test::HubLocatorInjector hub_locator;
+	auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+
+	Jandy::Options::JandySettings jandy;
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::RS_Keypad,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x08)));
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::PDA,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x60)));
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::SerialAdapter,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x48)));
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::SpasideRemote,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0x10)));
+	jandy.emulated_devices.emplace_back(Devices::JandyEmulatedDeviceTypes::Unknown,
+		Devices::JandyDeviceType(Devices::JandyDeviceId(0xFF)));
+
+	auto settings = MakeSettings(jandy);
+
+	Jandy::Configure(hub_locator, settings);
+
+	// Four concrete types create a device; Unknown creates none.
+	BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), 4U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

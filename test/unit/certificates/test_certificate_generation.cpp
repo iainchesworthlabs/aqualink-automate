@@ -85,6 +85,46 @@ BOOST_AUTO_TEST_CASE(GenerateSelfSigned_ProducesParseableUniqueMaterial)
 	fs::remove_all(dir, rm);
 }
 
+BOOST_AUTO_TEST_CASE(GenerateSelfSigned_FailsWhenPrivateKeyPathIsUnwritable)
+{
+	// The private key is written first; if the BIO cannot open the key path the
+	// generation must fail (returning false) rather than proceed. Force an
+	// unopenable key path by making it an existing DIRECTORY -- a regular-file
+	// BIO open against a directory fails on both Windows and POSIX.
+	const fs::path dir = fs::temp_directory_path() / "aqualink_certgen_badkey";
+	std::error_code rm;
+	fs::remove_all(dir, rm);
+	fs::create_directories(dir, rm);
+
+	const fs::path cert = dir / "cert.pem";
+	const fs::path key = dir / "key.pem";
+	fs::create_directories(key, rm);   // key path is now a directory, not a file
+	BOOST_REQUIRE(fs::is_directory(key));
+
+	BOOST_CHECK(!Certificates::GenerateSelfSignedCertificate(cert, key));
+
+	fs::remove_all(dir, rm);
+}
+
+BOOST_AUTO_TEST_CASE(GenerateSelfSigned_FailsWhenCertificatePathIsUnwritable)
+{
+	// The key writes fine but the certificate path is unopenable (an existing
+	// directory), so generation must fail on the certificate write.
+	const fs::path dir = fs::temp_directory_path() / "aqualink_certgen_badcert";
+	std::error_code rm;
+	fs::remove_all(dir, rm);
+	fs::create_directories(dir, rm);
+
+	const fs::path cert = dir / "cert.pem";
+	const fs::path key = dir / "key.pem";
+	fs::create_directories(cert, rm);   // cert path is now a directory, not a file
+	BOOST_REQUIRE(fs::is_directory(cert));
+
+	BOOST_CHECK(!Certificates::GenerateSelfSignedCertificate(cert, key));
+
+	fs::remove_all(dir, rm);
+}
+
 BOOST_AUTO_TEST_CASE(EnsureSelfSignedMaterial_UsesExistingFiles)
 {
 	const fs::path dir = fs::temp_directory_path() / "aqualink_certgen_existing";
@@ -115,6 +155,63 @@ BOOST_AUTO_TEST_CASE(EnsureSelfSignedMaterial_RefusesToGenerateForOperatorSpecif
 	Options::Web::SslCertificate operator_specified{ missing_dir / "their-cert.pem", missing_dir / "their-key.pem" };
 	const auto resolved = Certificates::EnsureSelfSignedMaterial(operator_specified);
 	BOOST_CHECK(!resolved.has_value());
+}
+
+BOOST_AUTO_TEST_CASE(EnsureSelfSignedMaterial_DefaultPaths_GeneratesThenReuses)
+{
+	// Exercise the default-path branch of EnsureSelfSignedMaterial: when the
+	// configured cert/key are the built-in defaults and are absent, a per-install
+	// pair is produced -- preferring the configured (writable) directory, else
+	// falling back to a per-user private runtime directory. Either way a usable,
+	// loadable pair must come back. Driving it through the public API also covers
+	// the DirectoryIsWritable probe and the "reuse on second call" path.
+	const Options::Web::SslCertificate defaults{
+		fs::path(Application::DEFAULT_CERTIFICATE),
+		fs::path(Application::DEFAULT_PRIVATE_KEY)
+	};
+
+	std::error_code ec;
+	const bool cert_preexisted = fs::exists(defaults.certificate, ec);
+	const bool key_preexisted = fs::exists(defaults.private_key, ec);
+
+	const auto first = Certificates::EnsureSelfSignedMaterial(defaults);
+	BOOST_REQUIRE_MESSAGE(first.has_value(),
+		"EnsureSelfSignedMaterial must produce material for the built-in default paths");
+	BOOST_REQUIRE(fs::exists(first->certificate, ec));
+	BOOST_REQUIRE(fs::exists(first->private_key, ec));
+
+	// Whatever pair came back must be loadable by the TLS stack.
+	{
+		boost::asio::ssl::context ctx(boost::asio::ssl::context::tls_server);
+		boost::system::error_code load_ec;
+		ctx.use_certificate_file(first->certificate.string(), boost::asio::ssl::context::pem, load_ec);
+		BOOST_CHECK_MESSAGE(!load_ec, "generated certificate did not load: " << load_ec.message());
+		ctx.use_private_key_file(first->private_key.string(), boost::asio::ssl::context::pem, load_ec);
+		BOOST_CHECK_MESSAGE(!load_ec, "generated private key did not load: " << load_ec.message());
+	}
+
+	const std::string cert_after_first = ReadFile(first->certificate);
+	const std::string key_after_first = ReadFile(first->private_key);
+
+	// Second call must REUSE the freshly-persisted pair rather than regenerate it:
+	// same resolved paths and byte-identical material.
+	const auto second = Certificates::EnsureSelfSignedMaterial(defaults);
+	BOOST_REQUIRE(second.has_value());
+	BOOST_CHECK(second->certificate == first->certificate);
+	BOOST_CHECK(second->private_key == first->private_key);
+	BOOST_CHECK(ReadFile(second->certificate) == cert_after_first);
+	BOOST_CHECK(ReadFile(second->private_key) == key_after_first);
+
+	// Clean up ONLY material this test created, leaving any pre-existing install
+	// material untouched.
+	if (!cert_preexisted)
+	{
+		fs::remove(first->certificate, ec);
+	}
+	if (!key_preexisted)
+	{
+		fs::remove(first->private_key, ec);
+	}
 }
 
 BOOST_AUTO_TEST_SUITE_END()
