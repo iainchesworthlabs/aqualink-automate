@@ -80,6 +80,26 @@ Right-to-left languages (Arabic, Hebrew, Yiddish) mirror the layout automaticall
 
 Translations live in plain-text catalogs and are easy to contribute — see [Contributing translations](CONTRIBUTING.md#contributing-translations) for the workflow and [docs/i18n.md](i18n.md) for the mechanics.
 
+### Responsive layout
+
+The UI is a single responsive web app — there is no separate mobile build or native app. The same page reflows across three viewport bands, and the navigation adapts to match:
+
+| Width | Band | Navigation |
+|---|---|---|
+| `< 640px` | Phone | A fixed **bottom tab bar** (Dashboard · Trends · Schedules · More); secondary destinations live behind **More**, which opens a bottom sheet. |
+| `640–1023px` | Tablet | The inline links collapse behind a **hamburger** button that opens a nav drawer. |
+| `≥ 1024px` | Desktop | The full **inline navigation** in the top bar. |
+
+On phones the dashboard reorders itself around what you act on most: a condensed Pool/Spa/Air temperature header, then equipment as two-up **tap-tiles** (tap to toggle; a tile fills with the accent colour when its device is on), the heater cards with inline setpoints, and the water-chemistry gauges two-up. Tablet portrait keeps the richer multi-column card grid under the hamburger; tablet landscape and desktop use the full inline layout. Modals become full-width bottom sheets on phones and centred dialogs on wider screens.
+
+<p align="center">
+  <img src="assets/aqualink-automate-mobile-dashboard.png" alt="The dashboard on a phone — condensed temperature header, equipment tap-tiles, and a bottom tab bar" width="300">
+  &nbsp;&nbsp;
+  <img src="assets/aqualink-automate-tablet-dashboard.png" alt="The dashboard on a tablet in portrait — multi-column card grid behind a hamburger menu" width="440">
+</p>
+
+The layout is regression-tested at every band by `e2e/responsive.spec.ts`, which asserts the correct navigation pattern, no horizontal overflow, RTL mirroring, and dark-mode heading contrast across the phone/tablet/desktop viewports.
+
 ## Security model
 
 Authentication is **opt-in** and **off by default**. With no token configured the server behaves exactly as an open, unauthenticated service — every route is reachable without credentials.

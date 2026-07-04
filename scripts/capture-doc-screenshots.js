@@ -31,8 +31,8 @@
  * (defaults to this repo's assets/web). Playwright browsers must be
  * installed (`npx playwright install chromium`).
  *
- * Shots: hero, trends, schedules, settings, about, rtl, auth (wizard +
- * admin + account menu + login).
+ * Shots: hero, mobile (phone + tablet dashboard), trends, schedules,
+ * settings, about, rtl, auth (wizard + admin + account menu + login).
  */
 const { chromium } = require('@playwright/test');
 const { spawn } = require('node:child_process');
@@ -169,6 +169,54 @@ async function captureHero(browser) {
       await page.screenshot(png('aqualink-automate-dashboard.png'));
     });
     await ctx.close();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Responsive dashboard — the same equipment-rich OneTouch fixture as the hero,
+// captured at a phone width (bottom tab bar + stacked cards) and a tablet
+// portrait width (hamburger drawer). These document the responsive reflow;
+// see docs/usage-and-api.md "Responsive layout".
+async function captureMobile(browser) {
+  console.log('--- responsive dashboard (onetouch_equipment_toggle.cap) ---');
+  await withApp(18193, 'onetouch_equipment_toggle.cap', [], 'app-mobile.log', async (base) => {
+    // Drain the replay first so a late WS frame can't undo the DOM tidy-ups.
+    await new Promise((r) => setTimeout(r, 12_000));
+
+    // Present the pump-off spa sentinel (1°C) as the honest unknown, matching
+    // the hero, and hide any alert toasts so the frame is clean.
+    const tidy = (page) => page.evaluate(() => {
+      const toasts = document.querySelector('.toast-container');
+      if (toasts) toasts.style.display = 'none';
+      for (const el of document.querySelectorAll('*')) {
+        if (el.children.length === 0 && /^1°C$/.test(el.textContent.trim())) el.textContent = '--';
+      }
+    });
+
+    // Phone: iPhone-ish 390-wide viewport — bottom tab bar, 2-up gauges,
+    // equipment tap-tiles.
+    await shot('aqualink-automate-mobile-dashboard.png', async () => {
+      const { ctx, page } = await newPage(browser, base, { width: 390, height: 1180 });
+      await page.goto('/');
+      await waitLiveDashboard(page);
+      await page.locator('.mobile-tab-bar').waitFor({ timeout: 10_000 });
+      await tidy(page);
+      await page.waitForTimeout(400);
+      await page.screenshot(png('aqualink-automate-mobile-dashboard.png'));
+      await ctx.close();
+    });
+
+    // Tablet portrait: 820-wide — the inline nav collapses to a hamburger.
+    await shot('aqualink-automate-tablet-dashboard.png', async () => {
+      const { ctx, page } = await newPage(browser, base, { width: 820, height: 1180 });
+      await page.goto('/');
+      await waitLiveDashboard(page);
+      await page.locator('nav.app-nav .nav-hamburger').waitFor({ timeout: 10_000 });
+      await tidy(page);
+      await page.waitForTimeout(400);
+      await page.screenshot(png('aqualink-automate-tablet-dashboard.png'));
+      await ctx.close();
+    });
   });
 }
 
@@ -365,6 +413,7 @@ async function captureAuth(browser) {
   const browser = await chromium.launch();
   try {
     if (want('hero')) await captureHero(browser);
+    if (want('mobile')) await captureMobile(browser);
     if (['trends', 'schedules', 'settings', 'about', 'rtl'].some(want)) await captureAnonymous(browser);
     if (want('auth')) await captureAuth(browser);
   } finally {

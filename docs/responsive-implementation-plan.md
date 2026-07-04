@@ -67,10 +67,12 @@ Translate the locked responsive mockup into the shipping Alpine.js/CSS app so ev
 - Per cell assert: correct nav-pattern (tab bar <640 / hamburger 640–1023 / inline ≥1024), grid column counts, modal-as-sheet vs dialog, **no horizontal overflow** (`scrollWidth ≤ clientWidth`), **`toHaveScreenshot`** visual regression, and a **contrast guard** (computed text color ≠ background on key headings).
 - Extend the i18n missing-key + pseudo-locale checks to run at **every viewport** (today effectively desktop-only).
 - Deterministic replay fixture + fixed clock + masked live/timestamp regions.
+- Done: `e2e/responsive.spec.ts` asserts nav-pattern per band, no horizontal overflow on every view, RTL mirroring, and a canvas-resolved dark-mode contrast guard across the phone/tablet/desktop viewports; visual snapshots are opt-in via `RESPONSIVE_SNAPSHOTS=1`. The matrix caught (and this phase fixed) two real phone overflows — the About homepage-URL cell and the Diagnostics message-stats/MQTT cards.
 
 ### Phase 8 — Docs & screenshots
 - Files: `scripts/capture-doc-screenshots.js`, `docs/assets/*.png`, `docs/usage-and-api.md`, `docs/i18n.md`, `README.md`.
 - Add mobile/tablet captures; regenerate embedded PNGs; document responsive nav/breakpoints (CLAUDE.md doc-accuracy rule).
+- Done: `capture-doc-screenshots.js` gained a `mobile` shot group (phone + tablet-portrait dashboard from the OneTouch fixture) → `docs/assets/aqualink-automate-{mobile,tablet}-dashboard.png`; `docs/usage-and-api.md` has a "Responsive layout" section with the breakpoint/nav table and both images; `README.md` notes the responsive web UI.
 
 ## Sequencing
 `0 → 1 → (2 ‖ 3) → 4 → 5 → 6 → 7 → 8`. Phase 7's harness is scaffolded during Phase 1 and grows with each phase.
