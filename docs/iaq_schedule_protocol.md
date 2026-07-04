@@ -224,19 +224,39 @@ key `Command = 0x11 + idx`:
 This is a genuine controller write: the served schedule list on 0x28 changes with the active
 group, confirming schedules are controller-resident (see "Validated premise").
 
-### Still needs another capture
+### Resolved by the clean capture (`captures/iaq_schedule_clean.cap`, 2026-07-04 #2)
 
-- **Device-picker key grid (0x38):** the exact `Command`→row mapping while the list scrolls is
-  not fully pinned (decoded via the `0x40` highlight, not the raw key). A clean capture that
-  scrolls one step at a time and selects without fumbling would nail the scroll vs select keys.
-- **Inner edit-mode field cursor (0x28):** the ordering of `SELECT`/field-advance keys between
-  entering Edit and reaching a given field is only partially determined. A deliberate,
-  un-fumbled create (device → ON → OFF → day, no corrections) would pin the canonical sequence.
-- **`Cancel` on the delete dialog** and **field index other than `'1'`** in the `0x24` write
-  were never exercised — capture a cancelled delete and (if any) a multi-field picker to
-  confirm the `0x24` leading char is a field index rather than a constant.
-- **AM/PM default & 24-h vs 12-h entry** rules: confirm whether the panel always defaults new
-  times to `PM` and how it canonicalises the committed hour.
+A deliberate, un-fumbled run (create Pool Light → set ON → set OFF → set day → edit time →
+edit day → delete) pinned the canonical flow. Genuine presses (`AckType==0x00`) only:
+
+```
+0x11 on Settings(0x0f)            -> Schedule list (navigate in)
+0x11 on Schedule list(0x28)       -> ADD PROGRAM -> device picker (0x38)
+[picker 0x38: scroll keys] then a select -> creates a row with defaults "1:00 PM 1:00 PM All"
+0x21 on list(0x28)                -> open ON-time picker(0x29); 0x11 = AM/PM toggle; 0x80 submit -> 0x24 '1'+HH:MM
+0x22 on list(0x28)                -> open OFF-time picker; (no 0x11 toggle) 0x80 submit
+0x17..0x20 on list(0x28)          -> set day directly (0x1c=Fri here)
+[row cursor] 0x12 = EDIT, re-uses 0x21/0x22 (time) and 0x17..0x20 (day)
+0x13 = DELETE -> confirm dialog -> 0x01 (Ok)
+```
+
+- **Device picker (0x38) is a SCROLLING list**, confirmed: the created device was **Pool Light**,
+  which is *not* among the 7 rows the picker first renders (Filter Pump/Spa/Pool Heat/Spa Heat/
+  Solar Heat/Spa Jets/Swim Jet) — so it was reached by scrolling. Implement device selection the
+  same way as the spa-switch writer: scroll, read the `0x40 [00][row][sel]` highlight + the `0x26`
+  row text, repeat until the target label is highlighted, then select. Do **not** hard-map a key→device.
+- **AM/PM = the `0x11` toggle on the time picker**, applied to whichever field's picker is open,
+  starting from the field's current value. In the capture ON was toggled (→ `9:00 AM`) and OFF was
+  not (→ `10:00 PM`), matching the resulting list rows. The `0x24` write still carries only `'1'`+`HH:MM`;
+  AM/PM never rides that frame.
+- **A new program defaults to `1:00 PM / 1:00 PM / All`**; fields are then set incrementally (there
+  is no batch "save" — each submit/day-press mutates the highlighted row live).
+
+### Still needs a capture
+
+- **`Cancel` on the delete dialog** was not exercised (only Ok). Capture a cancelled delete to pin it.
+- **Exact device-picker scroll opcode** (vs select): the scroll-until-highlighted approach does not
+  require it, but a one-step-at-a-time picker scroll would still be nice to log the raw scroll key.
 
 ## Implications for the store / model
 
