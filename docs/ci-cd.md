@@ -58,6 +58,7 @@ Concurrency is keyed on the PR number (or the ref for branch pushes) with `cance
 | identity — guest mode + kiosk PIN | `AQUALINK_AUTH_MODE=enabled`, `npx playwright test e2e/guest.spec.ts` | anonymous guest browsing, affordance gating, kiosk PIN |
 | history enabled | `AQUALINK_HISTORY_DB` | recorded series + chart |
 | scheduler enabled | `AQUALINK_SCHEDULES_FILE` | schedule CRUD |
+| TLS (https) | `AQUALINK_TLS=enabled` | the default (non-identity) suite over an HTTPS origin (self-signed cert auto-provisioned), exercising the server's TLS/SSL session path and certificate self-provisioning |
 
 **docker-verify checks.** It builds the `ci` target, then the `runtime` target (tagged `aqualink-automate:verify`), runs `docker run --rm -e MATTER_ENABLED=false aqualink-automate:verify --version`, and confirms the bundled sidecar is present (`node --version` plus a test for `/opt/matter-bridge/dist/index.js`). Both Docker builds are wrapped in a bounded retry so a transient Docker Hub base-image timeout does not fail CI. The `Dockerfile` base (both the build and runtime stages) is `ubuntu:25.04` — note this is a different release from the self-hosted runner image, which Packer provisions on Ubuntu 26.04 LTS (see [Provisioning](#provisioning) below).
 

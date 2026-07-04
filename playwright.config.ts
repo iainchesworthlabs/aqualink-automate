@@ -51,7 +51,17 @@ const LOG_CHANNELS = [
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.AQUALINK_TEST_PORT ?? 18080);
-const BASE_URL = `http://${HOST}:${PORT}`;
+
+// TLS mode: when AQUALINK_TLS=enabled, serve the UI + API over HTTPS instead of
+// plain HTTP (the app self-provisions a self-signed cert when --https-port is set
+// and --disable-https is absent). This exercises the TLS/SSL session path in the
+// HTTP server, the certificate self-provisioning, and the HTTPS bootstrap branch
+// — none of which the plain-HTTP default run reaches. The general (non-identity)
+// spec suite runs unchanged against the HTTPS origin; Chromium is told to accept
+// the self-signed cert via `ignoreHTTPSErrors`.
+const TLS_MODE = process.env.AQUALINK_TLS === 'enabled';
+const SCHEME = TLS_MODE ? 'https' : 'http';
+const BASE_URL = `${SCHEME}://${HOST}:${PORT}`;
 
 // Wave A identity mode: when AQUALINK_AUTH_MODE=enabled, boot the app with the
 // full identity system (`--auth-mode enabled`) against a FRESH temp
@@ -134,6 +144,9 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // In TLS mode the server presents a self-signed certificate; accept it so the
+    // browser can reach the HTTPS origin under test.
+    ignoreHTTPSErrors: TLS_MODE,
   },
 
   projects: [
@@ -148,9 +161,14 @@ export default defineConfig({
       `"${APP_EXE}"`,
       '--dev-mode',
       `--replay-filename "${REPLAY_FIXTURE}"`,
-      `--http-port ${PORT}`,
+      // TLS mode serves HTTPS only (self-signed cert auto-provisioned); the plain
+      // default serves HTTP only. --disable-http conflicts with --http-port and
+      // --disable-https conflicts with --https-port, so each mode passes exactly
+      // the port flag for its transport plus the disable for the other.
+      ...(TLS_MODE
+        ? [`--https-port ${PORT}`, '--disable-http']
+        : [`--http-port ${PORT}`, '--disable-https']),
       `--address ${HOST}`,
-      '--disable-https',
       `--doc-root "${DOC_ROOT}"`,
       '--jandy-disable-emulation',
       '--profiler tracy',
@@ -166,6 +184,9 @@ export default defineConfig({
       ...(SCHEDULES_FILE ? [`--schedules-file "${SCHEDULES_FILE}"`] : []),
     ].join(' '),
     url: BASE_URL,
+    // The HTTPS readiness probe must accept the self-signed cert too, or the
+    // webServer would never be considered "up" in TLS mode.
+    ignoreHTTPSErrors: TLS_MODE,
     reuseExistingServer: false,
     timeout: 120_000,
     stdout: 'pipe',

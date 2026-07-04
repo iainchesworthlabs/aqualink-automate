@@ -335,6 +335,18 @@ jobs:
         AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
         AQUALINK_SCHEDULES_FILE: ${{ runner.temp }}/e2e-schedules.json
 
+    # TLS mode: serve the whole UI/API over HTTPS (self-signed cert auto-provisioned)
+    # so the e2e run exercises the TLS/SSL session path in the HTTP server, the
+    # certificate self-provisioning, and the HTTPS bootstrap branch — none of which
+    # the plain-HTTP runs above reach. Same (non-identity) spec suite, HTTPS origin.
+    - name: E2E — TLS (https)
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_TLS: enabled
+
     # gcovr may already be baked into the self-hosted image (the unit-coverage
     # CMake target needs it); install it as a fallback for a stock runner.
     - name: Ensure gcovr is available
