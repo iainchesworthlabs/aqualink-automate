@@ -54,7 +54,10 @@ function _schedHm(t) {
 }
 function _schedFmtMin(min) {
     const m = ((min % 1440) + 1440) % 1440;
-    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    // Locale-digit clock time (zero-padded to 2 integer digits); the ':' is the
+    // standard time separator across the locales we ship.
+    const n = window.AquaI18n.formatNumber;
+    return `${n(Math.floor(m / 60), { minimumIntegerDigits: 2 })}:${n(m % 60, { minimumIntegerDigits: 2 })}`;
 }
 
 function _schedToForm(s) {

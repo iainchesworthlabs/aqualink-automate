@@ -364,6 +364,13 @@
         'devcard.active_emulator': 'Aktiver Emulator',
         'devcard.suppressed_note': 'Reales Gerät erkannt — Emulation unterdrückt, jetzt passiv.',
         'devcard.passive_note': 'Passiver Mitleser — sendet nie auf dem Bus.',
+        'devcard.op_state_coldstart': 'Kaltstart',
+        'devcard.op_state_startup': 'Startet',
+        'devcard.op_state_scraping': 'Auslesen',
+        'devcard.op_state_normal': 'Normal',
+        'devcard.op_state_scraping_faulted': 'Auslesen (Fehler)',
+        'devcard.op_state_fault': 'Fehler',
+        'devcard.op_state_not_present': 'Nicht vorhanden',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': 'Trends',

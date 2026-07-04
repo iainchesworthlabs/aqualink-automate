@@ -364,6 +364,13 @@
         'devcard.active_emulator': 'Emulador activo',
         'devcard.suppressed_note': 'Dispositivo real detectado — emulación suprimida, ahora pasivo.',
         'devcard.passive_note': 'Observador pasivo — nunca transmite en el bus.',
+        'devcard.op_state_coldstart': 'Arranque en frío',
+        'devcard.op_state_startup': 'Iniciando',
+        'devcard.op_state_scraping': 'Extracción',
+        'devcard.op_state_normal': 'Normal',
+        'devcard.op_state_scraping_faulted': 'Extracción (con fallo)',
+        'devcard.op_state_fault': 'Fallo',
+        'devcard.op_state_not_present': 'No presente',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': 'Tendencias',

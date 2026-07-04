@@ -1,8 +1,14 @@
 # i18n catalog guard (see docs/i18n.md).
 #
 # Checks, in order:
-#   1. Completeness — every key referenced via t()/$t()/$tn()/labelKey:/roleKey:/
-#      key-maps in the web assets must exist in the English catalog (en.js).
+#   1. Completeness — every key referenced in the web assets must exist in the
+#      English catalog (en.js). References are detected in four forms:
+#        * direct calls: t()/$t()/$tn()/AquaI18n.t()/.tn()
+#        * binding props: labelKey:/roleKey:
+#        * lookup-table / object-map *values* whose namespace matches ANY catalog
+#          namespace (e.g. `'NormalOperation': 'devcard.op_state_normal'`) — this
+#          is the indirection that hides a missing key from a naive $t() scan.
+#        * known dynamic-prefix families (tier., sched.act_, alert_detail.).
 #   2. Parity — every non-English catalog must define exactly the same key set
 #      as en.js (missing = untranslated string; extra = typo / dead key).
 #   3. Placeholders — every {param} used in an English value must appear in the
@@ -32,6 +38,15 @@ $enFile = Join-Path $i18nDir 'en.js'
 $en = Get-CatalogKeys $enFile
 $catalogKeys = [System.Collections.Generic.HashSet[string]]::new([string[]]$en.Keys)
 
+# Namespaces present in the catalog (segment before the first dot). Used to
+# recognise catalog keys that appear as *values* in lookup tables / object maps
+# — those are referenced through an indirection a $t()-only scan cannot see, and
+# were how devcard.op_state_* shipped undefined. Deriving the list from the
+# catalog means a brand-new namespace is covered automatically.
+$namespaces = [System.Collections.Generic.HashSet[string]]::new()
+foreach ($k in $en.Keys) { [void]$namespaces.Add(($k -split '\.', 2)[0]) }
+$nsAlt = (($namespaces | Sort-Object) -join '|')
+
 # ---- 1. Completeness against source references --------------------------------
 # Exclusions test the path RELATIVE to the web root — the checkout directory
 # itself may be called 'i18n', which would otherwise match every file.
@@ -57,11 +72,21 @@ foreach ($f in $files) {
     foreach ($m in [regex]::Matches($src, "(?:labelKey|roleKey):\s*'([a-z_]+(?:\.[A-Za-z0-9_]+)+)'")) {
         Add-Used $m.Groups[1].Value $rel
     }
-    foreach ($m in [regex]::Matches($src, ":\s*'((?:common|status|alert|swg_health|chem|about)\.[A-Za-z0-9_]+)'")) {
+    # Object-map VALUES that are catalog keys — any catalog namespace, so a new
+    # `'Enum': 'ns.key'` lookup table is guarded without editing this list.
+    foreach ($m in [regex]::Matches($src, ":\s*'((?:$nsAlt)(?:\.[A-Za-z0-9_]+)+)'")) {
         Add-Used $m.Groups[1].Value $rel
     }
     if ($src -match "'tier\.' \+ tier") { foreach ($k in 'tier.good', 'tier.okay', 'tier.bad') { Add-Used $k $rel } }
     if ($src -match "'sched\.act_' \+") { foreach ($k in 'sched.act_on', 'sched.act_off', 'sched.act_toggle') { Add-Used $k $rel } }
+    # Dynamic detail templates: alerts-store builds `'alert_detail.' + condition`,
+    # where the conditions are exactly the ALERT_LABEL_KEYS entries — matched here
+    # as `<cond>: 'alert.<cond>'` so the guarded set tracks the map automatically.
+    if ($src -match "'alert_detail\.'\s*\+") {
+        foreach ($m in [regex]::Matches($src, "([A-Za-z_][A-Za-z0-9_]*)\s*:\s*'alert\.([A-Za-z0-9_]+)'")) {
+            if ($m.Groups[1].Value -eq $m.Groups[2].Value) { Add-Used ("alert_detail." + $m.Groups[2].Value) $rel }
+        }
+    }
 }
 
 $missing = @()

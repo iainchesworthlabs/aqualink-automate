@@ -362,6 +362,13 @@
         'devcard.active_emulator': '主动模拟器',
         'devcard.suppressed_note': '检测到真实设备 — 已停止模拟，现处于被动模式。',
         'devcard.passive_note': '被动侦听器 — 从不向总线发送数据。',
+        'devcard.op_state_coldstart': '冷启动',
+        'devcard.op_state_startup': '正在启动',
+        'devcard.op_state_scraping': '抓取',
+        'devcard.op_state_normal': '正常',
+        'devcard.op_state_scraping_faulted': '抓取（故障）',
+        'devcard.op_state_fault': '故障',
+        'devcard.op_state_not_present': '不存在',
 
         // ---- Trends ---------------------------------------------------------------
         'trends.title': '趋势',

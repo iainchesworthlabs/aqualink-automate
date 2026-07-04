@@ -1143,7 +1143,7 @@
                             </svg>
                             <div class="chem-dial-center">
                                 <span class="chem-dial-num" :style="`color:${statusColor}`" x-text="numericValue === null ? '--' : $nf(numericValue, cfg.decimals)"></span>
-                                <span class="chem-dial-unit" x-text="(cfg.unit || '').trim()"></span>
+                                <span class="chem-dial-unit" x-text="unitLabel"></span>
                             </div>
                         </div>
                         <div class="chem-dial-range" x-text="$n(cfg.min) + ' – ' + $n(cfg.max)"></div>
@@ -1400,13 +1400,13 @@
                         <div class="health-kv"><span x-text="$t('diag.system_board')"></span><span x-text="health.checks?.configuration?.system_board || '--'"></span></div>
                         <div class="health-kv"><span x-text="$t('diag.mode')"></span><span x-text="health.checks?.configuration?.mode || '--'"></span></div>
                         <div class="health-kv"><span x-text="$t('diag.validation')"></span><span :class="health.checks?.configuration?.equipment_validation?.passed ? 'val-ok' : 'val-bad'" x-text="health.checks?.configuration?.equipment_validation?.passed ? $t('diag.passed') : $t('diag.failed')"></span></div>
-                        <div class="health-kv"><span x-text="$t('diag.auxiliaries')"></span><span x-text="(health.checks?.configuration?.equipment_validation?.discovered_auxillaries ?? '–') + ' / ' + (health.checks?.configuration?.equipment_validation?.expected_auxillaries ?? '–')"></span></div>
-                        <div class="health-kv"><span x-text="$t('diag.power_centers')"></span><span x-text="(health.checks?.configuration?.equipment_validation?.discovered_power_centers ?? '–') + ' / ' + (health.checks?.configuration?.equipment_validation?.expected_power_centers ?? '–')"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.auxiliaries')"></span><span x-text="$n(health.checks?.configuration?.equipment_validation?.discovered_auxillaries ?? '–') + ' / ' + $n(health.checks?.configuration?.equipment_validation?.expected_auxillaries ?? '–')"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.power_centers')"></span><span x-text="$n(health.checks?.configuration?.equipment_validation?.discovered_power_centers ?? '–') + ' / ' + $n(health.checks?.configuration?.equipment_validation?.expected_power_centers ?? '–')"></span></div>
                     </div>
                     <div class="health-sub-card">
                         <div class="health-sub-title"><span class="health-dot is-ok"></span><span x-text="$t('diag.equipment')"></span></div>
                         <div class="health-kv"><span x-text="$t('diag.status')"></span><span :class="health.checks?.equipment?.status === 'ok' ? 'val-ok' : ''" x-text="(health.checks?.equipment?.status || '--').toUpperCase()"></span></div>
-                        <div class="health-kv"><span x-text="$t('diag.devices')"></span><span x-text="health.checks?.equipment?.device_count ?? '--'"></span></div>
+                        <div class="health-kv"><span x-text="$t('diag.devices')"></span><span x-text="$n(health.checks?.equipment?.device_count ?? '--')"></span></div>
                         <div class="health-kv"><span x-text="$t('diag.anomalies')"></span><span x-text="(health.checks?.configuration?.equipment_validation?.anomalies?.length) ? health.checks.configuration.equipment_validation.anomalies.length : $t('common.none')"></span></div>
                     </div>
                     <div class="health-sub-card">
@@ -1488,23 +1488,23 @@
             <div x-show="$store.stats.serial" class="stat-cards mb-2">
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.error_rate')"></div>
-                    <div class="stat-card-value" x-text="$store.stats.serial?.message_error_rate ?? '--'"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.serial?.message_error_rate ?? '--')"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.overflow')"></div>
-                    <div class="stat-card-value" x-text="$store.stats.serial?.overflow_count ?? '--'"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.serial?.overflow_count ?? '--')"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.underflow')"></div>
-                    <div class="stat-card-value" x-text="$store.stats.serial?.underflow_count ?? '--'"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.serial?.underflow_count ?? '--')"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.tx_failures')"></div>
-                    <div class="stat-card-value" x-text="$store.stats.serial?.transmission_failures ?? '--'"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.serial?.transmission_failures ?? '--')"></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-label" x-text="$t('diag.write_queue')"></div>
-                    <div class="stat-card-value" x-text="$store.stats.serial?.write_queue_depth ?? '--'"></div>
+                    <div class="stat-card-value" x-text="$n($store.stats.serial?.write_queue_depth ?? '--')"></div>
                 </div>
             </div>
             <div x-show="!$store.stats.serial" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_serial')"></div>
@@ -1704,9 +1704,9 @@
                         <div class="mqtt-row"><span x-text="$t('diag.topic_prefix')"></span><span class="mqtt-val" x-text="mqtt.topic_prefix || '--'"></span></div>
                         <div class="mqtt-row"><span x-text="$t('diag.home_assistant')"></span><span class="mqtt-val" x-text="mqtt.home_assistant_enabled ? $t('diag.discovery_on', { prefix: mqtt.ha_discovery_prefix || '' }) : $t('common.off_lc')"></span></div>
                         <div class="mqtt-row mqtt-row-top"><span x-text="$t('diag.published')"></span><span class="mqtt-val mqtt-num" x-text="$n(mqtt.published ?? 0)"></span></div>
-                        <div class="mqtt-row"><span x-text="$t('diag.queue_depth')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.queue_depth ?? 0"></span></div>
-                        <div class="mqtt-row"><span x-text="$t('diag.dropped')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.dropped ?? 0"></span></div>
-                        <div class="mqtt-row"><span x-text="$t('diag.reconnects')"></span><span class="mqtt-val mqtt-num" x-text="mqtt.reconnect_attempts ?? 0"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.queue_depth')"></span><span class="mqtt-val mqtt-num" x-text="$n(mqtt.queue_depth ?? 0)"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.dropped')"></span><span class="mqtt-val mqtt-num" x-text="$n(mqtt.dropped ?? 0)"></span></div>
+                        <div class="mqtt-row"><span x-text="$t('diag.reconnects')"></span><span class="mqtt-val mqtt-num" x-text="$n(mqtt.reconnect_attempts ?? 0)"></span></div>
                         <template x-if="mqtt.last_error">
                             <div class="mqtt-row"><span x-text="$t('diag.last_error')"></span><span class="mqtt-val" x-text="mqtt.last_error"></span></div>
                         </template>
@@ -2541,7 +2541,7 @@
                     <div class="matter-body">
                         <div class="matter-info">
                             <div class="matter-kv"><span x-text="$t('settings.sidecar')"></span><span x-text="matter.running ? $t('common.running') : $t('settings.not_running')"></span></div>
-                            <div class="matter-kv"><span x-text="$t('settings.paired_fabrics')"></span><span x-text="matter.fabrics ?? 0"></span></div>
+                            <div class="matter-kv"><span x-text="$t('settings.paired_fabrics')"></span><span x-text="$n(matter.fabrics ?? 0)"></span></div>
                             <div class="matter-kv" x-show="matter.node_id"><span x-text="$t('settings.node_id')"></span><span x-text="matter.node_id"></span></div>
                             <div class="matter-kv" x-show="matter.vendor_id"><span x-text="$t('settings.vendor_id')"></span><span x-text="matter.vendor_id"></span></div>
                             <div class="matter-kv" x-show="matter.spec_version"><span x-text="$t('settings.spec')"></span><span x-text="matter.spec_version"></span></div>
