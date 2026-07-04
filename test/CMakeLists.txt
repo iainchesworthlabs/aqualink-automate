@@ -58,6 +58,7 @@ target_sources(
 	unit/http/test_http_diagnostics_devices.cpp
 	unit/http/test_http_diagnostics_profiling.cpp
 	unit/http/test_http_diagnostics_recording.cpp
+	unit/http/test_html_escape.cpp
 	unit/http/test_http_error_responses.cpp
 	unit/http/test_http_health_detailed.cpp
 	unit/http/test_http_security.cpp
