@@ -1379,7 +1379,14 @@ view is open.</p>
    <code>i18n-catalogs</code> job in <code>.github/workflows/ci.yml</code>): every key referenced in
    code must exist in <code>en.js</code>; every locale must have exact key parity with
    <code>en.js</code>; every translated value must carry exactly the English value's
-   <code>{placeholders}</code>.</li>
+   <code>{placeholders}</code>. "Referenced" covers not just direct <code>t()</code>/<code>$t()</code>/<code>$tn()</code>
+   calls but also keys reached through <strong>indirection</strong>: <code>labelKey:</code>/<code>roleKey:</code>
+   bindings, catalog keys stored as <strong>values in lookup tables / object maps</strong>
+   (any catalog namespace — e.g. <code>'NormalOperation': 'devcard.op_state_normal'</code>
+   in <code>ui-constants.js</code>), and the known dynamic-prefix families (<code>tier.</code>,
+   <code>sched.act_</code>, <code>alert_detail.</code>). A key that a UI reaches only through such a
+   map is guarded exactly like a direct call — a missing one fails CI rather
+   than rendering the raw key.</li>
 <li><strong><code>e2e/i18n.spec.ts</code> — runtime behavior</strong>: lookup/placeholder/plural/
    fallback semantics, the Settings language picker, localStorage persistence
    across reload, per-locale catalog loading, and the <code>&lt;html lang&gt;</code>/<code>&lt;html
