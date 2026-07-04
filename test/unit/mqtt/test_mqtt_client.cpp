@@ -728,4 +728,50 @@ BOOST_AUTO_TEST_CASE(Test_ConnectionDrop_EmitsDisconnectAndSchedulesReconnect)
 	client->Stop();
 }
 
+BOOST_AUTO_TEST_CASE(Test_ConnackRejected_DoesNotConnectAndReconnects)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	broker.SetRejectConnect(true);   // answer CONNECT with a non-accepted CONNACK
+
+	auto settings = MakeBrokerSettings(broker.Port());
+	settings.reconnect_delay_initial = std::chrono::seconds(1);   // don't wait long before the retry
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Start();
+
+	// The broker sends CONNACK(refused); the client must reject it and schedule a
+	// reconnect rather than reaching Connected.
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->GetState() == Mqtt::MqttClient::State::Reconnecting; }));
+	BOOST_CHECK(!client->IsConnected());
+	BOOST_CHECK(broker.ClientConnected());   // it did receive our CONNECT
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_HandshakeFailure_SchedulesReconnect)
+{
+	boost::asio::io_context ioc;
+
+	// A port that nothing is listening on: bind then immediately release it, so the
+	// client's underlying (TCP) handshake is refused and its failure branch runs.
+	std::uint16_t dead_port = 0;
+	{
+		boost::asio::ip::tcp::acceptor probe(ioc, boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 0));
+		dead_port = probe.local_endpoint().port();
+	}
+
+	auto settings = MakeBrokerSettings(dead_port);
+	settings.reconnect_delay_initial = std::chrono::seconds(1);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->GetState() == Mqtt::MqttClient::State::Reconnecting; }));
+	BOOST_CHECK(!client->IsConnected());
+	BOOST_CHECK(!client->LastError().empty());   // the handshake error was recorded
+
+	client->Stop();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
