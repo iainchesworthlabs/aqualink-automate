@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.11.0-beta.2] - 2026-07-04
+
+A translation-polish release for the internationalized web UI: device operating-state labels and every user-visible number now localize correctly in all nine languages. Bug fixes only — no behavior or configuration changes.
+
+### Fixed
+
+- **Device operating-state labels are now translated.** The diagnostics device cards displayed raw catalog keys (`devcard.op_state_normal`, `…_fault`, `…_not_present`, and four more) instead of readable text; all seven states now render in every language.
+- **Numbers localize consistently across the interface.** Temperatures, setpoints, chemistry readings, the chlorinator output, diagnostics counters, and schedule times now all format through the locale-aware formatter. Right-to-left locales such as Arabic render Eastern Arabic-Indic digits everywhere — previously the dashboard chlorinator output and several counters showed Western digits regardless of the selected language.
+
 ## [0.11.0-beta.1] - 2026-07-03
 
 The authentication and internationalization release. Aqualink Automate gains a full optional identity system (first-run admin setup, username/password sign-in, roles-free attribute-based access control, guest mode, and a users/groups/API-keys admin UI), and the entire web interface is now translatable, shipping in nine languages with full right-to-left support. Under the hood, a redesigned logging subsystem adds file and JSON logs plus platform-native sinks, the app can run as a managed Windows service, and temperature reporting is now honest about stale or missing readings. Authentication is off by default, so existing installs are unaffected until you turn it on.
