@@ -1,3 +1,4 @@
+#include <bit>
 #include <cctype>
 #include <format>
 #include <functional>
@@ -74,8 +75,36 @@ namespace AqualinkAutomate::Devices
 		// fixed touch-grid keys (Command = 0x11 + screen position) it uses.
 		constexpr uint8_t IAQ_CMD_MENU_TO_SCHEDULE{ 0x11 };   // on the menu (0x0f): pos0 -> Schedule list
 		constexpr uint8_t IAQ_CMD_ADD_PROGRAM{ 0x11 };        // on the list (0x28): pos0 -> Add Program -> device picker
+		// Device picker (0x38): click a visible row R (1..7) with (base + R); scroll down / confirm.
+		// Verified across iaq_schedule_{clean,picker}.cap (row1->0x14, row2->0x15, row3->0x16, row4->0x17).
+		constexpr uint8_t IAQ_SCHEDULE_PICK_ROW_BASE{ 0x13 };  // click visible row R -> 0x13 + R
+		constexpr uint8_t IAQ_CMD_PICKER_SCROLL{ 0x12 };       // scroll the picker down one page
+		constexpr uint8_t IAQ_CMD_PICKER_OK{ 0x13 };           // confirm the highlighted device -> back to list
+		// Day keys on the schedule list (0x28): the day-selection touch cells.
+		constexpr uint8_t IAQ_CMD_DAY_ALL{ 0x17 };
+		constexpr uint8_t IAQ_CMD_DAY_MON{ 0x18 };  // then Tue..Sun are consecutive
+		constexpr uint8_t IAQ_CMD_DAY_WKDAYS{ 0x1f };
+		constexpr uint8_t IAQ_CMD_DAY_WKENDS{ 0x20 };
 		constexpr uint32_t IAQ_SCHEDULE_SETTLE_POLLS{ 4 };    // polls to let the master render after a command
+		constexpr uint32_t IAQ_SCHEDULE_MAX_SCROLLS{ 12 };    // bound the device-picker scroll search
 		constexpr uint32_t IAQ_SCHEDULE_POLL_LIMIT{ 400 };    // overall backstop (abandon the goal)
+
+		// Map a controller-expressible day-of-week bitmask (bit0=Mon..bit6=Sun) to the schedule
+		// list's day touch-cell command. The caller only ever passes a selection the controller can
+		// represent (guaranteed by Scheduling::CheckControllerCandidate): all / weekdays / weekends /
+		// a single day. Single days are consecutive from Monday (0x18) in Mon..Sun order.
+		uint8_t DayCommandFor(uint8_t days_of_week)
+		{
+			const uint8_t days = days_of_week & 0x7f;
+			if (days == 0x7f) { return IAQ_CMD_DAY_ALL; }
+			if (days == 0x1f) { return IAQ_CMD_DAY_WKDAYS; }
+			if (days == 0x60) { return IAQ_CMD_DAY_WKENDS; }
+			if (std::popcount(days) == 1)
+			{
+				return static_cast<uint8_t>(IAQ_CMD_DAY_MON + std::countr_zero(days));
+			}
+			return IAQ_CMD_DAY_ALL;   // unreachable for a validated candidate
+		}
 	}
 	// namespace
 
@@ -626,6 +655,7 @@ namespace AqualinkAutomate::Devices
 		m_ScheduleWriteSettleCount = 0;
 		m_ScheduleWriteScrollCount = 0;
 		m_ScheduleProgramAdded = false;
+		m_ScheduleDeviceClicked = false;
 
 		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): queued {}", DeviceId(), m_PendingScheduleWrite->desc); });
 		return Capabilities::ActuationResult::Accepted;
@@ -649,6 +679,7 @@ namespace AqualinkAutomate::Devices
 			m_PendingScheduleWrite.reset();
 			m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;
 			m_ScheduleProgramAdded = false;
+			m_ScheduleDeviceClicked = false;
 			m_ScheduleWriteScrollCount = 0;
 			m_ScheduleWriteSettleCount = 0;
 		};
@@ -730,26 +761,64 @@ namespace AqualinkAutomate::Devices
 				return;
 			}
 
-			// Is the target device visible in the current picker page?
-			for (const auto& [slot, label] : m_DevicePickerRows)
+			// Two-step select once the target is on-screen: click its visible row (0x13 + row) to
+			// highlight it, then confirm with the OK key (0x13) -> returns to the list.
+			if (m_ScheduleDeviceClicked)
+			{
+				issue(IAQ_CMD_PICKER_OK);
+				m_ScheduleWritePhase = ScheduleWritePhase::SetDay;
+				return;
+			}
+
+			// Is the target device visible in the current picker page? (Attribute = the visible row.)
+			for (const auto& [row, label] : m_DevicePickerRows)
 			{
 				if (eq_ci(label, goal.program.target))
 				{
-					// The device is on screen. The touch-position -> row SELECT keystroke on this
-					// scrolling picker is not yet pinned (a controlled one-step capture is needed),
-					// so stop here rather than emit an unverified press. The read path + this scroll
-					// search are exercised; the pick + SetOnTime/SetOffTime/SetDay land next.
-					LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- target device '{}' visible at picker slot {}; pick keystroke pending a controlled device-picker capture", DeviceId(), goal.desc, goal.program.target, slot); });
-					finish(false);
+					issue(static_cast<uint8_t>(IAQ_SCHEDULE_PICK_ROW_BASE + row));   // click the row
+					m_ScheduleDeviceClicked = true;
 					return;
 				}
 			}
 
-			// Not visible: bound the search. (The scroll keystroke on the picker is likewise pending
-			// the controlled capture, so we do not emit one -- we abandon once the visible page does
-			// not contain the target rather than guess a scroll key.)
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- target device '{}' not on the visible picker page; scroll+pick pending a controlled device-picker capture", DeviceId(), goal.desc, goal.program.target); });
-			finish(false);
+			// Not visible: scroll down one page, bounded by IAQ_SCHEDULE_MAX_SCROLLS.
+			if (++m_ScheduleWriteScrollCount > IAQ_SCHEDULE_MAX_SCROLLS)
+			{
+				LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- target device '{}' not found after scrolling the picker", DeviceId(), goal.desc, goal.program.target); });
+				finish(false);
+				return;
+			}
+			issue(IAQ_CMD_PICKER_SCROLL);
+			return;
+		}
+
+		case ScheduleWritePhase::SetDay:
+		{
+			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			{
+				m_PendingCommand = 0x00;   // dwell until the master renders the list with the new program
+				return;
+			}
+			issue(DayCommandFor(goal.program.days_of_week));
+			m_ScheduleWritePhase = ScheduleWritePhase::Verify;
+			return;
+		}
+
+		case ScheduleWritePhase::Verify:
+		{
+			// The new program is present once the parsed schedule list carries a row for the target
+			// device on the requested day. (Times are set by a later increment; a freshly-created
+			// program defaults to 1:00 PM / 1:00 PM until then.)
+			for (const auto& [ordinal, text] : m_ScheduleRows)
+			{
+				if (const auto parsed = IAQ::ParseScheduleRow(text);
+					parsed.has_value() && eq_ci(parsed->target, goal.program.target) && parsed->days_of_week == goal.program.days_of_week)
+				{
+					finish(true);
+					return;
+				}
+			}
+			m_PendingCommand = 0x00;   // dwell until the list re-renders (or the poll backstop fires)
 			return;
 		}
 

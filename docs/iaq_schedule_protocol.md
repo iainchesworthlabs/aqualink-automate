@@ -252,11 +252,26 @@ edit day → delete) pinned the canonical flow. Genuine presses (`AckType==0x00`
 - **A new program defaults to `1:00 PM / 1:00 PM / All`**; fields are then set incrementally (there
   is no batch "save" — each submit/day-press mutates the highlighted row live).
 
+### Device picker (0x38) — fully decoded (`captures/iaq_picker.cap`, 2026-07-04 #3)
+
+The picker is a **scrolling touchscreen list**; a mouse click on a row is a single touch-position
+command, not a navigate+select. Four controlled picks (device at row 1, 2, 4, and a scrolled row)
+pinned the mapping, consistent with the earlier Pool-Light pick (row 3 → `0x16`):
+
+- **Click visible row R (1-based) → `0x13 + R`** — row1 `0x14`, row2 `0x15`, row3 `0x16`, row4 `0x17`, …
+- **`0x12` = scroll the picker down** one page (rows re-render as Attribute 1..7 of the new page).
+- **`0x13` = OK / confirm** the highlighted device → returns to the list with the new program
+  (defaulted to `1:00 PM / 1:00 PM / All`).
+
+Select flow: scroll (`0x12`) until the target label appears in the group-0 rows, click its row
+(`0x13 + row`), then `0x13` to confirm. Implemented in `IAQDevice::ControllerScheduleWrite_ProcessStep`.
+
 ### Still needs a capture
 
 - **`Cancel` on the delete dialog** was not exercised (only Ok). Capture a cancelled delete to pin it.
-- **Exact device-picker scroll opcode** (vs select): the scroll-until-highlighted approach does not
-  require it, but a one-step-at-a-time picker scroll would still be nice to log the raw scroll key.
+- **The time-field submit end-to-end** (`0x21`/`0x22` → picker → `0x11` AM/PM toggle → `0x80` submit)
+  is decoded but not yet exercised through the emulator; the create writer currently sets device +
+  day and leaves the default times, with the value-submit handshake landing as the final increment.
 
 ## Implications for the store / model
 

@@ -306,17 +306,18 @@ namespace AqualinkAutomate::Devices
 		// ControllerScheduleWrite_ProcessStep. Drives the AqualinkTouch Program pages to create a
 		// program in the active schedule group. RE'd from captures/iaq_schedule_{session,clean}.cap;
 		// see docs/iaq_schedule_protocol.md (write path).
-		// Phases implemented this increment: navigate -> Add Program -> scroll the device picker
-		// until the target device is visible. The final pick keystroke on the picker (a scrolling
-		// touchscreen list) and the subsequent SetOnTime/SetOffTime (0x21/0x22 + submit) / SetDay
-		// (0x17-0x20) phases are decoded (docs/iaq_schedule_protocol.md) but land once a controlled
-		// device-picker capture pins the touch-position -> row select mapping; SelectDevice
-		// fail-safes (abandons) at that boundary rather than emit an unverified keystroke.
+		// Full CREATE flow (RE'd from captures/iaq_schedule_{session,clean,picker}.cap; see
+		// docs/iaq_schedule_protocol.md). The device picker is a scrolling touchscreen list: click a
+		// visible row R with command (IAQ_SCHEDULE_PICK_ROW_BASE + R), scroll with 0x12, confirm with
+		// 0x13. Times (SetOnTime/SetOffTime via 0x21/0x22 + the value-submit handshake) are decoded
+		// and land as the final increment; this build completes device selection + the day.
 		enum class ScheduleWritePhase
 		{
 			NavigateToList,  // page-gated walk to the Schedule list (0x28)
 			AddProgram,      // press Add Program (0x11) -> device picker (0x38)
-			SelectDevice,    // scroll the picker until the target device is visible (then pick -- pending capture)
+			SelectDevice,    // scroll the picker until the target device is visible, click its row, confirm
+			SetDay,          // on the list, press the day key (0x17-0x20) for the desired selection
+			Verify,          // confirm the new program is present in the parsed list
 			Done,
 			Failed,
 		};
@@ -331,6 +332,7 @@ namespace AqualinkAutomate::Devices
 		uint32_t m_ScheduleWriteSettleCount{ 0 }; // polls to let the master render after a command
 		uint32_t m_ScheduleWriteScrollCount{ 0 }; // bound the device-picker scroll search
 		bool m_ScheduleProgramAdded{ false };     // the Add-Program press has been issued
+		bool m_ScheduleDeviceClicked{ false };    // the target device row has been clicked (awaiting the OK confirm)
 
 		// The device/target rows on the schedule editor's device picker (page 0x38), rebuilt each
 		// render from its group-0x00 TableMessages (attribute -> device label). Used to decide
