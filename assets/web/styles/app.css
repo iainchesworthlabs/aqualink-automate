@@ -1,5 +1,25 @@
 /* === Variables, Layout, Typography, Dark Mode === */
 
+/*
+ * === Responsive breakpoint system ===
+ * Canonical viewport breakpoints for the responsive UI. Kept in lock-step with
+ * scripts/stores/layout-store.js (the JS side reads the same thresholds via
+ * matchMedia). Use VIEWPORT media queries (not container queries) so the
+ * orientation query below works.
+ *
+ *   phone    @media (max-width: 639px)
+ *   tablet   @media (min-width: 640px) and (max-width: 1023px)
+ *   desktop  @media (min-width: 1024px)                       <- base / desktop-first styles
+ *   iPad landscape dashboard:
+ *            @media (min-width: 768px) and (orientation: landscape)
+ *
+ * Rules: new components use logical properties (inset-inline, margin-inline-*,
+ * text-align: start) and design tokens only — never hardcoded colours — so RTL
+ * mirrors and both themes resolve correctly. (NOTE: the two legacy
+ * max-width:820px / max-width:640px queries further down predate this system
+ * and are migrated view-by-view across the responsive phases.)
+ */
+
 :root {
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
