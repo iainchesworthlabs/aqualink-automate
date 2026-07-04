@@ -401,6 +401,8 @@
         'sched.to_time': 'حتى {time}',
         'sched.owner_controller': 'وحدة التحكم',
         'sched.owner_app': 'التطبيق',
+        'sched.group_label': 'المجموعة {group}',
+        'sched.active_group_note': 'عرض مجموعة البرامج النشطة في وحدة التحكم ({group}). يمكن لوحدة التحكم تخزين مجموعة ثانية؛ بدّل المجموعات على وحدة التحكم لعرضها.',
         'sched.conflict': 'تعارض',
         'sched.none_yet_title': 'لا جداول بعد',
         'sched.none_yet_text': 'أتمت التسخين والترشيح والإضاءة حسب وقت اليوم. أنشئ جدولك الأول للبدء.',

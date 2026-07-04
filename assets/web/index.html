@@ -2188,6 +2188,7 @@
                                 <div class="sched-name">
                                     <span x-text="e.name"></span>
                                     <span class="sched-owner-tag" :class="e.owner === 'controller' ? 'tag-controller' : 'tag-app'" x-text="e.owner === 'controller' ? $t('sched.owner_controller') : $t('sched.owner_app')"></span>
+                                    <span class="sched-group-tag" x-show="e.owner === 'controller' && e.group" x-cloak x-text="$t('sched.group_label', { group: e.group })"></span>
                                     <span class="sched-conflict-flag" x-show="e.conflict" :title="e.conflictMsg" x-text="$t('sched.conflict')"></span>
                                 </div>
                                 <div class="sched-meta">
@@ -2223,6 +2224,10 @@
                     </div>
 
                     <!-- controller status note -->
+                    <div class="sched-note sched-note-muted" x-show="hasControllerSchedules && controllerActiveGroup" x-cloak>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                        <span x-text="$t('sched.active_group_note', { group: controllerActiveGroup })"></span>
+                    </div>
                     <div class="sched-note" x-show="controllerPending" x-cloak>
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
                         <span x-text="$t('sched.controller_pending')"></span>

@@ -401,6 +401,8 @@
         'sched.to_time': 'עד {time}',
         'sched.owner_controller': 'בקר',
         'sched.owner_app': 'אפליקציה',
+        'sched.group_label': 'קבוצה {group}',
+        'sched.active_group_note': 'מוצגת קבוצת התוכניות הפעילה של הבקר ({group}). הבקר יכול לאחסן קבוצה שנייה; החלף קבוצות בבקר כדי להציג אותה.',
         'sched.conflict': 'התנגשות',
         'sched.none_yet_title': 'אין תזמונים עדיין',
         'sched.none_yet_text': 'הפכו חימום, סינון ותאורה לאוטומטיים לפי שעות היום. צרו את התזמון הראשון שלכם כדי להתחיל.',

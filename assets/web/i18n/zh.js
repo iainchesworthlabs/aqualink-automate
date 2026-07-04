@@ -400,6 +400,8 @@
         'sched.to_time': '至 {time}',
         'sched.owner_controller': '控制器',
         'sched.owner_app': '应用',
+        'sched.group_label': '程序组 {group}',
+        'sched.active_group_note': '正在显示控制器当前启用的程序组（{group}）。控制器可存储第二个程序组；在控制器上切换程序组即可查看。',
         'sched.conflict': '冲突',
         'sched.none_yet_title': '尚无计划',
         'sched.none_yet_text': '按每天的时间自动执行加热、过滤和照明。创建您的第一个计划即可开始。',
