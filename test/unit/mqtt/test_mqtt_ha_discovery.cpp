@@ -1217,3 +1217,148 @@ BOOST_AUTO_TEST_CASE(Test_SetpointUnits_FahrenheitPreference)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// PublishDeviceStates across every device category, plus the no-label skip path
+// (a device with no LabelTrait must be silently skipped, never crash).
+//=============================================================================
+
+namespace
+{
+	std::shared_ptr<Kernel::AuxillaryDevice> MakeTypedDevice(Kernel::AuxillaryTraitsTypes::AuxillaryTypes type, const std::string& label)
+	{
+		namespace Traits = Kernel::AuxillaryTraitsTypes;
+		auto dev = std::make_shared<Kernel::AuxillaryDevice>();
+		dev->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, type);
+		dev->AuxillaryTraits.Set(Traits::LabelTrait{}, label);
+		return dev;
+	}
+}
+
+BOOST_AUTO_TEST_SUITE(TestSuite_HaDiscovery_DeviceStates)
+
+BOOST_AUTO_TEST_CASE(Test_PublishDeviceStates_AllCategories_PublishRetainedState)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	ha.ConnectDataHub(data_hub);
+	data_hub->Devices.Add(MakeTypedDevice(Traits::AuxillaryTypes::Pump, "Filter Pump"));
+	data_hub->Devices.Add(MakeTypedDevice(Traits::AuxillaryTypes::Heater, "Pool Heater"));
+	data_hub->Devices.Add(MakeTypedDevice(Traits::AuxillaryTypes::Chlorinator, "AquaPure"));
+	data_hub->Devices.Add(MakeTypedDevice(Traits::AuxillaryTypes::Auxillary, "Pool Light"));
+
+	ha.PublishDeviceStates();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+
+	// Each category publishes a retained short-state topic under ha/.
+	auto has_topic = [&](const std::string& topic)
+	{
+		for (const auto& pending : queue)
+		{
+			if (pending.topic == topic) { return true; }
+		}
+		return false;
+	};
+
+	BOOST_CHECK(has_topic("aqualink/ha/pump_filter_pump"));
+	BOOST_CHECK(has_topic("aqualink/ha/heater_pool_heater"));
+	BOOST_CHECK(has_topic("aqualink/ha/chlorinator_aquapure"));
+	BOOST_CHECK(has_topic("aqualink/ha/aux_pool_light"));
+}
+
+BOOST_AUTO_TEST_CASE(Test_PublishDeviceStates_UnlabelledDevice_Skipped)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	ha.ConnectDataHub(data_hub);
+
+	// A pump with no LabelTrait: publish_device_state must skip it (no slug can be formed).
+	auto unlabelled = std::make_shared<Kernel::AuxillaryDevice>();
+	unlabelled->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Pump);
+	data_hub->Devices.Add(unlabelled);
+
+	BOOST_CHECK_NO_THROW(ha.PublishDeviceStates());
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+	std::size_t state_topics = 0;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic.find("/ha/") != std::string::npos) { ++state_topics; }
+	}
+	BOOST_CHECK_EQUAL(state_topics, 0u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// AdoptRetainedComponents error/guard branches: an empty payload, a payload
+// with no "cmps" object, and an unparseable payload must all be no-ops that
+// adopt nothing (so the next publish tombstones nothing spuriously).
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_HaDiscovery_AdoptRetained)
+
+BOOST_AUTO_TEST_CASE(Test_AdoptRetained_EmptyPayload_AdoptsNothing)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	ha.ConnectDataHub(data_hub);
+
+	// Empty retained payload: early return, nothing adopted. The subsequent publish therefore
+	// contains no tombstone for any device-slug component (there is nothing to tombstone).
+	ha.AdoptRetainedComponents("");
+
+	ha.PublishDiscoveryConfigs();
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+	auto cmps = nlohmann::json::parse(queue.back().payload)["cmps"];
+	BOOST_CHECK(!cmps.contains("aux_ghost"));
+}
+
+BOOST_AUTO_TEST_CASE(Test_AdoptRetained_NoCmpsObject_AdoptsNothing)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	ha.ConnectDataHub(data_hub);
+
+	// Valid JSON but no "cmps" key: guarded early return, nothing adopted.
+	BOOST_CHECK_NO_THROW(ha.AdoptRetainedComponents(R"({"other":123})"));
+
+	ha.PublishDiscoveryConfigs();
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+	auto cmps = nlohmann::json::parse(queue.back().payload)["cmps"];
+	BOOST_CHECK(!cmps.contains("aux_ghost"));
+}
+
+BOOST_AUTO_TEST_CASE(Test_AdoptRetained_InvalidJson_IsHarmless)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	// Unparseable payload: the parse throws and is caught; the call is a no-op that does not escape.
+	BOOST_CHECK_NO_THROW(ha.AdoptRetainedComponents("{ not valid json"));
+}
+
+BOOST_AUTO_TEST_SUITE_END()

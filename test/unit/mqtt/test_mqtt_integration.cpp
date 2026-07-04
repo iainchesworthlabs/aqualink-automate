@@ -282,6 +282,27 @@ BOOST_AUTO_TEST_CASE(Test_ConnectHubs_ViaHubLocator_Succeeds)
 	BOOST_CHECK_NO_THROW(integration.ConnectHubs(locator));
 }
 
+BOOST_AUTO_TEST_CASE(Test_ConnectHubs_ViaHubLocator_MissingHubs_DegradesGracefully)
+{
+	// An empty locator resolves every TryFind to null: the connect logs each missing capability as
+	// degraded but must not throw, and the "device" command (which needs the dispatcher) is not
+	// registered because ICommandDispatcher was not found.
+	boost::asio::io_context ioc;
+	auto settings = MakeEnabledSettings();
+	Mqtt::MqttIntegration integration(ioc, settings);
+
+	Kernel::HubLocator locator;   // nothing registered
+	BOOST_CHECK_NO_THROW(integration.ConnectHubs(locator));
+
+	auto hub = integration.GetMqttHub();
+	BOOST_REQUIRE(hub != nullptr);
+	// The default handlers still exist; RegisterDeviceCommand runs but with a null dispatcher the
+	// command is still registered (dispatcher is locked at dispatch time), so we only assert no-throw
+	// plus the still-present default commands.
+	BOOST_CHECK(hub->HasCommand("status"));
+	BOOST_CHECK(hub->HasCommand("refresh"));
+}
+
 BOOST_AUTO_TEST_CASE(Test_ConnectHubs_WithHomeAssistant_ConnectsDataHub)
 {
 	boost::asio::io_context ioc;
@@ -496,16 +517,24 @@ namespace
 		std::vector<std::uint8_t> pool_setpoints;
 		std::vector<std::uint8_t> spa_setpoints;
 		std::vector<std::pair<std::string, DeviceAction>> device_calls;
+		std::vector<std::string> toggle_label_calls;
+		std::vector<std::uint8_t> chlorinator_percentages;
+		std::vector<bool> chlorinator_boosts;
+		std::vector<Kernel::CirculationModes> circulation_modes;
+
+		// When set, SetPoolSetpoint/SetSpaSetpoint return this instead of Success so the
+		// failure-logging branch of the setpoint handler can be exercised.
+		CommandResult setpoint_result{ CommandResult::Success };
 
 		CommandResult ToggleByUuid(const boost::uuids::uuid&) override { return CommandResult::Success; }
-		CommandResult ToggleByLabel(const std::string&) override { return CommandResult::Success; }
+		CommandResult ToggleByLabel(const std::string& label) override { toggle_label_calls.push_back(label); return CommandResult::Success; }
 		CommandResult CommandByUuid(const boost::uuids::uuid&, DeviceAction) override { return CommandResult::Success; }
 		CommandResult CommandByLabel(const std::string& label, DeviceAction action) override { device_calls.emplace_back(label, action); return CommandResult::Success; }
-		CommandResult SetPoolSetpoint(std::uint8_t value) override { pool_setpoints.push_back(value); return CommandResult::Success; }
-		CommandResult SetSpaSetpoint(std::uint8_t value) override { spa_setpoints.push_back(value); return CommandResult::Success; }
-		CommandResult SetChlorinatorPercentage(std::uint8_t) override { return CommandResult::Success; }
-		CommandResult SetChlorinatorBoost(bool) override { return CommandResult::Success; }
-		CommandResult SetCirculationMode(Kernel::CirculationModes) override { return CommandResult::Success; }
+		CommandResult SetPoolSetpoint(std::uint8_t value) override { pool_setpoints.push_back(value); return setpoint_result; }
+		CommandResult SetSpaSetpoint(std::uint8_t value) override { spa_setpoints.push_back(value); return setpoint_result; }
+		CommandResult SetChlorinatorPercentage(std::uint8_t pct) override { chlorinator_percentages.push_back(pct); return CommandResult::Success; }
+		CommandResult SetChlorinatorBoost(bool enable) override { chlorinator_boosts.push_back(enable); return CommandResult::Success; }
+		CommandResult SetCirculationMode(Kernel::CirculationModes mode) override { circulation_modes.push_back(mode); return CommandResult::Success; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds body, bool enable) override { heater_calls.emplace_back(body, enable); return CommandResult::Success; }
 		CommandResult SelectIAQPageButton(std::uint8_t) override { return CommandResult::Success; }
 	};
@@ -775,6 +804,114 @@ BOOST_AUTO_TEST_CASE(Test_DeviceCommand_SlugCollision_RegistersSingleHandler)
 
 	BOOST_REQUIRE_EQUAL(dispatcher->device_calls.size(), 1u);
 	BOOST_CHECK(dispatcher->device_calls[0].second == Interfaces::ICommandDispatcher::DeviceAction::Off);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// MqttIntegration generic "device" command + chlorinator/circulation commands.
+//
+// The generic "device" command (registered by ConnectHubs) takes a JSON
+// {"device_id": ..., "action": ...} and routes to ToggleByUuid / ToggleByLabel.
+// The chlorinator + circulation commands are registered by the dynamic-command
+// pass (fired via OnDevicesPublished) independent of any device being present.
+//=============================================================================
+
+BOOST_FIXTURE_TEST_SUITE(TestSuite_MqttIntegration_ControlCommands, HeaterCommandFixture)
+
+BOOST_AUTO_TEST_CASE(Test_GenericDeviceCommand_NonUuidId_RoutesToToggleByLabel)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("device"));
+
+	// A non-UUID device_id falls back to ToggleByLabel.
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("device"), R"({"device_id":"Pool Light","action":"toggle"})");
+
+	BOOST_REQUIRE_EQUAL(dispatcher->toggle_label_calls.size(), 1u);
+	BOOST_CHECK_EQUAL(dispatcher->toggle_label_calls[0], "Pool Light");
+}
+
+BOOST_AUTO_TEST_CASE(Test_GenericDeviceCommand_MissingDeviceId_NotDispatched)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("device"));
+
+	// An empty device_id is rejected before any dispatch.
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("device"), R"({"action":"toggle"})");
+
+	BOOST_CHECK(dispatcher->toggle_label_calls.empty());
+	BOOST_CHECK(dispatcher->device_calls.empty());
+}
+
+BOOST_AUTO_TEST_CASE(Test_ChlorinatorPercentage_Dispatched)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("chlorinator/percentage"));
+
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("chlorinator/percentage"), "60");
+
+	BOOST_REQUIRE_EQUAL(dispatcher->chlorinator_percentages.size(), 1u);
+	BOOST_CHECK_EQUAL(dispatcher->chlorinator_percentages[0], 60u);
+}
+
+BOOST_AUTO_TEST_CASE(Test_ChlorinatorBoost_On_Dispatched)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("chlorinator/boost"));
+
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("chlorinator/boost"), "ON");
+
+	BOOST_REQUIRE_EQUAL(dispatcher->chlorinator_boosts.size(), 1u);
+	BOOST_CHECK_EQUAL(dispatcher->chlorinator_boosts[0], true);
+}
+
+BOOST_AUTO_TEST_CASE(Test_CirculationMode_Spa_Dispatched)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("circulation/mode"));
+
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("circulation/mode"), "spa");
+
+	BOOST_REQUIRE_EQUAL(dispatcher->circulation_modes.size(), 1u);
+	BOOST_CHECK(dispatcher->circulation_modes[0] == Kernel::CirculationModes::Spa);
+}
+
+BOOST_AUTO_TEST_CASE(Test_CirculationMode_Unknown_NotDispatched)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("circulation/mode"));
+
+	// An unrecognised mode string is rejected before any dispatch.
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("circulation/mode"), "sideways");
+
+	BOOST_CHECK(dispatcher->circulation_modes.empty());
+}
+
+BOOST_AUTO_TEST_CASE(Test_HaSetpoint_NonPositiveValue_Rejected)
+{
+	data_hub->SystemTemperatureUnits(Kernel::TemperatureUnits::Celsius);
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("setpoint/pool"));
+
+	// The HA number-entity handler rejects a non-positive value before dispatch.
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("setpoint/pool"), "0");
+
+	BOOST_CHECK(dispatcher->pool_setpoints.empty());
+}
+
+BOOST_AUTO_TEST_CASE(Test_Setpoint_DispatchFailure_TakesFailureBranch)
+{
+	data_hub->SystemTemperatureUnits(Kernel::TemperatureUnits::Celsius);
+	dispatcher->setpoint_result = Interfaces::ICommandDispatcher::CommandResult::NoSerialAdapter;
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("setpoint"));
+
+	// The dispatcher reports a failure: the handler still dispatched (recording the value) and
+	// takes the failure-logging branch rather than the success branch.
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("setpoint"), R"({"target":"pool","temperature":30.0})");
+
+	BOOST_REQUIRE_EQUAL(dispatcher->pool_setpoints.size(), 1u);
+	BOOST_CHECK_EQUAL(dispatcher->pool_setpoints[0], 30u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

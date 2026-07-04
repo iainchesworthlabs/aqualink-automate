@@ -349,6 +349,96 @@ BOOST_AUTO_TEST_CASE(ApplySnapshot_MalformedDeviceId_RestoresWithFreshIdAndTrait
 	BOOST_CHECK(*(restored.front()->AuxillaryTraits[Traits::BodyOfWaterTrait{}]) == Kernel::BodyOfWaterIds::Spa);
 }
 
+// A cached device WITHOUT a persisted id falls back to label-based dedup: if a
+// device with that label is already present, the entry is skipped (no duplicate).
+BOOST_AUTO_TEST_CASE(ApplySnapshot_NoIdDuplicateLabel_SkippedByLabelDedup)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+
+	auto hub = Find<Kernel::DataHub>();
+	hub->Devices.Add(MakeDevice("Waterfall", Traits::AuxillaryTypes::Auxillary));
+
+	// No "id" field at all -> label dedup path: the existing "Waterfall" is found so
+	// the cached entry is dropped rather than duplicated.
+	nlohmann::json snapshot;
+	snapshot["devices"] = nlohmann::json::array({
+		{ { "label", "Waterfall" }, { "type", "Auxillary" } }
+	});
+	service.ApplySnapshot(snapshot);
+
+	BOOST_CHECK_EQUAL(hub->Devices.FindByLabel("Waterfall").size(), 1u);
+}
+
+// A cached device WITHOUT a persisted id and a NEW label is restored with a fresh
+// random id (the no-id restore branch).
+BOOST_AUTO_TEST_CASE(ApplySnapshot_NoIdNewLabel_RestoredWithFreshId)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+
+	auto hub = Find<Kernel::DataHub>();
+
+	nlohmann::json snapshot;
+	snapshot["devices"] = nlohmann::json::array({
+		{ { "label", "Deck Jets" }, { "type", "Auxillary" } }
+	});
+	service.ApplySnapshot(snapshot);
+
+	BOOST_CHECK_EQUAL(hub->Devices.FindByLabel("Deck Jets").size(), 1u);
+}
+
+// Start() seeds the fingerprint and schedules the save timer; Stop() cancels it
+// and writes a final snapshot. Exercising this against a real file with a
+// hardware-labelled device drives the Fingerprint hardware-label branch too.
+BOOST_AUTO_TEST_CASE(StartStop_SchedulesAndWritesFinalSnapshot)
+{
+	boost::asio::io_context io;
+	const auto path = (std::filesystem::temp_directory_path() / "aqualink_eqcache_startstop.json").string();
+	std::error_code ec;
+	std::filesystem::remove(path, ec);
+
+	Options::Equipment::EquipmentSettings settings;
+	settings.equipment_cache_file = path;
+
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+
+	auto hub = Find<Kernel::DataHub>();
+	auto dev = MakeDevice("Pool Light", Traits::AuxillaryTypes::Auxillary);
+	dev->AuxillaryTraits.Set(Traits::HardwareLabelTrait{}, std::string{ "Aux5" });
+	hub->Devices.Add(dev);
+
+	BOOST_CHECK_NO_THROW(service.Start());   // seeds fingerprint + schedules timer
+	BOOST_CHECK_NO_THROW(service.Stop());    // cancels timer + final SaveNow
+
+	// Stop() wrote the snapshot; reading it back restores the hardware-labelled device.
+	BOOST_CHECK(std::filesystem::exists(path));
+
+	Test::HubLocatorInjector fresh;
+	EquipmentCache::EquipmentCacheService reader(io, fresh, settings);
+	reader.Load();
+	auto restored = fresh.Find<Kernel::DataHub>()->Devices.FindByLabel("Pool Light");
+	BOOST_REQUIRE_EQUAL(restored.size(), 1u);
+	BOOST_REQUIRE(restored.front()->AuxillaryTraits.Has(Traits::HardwareLabelTrait{}));
+	BOOST_CHECK_EQUAL(std::string{ *(restored.front()->AuxillaryTraits[Traits::HardwareLabelTrait{}]) }, "Aux5");
+
+	std::filesystem::remove(path, ec);
+	std::filesystem::remove(path + ".tmp", ec);
+}
+
+// Start() with an empty file path is a no-op (the cache is disabled).
+BOOST_AUTO_TEST_CASE(Start_NoConfiguredFile_IsNoOp)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;   // no equipment_cache_file
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+
+	BOOST_CHECK_NO_THROW(service.Start());
+	BOOST_CHECK_NO_THROW(service.Stop());
+}
+
 BOOST_AUTO_TEST_CASE(Snapshot_FreshHub_HasUnknownConfigAndNoDevices)
 {
 	boost::asio::io_context io;

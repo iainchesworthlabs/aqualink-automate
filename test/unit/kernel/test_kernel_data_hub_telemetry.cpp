@@ -97,6 +97,63 @@ BOOST_AUTO_TEST_CASE(PoolTempSetpoint_NoReEmitWhenUnchanged)
 	BOOST_CHECK_EQUAL(events, 2);
 }
 
+BOOST_AUTO_TEST_CASE(SpaTemp_NoReEmitWhenUnchanged)
+{
+	DataHub hub;
+
+	const int events = CountEventsOfType(hub, Hub_EventTypes::Temperature,
+		[&hub]()
+		{
+			// First reading is a change; the identical re-report is silent; a new
+			// value fires exactly once more.
+			hub.SpaTemp(Temperature::ConvertToTemperatureInCelsius(37.0));
+			hub.SpaTemp(Temperature::ConvertToTemperatureInCelsius(37.0));
+			hub.SpaTemp(Temperature::ConvertToTemperatureInCelsius(38.0));
+		});
+
+	BOOST_CHECK_EQUAL(events, 2);
+	BOOST_REQUIRE(hub.SpaTemp().has_value());
+	BOOST_CHECK_CLOSE(hub.SpaTemp()->InCelsius().value(), 38.0, 0.001);
+}
+
+BOOST_AUTO_TEST_CASE(PoolTempSetpoint2_EmitsOncePerDistinctValue)
+{
+	DataHub hub;
+
+	const int events = CountEventsOfType(hub, Hub_EventTypes::Temperature,
+		[&hub]()
+		{
+			// TEMP2 is a second setpoint on the same pool body; the change guard is
+			// identical to the other temperature setters.
+			hub.PoolTempSetpoint2(Temperature::ConvertToTemperatureInCelsius(29.0));
+			hub.PoolTempSetpoint2(Temperature::ConvertToTemperatureInCelsius(29.0));
+			hub.PoolTempSetpoint2(Temperature::ConvertToTemperatureInCelsius(30.0));
+		});
+
+	BOOST_CHECK_EQUAL(events, 2);
+	BOOST_REQUIRE(hub.PoolTempSetpoint2().has_value());
+	BOOST_CHECK_CLOSE(hub.PoolTempSetpoint2()->InCelsius().value(), 30.0, 0.001);
+}
+
+BOOST_AUTO_TEST_CASE(PoolHeater2Enabled_EmitsOncePerDistinctState)
+{
+	DataHub hub;
+
+	const int events = CountEventsOfType(hub, Hub_EventTypes::Temperature,
+		[&hub]()
+		{
+			// A bool flag: the first set (from nullopt) is a change, the identical
+			// re-set is silent, and flipping the flag fires once more.
+			hub.PoolHeater2Enabled(true);
+			hub.PoolHeater2Enabled(true);
+			hub.PoolHeater2Enabled(false);
+		});
+
+	BOOST_CHECK_EQUAL(events, 2);
+	BOOST_REQUIRE(hub.PoolHeater2Enabled().has_value());
+	BOOST_CHECK_EQUAL(hub.PoolHeater2Enabled().value(), false);
+}
+
 BOOST_AUTO_TEST_CASE(ORP_EmitsOncePerDistinctValue)
 {
 	DataHub hub;
@@ -183,6 +240,57 @@ BOOST_AUTO_TEST_CASE(EmitButtonStateChange_TracksButtonsIndependently)
 		});
 
 	BOOST_CHECK_EQUAL(events, 2);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// CurrentTempForReporting: an inactive body reports unavailable (nullopt); the
+// active body reports its live temperature. SpaSwitchAssignment lookups miss and
+// hit as expected.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(DataHub_Reporting_TestSuite)
+
+BOOST_AUTO_TEST_CASE(CurrentTempForReporting_ActiveSpaBody_ReturnsSpaTemp)
+{
+	DataHub hub;
+
+	// A spa-only single-body system: its lone body (Spa) is marked active, so
+	// CurrentTempForReporting(Spa) returns the live spa temperature.
+	hub.ApplyPoolConfiguration(PoolConfigurations::SingleBody, ConfigurationSource::Auto, BodyOfWaterIds::Spa);
+	hub.SpaTemp(Temperature::ConvertToTemperatureInCelsius(36.5));
+
+	auto reported = hub.CurrentTempForReporting(BodyOfWaterIds::Spa);
+	BOOST_REQUIRE(reported.has_value());
+	BOOST_CHECK_CLOSE(reported->InCelsius().value(), 36.5, 0.01);
+}
+
+BOOST_AUTO_TEST_CASE(CurrentTempForReporting_InactiveBody_ReturnsUnavailable)
+{
+	DataHub hub;
+
+	// A dual-body system defaults to Pool circulation, so the Spa body is inactive
+	// and keeps broadcasting a junk temperature -> reported as unavailable.
+	hub.ApplyPoolConfiguration(PoolConfigurations::DualBody_SharedEquipment, ConfigurationSource::Auto);
+	hub.SpaTemp(Temperature::ConvertToTemperatureInCelsius(1.0));
+
+	auto reported = hub.CurrentTempForReporting(BodyOfWaterIds::Spa);
+	BOOST_CHECK(!reported.has_value());
+}
+
+BOOST_AUTO_TEST_CASE(SpaSwitchAssignment_MissThenHit)
+{
+	DataHub hub;
+
+	// Unassigned (switch, button) pair -> nullopt.
+	BOOST_CHECK(!hub.SpaSwitchAssignment(1, 2).has_value());
+
+	// After assignment the same key resolves to the stored function name.
+	hub.SetSpaSwitchAssignment(1, 2, "Spa Jets");
+	auto fn = hub.SpaSwitchAssignment(1, 2);
+	BOOST_REQUIRE(fn.has_value());
+	BOOST_CHECK_EQUAL(fn.value(), "Spa Jets");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

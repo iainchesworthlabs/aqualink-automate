@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -46,6 +47,10 @@ namespace
 		using IAQDevice::IAQDevice;
 		void TriggerWatchdogTimeout() { WatchdogTimeoutOccurred(); }
 		void SimulateAddressedTraffic() { ProcessControllerUpdates(); }
+		// Drive one IAQ_Poll-equivalent update so a poll-only state machine (the
+		// spa-switch writer, the command queue) advances exactly as it does on a real
+		// poll ACK -- without having to synthesise a framed IAQ_Poll every step.
+		void SimulatePoll() { ProcessControllerUpdates(true); }
 	};
 }
 
@@ -747,6 +752,400 @@ BOOST_AUTO_TEST_CASE(AuxStatus_SecondMessage_UpdatesStatusInPlace)
 	auto status = matches.front()->AuxillaryTraits.TryGet(IaqTraits::AuxillaryStatusTrait{});
 	BOOST_REQUIRE(status.has_value());
 	BOOST_CHECK(status.value() == Kernel::AuxillaryStatuses::Off);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// =============================================================================
+// Actuation / capability surface
+//
+// The IAQ implements ChlorinatorController, PageNavigator, DeviceActuator and
+// SetpointController.  These capability methods translate a logical request into
+// the AqualinkTouch (0x33) page/value-submit command bytes and queue them; the
+// only observable outcome (short of a wire capture) is the pending command / the
+// command-queue depth surfaced through DescribeDiagnostics, plus the returned
+// ActuationResult.  The message-decode suites above never touch this path.
+// =============================================================================
+
+namespace
+{
+	// Build an IAQ_PageButton (0x24) wire frame.  Wire layout (from the message's
+	// Index_* constants, offset by the 4-byte header the builder prepends):
+	//   payload[0] = button index, payload[1] = status, payload[2] = unknown,
+	//   payload[3] = button type, payload[4..] = button name text.
+	std::vector<uint8_t> MakePageButtonFrame(uint8_t index, uint8_t status, const std::string& name)
+	{
+		std::vector<uint8_t> payload;
+		payload.push_back(index);
+		payload.push_back(status);
+		payload.push_back(0x00);   // unknown byte at msg index 6
+		payload.push_back(0x01);   // button type (Generic)
+		payload.insert(payload.end(), name.begin(), name.end());
+
+		const uint8_t cmd = static_cast<uint8_t>(AqualinkAutomate::Messages::JandyMessageIds::IAQ_PageButton);
+		return Test::MessageBuilder::CreateValidChecksummedMessage(IAQ_DEVICE_ID, cmd, payload);
+	}
+
+	// Build an IAQ_PageStart (0x23) wire frame; payload[0] is the page id.
+	std::vector<uint8_t> MakePageStartFrame(uint8_t page_id)
+	{
+		const uint8_t cmd = static_cast<uint8_t>(AqualinkAutomate::Messages::JandyMessageIds::IAQ_PageStart);
+		return Test::MessageBuilder::CreateValidChecksummedMessage(IAQ_DEVICE_ID, cmd, { page_id });
+	}
+
+	std::string PendingCommand(const IAQDevice& device)
+	{
+		return device.DescribeDiagnostics()["pending_command"].get<std::string>();
+	}
+
+	std::uint32_t QueueDepth(const IAQDevice& device)
+	{
+		return device.DescribeDiagnostics()["command_queue_depth"].get<std::uint32_t>();
+	}
+
+	std::shared_ptr<Kernel::AuxillaryDevice> MakeLabelledAux(const std::string& label)
+	{
+		auto aux = std::make_shared<Kernel::AuxillaryDevice>();
+		aux->AuxillaryTraits.Set(IaqTraits::LabelTrait{}, std::string{ label });
+		return aux;
+	}
+}
+
+BOOST_FIXTURE_TEST_SUITE(IAQDevice_Actuation_TestSuite, IAQDeviceFixture)
+
+BOOST_AUTO_TEST_CASE(SelectPageButton_QueuesPageRelativeCommand)
+{
+	// A page button is "pressed" by queueing (0x11 + index) as the pending command.
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	device.SelectPageButton(3);
+	// 0x11 + 3 = 0x14
+	BOOST_CHECK_EQUAL(PendingCommand(device), std::string("0x14"));
+}
+
+BOOST_AUTO_TEST_CASE(ActuatePageButton_ReturnsAcceptedAndQueues)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	const auto result = device.ActuatePageButton(0);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	// 0x11 + 0 = 0x11
+	BOOST_CHECK_EQUAL(PendingCommand(device), std::string("0x11"));
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_AcceptedAndQueuesSequence)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	const auto result = device.SetChlorinatorPercentage(60);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	// BACK, OPEN_AQUAPURE, SELECT_POOL, SUBMIT -> 4 queued commands.
+	BOOST_CHECK_EQUAL(QueueDepth(device), 4u);
+	// The absolute value rides the control-data response ("1" + value).
+	auto diag = device.DescribeDiagnostics();
+	BOOST_CHECK(diag["awaiting_control_ready"].get<bool>());
+	BOOST_CHECK_EQUAL(diag["control_data_value"].get<std::string>(), std::string("160"));
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorBoost_AcceptedAndQueuesSequence)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	const auto result = device.SetChlorinatorBoost(true);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	// BACK, OPEN_AQUAPURE, QUICK_BOOST, BOOST_START -> 4 queued commands.
+	BOOST_CHECK_EQUAL(QueueDepth(device), 4u);
+	// Boost does not use the control-data submit path.
+	BOOST_CHECK(!device.DescribeDiagnostics()["awaiting_control_ready"].get<bool>());
+}
+
+BOOST_AUTO_TEST_CASE(SetPoolSetpoint_WhenEmulating_AcceptedAndQueuesSubmit)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	const auto result = device.SetPoolSetpoint(31);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	// BACK, OPEN_SETTEMP, SELECT_POOL_HEAT, SUBMIT -> 4 queued commands.
+	BOOST_CHECK_EQUAL(QueueDepth(device), 4u);
+	auto diag = device.DescribeDiagnostics();
+	BOOST_CHECK(diag["awaiting_control_ready"].get<bool>());
+	// Absolute pool setpoint 31 submits as "1" + "31" = "131".
+	BOOST_CHECK_EQUAL(diag["control_data_value"].get<std::string>(), std::string("131"));
+}
+
+BOOST_AUTO_TEST_CASE(SetSpaSetpoint_WhenEmulating_AcceptedAndQueuesSubmit)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	const auto result = device.SetSpaSetpoint(39);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	BOOST_CHECK_EQUAL(QueueDepth(device), 4u);
+	// Absolute spa setpoint 39 submits as "1" + "39" = "139".
+	BOOST_CHECK_EQUAL(device.DescribeDiagnostics()["control_data_value"].get<std::string>(), std::string("139"));
+}
+
+BOOST_AUTO_TEST_CASE(Setpoint_WhenNotEmulating_ReportsNotSupported)
+{
+	// A passive (non-emulated) IAQ never transmits, so it cannot set a setpoint.
+	IAQDevice device(device_type, *this, /*is_emulated=*/false);
+	BOOST_CHECK(device.SetPoolSetpoint(30) == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(device.SetSpaSetpoint(38) == Capabilities::ActuationResult::NotSupported);
+	// Nothing queued.
+	BOOST_CHECK_EQUAL(QueueDepth(device), 0u);
+}
+
+BOOST_AUTO_TEST_CASE(ActuateDevice_NullDevice_MappingFailed)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	BOOST_CHECK(device.ActuateDevice(nullptr, Capabilities::ActuationAction::On) == Capabilities::ActuationResult::MappingFailed);
+}
+
+BOOST_AUTO_TEST_CASE(ActuateDevice_WhenNotEmulating_NotSupported)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/false);
+	auto aux = MakeLabelledAux("Pool Light");
+	BOOST_CHECK(device.ActuateDevice(aux, Capabilities::ActuationAction::On) == Capabilities::ActuationResult::NotSupported);
+}
+
+BOOST_AUTO_TEST_CASE(ActuateDevice_NoLabel_MappingFailed)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	// An aux with no label trait cannot be resolved to a button.
+	auto aux = std::make_shared<Kernel::AuxillaryDevice>();
+	BOOST_CHECK(device.ActuateDevice(aux, Capabilities::ActuationAction::Toggle) == Capabilities::ActuationResult::MappingFailed);
+}
+
+BOOST_AUTO_TEST_CASE(ActuateDevice_ButtonNotOnPage_MappingFailed)
+{
+	// The IAQ can only actuate a device whose button is on the currently-rendered
+	// page.  With no PageButton frames seen, the label cannot be resolved.
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	IAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	auto aux = MakeLabelledAux("Pool Light");
+	BOOST_CHECK(device.ActuateDevice(aux, Capabilities::ActuationAction::Toggle) == Capabilities::ActuationResult::MappingFailed);
+}
+
+BOOST_AUTO_TEST_CASE(ActuateDevice_Toggle_PressesResolvedButton)
+{
+	// A button on the current page resolves by name (prefix match past the status
+	// suffix) and a Toggle always presses it (0x11 + index).
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	IAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	// Button index 9, ON, name "Pool Light" (+ trailing status suffix on the wire).
+	harness.Replay(MakePageButtonFrame(9, static_cast<uint8_t>(Messages::ButtonStatuses::On), "Pool LightON"));
+
+	auto aux = MakeLabelledAux("Pool Light");
+	const auto result = device.ActuateDevice(aux, Capabilities::ActuationAction::Toggle);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	// 0x11 + 9 = 0x1a
+	BOOST_CHECK_EQUAL(PendingCommand(device), std::string("0x1a"));
+}
+
+BOOST_AUTO_TEST_CASE(ActuateDevice_ExplicitOn_AlreadyOn_IsNoOp)
+{
+	// An explicit On request against a button already ON succeeds as a no-op WITHOUT
+	// queuing a (wrong-way) toggle.  Observable: the pending command stays 0x00.
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	IAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	harness.Replay(MakePageButtonFrame(9, static_cast<uint8_t>(Messages::ButtonStatuses::On), "Pool LightON"));
+
+	auto aux = MakeLabelledAux("Pool Light");
+	const auto result = device.ActuateDevice(aux, Capabilities::ActuationAction::On);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	// No press was queued because the button already matches the request.
+	BOOST_CHECK_EQUAL(PendingCommand(device), std::string("0x00"));
+}
+
+BOOST_AUTO_TEST_CASE(ActuateDevice_ExplicitOn_WhenOff_PressesButton)
+{
+	// An explicit On against a button currently OFF must press it.
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	IAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	harness.Replay(MakePageButtonFrame(9, static_cast<uint8_t>(Messages::ButtonStatuses::Off), "Pool LightOFF"));
+
+	auto aux = MakeLabelledAux("Pool Light");
+	const auto result = device.ActuateDevice(aux, Capabilities::ActuationAction::On);
+	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
+	// Status differs from request -> the button is pressed (0x11 + 9 = 0x1a).
+	BOOST_CHECK_EQUAL(PendingCommand(device), std::string("0x1a"));
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// =============================================================================
+// Spa-switch button-assignment WRITE goal
+//
+// SetSpaSwitchAssignment queues a page-gated write goal (validated + rejected for
+// the undecoded rows) that SpaSwitchWrite_ProcessStep services one command per
+// poll.  These drive the validation gate and then a full happy-path write through
+// the poll state machine, asserting the queued command / completion via the
+// DataHub assignment and the diagnostics.
+// =============================================================================
+
+BOOST_FIXTURE_TEST_SUITE(IAQDevice_SpaSwitchWrite_TestSuite, IAQDeviceFixture)
+
+BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_WhenNotEmulating_NotSupported)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/false);
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::NotSupported);
+}
+
+BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_InvalidArguments_InvalidValue)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	BOOST_CHECK(device.SetSpaSwitchAssignment(0, 2, "Spa Mode") == Capabilities::ActuationResult::InvalidValue);  // switch < 1
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 0, "Spa Mode") == Capabilities::ActuationResult::InvalidValue);  // button < 1
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 5, "Spa Mode") == Capabilities::ActuationResult::InvalidValue);  // button > 4
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "") == Capabilities::ActuationResult::InvalidValue);          // empty function
+}
+
+BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_UndecodedRow_NotSupported)
+{
+	// Row 8 (2:4) needs an undecoded assignment-list scroll -> deferred (NotSupported).
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	BOOST_CHECK(device.SetSpaSwitchAssignment(2, 4, "Spa Mode") == Capabilities::ActuationResult::NotSupported);
+}
+
+BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_ValidRow_Accepted)
+{
+	// Row 1:2 (ordinal 2) is on-screen and directly selectable -> accepted.
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Accepted);
+}
+
+BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_WhenBusy_Rejected)
+{
+	// One goal at a time on the shared panel UI: a second request while a command
+	// queue is already pending is rejected.
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	device.SetChlorinatorPercentage(50);   // leaves a non-empty command queue + awaiting-control-ready
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::NotSupported);
+}
+
+BOOST_AUTO_TEST_CASE(SpaSwitchWrite_HappyPath_CommitsAndCompletes)
+{
+	// Drive the full page-gated writer for row 1:2 -> "Spa Mode": navigate to the
+	// 4-Function detail, select the row, find the function in the picker, commit, then
+	// verify against the DataHub.  The write completes when the DataHub reads the
+	// target function (which a group-0 assignment table row establishes here).
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	TestIAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	// The master is already on the 4-Function detail page (0x3b).
+	harness.Replay(MakePageStartFrame(0x3b));
+
+	// Picker: slot 1 -> "Spa Mode" (group-0x01 TableMessage; attribute 1 = slot).
+	// TableMessage payload: [line_id=1][attribute=slot][text...].
+	{
+		const uint8_t cmd_table = static_cast<uint8_t>(AqualinkAutomate::Messages::JandyMessageIds::IAQ_TableMessage);
+		std::string picker_fn = "Spa Mode";
+		std::vector<uint8_t> payload = { 0x01, 0x01 };
+		payload.insert(payload.end(), picker_fn.begin(), picker_fn.end());
+		harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(IAQ_DEVICE_ID, cmd_table, payload));
+	}
+
+	// Pre-seed the DataHub assignment so the Verify phase reads the target once the
+	// commit press "saves" (the master would normally re-push this group-0 row).
+	{
+		const uint8_t cmd_table = static_cast<uint8_t>(AqualinkAutomate::Messages::JandyMessageIds::IAQ_TableMessage);
+		std::string row = "1:2\tSpa Mode";
+		std::vector<uint8_t> payload = { 0x00, 0x00 };   // line_id 0, attribute 0 (assignment row)
+		payload.insert(payload.end(), row.begin(), row.end());
+		harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(IAQ_DEVICE_ID, cmd_table, payload));
+	}
+	BOOST_REQUIRE(harness.DataHub()->SpaSwitchAssignment(1, 2).has_value());
+
+	// Queue the write goal.
+	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Accepted);
+	// While the goal is in flight a second request is rejected (one goal at a time).
+	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::NotSupported);
+
+	// Poll the state machine until the goal drains: a completed goal frees the panel,
+	// so a fresh request becomes Accepted again.  Bound well under the writer's own
+	// IAQ_SPASWITCH_POLL_LIMIT backstop (400) so this proves the write PATH completed
+	// (Verify against the DataHub), not the give-up backstop.
+	bool completed = false;
+	for (int i = 0; i < 200 && !completed; ++i)
+	{
+		device.SimulatePoll();
+		completed = (device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Accepted);
+	}
+
+	BOOST_CHECK(completed);
+	// The DataHub still carries the target assignment.
+	auto live = harness.DataHub()->SpaSwitchAssignment(1, 2);
+	BOOST_REQUIRE(live.has_value());
+	BOOST_CHECK_EQUAL(live.value(), std::string("Spa Mode"));
+}
+
+BOOST_AUTO_TEST_CASE(SpaSwitchWrite_PollBackstop_AbandonsGoal)
+{
+	// With the master never landing on the detail page, the writer keeps trying to
+	// navigate; the overall poll backstop (IAQ_SPASWITCH_POLL_LIMIT) eventually
+	// abandons the goal so a later request is accepted again.
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	TestIAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	// Page stays HOME (0x01): navigation issues BACK forever and never arrives.
+	harness.Replay(MakePageStartFrame(0x01));
+
+	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Solar Heat") == Capabilities::ActuationResult::Accepted);
+	// A fresh request while the goal is still in flight is rejected (busy).
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Solar Heat") == Capabilities::ActuationResult::NotSupported);
+
+	// Poll past the backstop (limit is 400; drive comfortably beyond it).
+	bool freed = false;
+	for (int i = 0; i < 450 && !freed; ++i)
+	{
+		device.SimulatePoll();
+		freed = (device.SetSpaSwitchAssignment(1, 2, "Solar Heat") == Capabilities::ActuationResult::Accepted);
+	}
+	BOOST_CHECK(freed);
+}
+
+BOOST_AUTO_TEST_CASE(AvailableFunctions_ReturnsCanonicalPickerList)
+{
+	// The iAQ surfaces the shared canonical spa-switch function list.
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+	auto functions = device.AvailableFunctions();
+	BOOST_CHECK(!functions.empty());
+	BOOST_CHECK(std::find(functions.begin(), functions.end(), std::string("Spa Mode")) != functions.end());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// =============================================================================
+// Control-data response on ControlReady (value-submit protocol)
+//
+// After a value-submit sequence is queued (SetChlorinatorPercentage / setpoint),
+// the master's IAQ_ControlReady (0x31) prompts the device to emit the queued
+// control-data value ("1" + value) exactly once, then clears the awaiting flag.
+// =============================================================================
+
+BOOST_AUTO_TEST_SUITE(IAQDevice_ControlData_TestSuite)
+
+BOOST_AUTO_TEST_CASE(ControlReady_AfterValueSubmit_EmitsOnceThenClears)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	IAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	// Arm a value submit (pool setpoint 31 -> control-data "131").
+	BOOST_REQUIRE(device.SetPoolSetpoint(31) == Capabilities::ActuationResult::Accepted);
+	BOOST_REQUIRE(device.DescribeDiagnostics()["awaiting_control_ready"].get<bool>());
+
+	// The master signals it is ready for the value: the device emits the control-data
+	// response and clears the awaiting flag / value.
+	const uint8_t cmd_control_ready = static_cast<uint8_t>(AqualinkAutomate::Messages::JandyMessageIds::IAQ_ControlReady);
+	harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(IAQ_DEVICE_ID, cmd_control_ready, {}));
+
+	auto diag = device.DescribeDiagnostics();
+	BOOST_CHECK(!diag["awaiting_control_ready"].get<bool>());
+	BOOST_CHECK_EQUAL(diag["control_data_value"].get<std::string>(), std::string(""));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
