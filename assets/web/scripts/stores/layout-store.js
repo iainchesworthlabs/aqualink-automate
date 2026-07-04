@@ -46,6 +46,9 @@ document.addEventListener('alpine:init', () => {
                 // The hamburger drawer only exists on tablet — never let it stay
                 // stranded open when the viewport grows to desktop or shrinks to phone.
                 if (!this.isTablet && this.mobileNavOpen) this.mobileNavOpen = false;
+                // The "More" sheet is a phone-only surface (reached from the bottom
+                // tab bar); close it if the viewport leaves phone width.
+                if (!this.isPhone && this.activeSheet === 'more') this.activeSheet = null;
             };
 
             Object.values(mqs).forEach(mq => mq.addEventListener('change', sync));

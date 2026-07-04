@@ -2001,3 +2001,100 @@ nav .nav-inner { position: relative; }
     .admin-row { grid-template-columns: 1fr; }
     .admin-row-actions { justify-content: flex-start; }
 }
+
+/* ============================================================
+   Responsive navigation shell (Phase 1)
+   desktop (>=1024): inline .nav-links (unchanged)
+   tablet  (640–1023): routes collapse behind .nav-hamburger -> .nav-drawer
+   phone   (<640): routes -> fixed .mobile-tab-bar + a More sheet
+   Themed with the reskin tokens so both themes + RTL resolve.
+   ============================================================ */
+nav.app-nav .nav-hamburger {
+    display: none; /* revealed at tablet width below */
+    align-items: center; justify-content: center;
+    width: 40px; height: 40px; flex: none;
+    border-radius: 10px; border: 1px solid transparent;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+nav.app-nav .nav-hamburger svg { width: 22px; height: 22px; }
+nav.app-nav .nav-hamburger:hover { color: var(--text); background: var(--surface-3); }
+
+.nav-drawer {
+    position: absolute; top: 100%; inset-inline: 0; z-index: 99;
+    background: var(--surface-1); color: var(--text);
+    border-top: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    padding: 8px; display: flex; flex-direction: column; gap: 2px;
+}
+.drawer-link {
+    text-align: start; font: inherit; font-weight: 600; font-size: 0.95rem;
+    color: var(--text); background: transparent; border: 0;
+    padding: 12px 14px; border-radius: 10px; cursor: pointer;
+}
+.drawer-link:hover { background: var(--surface-2); }
+.drawer-link.active { background: var(--accent-soft); color: var(--accent); }
+
+.mobile-tab-bar {
+    display: none; /* revealed at phone width below */
+    position: fixed; inset-inline: 0; bottom: 0; z-index: 200;
+    background: var(--surface-1); color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 24px -18px rgba(0, 0, 0, 0.6);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+}
+.tab-item {
+    flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font: inherit; font-size: 0.68rem; font-weight: 600;
+    color: var(--text-dim); background: transparent; border: 0;
+    padding: 6px 4px; border-radius: 10px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.tab-item svg { width: 22px; height: 22px; }
+.tab-item.active { color: var(--accent); }
+
+.sheet-backdrop {
+    position: fixed; inset: 0; z-index: 300;
+    background: oklch(0.1 0.02 250 / 0.55);
+    display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet-bottom {
+    width: 100%; max-height: 82vh;
+    background: var(--surface-1); color: var(--text);
+    border-radius: 18px 18px 0 0;
+    box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.sheet-title { font-weight: 700; font-size: 1.05rem; }
+.sheet-close {
+    width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+    border-radius: 9px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer;
+}
+.sheet-close svg { width: 18px; height: 18px; }
+.sheet-body { padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.sheet-row {
+    text-align: start; font: inherit; font-weight: 600; font-size: 0.98rem;
+    color: var(--text); background: transparent; border: 0;
+    padding: 14px; border-radius: 10px; cursor: pointer;
+}
+.sheet-row:hover { background: var(--surface-2); }
+.sheet-row.active { background: var(--accent-soft); color: var(--accent); }
+.sheet-divider { height: 1px; background: var(--border); margin: 6px 8px; }
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    nav.app-nav .nav-links { display: none; }
+    nav.app-nav .nav-hamburger { display: inline-flex; }
+}
+@media (max-width: 639px) {
+    nav.app-nav .nav-links { display: none; }
+    .mobile-tab-bar { display: flex; }
+    main { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+}

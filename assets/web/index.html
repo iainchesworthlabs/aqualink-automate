@@ -832,6 +832,12 @@
     <!-- ====== NAV ====== -->
     <nav class="app-nav" x-data :aria-label="$t('nav.main_aria')">
         <div class="nav-inner">
+            <!-- Tablet hamburger (640–1023px): toggles the nav drawer of routes -->
+            <button class="nav-hamburger" type="button"
+                    @click="$store.layout.toggleMobileNav()"
+                    :aria-expanded="$store.layout.mobileNavOpen" :aria-label="$t('nav.menu')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
             <a class="nav-brand" href="#dashboard">
                 <span class="nav-brand-mark" aria-hidden="true">
                     <svg viewBox="0 0 32 32" fill="none"><path d="M16 3C16 3 6 15 6 21a10 10 0 0020 0C26 15 16 3 16 3z" fill="currentColor"/></svg>
@@ -931,7 +937,72 @@
                 </button>
             </div>
         </div>
+        <!-- Tablet nav drawer (640–1023px): the routes, behind the hamburger -->
+        <div class="nav-drawer" x-show="$store.layout.mobileNavOpen" x-cloak
+             @click.outside="$store.layout.closeMobileNav()"
+             @keydown.escape.window="$store.layout.closeMobileNav()"
+             role="menu" :aria-label="$t('nav.menu')">
+            <template x-for="r in ['dashboard','detailed','trends','schedules','settings','about','diagnostics']" :key="r">
+                <button class="drawer-link" type="button" role="menuitem" :class="{ active: isRoute(r) }"
+                        @click="navigate(r); $store.layout.closeMobileNav()" x-text="$t('nav.' + r)"></button>
+            </template>
+        </div>
     </nav>
+
+    <!-- ====== MOBILE NAV SHELL (Phase 1) ====== -->
+    <!-- Phone bottom tab bar (<640px, CSS-shown): primary routes + a More sheet -->
+    <nav class="mobile-tab-bar" :aria-label="$t('nav.main_aria')">
+        <button class="tab-item" type="button" :class="{ active: isRoute('dashboard') }" @click="navigate('dashboard')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+            <span x-text="$t('nav.dashboard')"></span>
+        </button>
+        <button class="tab-item" type="button" :class="{ active: isRoute('trends') }" @click="navigate('trends')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>
+            <span x-text="$t('nav.trends')"></span>
+        </button>
+        <button class="tab-item" type="button" :class="{ active: isRoute('schedules') }" @click="navigate('schedules')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            <span x-text="$t('nav.schedules')"></span>
+        </button>
+        <button class="tab-item" type="button"
+                :class="{ active: $store.layout.activeSheet === 'more' || ['detailed','settings','about','diagnostics'].includes(route) }"
+                @click="$store.layout.openSheet('more')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+            <span x-text="$t('nav.more')"></span>
+        </button>
+    </nav>
+
+    <!-- More sheet (phone): the routes that don't fit the tab bar + quick controls -->
+    <div class="sheet-backdrop" x-show="$store.layout.activeSheet === 'more'" x-cloak
+         @click.self="$store.layout.closeSheet()"
+         @keydown.escape.window="$store.layout.closeSheet()">
+        <div class="sheet sheet-bottom" role="dialog" aria-modal="true" :aria-label="$t('nav.more')">
+            <div class="sheet-head">
+                <span class="sheet-title" x-text="$t('nav.more')"></span>
+                <button class="sheet-close" type="button" @click="$store.layout.closeSheet()" :aria-label="$t('nav.close')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="sheet-body">
+                <template x-for="r in ['detailed','settings','about','diagnostics']" :key="r">
+                    <button class="sheet-row" type="button" :class="{ active: isRoute(r) }"
+                            @click="navigate(r); $store.layout.closeSheet()" x-text="$t('nav.' + r)"></button>
+                </template>
+                <div class="sheet-divider"></div>
+                <button class="sheet-row" type="button" @click="$store.theme.toggle()"
+                        x-text="$store.theme.isDark ? $t('nav.theme_to_light') : $t('nav.theme_to_dark')"></button>
+                <button class="sheet-row" type="button" x-show="$store.auth.authenticated" x-cloak
+                        @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('account:open'))"
+                        x-text="$t('account.title')"></button>
+                <button class="sheet-row" type="button" x-show="$store.auth.can && $store.auth.can('system.admin')" x-cloak
+                        @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('admin:open'))"
+                        x-text="$t('admin.title')"></button>
+                <button class="sheet-row" type="button" x-show="$store.auth.isEnabled && !$store.auth.authenticated" x-cloak
+                        @click="$store.layout.closeSheet(); $store.auth.showLogin = true"
+                        x-text="$t('auth.sign_in')"></button>
+            </div>
+        </div>
+    </div>
 
     <!-- ====== STARTUP BANNER ====== -->
     <div class="startup-banner" x-show="$store.system.state === 'Starting'" x-cloak x-transition.opacity>
