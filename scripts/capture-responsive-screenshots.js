@@ -168,6 +168,23 @@ async function waitReady(timeoutMs = 90_000) {
         await page.screenshot({ path: file, fullPage: true });
         console.log(`ok  ${view}-${vp.name}`);
       }
+
+      // Modals (run only with `--only modals`): the non-auth-gated ones we can
+      // trigger without the identity system. Auth-gated login/account/admin need
+      // AQUALINK_AUTH_MODE and are verified separately.
+      if (ONLY && ONLY.has('modals')) {
+        await page.evaluate(() => { window.location.hash = '#schedules'; });
+        await page.waitForTimeout(1200);
+        const nb = page.locator('.sched-new-btn').first();
+        if (await nb.count()) {
+          await nb.click();
+          await page.waitForTimeout(700);
+          await page.screenshot({ path: path.join(OUT, `modal-schedule-${vp.name}.png`) });
+          console.log(`ok  modal-schedule-${vp.name}`);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(300);
+        }
+      }
       await ctx.close();
     }
   } finally {
