@@ -11,6 +11,7 @@
 #include "jandy/devices/jandy_device_types.h"
 #include "jandy/devices/capabilities/actuation_types.h"
 #include "jandy/messages/jandy_message_ack.h"
+#include "jandy/messages/iaq/iaq_message_control_data_response.h"
 
 #include "scheduling/controller_schedule.h"
 
@@ -120,6 +121,10 @@ BOOST_AUTO_TEST_CASE(Create_Valid_IsAccepted_ThenBusy)
 
 namespace
 {
+	constexpr uint8_t IAQ_PAGE_MESSAGE = 0x25;
+	constexpr uint8_t IAQ_CONTROL_READY = 0x31;
+	constexpr uint8_t IAQ_PAGE_TIME_PICKER = 0x29;
+
 	// Replay the schedule list carrying one program row "<target>?<on>?<off>?<days>".
 	WireFrame ScheduleRow(uint8_t ordinal, const std::string& text)
 	{
@@ -140,9 +145,28 @@ namespace
 		frames.push_back(PageEnd());
 		harness.Replay(frames);
 	}
+
+	// A PageMessage line: [line_id][ ascii 0x00 ].
+	WireFrame PageMessage(uint8_t line_id, const std::string& text)
+	{
+		std::vector<uint8_t> data{ line_id };
+		for (char c : text) { data.push_back(static_cast<uint8_t>(c)); }
+		data.push_back(0x00);
+		return Test::MessageBuilder::CreateValidChecksummedMessage(IAQ_UI_ID, IAQ_PAGE_MESSAGE, data);
+	}
+	// The time picker (0x29): line 1 = HH:MM, line 2 = AM/PM (what the writer reads).
+	void ReplayTimePicker(Test::MockReplayHarness& harness, const std::string& meridiem)
+	{
+		harness.Replay({ PageStart(IAQ_PAGE_TIME_PICKER), PageMessage(1, "01:00"), PageMessage(2, meridiem), PageEnd() });
+	}
+	// The master's control-ready prompt that follows a 0x80 submit; it makes the iAQ send its value.
+	void ReplayControlReady(Test::MockReplayHarness& harness)
+	{
+		harness.Replay({ Test::MessageBuilder::CreateValidChecksummedMessage(IAQ_UI_ID, IAQ_CONTROL_READY, { 0x00 }) });
+	}
 }
 
-BOOST_AUTO_TEST_CASE(Create_FullFlow_EmitsAdd_PickRow_Ok_Day_AndCompletes)
+BOOST_AUTO_TEST_CASE(Create_FullFlow_Add_Pick_Times_Day_AndCompletes)
 {
 	Test::MockReplayHarness harness;
 	auto id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_UI_ID));
@@ -151,36 +175,61 @@ BOOST_AUTO_TEST_CASE(Create_FullFlow_EmitsAdd_PickRow_Ok_Day_AndCompletes)
 	std::vector<uint8_t> cmds;
 	boost::signals2::scoped_connection conn = Messages::JandyMessage_Ack::GetPublisher()->connect(
 		[&cmds](std::reference_wrapper<const Messages::JandyMessage_Ack> r)
-		{
-			if (r.get().Command() != 0x00) { cmds.push_back(r.get().Command()); }
-		});
+		{ if (r.get().Command() != 0x00) { cmds.push_back(r.get().Command()); } });
 
-	// Target Pool Light on Monday.
+	// Capture the value-submit responses (the "1"+HH:MM the iAQ sends after each 0x80).
+	std::vector<std::string> submits;
+	boost::signals2::scoped_connection conn2 = Messages::IAQMessage_ControlDataResponse::GetPublisher()->connect(
+		[&submits](std::reference_wrapper<const Messages::IAQMessage_ControlDataResponse> r)
+		{ submits.push_back(r.get().ToString()); });
+
+	auto poll_until = [&](std::size_t n)
+	{
+		for (int i = 0; (i < 40) && (cmds.size() < n); ++i) { harness.Replay({ Poll() }); }
+	};
+
+	// Pool Light, ON 9:00 AM, OFF 5:00 PM (17:00), Monday.
 	auto program = ValidProgram("Pool Light");
+	program.on_hour = 9;   program.on_minute = 0;
+	program.off_hour = 17; program.off_minute = 0;
 	program.days_of_week = 0x01;   // Monday -> day key 0x18
 
 	harness.Replay({ PageStart(IAQ_PAGE_SCHEDULE_LIST), PageEnd() });
 	BOOST_REQUIRE(device.CreateControllerProgram(program) == Capabilities::ActuationResult::Accepted);
 
-	// NavigateToList (already on 0x28) -> AddProgram emits 0x11.
-	for (int i = 0; i < 8; ++i) { harness.Replay({ Poll() }); }
+	poll_until(1);                                                    // Add Program
+	ReplayPicker(harness, { "Filter Pump", "Spa", "Pool Light" });    // Pool Light = row 3
+	poll_until(3);                                                    // click row 3, OK
+	ReplayList(harness, { "Pool Light\t1:00 PM\t1:00 PM\tAll" });     // new program (defaults)
+	poll_until(4);                                                    // open ON field (0x21)
+	ReplayTimePicker(harness, "PM");                                  // picker defaults to PM; want AM
+	poll_until(5);                                                    // AM/PM toggle (0x11)
+	ReplayTimePicker(harness, "AM");
+	poll_until(6);                                                    // submit ON (0x80)
+	ReplayControlReady(harness);                                      // -> sends "109:00"
+	ReplayList(harness, { "Pool Light\t9:00 AM\t1:00 PM\tAll" });
+	poll_until(7);                                                    // open OFF field (0x22)
+	ReplayTimePicker(harness, "PM");                                  // want PM (17:00) -> no toggle
+	poll_until(8);                                                    // submit OFF (0x80)
+	ReplayControlReady(harness);                                      // -> sends "105:00"
+	ReplayList(harness, { "Pool Light\t9:00 AM\t5:00 PM\tAll" });
+	poll_until(9);                                                    // day = Monday (0x18)
+	ReplayList(harness, { "Pool Light\t9:00 AM\t5:00 PM\tM" });       // final program
+	for (int i = 0; i < 8; ++i) { harness.Replay({ Poll() }); }       // Verify -> Done
 
-	// Device picker: Pool Light is the 3rd visible row -> click = 0x13 + 3 = 0x16, then OK = 0x13.
-	ReplayPicker(harness, { "Filter Pump", "Spa", "Pool Light", "Spillway" });
-	for (int i = 0; i < 12; ++i) { harness.Replay({ Poll() }); }
+	const std::vector<uint8_t> expected{ 0x11, 0x16, 0x13, 0x21, 0x11, 0x80, 0x22, 0x80, 0x18 };
+	BOOST_REQUIRE_EQUAL(cmds.size(), expected.size());
+	for (std::size_t i = 0; i < expected.size(); ++i)
+	{
+		BOOST_CHECK_EQUAL(static_cast<int>(cmds[i]), static_cast<int>(expected[i]));
+	}
 
-	// Back on the list with the freshly-created program (defaults + our day) -> day key 0x18, verify.
-	ReplayList(harness, { "Pool Light\t1:00 PM\t1:00 PM\tM" });
-	for (int i = 0; i < 12; ++i) { harness.Replay({ Poll() }); }
+	// The two time submits carried the 12-hour values (ON 9:00 AM, OFF 5:00 PM) as "1"+HH:MM.
+	BOOST_REQUIRE_EQUAL(submits.size(), 2u);
+	BOOST_CHECK(submits[0].find("109:00") != std::string::npos);
+	BOOST_CHECK(submits[1].find("105:00") != std::string::npos);
 
-	// The emitted keypress sequence: Add, click row 3, OK, day = Monday.
-	BOOST_REQUIRE_EQUAL(cmds.size(), 4u);
-	BOOST_CHECK_EQUAL(static_cast<int>(cmds[0]), 0x11);   // Add Program
-	BOOST_CHECK_EQUAL(static_cast<int>(cmds[1]), 0x16);   // click row 3 (Pool Light)
-	BOOST_CHECK_EQUAL(static_cast<int>(cmds[2]), 0x13);   // OK
-	BOOST_CHECK_EQUAL(static_cast<int>(cmds[3]), 0x18);   // day = Monday
-
-	// The goal completed (Verify saw the program), so the panel is idle and a fresh request is accepted.
+	// Verify saw the fully-configured program, so the goal completed and the panel is idle again.
 	BOOST_CHECK(device.CreateControllerProgram(ValidProgram()) == Capabilities::ActuationResult::Accepted);
 }
 
@@ -193,36 +242,30 @@ BOOST_AUTO_TEST_CASE(Create_ScrollsPicker_WhenDeviceNotOnFirstPage)
 	std::vector<uint8_t> cmds;
 	boost::signals2::scoped_connection conn = Messages::JandyMessage_Ack::GetPublisher()->connect(
 		[&cmds](std::reference_wrapper<const Messages::JandyMessage_Ack> r)
-		{
-			if (r.get().Command() != 0x00) { cmds.push_back(r.get().Command()); }
-		});
+		{ if (r.get().Command() != 0x00) { cmds.push_back(r.get().Command()); } });
 
 	auto program = ValidProgram("Clean Mode");
-	program.days_of_week = 0x7f;   // all days -> day key 0x17
 
 	harness.Replay({ PageStart(IAQ_PAGE_SCHEDULE_LIST), PageEnd() });
 	BOOST_REQUIRE(device.CreateControllerProgram(program) == Capabilities::ActuationResult::Accepted);
 	for (int i = 0; i < 8; ++i) { harness.Replay({ Poll() }); }   // -> Add (0x11)
 
 	// Page 1 does NOT contain Clean Mode -> the writer must scroll (0x12). Poll just enough for a
-	// single scroll (a scroll is issued, then IAQ_SCHEDULE_SETTLE_POLLS dwell) before page 2 arrives.
+	// single scroll (issued, then IAQ_SCHEDULE_SETTLE_POLLS dwell) before page 2 arrives.
 	ReplayPicker(harness, { "Filter Pump", "Spa", "Pool Heat", "Spa Heat" });
 	for (int i = 0; i < 3; ++i) { harness.Replay({ Poll() }); }
 	BOOST_REQUIRE_GE(cmds.size(), 2u);
 	BOOST_CHECK_EQUAL(static_cast<int>(cmds[0]), 0x11);   // Add
 	BOOST_CHECK_EQUAL(static_cast<int>(cmds[1]), 0x12);   // scroll the picker
 
-	// Page 2 has Clean Mode at row 2 -> click = 0x13 + 2 = 0x15, then OK.
+	// Page 2 has Clean Mode at row 2 -> click = 0x13 + 2 = 0x15, then OK (0x13). (The flow then
+	// proceeds to the time fields, exercised by the full-flow test above.)
 	ReplayPicker(harness, { "Swim Jet", "Clean Mode", "Air Blower" });
 	for (int i = 0; i < 12; ++i) { harness.Replay({ Poll() }); }
-	ReplayList(harness, { "Clean Mode\t1:00 PM\t1:00 PM\tAll" });
-	for (int i = 0; i < 12; ++i) { harness.Replay({ Poll() }); }
 
-	// Full sequence: Add, scroll, click row 2, OK, day = All.
-	BOOST_REQUIRE_EQUAL(cmds.size(), 5u);
+	BOOST_REQUIRE_GE(cmds.size(), 4u);
 	BOOST_CHECK_EQUAL(static_cast<int>(cmds[2]), 0x15);   // click row 2 (Clean Mode on page 2)
 	BOOST_CHECK_EQUAL(static_cast<int>(cmds[3]), 0x13);   // OK
-	BOOST_CHECK_EQUAL(static_cast<int>(cmds[4]), 0x17);   // day = All
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -80,6 +80,11 @@ namespace AqualinkAutomate::Devices
 		constexpr uint8_t IAQ_SCHEDULE_PICK_ROW_BASE{ 0x13 };  // click visible row R -> 0x13 + R
 		constexpr uint8_t IAQ_CMD_PICKER_SCROLL{ 0x12 };       // scroll the picker down one page
 		constexpr uint8_t IAQ_CMD_PICKER_OK{ 0x13 };           // confirm the highlighted device -> back to list
+		// Time fields on the schedule list (0x28) open the time picker (0x29); on the picker, 0x11
+		// toggles AM/PM and 0x80 submits (the value rides the control-data response as "1"+HH:MM).
+		constexpr uint8_t IAQ_CMD_OPEN_ON_FIELD{ 0x21 };
+		constexpr uint8_t IAQ_CMD_OPEN_OFF_FIELD{ 0x22 };
+		constexpr uint8_t IAQ_CMD_AMPM_TOGGLE{ 0x11 };
 		// Day keys on the schedule list (0x28): the day-selection touch cells.
 		constexpr uint8_t IAQ_CMD_DAY_ALL{ 0x17 };
 		constexpr uint8_t IAQ_CMD_DAY_MON{ 0x18 };  // then Tue..Sun are consecutive
@@ -104,6 +109,16 @@ namespace AqualinkAutomate::Devices
 				return static_cast<uint8_t>(IAQ_CMD_DAY_MON + std::countr_zero(days));
 			}
 			return IAQ_CMD_DAY_ALL;   // unreachable for a validated candidate
+		}
+
+		// The submit value for a schedule time field: the field-index prefix ('1') + the 12-hour
+		// clock time, zero-padded (e.g. 09:00 -> "109:00", 17:00 -> "105:00"). AM/PM is set on the
+		// picker by a separate toggle and never rides this value (docs/iaq_schedule_protocol.md).
+		std::string ScheduleTimeValue(int hour24, int minute)
+		{
+			int hour12 = hour24 % 12;
+			if (hour12 == 0) { hour12 = 12; }
+			return std::format("{}{:02d}:{:02d}", IAQ_BUTTON_INDEX_POOL, hour12, minute);
 		}
 	}
 	// namespace
@@ -656,6 +671,7 @@ namespace AqualinkAutomate::Devices
 		m_ScheduleWriteScrollCount = 0;
 		m_ScheduleProgramAdded = false;
 		m_ScheduleDeviceClicked = false;
+		m_ScheduleTimeFieldOpened = false;
 
 		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): queued {}", DeviceId(), m_PendingScheduleWrite->desc); });
 		return Capabilities::ActuationResult::Accepted;
@@ -680,6 +696,7 @@ namespace AqualinkAutomate::Devices
 			m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;
 			m_ScheduleProgramAdded = false;
 			m_ScheduleDeviceClicked = false;
+			m_ScheduleTimeFieldOpened = false;
 			m_ScheduleWriteScrollCount = 0;
 			m_ScheduleWriteSettleCount = 0;
 		};
@@ -713,6 +730,48 @@ namespace AqualinkAutomate::Devices
 				if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) { return false; }
 			}
 			return true;
+		};
+
+		// Set one time field of the highlighted program: open it (from the list) -> on the time
+		// picker, toggle AM/PM to match then submit the value via the control-data handshake. Emits
+		// at most one command per poll and advances to `next` once the submit is issued.
+		auto set_time = [&](uint8_t open_cmd, int hour, int minute, ScheduleWritePhase next)
+		{
+			if (!m_ScheduleTimeFieldOpened)
+			{
+				if (m_CurrentPageId == IAQ_SCHEDULE_PAGE_ID) { issue(open_cmd); m_ScheduleTimeFieldOpened = true; }
+				else { m_PendingCommand = 0x00; }   // dwell until the list is up
+				return;
+			}
+			if (m_CurrentPageId != IAQ_TIME_PICKER_PAGE_ID)
+			{
+				m_PendingCommand = 0x00;   // dwell until the time picker renders
+				return;
+			}
+
+			// Match AM/PM before submitting (picker line 2 carries the current meridiem).
+			const std::string meridiem = Utility::TrimWhitespace(m_StatusPage[IAQ_TIME_PICKER_AMPM_LINE].Text);
+			const bool is_am = eq_ci(meridiem, "AM");
+			const bool is_pm = eq_ci(meridiem, "PM");
+			if (!is_am && !is_pm)
+			{
+				m_PendingCommand = 0x00;   // picker not fully rendered yet; wait for the meridiem line
+				return;
+			}
+			const bool want_pm = hour >= 12;
+			if (is_pm != want_pm)
+			{
+				issue(IAQ_CMD_AMPM_TOGGLE);   // flip AM<->PM, then re-read next poll
+				return;
+			}
+
+			// Meridiem matches: submit. The value ("1"+HH:MM) rides the control-data response the
+			// master requests with IAQ_ControlReady (Slot_IAQ_ControlReady) after the 0x80 submit.
+			m_ControlDataValue = ScheduleTimeValue(hour, minute);
+			m_AwaitingControlReady = true;
+			issue(IAQ_CMD_SUBMIT_VALUE);
+			m_ScheduleTimeFieldOpened = false;
+			m_ScheduleWritePhase = next;
 		};
 
 		switch (m_ScheduleWritePhase)
@@ -766,7 +825,7 @@ namespace AqualinkAutomate::Devices
 			if (m_ScheduleDeviceClicked)
 			{
 				issue(IAQ_CMD_PICKER_OK);
-				m_ScheduleWritePhase = ScheduleWritePhase::SetDay;
+				m_ScheduleWritePhase = ScheduleWritePhase::SetOnTime;
 				return;
 			}
 
@@ -792,6 +851,14 @@ namespace AqualinkAutomate::Devices
 			return;
 		}
 
+		case ScheduleWritePhase::SetOnTime:
+			set_time(IAQ_CMD_OPEN_ON_FIELD, goal.program.on_hour, goal.program.on_minute, ScheduleWritePhase::SetOffTime);
+			return;
+
+		case ScheduleWritePhase::SetOffTime:
+			set_time(IAQ_CMD_OPEN_OFF_FIELD, goal.program.off_hour, goal.program.off_minute, ScheduleWritePhase::SetDay);
+			return;
+
 		case ScheduleWritePhase::SetDay:
 		{
 			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
@@ -812,7 +879,11 @@ namespace AqualinkAutomate::Devices
 			for (const auto& [ordinal, text] : m_ScheduleRows)
 			{
 				if (const auto parsed = IAQ::ParseScheduleRow(text);
-					parsed.has_value() && eq_ci(parsed->target, goal.program.target) && parsed->days_of_week == goal.program.days_of_week)
+					parsed.has_value()
+					&& eq_ci(parsed->target, goal.program.target)
+					&& parsed->days_of_week == goal.program.days_of_week
+					&& parsed->on_hour == goal.program.on_hour && parsed->on_minute == goal.program.on_minute
+					&& parsed->off_hour == goal.program.off_hour && parsed->off_minute == goal.program.off_minute)
 				{
 					finish(true);
 					return;

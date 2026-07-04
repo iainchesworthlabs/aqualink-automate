@@ -63,6 +63,11 @@ namespace AqualinkAutomate::Devices
 		// program can drive). Its group-0 TableMessage rows are accumulated during a write.
 		inline static const uint8_t IAQ_DEVICE_PICKER_PAGE_ID = 0x38;
 
+		// PageStart id of the time picker (opened from a program's ON/OFF field). PageMessage line 1
+		// is "HH:MM", line 2 is "AM"/"PM"; the schedule writer reads line 2 to decide the AM/PM toggle.
+		inline static const uint8_t IAQ_TIME_PICKER_PAGE_ID = 0x29;
+		inline static const uint8_t IAQ_TIME_PICKER_AMPM_LINE = 2;
+
 		enum class OperatingStates
 		{
 			StartUp,
@@ -316,6 +321,8 @@ namespace AqualinkAutomate::Devices
 			NavigateToList,  // page-gated walk to the Schedule list (0x28)
 			AddProgram,      // press Add Program (0x11) -> device picker (0x38)
 			SelectDevice,    // scroll the picker until the target device is visible, click its row, confirm
+			SetOnTime,       // open the ON field (0x21) -> time picker -> AM/PM toggle + submit "1"+HH:MM
+			SetOffTime,      // open the OFF field (0x22) -> time picker -> AM/PM toggle + submit
 			SetDay,          // on the list, press the day key (0x17-0x20) for the desired selection
 			Verify,          // confirm the new program is present in the parsed list
 			Done,
@@ -333,6 +340,7 @@ namespace AqualinkAutomate::Devices
 		uint32_t m_ScheduleWriteScrollCount{ 0 }; // bound the device-picker scroll search
 		bool m_ScheduleProgramAdded{ false };     // the Add-Program press has been issued
 		bool m_ScheduleDeviceClicked{ false };    // the target device row has been clicked (awaiting the OK confirm)
+		bool m_ScheduleTimeFieldOpened{ false };  // the current time field's open press (0x21/0x22) has been issued
 
 		// The device/target rows on the schedule editor's device picker (page 0x38), rebuilt each
 		// render from its group-0x00 TableMessages (attribute -> device label). Used to decide

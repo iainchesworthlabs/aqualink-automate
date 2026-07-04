@@ -266,12 +266,17 @@ pinned the mapping, consistent with the earlier Pool-Light pick (row 3 → `0x16
 Select flow: scroll (`0x12`) until the target label appears in the group-0 rows, click its row
 (`0x13 + row`), then `0x13` to confirm. Implemented in `IAQDevice::ControllerScheduleWrite_ProcessStep`.
 
+The full create is now implemented in `IAQDevice::ControllerScheduleWrite_ProcessStep`
+(navigate → Add → pick device → set ON/OFF times → set day → verify), including the time
+submit: open the field (`0x21`/`0x22`) → on the time picker read line 2, toggle AM/PM (`0x11`)
+to match, then `0x80` submit → the value rides the control-data response as `"1"+HH:MM`
+(12-hour), via the same `IAQ_ControlReady` handshake as the setpoint writer.
+
 ### Still needs a capture
 
 - **`Cancel` on the delete dialog** was not exercised (only Ok). Capture a cancelled delete to pin it.
-- **The time-field submit end-to-end** (`0x21`/`0x22` → picker → `0x11` AM/PM toggle → `0x80` submit)
-  is decoded but not yet exercised through the emulator; the create writer currently sets device +
-  day and leaves the default times, with the value-submit handshake landing as the final increment.
+- **EDIT and DELETE** of an existing program (row-cursor select then Edit `0x12` / Delete `0x13`→Ok
+  `0x01`) reuse this machinery; a controlled edit/delete capture will confirm the row-cursor keys.
 
 ## Implications for the store / model
 
