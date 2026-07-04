@@ -1038,7 +1038,7 @@
           :data-disable-reason="$store.system.disableReason">
 
         <!-- ====== DASHBOARD VIEW ====== -->
-        <div x-show="route === 'dashboard'" x-cloak x-data="dashboardView()">
+        <div class="dash-view" x-show="route === 'dashboard'" x-cloak x-data="dashboardView()">
 
             <!-- Summary Strip -->
             <div class="summary-strip card mt-2 mb-2" x-data="poolGraphic()" role="region" :aria-label="$t('dash.summary_aria')">
@@ -1190,6 +1190,7 @@
             </div><!-- /.dash-cols -->
 
             <!-- Chemistry Gauges -->
+            <section class="dsec sec-chem">
             <div class="section-title" x-text="$t('dash.water_chemistry')"></div>
             <div class="gauge-grid mb-2">
                 <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
@@ -1253,10 +1254,11 @@
                     </div>
                 </div>
             </div>
+            </section>
 
             <!-- Heater Controls -->
             <template x-if="heaterButtons().length > 0">
-                <div>
+                <div class="dsec sec-heater">
                     <div class="section-title" x-text="$t('dash.heater')"></div>
                     <div class="heater-rows mb-2">
                         <template x-for="button in heaterButtons()" :key="button.id">
@@ -1295,6 +1297,7 @@
                 </div>
             </template>
 
+            <section class="dsec sec-equip">
             <!-- Equipment Controls — controllable (toggleable) devices only -->
             <div class="section-title" x-text="$t('dash.equipment_controls')"></div>
             <div x-show="$store.pool.buttonsLoading" class="text-center">
@@ -1335,10 +1338,11 @@
                     </button>
                 </template>
             </div>
+            </section>
 
             <!-- Other Equipment — configurable / informational, read-only. Hidden when empty. -->
             <template x-if="otherButtons().length > 0">
-                <div>
+                <div class="dsec sec-other">
                     <div class="section-title" x-text="$t('dash.other_equipment')"></div>
                     <div class="other-equip card mb-2">
                         <template x-for="button in otherButtons()" :key="button.id">

@@ -2978,4 +2978,17 @@ main input[type="range"] { accent-color: var(--accent); }
 
     /* Equipment tap-tiles: two per row instead of one. */
     .control-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* Jobs-to-be-done order on phone: you're here to see state, then act.
+       state (summary) -> act (equipment) -> heater -> circulation/setpoints
+       -> chemistry. Desktop keeps DOM order (this only applies while the
+       dashboard container is a flex column, i.e. on phone). */
+    .dash-view { display: flex; flex-direction: column; }
+    .dash-view > .summary-strip { order: 1; }
+    .dash-view > .sec-equip { order: 2; }
+    .dash-view > .sec-heater { order: 3; }
+    .dash-view > .dash-cols { order: 4; }
+    .dash-view > .sec-chem { order: 5; }
+    .dash-view > .sec-other { order: 6; }
+    .dash-view > .freshness-wrap { order: 7; }
 }
