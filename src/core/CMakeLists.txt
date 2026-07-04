@@ -278,6 +278,7 @@ target_sources(
 	protocol/protocol_handler_types.cpp
 	protocol/protocol_thread.cpp
 	scheduling/controller_schedule.cpp
+	scheduling/promotion_constraints.cpp
 	scheduling/schedule.cpp
 	scheduling/schedule_authorization.cpp
 	scheduling/scheduler_service.cpp

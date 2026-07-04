@@ -43,7 +43,12 @@ only *promotion* is.
   Allowed only when it fits the controller's constraints (single equipment on/off, an
   expressible day selection, a free program slot / group). The UI marks which app schedules
   are promotable and surfaces exactly what is lost or constrained when they are not (e.g.
-  "Mon+Wed+Fri isn't representable — the controller allows a single day or weekdays").
+  "Mon+Wed+Fri isn't representable — the controller allows a single day or weekdays"). The
+  feasibility predicate is `Scheduling::CheckControllerCandidate` /
+  `ClassifyDaySelection` / `IsControllerRepresentableAction`
+  (`src/core/scheduling/promotion_constraints.h`), which returns stable blocker codes the UI
+  localises. It judges the candidate span shape; forming that span from app schedules (an
+  on-edge paired with an off-edge) is the promotion flow's job and lands with the write path.
 - **Adopt (controller → app):** pull a controller program up into the app to edit it with the
   richer app model (then optionally re-promote).
 
