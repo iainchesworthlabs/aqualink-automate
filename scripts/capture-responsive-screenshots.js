@@ -55,6 +55,51 @@ const ONLY = (() => {
 })();
 const wantView = (v) => !ONLY || ONLY.has(v);
 
+// The replay fixture carries no recorded history and no schedules, so Trends and
+// Schedules render empty. Inject synthetic data (ported from
+// capture-doc-screenshots.js): stub /api/history/series per page for Trends, and
+// seed a few schedules via the API (persisted with --schedules-file) for Schedules.
+const SCHEDULES_FILE = path.join(OUT, 'schedules.json');
+const NOW = Math.floor(Date.now() / 1000);
+const DAY = 24 * 3600;
+const mk = (fn, n = 144) => Array.from({ length: n }, (_, i) => ({ ts: NOW - DAY + Math.round((i * DAY) / (n - 1)), value: fn(i / (n - 1)) }));
+const onDuring = (ranges) => (x) => (ranges.some(([a, b]) => x >= a && x <= b) ? 1 : 0);
+const SERIES = {
+  'temp/pool': { unit: 'C', label: 'Pool', points: mk((x) => +(24.5 + 3.3 * Math.exp(-((x - 0.62) ** 2) / 0.045)).toFixed(1)) },
+  'temp/air': { unit: 'C', label: 'Air', points: mk((x) => +(16.5 + 10.5 * Math.exp(-((x - 0.58) ** 2) / 0.035)).toFixed(1)) },
+  'chem/salt_ppm': { unit: 'ppm', label: 'Salt', points: mk((x) => Math.round(3255 - 85 * x)) },
+  'device/filter_pump': { unit: '', label: 'Filter Pump', points: mk(onDuring([[0.27, 0.46], [0.75, 0.875]]), 288) },
+  'device/pool_light': { unit: '', label: 'Pool Light', points: mk(onDuring([[0.82, 0.95]]), 288) },
+};
+async function stubHistory(page) {
+  await page.route('**/api/history/series*', async (route) => {
+    const key = new URL(route.request().url()).searchParams.get('key');
+    if (!key) {
+      await route.fulfill({ json: Object.entries(SERIES).map(([k, s]) => ({
+        key: k, unit: s.unit, label: s.label, name: s.label, count: s.points.length,
+        first_ts: s.points[0].ts, last_ts: s.points.at(-1).ts,
+      })) });
+    } else {
+      await route.fulfill({ json: { points: SERIES[key]?.points ?? [] } });
+    }
+  });
+}
+async function seedSchedules(base) {
+  try {
+    const buttons = (await (await fetch(`${base}/api/equipment/buttons`)).json()).buttons ?? [];
+    const target = (re, fb) => (buttons.find((b) => re.test(b.label ?? ''))?.label) ?? fb;
+    const rows = [
+      { name: 'Morning filtration', enabled: true, days_of_week: 127, time_local: '06:30', action: { type: 'button_toggle', target: target(/pump/i, 'Filter Pump') } },
+      { name: 'Evening filtration', enabled: true, days_of_week: 127, time_local: '18:00', action: { type: 'button_toggle', target: target(/pump/i, 'Filter Pump') } },
+      { name: 'Weekend spa warm-up', enabled: true, days_of_week: 65, time_local: '16:00', action: { type: 'button_toggle', target: target(/spa/i, 'Spa') } },
+    ];
+    for (const s of rows) {
+      const r = await fetch(`${base}/api/schedules`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(s) });
+      if (!r.ok) console.log(`  (schedule seed "${s.name}" -> ${r.status})`);
+    }
+  } catch (e) { console.log('  (schedule seed skipped: ' + e.message + ')'); }
+}
+
 if (!fs.existsSync(EXE)) {
   console.error(`Application binary not found at ${EXE}.\nSet AQUALINK_EXE to a built exe.`);
   process.exit(1);
@@ -63,6 +108,7 @@ fs.mkdirSync(OUT, { recursive: true });
 
 function startApp() {
   const log = fs.createWriteStream(path.join(OUT, 'app.log'));
+  try { fs.rmSync(SCHEDULES_FILE, { force: true }); } catch { /* fresh each run */ }
   const child = spawn(EXE, [
     '--dev-mode',
     '--replay-filename', path.join(FIXTURES, 'onetouch_equipment_toggle.cap'),
@@ -70,6 +116,7 @@ function startApp() {
     '--address', '127.0.0.1',
     '--disable-https',
     '--doc-root', DOC_ROOT,
+    '--schedules-file', SCHEDULES_FILE,
     '--jandy-disable-emulation',
     '--profiler', 'tracy',
     ...LOG_CHANNELS.flatMap((ch) => [`--loglevel-${ch}`, 'info']),
@@ -97,6 +144,7 @@ async function waitReady(timeoutMs = 90_000) {
     await new Promise((r) => setTimeout(r, 10_000));
     browser = await chromium.launch();
     const base = `http://127.0.0.1:${PORT}`;
+    await seedSchedules(base);
 
     for (const vp of VIEWPORTS) {
       const ctx = await browser.newContext({
@@ -106,6 +154,7 @@ async function waitReady(timeoutMs = 90_000) {
         serviceWorkers: 'block',
       });
       const page = await ctx.newPage();
+      await stubHistory(page);
       // Load once, then hash-navigate between views.
       await page.goto('/#dashboard');
       await page.waitForTimeout(2500);

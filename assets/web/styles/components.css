@@ -3006,4 +3006,11 @@ main input[type="range"] { accent-color: var(--accent); }
        errors) pack two-up instead of one — the page was a very tall tower at
        one card per row. The wide latency percentile cards stay full width. */
     .stat-cards { grid-template-columns: 1fr 1fr; }
+
+    /* Schedules: on phone the row's actions (toggle / edit / delete) drop to
+       their own line so the name + day/action summary gets the full width
+       instead of being squeezed into a narrow middle column that wraps to
+       several lines. */
+    .sched-row { flex-wrap: wrap; gap: 10px 14px; padding: 14px 16px; }
+    .sched-actions, .sched-readonly { flex-basis: 100%; justify-content: flex-end; }
 }
