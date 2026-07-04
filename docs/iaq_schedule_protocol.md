@@ -75,25 +75,168 @@ requires switching active group (a write) — so a passive/emulated read exposes
 group only. Auto Switch + a per-group start date (winter/summer style) exist under here; a
 per-group custom label is also settable (see the user's controller PDF, pending).
 
-## Write path (value-set handshake) — partially decoded
+## Write path (decoded 2026-07-04)
 
-Setting a **time** uses the value-submit handshake (matches the known IAQ setpoint flow):
-device highlights the time field → submit `0x80` → master sends **ControlReady `0x31`** →
-iAQ replies with a **full `0x24` to master (0x00)** carrying ASCII `1` + `HH:MM`
-(button-index char `'1'` then the 12-hour time). Observed writes and the value entered:
+Decoded from the same live capture (`captures/iaq_schedule_session.cap`) by correlating the
+narrated user actions against the wire. Decoder mode: `python decode_iaq.py <cap> --commands`
+prints, in time order, PageStart page-id transitions, every non-idle iAQ→master ACK command,
+the `0x80` submit / `0x31` ControlReady handshake, and every `0x24` value write. Checksums:
+26 911 / 26 926 frames pass; none of the write-relevant frames (submits, `0x24` writes,
+delete-confirm dialogs) are among the 15 bad ones, so the decode below is trustworthy.
 
-| write ascii | entered |
-|-------------|---------|
-| `109:00` | On 9:00 (create A) |
-| `105:00` | Off 5:00 PM (create A) |
-| `106:30` | On 6:30 (create B) |
-| `108:15` | Off 8:15 (create B) |
-| `106:00` | Off → 6:00 PM (edit A) |
+This section **supersedes** the earlier "value-set handshake — partially decoded" notes.
 
-AM/PM is a separate toggle (not in the time string). **Target selection, day selection,
-create, and delete** are button presses carried on the poll-ACK command stream (nav
-select/back/scroll + `0x11+index` button opcodes), not value-sets — not yet fully mapped;
-needed only for the write phase.
+### The command channel: fixed touch-grid keys, not per-label buttons
+
+The iAQ carries every keypress to the master on its poll-ACK frame: a 2-byte
+`Ack (cmd 0x01)` to master(0x00) with payload `[AckType][Command]`.
+
+- **`Command` (payload[1]) is the keypress.** `0x00` = no key. A genuine press is flagged by
+  **`AckType (payload[0]) == 0x00`**; other AckType values (`0x1f`, `0x23`–`0x2d`, `0x40`,
+  `0x41`, `0x70`, `0x72`, …) are page-render / poll echoes and carry `Command == 0x00`. The
+  `AckType 0x1f` beacon with `Command 0x08`/`0x18` is the **chlorinator-active heartbeat**
+  (from the 0xA3 device) leaking onto the bus — **not** a keypress; the decoder filters it.
+- **Command values are a fixed screen-position grid**, `Command = 0x11 + position`
+  (`0x11`=pos0 … `0x20`=pos15 …), **plus** the three nav opcodes `0x01`=SELECT/OK,
+  `0x02`=BACK, and `0x80`=SUBMIT (value commit). The *meaning* of a position is whatever the
+  master rendered there on the current page — so a press must be interpreted against the page
+  layout at press time, **not** by matching a PageButton `idx`. Positions above the highest
+  rendered PageButton `idx` (which tops out at 15) address **table rows / scroll hotspots**
+  on list pages (positions 16, 17, 20, 22, 23, 24 were all seen — they move the row cursor or
+  open the per-row time fields, see below).
+- The highlighted list row is broadcast by the master as a **`0x40` frame `[00][row][sel]`**
+  (`sel` bit = highlighted); this is the cursor that CREATE/EDIT/DELETE act on.
+
+Firmly-established keys used by the schedule flows:
+
+| Key (Command) | Page context | Meaning |
+|---|---|---|
+| `0x11` (pos0) | Schedule list 0x28 | **Add Program** (fixed hard-key; no on-screen button is rendered for it) → opens device picker 0x38 |
+| `0x11` (pos0) | Time picker 0x29 | **Toggle AM ↔ PM** (master re-pushes PageMessage line 02) |
+| `0x12` (pos1) | Schedule list 0x28, row highlighted | **Edit** (idx1 `'Edit'`) → enter row edit mode |
+| `0x13` (pos2) | Schedule list 0x28, row highlighted | **Delete** → master shows confirm dialog (see DELETE) |
+| `0x17`–`0x20` | Schedule list / editor 0x28 | **Day buttons** — `0x17`=All(idx6) `0x18`=M(7) `0x19`=Tu(8) `0x1a`=W(9) `0x1b`=Th(10) `0x1c`=F(11) `0x1d`=Sa(12) `0x1e`=Su(13) `0x1f`=Wkdays(14) `0x20`=Wkends(15). Pressing one sets that day on the highlighted row immediately. |
+| `0x21` (pos16) | Schedule list / editor 0x28 | **Open ON-time field** → time picker 0x29 for the ON time |
+| `0x22` (pos17) | Schedule list / editor 0x28 | **Open OFF-time field** → time picker 0x29 for the OFF time |
+| `0x25`,`0x27`,`0x28`,`0x29` | Schedule list 0x28 | **Row-cursor scroll hotspots** — move the `0x40` highlight to another program row (exact per-position mapping not pinned; the `0x40 [00][row][01]` frame is the ground truth for which row is active) |
+| `0x01` | any | **SELECT / OK** (advance a field, confirm a dialog) |
+| `0x02` | any | **BACK** |
+| `0x80` | Time picker 0x29 | **SUBMIT** value → `0x31` ControlReady → `0x24` write |
+
+### Time value handshake (firm)
+
+Setting a time uses the known IAQ value-submit handshake:
+
+```
+(on time picker 0x29, HH:MM entered locally, optional pos0 AM/PM toggles)
+iAQ  → master : SUBMIT   Ack [00 80]
+master → iAQ  : ControlReady 0x31
+iAQ  → master : 0x24 (PageButton to 0x00), 17-byte fixed field:
+                31 <H H : M M> 00 00 …   ascii "1HH:MM"
+```
+
+The `0x24` payload is `'1'` (0x31, the **field index** within the picker — always `'1'` for
+the single time field) followed by the 5-char `HH:MM`, NUL-padded to 17 bytes. Observed:
+
+| write ascii | ts (ms) | field | note |
+|---|---|---|---|
+| `109:00` | 86147 / 99376 | create-A ON | 9:00 (entered twice during the fumble) |
+| `117:00` | 109376 | create-A OFF | 17:00 — first (wrong) OFF attempt |
+| `105:00` | 117189 | create-A OFF | 5:00 — corrected OFF |
+| `106:30` | 176735 | create-B ON | 6:30 |
+| `108:15` | 186779 | create-B OFF | 8:15 |
+| `106:00` | 205126 | edit-A OFF | 5:00 PM → 6:00 PM |
+
+**HH:MM digit entry is a local touch-panel widget and is *not* observable on the wire** —
+between the picker render (default `01:00 PM`) and the submit, no per-digit ACK commands
+appear, yet the value changes (e.g. `01:00`→`09:00`). Only the AM/PM toggle round-trips
+(because the master must re-render line 02), and the final 12-hour value ships in the `0x24`.
+The `117:00` vs `105:00` pair shows the panel will accept either a 24-h-looking or 12-h hour
+during entry; the **committed** `0x24` is what the controller stores.
+
+**AM/PM (firm):** on picker 0x29 the master pushes `PageMessage 01 = HH:MM`, `02 = AM|PM`.
+Pressing **pos0 (`0x11`)** flips line 02 (`PM`→`AM`→`PM`, e.g. @83236/@84038). AM/PM is a
+separate field from the HH:MM string.
+
+### CREATE a program (firm skeleton; inner edit-nav partial)
+
+Example — create-A = Filter Pump / ON 9:00 AM / OFF 5:00 PM / Monday (@45055–117220):
+
+1. **Schedule list 0x28** → press **`0x11` (Add Program)** → **device picker 0x38** opens
+   (`Devices` header + a scrollable device list as `TableMessage [00][row][name]`).
+2. **Pick device on 0x38.** The list scrolls (a scroll key repaints the list window and moves
+   the `0x40 [00][row][01]` highlight); a select press commits the **highlighted** row. The
+   committed device becomes a **new list row with default `1:00 PM 1:00 PM All`**. (create-A
+   selected Filter Pump with a single `0x13`; create-B *scrolled* — `0x12` repainted the list
+   to reveal `Pool Light`, highlight moved to it via `0x40`, then a select committed it. The
+   exact per-position key meaning *on this scrolling list* is **only partially pinned** — the
+   `0x40` highlight frame is the reliable indicator of what gets selected, not the raw Command
+   byte.) Note the device list here is the controller's **actuator** list (Filter Pump, Spa,
+   Pool Heat/Spa Heat/Solar Heat, Spa Jets, Swim Jet, then Pool Light, Air Blower, Spillway,
+   Spa Mode, Clean Mode …) — richer than the 7 devices visible without scrolling.
+3. Back on **0x28**, the new row is highlighted (`0x40 [00][row][01]`). Set fields on it:
+   - **Day:** press a day key (`0x18`=M …). Row re-renders with the new day token immediately.
+   - **ON time:** press **`0x21`** → picker 0x29 → enter HH:MM, toggle AM/PM (pos0), **SUBMIT**.
+   - **OFF time:** press **`0x22`** → picker 0x29 → … → **SUBMIT**.
+   These sub-steps are reached through an in-edit-mode cursor (`Edit`=`0x12` then a run of
+   `SELECT 0x01` + field keys). The **landmarks are firm** (`0x21`/`0x22` open the ON/OFF
+   picker every time — 7/7; day keys change the day token every time). The **precise ordering
+   of the intervening `SELECT`s / field-advance keys inside edit mode is only partially
+   determined** because the user fumbled and the field cursor is not separately rendered.
+   A new program is **committed incrementally** — there is no distinct "save" opcode; each
+   field write (day key, time submit) mutates the row on the controller as it happens.
+
+### EDIT a program (firm)
+
+- **Change a time** (edit-A OFF 5:00 PM → 6:00 PM, @200686→205156): highlight the row, press
+  **`0x22`** (OFF field) → picker → SUBMIT `106:00` → row re-renders `Filter Pump 9:00 AM
+  6:00 PM M`. Same handshake as CREATE; no separate "edit" verb for time.
+- **Change the day** (Pool Light M→W→F, @225436–255320): press **`0x12` (Edit)** to enter row
+  edit, then the target **day key** — `0x1a` (W) → row shows `…W` (@229746); later `0x12`
+  then `0x1c` (F) → row shows `…F` (@255320). The row's day token is rewritten live.
+
+### DELETE a program (firm)
+
+Highlight the target row (row cursor via scroll keys; ground truth `0x40 [00][row][01]`), then:
+
+```
+iAQ → master : 0x13  (Delete key, pos2)
+master → iAQ : PageSubMsg 0x2c  "Are you sure you want\nto delete this program?"  [Ok][Cancel]
+iAQ → master : 0x01  (SELECT = Ok)
+→ program removed; schedule list 0x28 re-renders with the row gone (rows shift up)
+```
+
+Observed twice, identically: delete Filter Pump @268521(`0x13`)→dialog@268568→`0x01`@270764
+(row 3 gone @271200); delete Pool Light @374685(`0x13`)→dialog@374731→`0x01`@376659 (row 5
+gone @377077). `Cancel` would be the other dialog button (not exercised in this capture).
+
+### Switch the active Program Group (firm)
+
+Page **0x12** renders three PageButtons: `idx0 'Group A'`, `idx2 'Auto Switch Disabled'`,
+`idx3 'Group B'`; `state` bit0 marks the **active** group. To switch, press the target group's
+key `Command = 0x11 + idx`:
+
+- **`0x14`** (idx3) → **Group B** — re-renders with idx3 `state=01`; visiting 0x28 afterward
+  shows title `Schedule Group B` (empty here) (@456277 → @461413).
+- **`0x11`** (idx0) → **Group A** — re-renders idx0 `state=01`; 0x28 shows `Schedule Group A`
+  (@471533 → @476511).
+
+This is a genuine controller write: the served schedule list on 0x28 changes with the active
+group, confirming schedules are controller-resident (see "Validated premise").
+
+### Still needs another capture
+
+- **Device-picker key grid (0x38):** the exact `Command`→row mapping while the list scrolls is
+  not fully pinned (decoded via the `0x40` highlight, not the raw key). A clean capture that
+  scrolls one step at a time and selects without fumbling would nail the scroll vs select keys.
+- **Inner edit-mode field cursor (0x28):** the ordering of `SELECT`/field-advance keys between
+  entering Edit and reaching a given field is only partially determined. A deliberate,
+  un-fumbled create (device → ON → OFF → day, no corrections) would pin the canonical sequence.
+- **`Cancel` on the delete dialog** and **field index other than `'1'`** in the `0x24` write
+  were never exercised — capture a cancelled delete and (if any) a multi-field picker to
+  confirm the `0x24` leading char is a field index rather than a constant.
+- **AM/PM default & 24-h vs 12-h entry** rules: confirm whether the panel always defaults new
+  times to `PM` and how it canonicalises the committed hour.
 
 ## Implications for the store / model
 
