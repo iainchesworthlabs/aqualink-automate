@@ -139,21 +139,35 @@ test.describe('dark theme (phone)', () => {
 
 test.describe('RTL / Arabic (phone)', () => {
   test.use({ viewport: { width: 390, height: 780 } });
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('locale', 'ar'));
+
+  // Switch via the app's own store, NOT a seeded localStorage 'locale'. A seeded
+  // value loses to _syncFromServer(), which adopts the server's ui.locale on
+  // boot — so if an earlier spec left an explicit server locale, the seed is
+  // silently overridden (dir stays ltr). setLocale() marks _explicitChoice,
+  // which outranks that sync, making the switch deterministic in a full run.
+  async function switchToArabic(page: Page): Promise<void> {
+    await page.goto('/#dashboard');
+    await page.waitForFunction(() => !!(window as any).Alpine?.store('i18n'));
+    await page.evaluate(async () => { await (window as any).Alpine.store('i18n').setLocale('ar'); });
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  }
+
+  // setLocale() mirrors the choice to the server (ui.locale), which would make
+  // later specs boot in Arabic and fail their English assertions. Restore
+  // English after each test so the shared server is left clean.
+  test.afterEach(async ({ page }) => {
+    await page.evaluate(async () => { await (window as any).Alpine?.store('i18n')?.setLocale('en'); }).catch(() => {});
   });
 
   test('dashboard mirrors to RTL and stays overflow-free', async ({ page }) => {
-    await page.goto('/#dashboard');
-    await page.waitForTimeout(900);
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await switchToArabic(page);
     const overflow = await horizontalOverflow(page);
     expect(overflow, `RTL dashboard overflows by ${overflow}px`).toBeLessThanOrEqual(1);
   });
 
   test('dashboard RTL visual snapshot', async ({ page }) => {
     test.skip(!SNAPSHOTS, 'set RESPONSIVE_SNAPSHOTS=1 to seed baselines');
-    await page.goto('/#dashboard');
+    await switchToArabic(page);
     await page.waitForTimeout(900);
     await expect(page).toHaveScreenshot('dashboard-phone-rtl.png', { fullPage: true, maxDiffPixelRatio: 0.02, ...mask(page) });
   });
