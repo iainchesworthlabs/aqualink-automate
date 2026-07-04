@@ -2955,3 +2955,27 @@ main input[type="range"] { accent-color: var(--accent); }
 .bw-chart {
     direction: ltr;
 }
+
+/* ============================================================
+   Dashboard mobile reflow (Phase 2)
+   On phones (<640) the water-chemistry gauges and the equipment
+   tap-tiles pack two-per-row instead of one, and the chemistry
+   dials shrink — so the dashboard stops being a tower of
+   full-height cards. Tablet/desktop layouts are unchanged.
+   (Appended last so it out-orders the legacy max-width:480 /
+   max-width:768 gauge rules above.)
+   ============================================================ */
+@media (max-width: 639px) {
+    /* Water chemistry: two compact gauges per row; the SWG card keeps the
+       full width so its slider + Set/Boost controls stay usable. */
+    .gauge-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .gauge-card { padding: 12px 12px 10px; }
+    .swg-card { grid-column: 1 / -1; }
+    .chem-dial { width: 96px; height: 96px; margin-top: 2px; }
+    .chem-dial-svg { width: 96px; height: 96px; }
+    .chem-dial-num { font-size: 22px; }
+    .chem-dial-range { margin-top: 4px; }
+
+    /* Equipment tap-tiles: two per row instead of one. */
+    .control-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
