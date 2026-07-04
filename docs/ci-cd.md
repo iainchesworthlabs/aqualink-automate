@@ -59,6 +59,9 @@ Concurrency is keyed on the PR number (or the ref for branch pushes) with `cance
 | history enabled | `AQUALINK_HISTORY_DB` | recorded series + chart |
 | scheduler enabled | `AQUALINK_SCHEDULES_FILE` | schedule CRUD |
 | TLS (https) | `AQUALINK_TLS=enabled` | the default (non-identity) suite over an HTTPS origin (self-signed cert auto-provisioned), exercising the server's TLS/SSL session path and certificate self-provisioning |
+| bootstrap admin | `AQUALINK_AUTH_MODE=enabled`, `AQUALINK_BOOTSTRAP_ADMIN=wbadmin`, `AQUALINK_BOOTSTRAP_ADMIN_PASSWORD=…`, `npx playwright test e2e/admin.spec.ts` | headless `--bootstrap-admin` start-up provisioning; admin.spec then logs in against the seeded admin |
+| open bind — warning | `AQUALINK_OPEN_BIND=warn` | non-loopback bind (0.0.0.0) with auth off → the open-control-plane start-up warning |
+| open bind — ack | `AQUALINK_OPEN_BIND=ack` | as above plus `--insecure-no-auth` → the acknowledged-posture branch |
 
 **docker-verify checks.** It builds the `ci` target, then the `runtime` target (tagged `aqualink-automate:verify`), runs `docker run --rm -e MATTER_ENABLED=false aqualink-automate:verify --version`, and confirms the bundled sidecar is present (`node --version` plus a test for `/opt/matter-bridge/dist/index.js`). Both Docker builds are wrapped in a bounded retry so a transient Docker Hub base-image timeout does not fail CI. The `Dockerfile` base (both the build and runtime stages) is `ubuntu:25.04` — note this is a different release from the self-hosted runner image, which Packer provisions on Ubuntu 26.04 LTS (see [Provisioning](#provisioning) below).
 

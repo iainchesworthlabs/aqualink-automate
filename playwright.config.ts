@@ -63,6 +63,15 @@ const TLS_MODE = process.env.AQUALINK_TLS === 'enabled';
 const SCHEME = TLS_MODE ? 'https' : 'http';
 const BASE_URL = `${SCHEME}://${HOST}:${PORT}`;
 
+// Open-bind mode: when AQUALINK_OPEN_BIND is set, bind a NON-loopback address
+// (0.0.0.0) with auth off, which trips the app's "equipment-control API exposed
+// without authentication" start-up guard. AQUALINK_OPEN_BIND=warn exercises the
+// prominent-warning branch; =ack additionally passes --insecure-no-auth to
+// exercise the acknowledged-posture branch. The browser still reaches the server
+// via loopback (0.0.0.0 accepts it), so the default spec suite runs unchanged.
+const OPEN_BIND = process.env.AQUALINK_OPEN_BIND;   // undefined | 'warn' | 'ack'
+const BIND_ADDRESS = OPEN_BIND ? '0.0.0.0' : HOST;
+
 // Wave A identity mode: when AQUALINK_AUTH_MODE=enabled, boot the app with the
 // full identity system (`--auth-mode enabled`) against a FRESH temp
 // --auth-state-dir so the user store starts EMPTY (setup_required = true). The
@@ -168,7 +177,8 @@ export default defineConfig({
       ...(TLS_MODE
         ? [`--https-port ${PORT}`, '--disable-http']
         : [`--http-port ${PORT}`, '--disable-https']),
-      `--address ${HOST}`,
+      `--address ${BIND_ADDRESS}`,
+      ...(OPEN_BIND === 'ack' ? ['--insecure-no-auth'] : []),
       `--doc-root "${DOC_ROOT}"`,
       '--jandy-disable-emulation',
       '--profiler tracy',

@@ -347,6 +347,40 @@ jobs:
         AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
         AQUALINK_TLS: enabled
 
+    # Bootstrap-admin: seed the administrator at start-up via --bootstrap-admin +
+    # the password env (not the first-run wizard), covering that headless-provision
+    # code path. The store is then non-empty, so admin.spec takes its login branch
+    # (its ADMIN_USER/ADMIN_PASS match what we seed here).
+    - name: E2E — bootstrap admin
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test e2e/admin.spec.ts
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_AUTH_MODE: enabled
+        AQUALINK_BOOTSTRAP_ADMIN: wbadmin
+        AQUALINK_BOOTSTRAP_ADMIN_PASSWORD: correct-horse-battery-staple
+
+    # Open-bind guard: a non-loopback bind (0.0.0.0) with auth off trips the
+    # open-control-plane start-up guard — =warn exercises the prominent warning,
+    # =ack the acknowledged (--insecure-no-auth) branch. The default suite runs
+    # unchanged (the browser reaches the server over loopback).
+    - name: E2E — open bind (warning)
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_OPEN_BIND: warn
+
+    - name: E2E — open bind (insecure-no-auth ack)
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_OPEN_BIND: ack
+
     # gcovr may already be baked into the self-hosted image (the unit-coverage
     # CMake target needs it); install it as a fallback for a stock runner.
     - name: Ensure gcovr is available
