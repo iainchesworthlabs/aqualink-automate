@@ -12,6 +12,7 @@
 #include "kernel/auxillary_devices/auxillary_device.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 #include "messages/iaq/iaq_message_control_data_response.h"
+#include "scheduling/promotion_constraints.h"
 #include "utility/spa_switch_assignment.h"
 #include "utility/string_manipulation.h"
 
@@ -67,6 +68,14 @@ namespace AqualinkAutomate::Devices
 		constexpr uint32_t IAQ_SPASWITCH_SETTLE_POLLS{ 4 };         // polls to let the master render after a command
 		constexpr uint32_t IAQ_SPASWITCH_MAX_SCROLLS{ 10 };        // bound the picker scroll search
 		constexpr uint32_t IAQ_SPASWITCH_POLL_LIMIT{ 400 };        // overall backstop (abandon the goal)
+
+		// Controller-schedule WRITE (RE'd from captures/iaq_schedule_{session,clean}.cap; see
+		// docs/iaq_schedule_protocol.md, write path). Page ids the Program flow carries and the
+		// fixed touch-grid keys (Command = 0x11 + screen position) it uses.
+		constexpr uint8_t IAQ_CMD_MENU_TO_SCHEDULE{ 0x11 };   // on the menu (0x0f): pos0 -> Schedule list
+		constexpr uint8_t IAQ_CMD_ADD_PROGRAM{ 0x11 };        // on the list (0x28): pos0 -> Add Program -> device picker
+		constexpr uint32_t IAQ_SCHEDULE_SETTLE_POLLS{ 4 };    // polls to let the master render after a command
+		constexpr uint32_t IAQ_SCHEDULE_POLL_LIMIT{ 400 };    // overall backstop (abandon the goal)
 	}
 	// namespace
 
@@ -580,6 +589,178 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
+	Capabilities::ActuationResult IAQDevice::CreateControllerProgram(const Scheduling::ControllerSchedule& program)
+	{
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::CreateControllerProgram", std::source_location::current());
+
+		// A passive (non-emulated) iAQ never transmits, so it cannot drive the panel.
+		if (!IsEmulated())
+		{
+			LogDebug(Channel::Devices, [this]() { return std::format("IAQ ({}): CreateControllerProgram rejected -- device is passive (not emulated)", DeviceId()); });
+			return Capabilities::ActuationResult::NotSupported;
+		}
+
+		// One goal at a time on the shared panel UI (mirrors the spa-switch writer's convention of
+		// reporting a busy panel as NotSupported).
+		if (m_PendingScheduleWrite.has_value() || m_PendingSpaSwitchWrite.has_value() || !m_CommandQueue.empty() || m_AwaitingControlReady)
+		{
+			LogWarning(Channel::Devices, [this]() { return std::format("IAQ ({}): busy - rejecting controller-schedule write", DeviceId()); });
+			return Capabilities::ActuationResult::NotSupported;
+		}
+
+		// The controller can only represent a constrained subset -- reject anything it can't.
+		const auto feasibility = Scheduling::CheckControllerCandidate(program);
+		if (!feasibility.promotable)
+		{
+			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): CreateControllerProgram rejected -- program is not controller-representable (target='{}')", DeviceId(), program.target); });
+			return Capabilities::ActuationResult::InvalidValue;
+		}
+
+		ScheduleWriteGoal goal;
+		goal.program = program;
+		goal.desc = std::format("create controller program '{}'", program.target);
+
+		m_PendingScheduleWrite = std::move(goal);
+		m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;
+		m_ScheduleWritePollCount = 0;
+		m_ScheduleWriteSettleCount = 0;
+		m_ScheduleWriteScrollCount = 0;
+		m_ScheduleProgramAdded = false;
+
+		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): queued {}", DeviceId(), m_PendingScheduleWrite->desc); });
+		return Capabilities::ActuationResult::Accepted;
+	}
+
+	void IAQDevice::ControllerScheduleWrite_ProcessStep()
+	{
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::ControllerScheduleWrite_ProcessStep", std::source_location::current());
+
+		if (!m_PendingScheduleWrite.has_value())
+		{
+			return;
+		}
+		const ScheduleWriteGoal& goal = m_PendingScheduleWrite.value();
+
+		auto finish = [&](bool ok)
+		{
+			if (ok) { LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): {} completed", DeviceId(), goal.desc); }); }
+			else    { LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} abandoned", DeviceId(), goal.desc); }); }
+			m_PendingCommand = 0x00;
+			m_PendingScheduleWrite.reset();
+			m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;
+			m_ScheduleProgramAdded = false;
+			m_ScheduleWriteScrollCount = 0;
+			m_ScheduleWriteSettleCount = 0;
+		};
+
+		// Overall backstop.
+		if (++m_ScheduleWritePollCount > IAQ_SCHEDULE_POLL_LIMIT)
+		{
+			finish(false);
+			return;
+		}
+
+		// Settle: dwell a few polls after a command so the master renders the new page.
+		if (m_ScheduleWriteSettleCount > 0)
+		{
+			--m_ScheduleWriteSettleCount;
+			m_PendingCommand = 0x00;
+			return;
+		}
+
+		auto issue = [&](uint8_t cmd)
+		{
+			m_PendingCommand = cmd;
+			m_ScheduleWriteSettleCount = IAQ_SCHEDULE_SETTLE_POLLS;
+		};
+
+		auto eq_ci = [](std::string_view a, std::string_view b)
+		{
+			if (a.size() != b.size()) { return false; }
+			for (std::size_t i = 0; i < a.size(); ++i)
+			{
+				if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) { return false; }
+			}
+			return true;
+		};
+
+		switch (m_ScheduleWritePhase)
+		{
+		case ScheduleWritePhase::NavigateToList:
+		{
+			// Page-gated walk to the Schedule list (0x28).
+			switch (m_CurrentPageId)
+			{
+			case IAQ_SCHEDULE_PAGE_ID:
+				m_ScheduleWritePhase = ScheduleWritePhase::AddProgram;   // arrived; act next poll
+				return;
+
+			case IAQ_PAGE_MENU:
+				issue(IAQ_CMD_MENU_TO_SCHEDULE);                          // menu pos0 -> Schedule list
+				return;
+
+			case IAQ_PAGE_HOME:
+			default:
+				issue(IAQ_CMD_BACK);                                      // unwind toward the menu
+				return;
+			}
+		}
+
+		case ScheduleWritePhase::AddProgram:
+		{
+			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			{
+				m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;   // lost the page; re-navigate
+				return;
+			}
+			if (!m_ScheduleProgramAdded)
+			{
+				issue(IAQ_CMD_ADD_PROGRAM);            // pos0 on the list -> Add Program -> device picker (0x38)
+				m_ScheduleProgramAdded = true;
+			}
+			m_ScheduleWritePhase = ScheduleWritePhase::SelectDevice;
+			return;
+		}
+
+		case ScheduleWritePhase::SelectDevice:
+		{
+			if (m_CurrentPageId != IAQ_DEVICE_PICKER_PAGE_ID)
+			{
+				m_PendingCommand = 0x00;   // dwell until the picker renders
+				return;
+			}
+
+			// Is the target device visible in the current picker page?
+			for (const auto& [slot, label] : m_DevicePickerRows)
+			{
+				if (eq_ci(label, goal.program.target))
+				{
+					// The device is on screen. The touch-position -> row SELECT keystroke on this
+					// scrolling picker is not yet pinned (a controlled one-step capture is needed),
+					// so stop here rather than emit an unverified press. The read path + this scroll
+					// search are exercised; the pick + SetOnTime/SetOffTime/SetDay land next.
+					LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- target device '{}' visible at picker slot {}; pick keystroke pending a controlled device-picker capture", DeviceId(), goal.desc, goal.program.target, slot); });
+					finish(false);
+					return;
+				}
+			}
+
+			// Not visible: bound the search. (The scroll keystroke on the picker is likewise pending
+			// the controlled capture, so we do not emit one -- we abandon once the visible page does
+			// not contain the target rather than guess a scroll key.)
+			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- target device '{}' not on the visible picker page; scroll+pick pending a controlled device-picker capture", DeviceId(), goal.desc, goal.program.target); });
+			finish(false);
+			return;
+		}
+
+		case ScheduleWritePhase::Done:
+		case ScheduleWritePhase::Failed:
+		default:
+			finish(m_ScheduleWritePhase == ScheduleWritePhase::Done);
+			return;
+		}
+	}
+
 	void IAQDevice::ProcessControllerUpdates()
 	{
 		ProcessControllerUpdates(false);
@@ -639,6 +820,14 @@ namespace AqualinkAutomate::Devices
 		if (is_poll_message && m_PendingSpaSwitchWrite.has_value())
 		{
 			SpaSwitchWrite_ProcessStep();
+		}
+
+		// Service an in-flight controller-schedule write goal (create a program) the same way:
+		// it inspects the current page + decoded picker rows and sets m_PendingCommand to the next
+		// command. Poll only, and mutually exclusive with the spa-switch goal / command queue.
+		if (is_poll_message && m_PendingScheduleWrite.has_value())
+		{
+			ControllerScheduleWrite_ProcessStep();
 		}
 
 		// Commands can only be sent in response to IAQ_Poll messages.

@@ -193,6 +193,7 @@ target_sources(
 	unit/devices/test_jandy_iaq_page_registry.cpp
 	unit/devices/test_jandy_iaq_schedule_parser.cpp
 	unit/devices/test_jandy_iaq_schedule_read.cpp
+	unit/devices/test_jandy_iaq_schedule_write.cpp
 	unit/devices/test_pentair_vsp_pump.cpp
 	unit/devices/test_pentair_chlorinator.cpp
 	unit/devices/test_pentair_controller.cpp

@@ -59,6 +59,10 @@ namespace AqualinkAutomate::Devices
 		// non-schedule text, so a same-id page on another model cannot yield garbage.
 		inline static const uint8_t IAQ_SCHEDULE_PAGE_ID = 0x28;
 
+		// PageStart id of the schedule editor's device picker (the scrolling list of equipment a new
+		// program can drive). Its group-0 TableMessage rows are accumulated during a write.
+		inline static const uint8_t IAQ_DEVICE_PICKER_PAGE_ID = 0x38;
+
 		enum class OperatingStates
 		{
 			StartUp,
@@ -131,6 +135,16 @@ namespace AqualinkAutomate::Devices
 		// renders+decodes, then back -- to source data the pushed home page does not carry
 		// (setpoints, etc.). Targeted navigation instead of menu spidering. Runs once.
 		void EnablePageSurvey(const IAQ::PageRegistry& registry);
+
+		// WRITE a new program into the controller's active schedule group by driving the
+		// AqualinkTouch Program pages (see docs/iaq_schedule_protocol.md, write path). Queues a
+		// goal serviced per-poll by ControllerScheduleWrite_ProcessStep: navigate to the Schedule
+		// list (0x28) -> Add Program (0x11) -> select the target device on the picker (0x38) ->
+		// set the ON/OFF times (0x21/0x22 -> time picker -> submit) and day (0x17-0x20).
+		// Rejects (InvalidValue) any program the controller cannot represent -- the feasibility is
+		// the shared Scheduling::CheckControllerCandidate predicate. NotSupported when passive
+		// (a non-emulated iAQ never transmits); Busy if a write is already in flight.
+		Capabilities::ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program);
 
 	public:
 		// Operating-state queries (also exercised by the device tests).
@@ -286,6 +300,46 @@ namespace AqualinkAutomate::Devices
 		// and emit at most one command (into m_PendingCommand) per poll. Gated on m_CurrentPageId so
 		// a navigation miss can never issue a row-select/commit on the wrong page.
 		void SpaSwitchWrite_ProcessStep();
+
+	private:
+		// On-demand controller-schedule WRITE goal (one at a time), serviced per-poll by
+		// ControllerScheduleWrite_ProcessStep. Drives the AqualinkTouch Program pages to create a
+		// program in the active schedule group. RE'd from captures/iaq_schedule_{session,clean}.cap;
+		// see docs/iaq_schedule_protocol.md (write path).
+		// Phases implemented this increment: navigate -> Add Program -> scroll the device picker
+		// until the target device is visible. The final pick keystroke on the picker (a scrolling
+		// touchscreen list) and the subsequent SetOnTime/SetOffTime (0x21/0x22 + submit) / SetDay
+		// (0x17-0x20) phases are decoded (docs/iaq_schedule_protocol.md) but land once a controlled
+		// device-picker capture pins the touch-position -> row select mapping; SelectDevice
+		// fail-safes (abandons) at that boundary rather than emit an unverified keystroke.
+		enum class ScheduleWritePhase
+		{
+			NavigateToList,  // page-gated walk to the Schedule list (0x28)
+			AddProgram,      // press Add Program (0x11) -> device picker (0x38)
+			SelectDevice,    // scroll the picker until the target device is visible (then pick -- pending capture)
+			Done,
+			Failed,
+		};
+		struct ScheduleWriteGoal
+		{
+			Scheduling::ControllerSchedule program;  // target device + on/off + day mask to write
+			std::string desc;
+		};
+		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;
+		ScheduleWritePhase m_ScheduleWritePhase{ ScheduleWritePhase::NavigateToList };
+		uint32_t m_ScheduleWritePollCount{ 0 };   // overall backstop
+		uint32_t m_ScheduleWriteSettleCount{ 0 }; // polls to let the master render after a command
+		uint32_t m_ScheduleWriteScrollCount{ 0 }; // bound the device-picker scroll search
+		bool m_ScheduleProgramAdded{ false };     // the Add-Program press has been issued
+
+		// The device/target rows on the schedule editor's device picker (page 0x38), rebuilt each
+		// render from its group-0x00 TableMessages (attribute -> device label). Used to decide
+		// whether the target device is visible (else scroll).
+		std::map<uint8_t, std::string> m_DevicePickerRows;
+
+		// Service the pending schedule-write goal: examine the current page + decoded state and emit
+		// at most one command (into m_PendingCommand) per poll, page-gated on m_CurrentPageId.
+		void ControllerScheduleWrite_ProcessStep();
 
 	private:
 		OperatingStates m_OpState{ OperatingStates::StartUp };

@@ -99,9 +99,11 @@ namespace AqualinkAutomate::Devices
 		// (0x3b = the 4-Function detail) so it never issues a row-select/commit off that page.
 		m_CurrentPageId = msg.PageId();
 
-		// A fresh page invalidates any accumulated Schedule-list title/rows.
+		// A fresh page invalidates any accumulated Schedule-list title/rows and the
+		// device-picker rows the schedule writer reads.
 		m_CurrentPageTitle.clear();
 		m_ScheduleRows.clear();
+		m_DevicePickerRows.clear();
 
 		m_SM_PageUpdate.process_event(Utility::ScreenDataPageUpdaterImpl::evSequenceStart());
 		m_SM_PageUpdate.process_event(Utility::ScreenDataPageUpdaterImpl::evClear());
@@ -267,6 +269,14 @@ namespace AqualinkAutomate::Devices
 		if (IAQ_SCHEDULE_PAGE_ID == m_CurrentPageId)
 		{
 			m_ScheduleRows[msg.Attribute()] = msg.Line();
+		}
+
+		// On the schedule editor's device picker, the selectable equipment are group-0 (LineId 0)
+		// TableMessages keyed by Attribute (0 = the "Devices" header). The schedule writer reads
+		// these to decide whether the target device is visible on the current picker page.
+		if (IAQ_DEVICE_PICKER_PAGE_ID == m_CurrentPageId && 0x00 == msg.LineId() && 0x00 != msg.Attribute())
+		{
+			m_DevicePickerRows[msg.Attribute()] = msg.Line();
 		}
 
 		// Spa-side switch button assignments appear on the iAQ "Spa Remotes" config page as
