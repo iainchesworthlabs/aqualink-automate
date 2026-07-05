@@ -3,11 +3,11 @@ Architecture: amd64
 Depends: libc6 (>= 2.36), systemd
 Priority: optional
 Section: net
-Filename: pool/main/a/aqualink-automate/aqualink-automate_0.11.0~beta.2_amd64.deb
-Size: 13543720
-SHA256: f3889061721c9db0d94a7b17eb10465c719af640d697665250fc2d22a13e799d
-SHA1: 724beea0ba4192512c12ab05e45bb53d116f5954
-MD5sum: 4f33d965b1f96a73f79df5bd180b22f1
+Filename: pool/main/a/aqualink-automate/aqualink-automate_0.12.0~beta.1_amd64.deb
+Size: 13603698
+SHA256: ea7dfa7da503b800c301b63b8dcc57a7588d1f81c85ddc9de28bbe1e17dfb99b
+SHA1: bf89bae0987efe379eaa8c8ef8f0ab02dc649be5
+MD5sum: cbbe8e9c52c4b6400371648bc5fdde57
 Description: Control Jandy Aqualink RS pool equipment via common IoT integrations
  # Aqualink Automate
  .
@@ -32,7 +32,7 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  .
  - Local control of your pool system over RS-485, with no cloud service required.
  - Two RS-485 protocols supported: Jandy/Zodiac (Fluidra) Aqualink RS and Pentair. The active protocol is auto-detected from the wire traffic.
- - A built-in web user interface for control and monitoring.
+ - A built-in web user interface for control and monitoring, responsive from phone to desktop (bottom tab bar on phones, hamburger drawer on tablets, full inline navigation on desktop) with a light and dark theme.
  - The web UI speaks nine languages (English, German, Spanish, French, Arabic, Hebrew, Japanese, Simplified Chinese, Yiddish) with full right-to-left support and locale-aware formatting — and [community translations are easy to add](docs/CONTRIBUTING.md#contributing-translations).
  - HTTP and WebSocket API for custom integrations.
  - Opt-in authentication and authorization: local user accounts and groups with fine-grained entitlements, scoped API keys, anonymous guest browsing, and kiosk PIN elevation for shared terminals — see [SECURITY.md](docs/SECURITY.md).
@@ -107,6 +107,6 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  This project was influenced by sfeakes&apos; [AqualinkD](https://github.com/sfeakes/AqualinkD). The original goal was a variant that also runs on Windows and macOS.
 Homepage: https://github.com/iainchesworth/aqualink-automate
 Maintainer: Iain Chesworth
-Version: 0.11.0~beta.2
-Installed-Size: 61370
+Version: 0.12.0~beta.1
+Installed-Size: 61569
 
