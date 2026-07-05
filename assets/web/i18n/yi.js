@@ -142,6 +142,8 @@
         'dash.set': 'שטעלן',
         'dash.boost': 'פֿאַרשטאַרקן',
         'dash.heater': 'היצער',
+        'dash.heater_setpoints': 'היצער און סעטפּוינטן',
+        'dash.target_setpoints': 'ציל סעטפּוינטן',
         'dash.toggle_device': 'איבערשאַלטן {device}',
         'dash.equipment_controls': 'געצייג-קאָנטראָלן',
         'dash.loading_equipment': 'לאָדט אַרײַן געצייג...',

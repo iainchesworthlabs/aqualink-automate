@@ -145,6 +145,8 @@
         'dash.set': 'Setzen',
         'dash.boost': 'Boost',
         'dash.heater': 'Heizung',
+        'dash.heater_setpoints': 'Heizung & Sollwerte',
+        'dash.target_setpoints': 'Zielsollwerte',
         'dash.toggle_device': '{device} umschalten',
         'dash.equipment_controls': 'Gerätesteuerung',
         'dash.loading_equipment': 'Geräte werden geladen...',

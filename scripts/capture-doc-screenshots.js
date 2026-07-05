@@ -212,12 +212,16 @@ async function captureMobile(browser) {
       await ctx.close();
     });
 
-    // Tablet portrait: 820-wide — the inline nav collapses to a hamburger.
+    // Tablet portrait: 820-wide — the inline nav collapses to a hamburger, and
+    // (like the phone) the compact layout replaces the circular dials with the
+    // consolidated chemistry card, so wait on that rather than the dials.
     await shot('aqualink-automate-tablet-dashboard.png', async () => {
       const { ctx, page } = await newPage(browser, base, { width: 820, height: 1180 });
       await page.goto('/');
-      await waitLiveDashboard(page);
       await page.locator('nav.app-nav .nav-hamburger').waitFor({ timeout: 10_000 });
+      await page.locator('.chem-compact').waitFor({ timeout: 20_000 });
+      await page.locator('.chem-compact .chem-cell-value').filter({ hasText: /\d/ }).first().waitFor({ timeout: 20_000 });
+      await page.waitForTimeout(750);
       await tidy(page);
       await page.waitForTimeout(400);
       await page.screenshot(png('aqualink-automate-tablet-dashboard.png'));

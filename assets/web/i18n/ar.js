@@ -144,6 +144,8 @@
         'dash.set': 'ضبط',
         'dash.boost': 'تعزيز',
         'dash.heater': 'السخّان',
+        'dash.heater_setpoints': 'السخّان ونقاط الضبط',
+        'dash.target_setpoints': 'نقاط الضبط المستهدفة',
         'dash.toggle_device': 'تبديل {device}',
         'dash.equipment_controls': 'عناصر تحكم المعدات',
         'dash.loading_equipment': 'جارٍ تحميل المعدات...',

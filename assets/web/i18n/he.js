@@ -144,6 +144,8 @@
         'dash.set': 'הגדרה',
         'dash.boost': 'בוסט',
         'dash.heater': 'מחמם',
+        'dash.heater_setpoints': 'מחמם ונקודות יעד',
+        'dash.target_setpoints': 'נקודות יעד',
         'dash.toggle_device': 'החלפת מצב {device}',
         'dash.equipment_controls': 'בקרות ציוד',
         'dash.loading_equipment': 'טוען ציוד...',

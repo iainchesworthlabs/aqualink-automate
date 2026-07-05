@@ -143,6 +143,8 @@
         'dash.set': '设置',
         'dash.boost': '强化',
         'dash.heater': '加热器',
+        'dash.heater_setpoints': '加热器和设定点',
+        'dash.target_setpoints': '目标设定点',
         'dash.toggle_device': '切换 {device}',
         'dash.equipment_controls': '设备控制',
         'dash.loading_equipment': '正在加载设备...',

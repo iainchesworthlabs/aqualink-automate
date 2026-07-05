@@ -149,6 +149,8 @@
         'dash.set': 'Set',
         'dash.boost': 'Boost',
         'dash.heater': 'Heater',
+        'dash.heater_setpoints': 'Heater & Setpoints',
+        'dash.target_setpoints': 'Target Setpoints',
         'dash.toggle_device': 'Toggle {device}',
         'dash.equipment_controls': 'Equipment Controls',
         'dash.loading_equipment': 'Loading equipment...',

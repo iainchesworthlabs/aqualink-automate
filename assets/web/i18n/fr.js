@@ -145,6 +145,8 @@
         'dash.set': 'Régler',
         'dash.boost': 'Boost',
         'dash.heater': 'Réchauffeur',
+        'dash.heater_setpoints': 'Réchauffeur et consignes',
+        'dash.target_setpoints': 'Consignes cibles',
         'dash.toggle_device': 'Basculer {device}',
         'dash.equipment_controls': 'Commandes des équipements',
         'dash.loading_equipment': 'Chargement des équipements...',

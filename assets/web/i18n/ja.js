@@ -144,6 +144,8 @@
         'dash.set': '設定',
         'dash.boost': 'ブースト',
         'dash.heater': 'ヒーター',
+        'dash.heater_setpoints': 'ヒーターと設定温度',
+        'dash.target_setpoints': '目標設定温度',
         'dash.toggle_device': '{device} を切り替え',
         'dash.equipment_controls': '機器操作',
         'dash.loading_equipment': '機器を読み込み中...',

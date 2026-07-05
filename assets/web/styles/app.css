@@ -2097,11 +2097,16 @@ nav.app-nav .nav-hamburger:hover { color: var(--text); background: var(--surface
 @media (min-width: 640px) and (max-width: 1023px) {
     nav.app-nav .nav-links { display: none; }
     nav.app-nav .nav-hamburger { display: inline-flex; }
+    /* With the inline routes hidden, push the status pills + control icons to
+       the right edge (the hidden nav-links no longer supplies the auto margin). */
+    nav.app-nav .nav-status { margin-inline-start: auto; }
 }
 @media (max-width: 639px) {
     nav.app-nav .nav-links { display: none; }
     .mobile-tab-bar { display: flex; }
-    main { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+    /* Clear the fixed bottom tab bar (~64px) plus the iOS home-indicator inset so
+       the last card on every view isn't hidden behind it. */
+    main { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
 
     /* Phone top bar = one non-wrapping row: brand on the left, the live/ready
        status + alerts bell pushed to the right. The settings toggles (monitor,

@@ -145,6 +145,8 @@
         'dash.set': 'Ajustar',
         'dash.boost': 'Boost',
         'dash.heater': 'Calentador',
+        'dash.heater_setpoints': 'Calentador y consignas',
+        'dash.target_setpoints': 'Consignas objetivo',
         'dash.toggle_device': 'Alternar {device}',
         'dash.equipment_controls': 'Controles de equipos',
         'dash.loading_equipment': 'Cargando equipos...',

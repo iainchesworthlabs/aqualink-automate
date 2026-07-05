@@ -1043,8 +1043,55 @@
         <!-- ====== DASHBOARD VIEW ====== -->
         <div class="dash-view" x-show="route === 'dashboard'" x-cloak x-data="dashboardView()">
 
-            <!-- Summary Strip -->
-            <div class="summary-strip card mt-2 mb-2" x-data="poolGraphic()" role="region" :aria-label="$t('dash.summary_aria')">
+            <!-- Compact status summary (phone / iPad portrait / landscape) — the
+                 divided Pool·Spa·Air temps, an OPERATIONAL pill with pump / heater
+                 / chlorinator status icons (accent-filled when on), and a single
+                 status caption. Replaces the big summary strip below on compact. -->
+            <div class="compact-summary card mt-2 mb-2" x-data="poolGraphic()"
+                 x-show="$store.layout.isCompact" x-cloak role="region" :aria-label="$t('dash.summary_aria')">
+                <div class="csum-temps">
+                    <div class="csum-cell csum-cell--pool">
+                        <span class="csum-accent" aria-hidden="true"></span>
+                        <span class="csum-label" x-text="$t('common.pool')"></span>
+                        <span class="csum-value" :class="$store.pool.tempStateClass('poolTemp')" x-text="poolTempDisplay"></span>
+                    </div>
+                    <div class="csum-cell csum-cell--spa" x-show="$store.pool.hasDualBody" x-cloak>
+                        <span class="csum-accent" aria-hidden="true"></span>
+                        <span class="csum-label" x-text="$t('common.spa')"></span>
+                        <span class="csum-value" :class="$store.pool.tempStateClass('spaTemp')" x-text="spaTempDisplay"></span>
+                    </div>
+                    <div class="csum-cell csum-cell--air">
+                        <span class="csum-accent" aria-hidden="true"></span>
+                        <span class="csum-label" x-text="$t('common.air')"></span>
+                        <span class="csum-value" :class="$store.pool.tempStateClass('airTemp')" x-text="airTempDisplay"></span>
+                    </div>
+                </div>
+                <div class="csum-divider" aria-hidden="true"></div>
+                <div class="csum-statusrow">
+                    <span class="hero-status-pill"
+                          :class="$store.pool.systemStatus === 'Operational' ? 'is-ok' : 'is-warn'"
+                          x-text="($store.pool.systemStatus ? $store.pool.systemStatusLabel : $t('common.unknown')).toUpperCase()"></span>
+                    <div class="csum-icons">
+                        <span class="csum-icon" :class="{ 'is-on': pumpActive }"
+                              :title="$t('dash.pump_state', { state: pumpActive ? $t('common.on') : $t('common.off') })">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+                        </span>
+                        <span class="csum-icon" :class="{ 'is-on': heaterActive }"
+                              :title="$t('dash.heater_state', { state: heaterActive ? $t('common.on') : $t('common.off') })">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c.8 2.6 3.6 3.8 3.6 7.4A3.6 3.6 0 0 1 12 14a3 3 0 0 1-3-3c0-1 .6-1.9 1-2.3C9 10.2 8 11.6 8 11.6 6.8 10.2 6.6 7.8 8.4 5.2 8.8 7 10 7.3 10 7.3 10 5.2 11 4 12 3z"/></svg>
+                        </span>
+                        <span class="csum-icon" x-show="hasChlorinator" x-cloak :class="{ 'is-on': chlorinatorActive }"
+                              :title="$t('dash.chlorinator_state', { state: chlorinatorActive ? $t('common.on') : $t('common.off') })">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+                        </span>
+                    </div>
+                </div>
+                <div class="csum-caption" x-show="$store.pool.tempReason('poolTemp')" x-cloak
+                     x-text="$store.pool.tempReason('poolTemp')"></div>
+            </div>
+
+            <!-- Summary Strip (desktop) -->
+            <div class="summary-strip card mt-2 mb-2" x-data="poolGraphic()" x-show="!$store.layout.isCompact" x-cloak role="region" :aria-label="$t('dash.summary_aria')">
                 <!-- Pool -->
                 <div class="summary-section">
                     <span class="summary-accent summary-accent--pool" aria-hidden="true"></span>
@@ -1274,41 +1321,45 @@
                     <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
                         <div class="chem-cell" x-data="chemistryGauge(type)" :class="'chem-cell--' + type">
                             <span class="chem-cell-accent" aria-hidden="true"></span>
-                            <span class="chem-cell-label" x-text="cfg.label"></span>
-                            <span class="chem-cell-value" :style="`color:${statusColor}`"
-                                  x-text="numericValue === null ? '--' : $nf(numericValue, cfg.decimals)"></span>
-                            <span class="chem-cell-unit" x-text="unitLabel"></span>
-                            <span class="chem-cell-band" x-show="band" :class="'gauge-band-' + (band || '')" x-text="statusLabel"></span>
+                            <span class="chem-cell-label">
+                                <span x-text="cfg.label"></span>
+                                <span class="chem-cell-band" x-show="band" x-cloak :class="'gauge-band-' + (band || '')" x-text="statusLabel"></span>
+                            </span>
+                            <span class="chem-cell-value" :style="`color:${statusColor}`"><span x-text="numericValue === null ? '--' : $nf(numericValue, cfg.decimals)"></span><small class="chem-cell-unit" x-show="unitLabel" x-cloak x-text="unitLabel"></small></span>
                         </div>
                     </template>
                 </div>
                 <div class="chem-compact-swg" x-data="chlorinatorControl()" x-show="present" x-cloak
                      role="region" :aria-label="$t('dash.swg_aria')">
                     <div class="chem-compact-divider" aria-hidden="true"></div>
-                    <div class="chem-swg-head">
-                        <span class="chem-swg-label" x-text="$t('dash.swg_output')"></span>
-                        <span class="chem-swg-value" :style="`color:${healthColor}`" x-text="actualLabel"></span>
-                        <span class="gauge-band-indicator" x-show="healthBand" :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
+                    <!-- SWG output + current value on the left, Set/Boost on the
+                         right (mock); the target slider sits on its own row below. -->
+                    <div class="chem-swg-top">
+                        <div class="chem-swg-meter">
+                            <span class="chem-swg-label" x-text="$t('dash.swg_output')"></span>
+                            <span class="chem-swg-value" :style="`color:${healthColor}`" x-text="actualLabel"></span>
+                            <span class="gauge-band-indicator" x-show="healthBand" x-cloak :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
+                        </div>
+                        <div class="swg-actions">
+                            <template x-if="$store.auth.can('equipment.control.chlorinator')">
+                                <div class="swg-actions-inner">
+                                    <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
+                                    <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
+                                            :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
+                                    <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
+                                    <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
+                                </div>
+                            </template>
+                            <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
+                        </div>
                     </div>
-                    <div class="swg-target">
+                    <div class="swg-target" x-show="$store.auth.can('equipment.control.chlorinator')" x-cloak>
                         <span class="swg-target-label" x-text="$t('dash.target')"></span>
                         <input type="range" min="0" max="100" step="5" class="swg-slider"
                                x-model.number="target" @input="touched = true"
-                               :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
+                               :disabled="busy"
                                :aria-label="$t('dash.target_aria')">
                         <span class="swg-target-value" x-text="$n(target) + '%'"></span>
-                    </div>
-                    <div class="swg-actions">
-                        <template x-if="$store.auth.can('equipment.control.chlorinator')">
-                            <div class="swg-actions-inner">
-                                <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
-                                <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
-                                        :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
-                                <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
-                                <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
-                            </div>
-                        </template>
-                        <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
                     </div>
                 </div>
             </div>
@@ -1318,7 +1369,7 @@
             <!-- Heater Controls -->
             <template x-if="heaterButtons().length > 0">
                 <div class="dsec sec-heater">
-                    <div class="section-title" x-text="$t('dash.heater')"></div>
+                    <div class="section-title" x-text="$store.layout.isCompact ? $t('dash.heater_setpoints') : $t('dash.heater')"></div>
                     <div class="heater-rows mb-2">
                         <template x-for="button in heaterButtons()" :key="button.id">
                             <div class="heater-row card" x-data="equipmentButton()">
@@ -1358,7 +1409,7 @@
                          standalone card, which is hidden here at phone width. -->
                     <template x-if="$store.layout.isCompact && ($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--')">
                         <div class="heater-setpoints">
-                            <div class="heater-setpoints-title" x-text="$t('dash.temperature_setpoints')"></div>
+                            <div class="heater-setpoints-title" x-text="$t('dash.target_setpoints')"></div>
                             <div class="setpoint-row" x-show="$store.pool.poolSetpoint !== '--'">
                                 <span class="setpoint-row-label" x-text="$t('common.pool')"></span>
                                 <span class="setpoint-feedback">
