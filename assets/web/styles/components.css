@@ -1202,6 +1202,17 @@ html.dark .gauge-card {
 .cmd-timedout { background: var(--gauge-warn); color: #fff; }
 .cmd-blocked { background: var(--bg-secondary); color: var(--text-muted); }
 
+/* Heater rows are a single tall full-width row (not the compact fixed-height
+   equipment button), so the default bottom-anchored feedback badge reads as
+   stuck to the bottom edge. Anchor the heater card's badge to the vertical
+   centre instead. Scoped to .heater-row so the .eq-control badges keep their
+   bottom placement. */
+.heater-row > .cmd-badge {
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+}
+
 .cmd-spinner-overlay {
     position: absolute;
     inset: 0;
