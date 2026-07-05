@@ -45,13 +45,11 @@ namespace AqualinkAutomate::Pentair::Devices
 		PentairVSPPumpDevice(const std::shared_ptr<PentairDeviceId>& device_id, Kernel::HubLocator& hub_locator);
 		~PentairVSPPumpDevice() override = default;
 
-	public:
 		TimestampedRPM ReportedRPM() const;
 		TimestampedWatts ReportedWatts() const;
 		TimestampedGPM ReportedGPM() const;
 		bool IsRunning() const;
 
-	public:
 		// Emit a set-speed command (controller -> this pump).
 		void SetSpeed(uint16_t rpm) const;
 
@@ -67,7 +65,6 @@ namespace AqualinkAutomate::Pentair::Devices
 	private:
 		void Slot_Pump_Status(const Messages::PentairPumpMessage_Status& msg);
 
-	private:
 		// Returns the cached DataHub pump auxillary for this device, creating it on
 		// first use.  The handle is cached by uuid so subsequent status frames do a
 		// single O(1) FindById() instead of scanning Pumps() and comparing a freshly

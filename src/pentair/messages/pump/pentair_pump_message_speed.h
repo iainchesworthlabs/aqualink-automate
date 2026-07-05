@@ -35,13 +35,10 @@ namespace AqualinkAutomate::Pentair::Messages
 		PentairPumpMessage_Speed(uint8_t from, uint8_t destination, uint16_t rpm) noexcept;
 		~PentairPumpMessage_Speed() override = default;
 
-	public:
 		uint16_t RPM() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

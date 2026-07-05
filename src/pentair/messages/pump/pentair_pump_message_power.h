@@ -32,13 +32,10 @@ namespace AqualinkAutomate::Pentair::Messages
 		PentairPumpMessage_Power(uint8_t from, uint8_t destination, bool power_on) noexcept;
 		~PentairPumpMessage_Power() override = default;
 
-	public:
 		bool PowerOn() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

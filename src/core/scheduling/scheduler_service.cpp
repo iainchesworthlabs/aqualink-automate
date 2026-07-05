@@ -41,11 +41,11 @@ namespace AqualinkAutomate::Scheduling
 	SchedulerService::SchedulerService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::Scheduling::SchedulingSettings& settings) :
 		m_IoContext(io_context),
 		m_Settings(settings),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_Dispatcher(hub_locator.TryFind<Interfaces::ICommandDispatcher>()),
 		m_Clock(SystemNow),
 		m_Timer(io_context)
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_Dispatcher = hub_locator.TryFind<Interfaces::ICommandDispatcher>();
 	}
 
 	SchedulerService::~SchedulerService()
@@ -106,8 +106,7 @@ namespace AqualinkAutomate::Scheduling
 				continue;
 			}
 
-			const bool day_matches = (schedule.days_of_week & (1u << lm.weekday)) != 0;
-			if (!day_matches || schedule.hour != lm.hour || schedule.minute != lm.minute)
+			if (const bool day_matches = (schedule.days_of_week & (1u << lm.weekday)) != 0; !day_matches || schedule.hour != lm.hour || schedule.minute != lm.minute)
 			{
 				continue;
 			}
@@ -128,13 +127,13 @@ namespace AqualinkAutomate::Scheduling
 		// Service mode suppresses automation.
 		if (m_DataHub && m_DataHub->Mode == Kernel::EquipmentMode::Service)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("Scheduler: skipping '{}' — controller is in Service mode", schedule.name); });
+			LogWarning(Channel::Main, [&schedule] { return std::format("Scheduler: skipping '{}' — controller is in Service mode", schedule.name); });
 			return;
 		}
 
 		if (!m_Dispatcher)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("Scheduler: cannot fire '{}' — no command dispatcher available", schedule.name); });
+			LogWarning(Channel::Main, [&schedule] { return std::format("Scheduler: cannot fire '{}' — no command dispatcher available", schedule.name); });
 			return;
 		}
 
@@ -169,7 +168,7 @@ namespace AqualinkAutomate::Scheduling
 			break;
 		}
 
-		LogInfo(Channel::Main, [&] { return std::format("Scheduler fired '{}' ({}) -> {}", schedule.name, ActionTypeToString(schedule.action.type), magic_enum::enum_name(result)); });
+		LogInfo(Channel::Main, [&schedule, &result] { return std::format("Scheduler fired '{}' ({}) -> {}", schedule.name, ActionTypeToString(schedule.action.type), magic_enum::enum_name(result)); });
 	}
 
 	void SchedulerService::Load()
@@ -202,13 +201,13 @@ namespace AqualinkAutomate::Scheduling
 				else
 				{
 					// Tolerate one bad entry rather than rejecting the whole file.
-					LogWarning(Channel::Main, [&] { return std::format("Scheduler: skipping invalid schedule entry: {}", error); });
+					LogWarning(Channel::Main, [&error] { return std::format("Scheduler: skipping invalid schedule entry: {}", error); });
 				}
 			}
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Main, [&] { return std::format("Scheduler: failed to load schedules file: {}", ex.what()); });
+			LogError(Channel::Main, [&ex] { return std::format("Scheduler: failed to load schedules file: {}", ex.what()); });
 		}
 	}
 
@@ -238,7 +237,7 @@ namespace AqualinkAutomate::Scheduling
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Main, [&] { return std::format("Scheduler: failed to save schedules file: {}", ex.what()); });
+			LogError(Channel::Main, [&ex] { return std::format("Scheduler: failed to save schedules file: {}", ex.what()); });
 		}
 	}
 

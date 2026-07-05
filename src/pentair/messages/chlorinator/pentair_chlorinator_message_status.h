@@ -39,7 +39,6 @@ namespace AqualinkAutomate::Pentair::Messages
 		PentairChlorinatorMessage_Status() noexcept;
 		~PentairChlorinatorMessage_Status() override = default;
 
-	public:
 		uint16_t SaltPPM() const;
 		uint8_t OutputPercent() const;
 		uint8_t StatusFlags() const;
@@ -49,10 +48,8 @@ namespace AqualinkAutomate::Pentair::Messages
 		bool IsLowFlow() const;
 		bool NeedsCleanCell() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

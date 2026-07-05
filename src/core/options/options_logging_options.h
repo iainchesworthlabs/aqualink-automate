@@ -41,39 +41,28 @@ namespace AqualinkAutomate::Options::LogSinks
 			return AREA_NAME;
 		}
 
-		tagLoggingSettings() :
-			Sinks{ SinkMode::Auto },
-			Console{ false },
-			Native{ false },
-			File{ false },
-			Journald{ false },
-			Facility{ AqualinkAutomate::Logging::Sinks::SyslogFacility::Daemon },
-			Format{ AqualinkAutomate::Logging::LogFormat::Text },
-			LogFileMaxBytes{ 10ull * 1024ull * 1024ull },
-			LogFileMaxFiles{ 5 }
-		{
-		}
+		tagLoggingSettings() = default;
 
 		// Sink selection. When Sinks == Explicit, Console/Native/File say which
 		// operational sinks are active; when Auto they are ignored (the environment
 		// decides, though a --log-file always implies the file sink).
-		SinkMode Sinks;
-		bool Console;
-		bool Native;
-		bool File;
-		bool Journald;  // native journald sink (Linux/systemd); falls back to console+prefixes elsewhere
+		SinkMode Sinks{ SinkMode::Auto };
+		bool Console{ false };
+		bool Native{ false };
+		bool File{ false };
+		bool Journald{ false };  // native journald sink (Linux/systemd); falls back to console+prefixes elsewhere
 
 		// POSIX syslog facility for the GENERAL native sink (the audit sink always
 		// uses LOG_AUTHPRIV regardless — §10.3). Ignored on Windows.
-		AqualinkAutomate::Logging::Sinks::SyslogFacility Facility;
+		AqualinkAutomate::Logging::Sinks::SyslogFacility Facility{ AqualinkAutomate::Logging::Sinks::SyslogFacility::Daemon };
 
 		// Wire format for the console + file sinks.
-		AqualinkAutomate::Logging::LogFormat Format;
+		AqualinkAutomate::Logging::LogFormat Format{ AqualinkAutomate::Logging::LogFormat::Text };
 
 		// File sink target + rotation bounds. LogFile unset => no file sink.
 		std::optional<std::filesystem::path> LogFile;
-		std::uintmax_t LogFileMaxBytes;
-		std::size_t LogFileMaxFiles;
+		std::uintmax_t LogFileMaxBytes{ 10ull * 1024ull * 1024ull };
+		std::size_t LogFileMaxFiles{ 5 };
 	}
 	LoggingSettings;
 
@@ -104,7 +93,6 @@ namespace AqualinkAutomate::Options::LogSinks
 		std::string Name() const { return SettingsType::AreaName(); }
 		boost::program_options::options_description Options() const;
 
-	public:
 		void Validate(const boost::program_options::variables_map& vm) const;
 		std::expected<SettingsType, ErrorCodes::Options_ErrorCodes> Process(boost::program_options::variables_map& vm) const;
 	};

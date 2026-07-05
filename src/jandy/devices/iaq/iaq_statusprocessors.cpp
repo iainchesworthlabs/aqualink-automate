@@ -44,7 +44,7 @@ namespace AqualinkAutomate::Devices
 		// data pages from here (runs once).
 		MaybeStartPageSurvey();
 
-		LogDebug(Channel::Devices, [&]() {
+		LogDebug(Channel::Devices, [this, &msg]() {
 			auto temp_str = [](const std::optional<Kernel::Temperature>& temp) -> std::string
 			{
 				return temp.has_value() ? std::format("{:.0f}F", temp->InFahrenheit().value()) : "n/a";
@@ -332,14 +332,14 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::ProcessAuxStatus", std::source_location::current());
 
-		LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Processing AuxStatus: {} devices", DeviceId(), msg.DeviceCount()); });
+		LogDebug(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Processing AuxStatus: {} devices", DeviceId(), msg.DeviceCount()); });
 
 		for (const auto& info : msg.Devices())
 		{
 			auto aux_id = magic_enum::enum_cast<Auxillaries::JandyAuxillaryIds>(info.device_index);
 			if (!aux_id.has_value())
 			{
-				LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Unknown device_index {} in AuxStatus, skipping", DeviceId(), info.device_index); });
+				LogDebug(Channel::Devices, [this, &info]() { return std::format("IAQ ({}): Unknown device_index {} in AuxStatus, skipping", DeviceId(), info.device_index); });
 				continue;
 			}
 
@@ -362,7 +362,7 @@ namespace AqualinkAutomate::Devices
 			}
 			else
 			{
-				LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Failed to create auxillary device for {}: {}", DeviceId(), magic_enum::enum_name(aux_id.value()), new_aux_ptr.error().message()); });
+				LogDebug(Channel::Devices, [this, &aux_id, &new_aux_ptr]() { return std::format("IAQ ({}): Failed to create auxillary device for {}: {}", DeviceId(), magic_enum::enum_name(aux_id.value()), new_aux_ptr.error().message()); });
 				continue;
 			}
 
@@ -405,7 +405,7 @@ namespace AqualinkAutomate::Devices
 			}
 			m_DataHub->EmitButtonStateChange(aux_ptr->Id(), status_string, aux_label);
 
-			LogTrace(Channel::Devices, [&]() { return std::format("IAQ ({}): AuxStatus device {}: name='{}', status={}",
+			LogTrace(Channel::Devices, [this, &aux_id, &info]() { return std::format("IAQ ({}): AuxStatus device {}: name='{}', status={}",
 				DeviceId(), magic_enum::enum_name(aux_id.value()), info.name, info.is_on ? "On" : "Off"); });
 		}
 	}
