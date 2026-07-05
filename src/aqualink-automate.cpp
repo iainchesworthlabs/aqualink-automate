@@ -399,11 +399,16 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 		auto preferences_hub = std::make_shared<Kernel::PreferencesHub>();
 		auto statistics_hub = std::make_shared<Kernel::StatisticsHub>();
 
+		// Declared at function scope (rather than inside the hub_initialisation block below)
+		// so the controller-schedule write/promote web routes, constructed later, can be handed
+		// the same dispatcher instance. It is constructed and registered in that block.
+		std::shared_ptr<Devices::CommandDispatcher> command_dispatcher;
+
 		{
 			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("main -> hub_initialisation", std::source_location::current());
 			hub_locator.Register(data_hub).Register(equipment_hub).Register(preferences_hub).Register(statistics_hub);
 
-			auto command_dispatcher = std::make_shared<Devices::CommandDispatcher>(data_hub, equipment_hub);
+			command_dispatcher = std::make_shared<Devices::CommandDispatcher>(data_hub, equipment_hub);
 			hub_locator.Register<Interfaces::ICommandDispatcher>(command_dispatcher);
 
 			// Spa-side remote control surface (read decoded LED/last-press state; inject button
