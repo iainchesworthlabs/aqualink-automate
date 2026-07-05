@@ -23,6 +23,11 @@ document.addEventListener('alpine:init', () => {
         isTablet: false,
         isDesktop: true,
         isLandscape: false,
+        // An iPad in landscape reports a desktop WIDTH (>= 1024), so width alone
+        // can't tell it apart from a desktop window. Touch as the primary input
+        // (pointer: coarse) + landscape does — and gets the dedicated iPad
+        // landscape dashboard. A desktop with a mouse never matches.
+        isLandscapeTablet: false,
 
         // --- shell state ---
         mobileNavOpen: false,   // hamburger drawer (tablet only)
@@ -35,7 +40,8 @@ document.addEventListener('alpine:init', () => {
                 phone: window.matchMedia('(max-width: 639px)'),
                 tablet: window.matchMedia('(min-width: 640px) and (max-width: 1023px)'),
                 desktop: window.matchMedia('(min-width: 1024px)'),
-                landscape: window.matchMedia('(orientation: landscape)')
+                landscape: window.matchMedia('(orientation: landscape)'),
+                landscapeTablet: window.matchMedia('(min-width: 1024px) and (orientation: landscape) and (pointer: coarse)')
             };
 
             const sync = () => {
@@ -43,6 +49,7 @@ document.addEventListener('alpine:init', () => {
                 this.isTablet = mqs.tablet.matches;
                 this.isDesktop = mqs.desktop.matches;
                 this.isLandscape = mqs.landscape.matches;
+                this.isLandscapeTablet = mqs.landscapeTablet.matches;
                 // The hamburger drawer only exists on tablet — never let it stay
                 // stranded open when the viewport grows to desktop or shrinks to phone.
                 if (!this.isTablet && this.mobileNavOpen) this.mobileNavOpen = false;
@@ -58,12 +65,14 @@ document.addEventListener('alpine:init', () => {
         // The iPad dashboard gets a dedicated orientation layout (Phase 5).
         get isTabletLandscape() { return this.isTablet && this.isLandscape; },
 
-        // "Compact" = the phone + tablet-portrait band (< 1024). The dashboard's
-        // job-first reflow — equipment promoted, chemistry consolidated, setpoints
-        // folded into the heater card — applies across this whole range; only the
-        // grid widths differ (phone stacks, tablet goes multi-up via CSS). Desktop
-        // (>= 1024, which an iPad in landscape reports) keeps the rich layout.
-        get isCompact() { return this.isPhone || this.isTablet; },
+        // "Compact" = the consolidated-card treatment: the phone + tablet-portrait
+        // band (< 1024) AND iPad landscape. The dashboard's job-first reflow —
+        // equipment promoted, chemistry consolidated, setpoints folded into the
+        // heater card — applies across all of these; only the arrangement differs
+        // (phone stacks, tablet-portrait goes multi-up, landscape uses a dedicated
+        // grid — all via CSS). A desktop window (>= 1024, mouse) keeps the rich
+        // layout with circular gauge dials and a standalone setpoints card.
+        get isCompact() { return this.isPhone || this.isTablet || this.isLandscapeTablet; },
 
         // --- hamburger drawer ---
         toggleMobileNav() { this.mobileNavOpen = !this.mobileNavOpen; },

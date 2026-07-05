@@ -229,4 +229,38 @@ test.describe('desktop dashboard structure (1280)', () => {
     await expect(page.locator('.gauge-card').first(), 'desktop: circular dials present').toBeVisible();
     await expect(page.locator('nav.app-nav .nav-controls'), 'desktop: header toggles visible').toBeVisible();
   });
+
+  // A desktop-width WINDOW in landscape (mouse, pointer: fine) must NOT get the
+  // iPad-landscape treatment — it keeps the rich desktop layout. This is the
+  // other half of the touch-gating guarantee.
+  test('a non-touch 1180 landscape window keeps the desktop layout', async ({ page }) => {
+    await page.setViewportSize({ width: 1180, height: 820 });
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    const display = await page.evaluate(() => getComputedStyle(document.querySelector('.dash-view')!).display);
+    expect(display, 'non-touch: dash-view is not the landscape grid').not.toBe('grid');
+    await expect(page.locator('.gauge-card').first(), 'non-touch: circular dials present').toBeVisible();
+  });
+});
+
+// iPad landscape (>= 1024, landscape, TOUCH primary input) gets the dedicated
+// grid: compact summary + consolidated chemistry paired on top, equipment as a
+// full-width band, heater & setpoints + circulation paired below. Emulate a
+// touch tablet so pointer: coarse matches (a desktop window at the same size,
+// covered above, does not).
+test.describe('iPad landscape dashboard structure (1194, touch)', () => {
+  test.use({ viewport: { width: 1194, height: 834 }, hasTouch: true, isMobile: true });
+
+  test('uses the dedicated landscape grid with consolidated cards', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(700);
+    const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+    expect(coarse, 'touch context reports pointer: coarse').toBe(true);
+    const display = await page.evaluate(() => getComputedStyle(document.querySelector('.dash-view')!).display);
+    expect(display, 'landscape: dash-view is a grid').toBe('grid');
+    await expect(page.locator('.chem-compact'), 'landscape: consolidated chemistry').toBeVisible();
+    await expect(page.locator('.gauge-card'), 'landscape: no circular dials').toHaveCount(0);
+    const overflow = await horizontalOverflow(page);
+    expect(overflow, `landscape overflows by ${overflow}px`).toBeLessThanOrEqual(1);
+  });
 });
