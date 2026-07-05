@@ -13,6 +13,7 @@
 #include "auxillaries/jandy_auxillary_reconciliation.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "devices/onetouch_device.h"
+#include "devices/onetouch/onetouch_schedule_parser.h"
 #include "factories/jandy_auxillary_factory.h"
 #include "kernel/auxillary_devices/auxillary_device.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
@@ -782,7 +783,80 @@ namespace AqualinkAutomate::Devices
 
 	void OneTouchDevice::PageProcessor_Program(const Utility::ScreenDataPage& page)
 	{
-		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_Program invoked", DeviceId()); });
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::PageProcessor_Program", std::source_location::current());
+
+		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is processing a PageProcessor_Program page.", DeviceId()); });
+
+		/*
+			Per-equipment Program DETAIL page (the page to parse):
+
+			Info:   OneTouch Menu Line 00 =    Filter Pump      <- target (equipment name)
+			Info:   OneTouch Menu Line 01 =
+			Info:   OneTouch Menu Line 02 =     Pgm 1 of 1      <- program index / count
+			Info:   OneTouch Menu Line 03 =  ON      11:00 AM
+			Info:   OneTouch Menu Line 04 =  OFF      2:00 PM
+			Info:   OneTouch Menu Line 05 =  All Days
+			Info:   OneTouch Menu Line 06 =
+			Info:   OneTouch Menu Line 07 =
+			Info:   OneTouch Menu Line 08 =
+			Info:   OneTouch Menu Line 09 =  Add      Program
+			Info:   OneTouch Menu Line 10 =  Delete   Program
+			Info:   OneTouch Menu Line 11 =  Change   Program
+
+			The parser returns nullopt for an equipment with "No Programs" (Add/New Program
+			only) or a malformed page, so those visits simply add nothing.
+		*/
+
+		PublishControllerSchedules(page);
+	}
+
+	void OneTouchDevice::PublishControllerSchedules(const Utility::ScreenDataPage& page)
+	{
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::PublishControllerSchedules", std::source_location::current());
+
+		if (nullptr == m_ControllerScheduleStore)
+		{
+			// No sink registered (e.g. a passive/test rig) - nothing to publish to.
+			return;
+		}
+
+		int program_index = 1;
+		int program_count = 1;
+		auto parsed = OneTouch::ParseProgramDetailPage(page, &program_index, &program_count);
+		if (!parsed.has_value())
+		{
+			// Not a program-detail page (e.g. "No Programs" placeholder) or a malformed
+			// render. Leave the accumulated snapshot untouched.
+			LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): Program page carried no parseable program; snapshot unchanged", DeviceId()); });
+			return;
+		}
+
+		parsed->group = m_ControllerScheduleGroup;
+
+		// The OneTouch shows one program per detail page, so accumulate across visits keyed by
+		// (target, program-index); revisiting a page updates its entry in place. The map's
+		// ordering gives a stable, sorted snapshot each time it is republished.
+		const auto key = std::make_pair(parsed->target, program_index);
+		m_ControllerSchedules[key] = std::move(parsed.value());
+
+		std::vector<Scheduling::ControllerSchedule> schedules;
+		schedules.reserve(m_ControllerSchedules.size());
+		for (auto& [entry_key, schedule] : m_ControllerSchedules)
+		{
+			auto snapshot = schedule;
+			snapshot.group = m_ControllerScheduleGroup;
+			// Stable per-slot id so the UI can key rows across reads (group + target + index).
+			snapshot.id = std::format("onetouch-{}-{}-{}",
+				m_ControllerScheduleGroup.empty() ? "?" : m_ControllerScheduleGroup,
+				entry_key.first, entry_key.second);
+			snapshot.name = snapshot.target;
+			schedules.push_back(std::move(snapshot));
+		}
+
+		LogInfo(Channel::Devices, [&]() { return std::format("OneTouch ({}): parsed program '{}' (Pgm {} of {}); publishing {} controller schedule(s) for group '{}'",
+			DeviceId(), key.first, program_index, program_count, schedules.size(), m_ControllerScheduleGroup); });
+
+		m_ControllerScheduleStore->Replace(Scheduling::ControllerScheduleStatus::Available, std::move(schedules), m_ControllerScheduleGroup);
 	}
 
 	void OneTouchDevice::PageProcessor_DisplayLight(const Utility::ScreenDataPage& page)

@@ -43,6 +43,10 @@ namespace AqualinkAutomate::Devices
 
 		m_ProfilingDomain->Start();
 
+		// Read-only sink for the controller's internal schedules parsed off the per-equipment
+		// Program detail pages. Absent on a passive/test rig that registers no store.
+		m_ControllerScheduleStore = hub_locator.TryFind<Scheduling::ControllerScheduleStore>();
+
 		PageProcessors(
 			{
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_System, { 9, "Equipment ON/OFF" }, std::bind(&OneTouchDevice::PageProcessor_System, this, std::placeholders::_1)),
@@ -72,6 +76,13 @@ namespace AqualinkAutomate::Devices
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SpaSwitch, { 0, "Spa Switch" }, std::bind(&OneTouchDevice::PageProcessor_SpaSwitch, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_MoreOneTouch, { 10, "OneTouch ON/OFF" }, std::bind(&OneTouchDevice::PageProcessor_MoreOneTouch, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Program, { 0, "Program" }, std::bind(&OneTouchDevice::PageProcessor_Program, this, std::placeholders::_1)),
+				// The per-equipment Program DETAIL page has the EQUIPMENT NAME on line 0 (e.g.
+				// "Filter Pump"), NOT "Program", so the { 0, "Program" } matcher above misses it.
+				// Detect it by a STABLE row instead: line 2 always carries "Pgm N of M". (Its
+				// line-0 name also trips the Page_EquipmentOnOff { 0, "Filter Pump" } matcher, but
+				// that processor rejects every detail-page row - none end in ON/OFF/ENA/*** - so it
+				// is a harmless no-op while THIS processor does the real parse.)
+				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Program, { 2, "Pgm " }, std::bind(&OneTouchDevice::PageProcessor_Program, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_DisplayLight, { 0, "Display Light" }, std::bind(&OneTouchDevice::PageProcessor_DisplayLight, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Lockouts, { 0, "Lockout" }, std::bind(&OneTouchDevice::PageProcessor_Lockouts, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_PasswordSettings, { 0, "Password" }, std::bind(&OneTouchDevice::PageProcessor_PasswordSettings, this, std::placeholders::_1)),

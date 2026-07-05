@@ -302,3 +302,12 @@ settle/backstop.
 represent this controller faithfully add: **program group** (A/B) + which is active, and
 respect the day constraint (all / weekdays / weekends / single day). Reading populates from
 the active group's page 0x28; `PendingCapture` → `Available` once parsed.
+
+## OneTouch (text-menu) equivalent
+
+The **same** `Scheduling::ControllerScheduleStore` is populated by the OneTouch (device 0x40)
+text-menu read path — see `docs/onetouch_schedule_protocol.md`. Where the IAQ serves the whole
+group as one list page (0x28) parsed row-by-row (`ParseScheduleRow`), the OneTouch renders one
+program per **Program detail page** (a reconstructed 16×12 screen) parsed by
+`Devices::OneTouch::ParseProgramDetailPage`; the OneTouchDevice accumulates programs across
+detail-page visits and republishes the snapshot. Both feed `/api/controller/schedules` identically.

@@ -3,10 +3,12 @@
 #include <array>
 #include <chrono>
 #include <list>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "devices/jandy_controller.h"
@@ -37,6 +39,7 @@
 #include "navigation/spider_engine.h"
 #include "kernel/hub_locator.h"
 #include "profiling/profiling.h"
+#include "scheduling/controller_schedule.h"
 
 namespace AqualinkAutomate::Devices
 {
@@ -454,6 +457,29 @@ namespace AqualinkAutomate::Devices
 	// 0x00 responses and fail to register the device, so start with V2_Normal.
 	Messages::AckTypes m_AckType_ToSend{ Messages::AckTypes::V2_Normal };
 		KeyCommands m_KeyCommand_ToSend{ KeyCommands::NoKeyCommand };
+
+	private:
+		// Read-only sink for the controller's internal schedules parsed off the per-equipment
+		// Program detail pages (the /api/controller/schedules source). Resolved from the
+		// HubLocator in the constructor; null on a passive/test rig that registers no store.
+		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore;
+
+		// Accumulator for the controller schedules scraped across the per-equipment Program
+		// detail pages. The OneTouch, unlike the IAQ's single list page, shows ONE program at a
+		// time (one equipment, one "Pgm N of M"), so each detail-page visit adds/updates its
+		// entry here and the whole snapshot is republished to the store. Keyed by
+		// (target, program-index) so revisiting a page updates in place rather than duplicating,
+		// and the map iteration order gives a stable, sorted snapshot.
+		std::map<std::pair<std::string, int>, Scheduling::ControllerSchedule> m_ControllerSchedules;
+
+		// The active Program Group, if it has been read off the Program Group page during this
+		// crawl (empty otherwise). Stamped onto each schedule and passed to the store so the UI
+		// can show which group the snapshot belongs to.
+		std::string m_ControllerScheduleGroup;
+
+		// Parse a just-completed Program detail page, fold it into m_ControllerSchedules, and
+		// republish the accumulated snapshot to m_ControllerScheduleStore (status Available).
+		void PublishControllerSchedules(const Utility::ScreenDataPage& page);
 
 	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;

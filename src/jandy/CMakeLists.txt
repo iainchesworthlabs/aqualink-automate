@@ -42,6 +42,7 @@ target_sources(
 	devices/keypad/keypad_messageprocessors.cpp 
 	devices/onetouch/onetouch_messageprocessors.cpp
 	devices/onetouch/onetouch_pageprocessors.cpp
+	devices/onetouch/onetouch_schedule_parser.cpp
 	devices/onetouch/onetouch_statusprocessors.cpp
 	navigation/menu_model.cpp
 	navigation/navigator.cpp
