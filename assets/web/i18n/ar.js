@@ -94,6 +94,8 @@
         'nav.monitor_only_enable': 'تفعيل وضع المراقبة فقط',
         'nav.theme_to_light': 'التبديل إلى الوضع الفاتح',
         'nav.theme_to_dark': 'التبديل إلى الوضع الداكن',
+        'nav.dark_mode': 'الوضع الداكن',
+        'nav.monitor_only': 'وضع المراقبة فقط',
         'nav.sign_out': 'تسجيل الخروج',
 
         // ---- Login overlay ----------------------------------------------------

@@ -94,6 +94,8 @@
         'nav.monitor_only_enable': '監視専用モードを有効にする',
         'nav.theme_to_light': 'ライトモードに切り替え',
         'nav.theme_to_dark': 'ダークモードに切り替え',
+        'nav.dark_mode': 'ダークモード',
+        'nav.monitor_only': '監視のみモード',
         'nav.sign_out': 'サインアウト',
 
         // ---- Login overlay ----------------------------------------------------

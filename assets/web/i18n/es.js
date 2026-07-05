@@ -95,6 +95,8 @@
         'nav.monitor_only_enable': 'Activar el modo de solo monitoreo',
         'nav.theme_to_light': 'Cambiar al modo claro',
         'nav.theme_to_dark': 'Cambiar al modo oscuro',
+        'nav.dark_mode': 'Modo oscuro',
+        'nav.monitor_only': 'Modo solo monitor',
         'nav.sign_out': 'Cerrar sesión',
 
         // ---- Login overlay ----------------------------------------------------

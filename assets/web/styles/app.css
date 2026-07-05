@@ -2084,15 +2084,49 @@ nav.app-nav .nav-hamburger:hover { color: var(--text); background: var(--surface
     background: transparent; color: var(--text-dim); cursor: pointer;
 }
 .sheet-close svg { width: 18px; height: 18px; }
-.sheet-body { padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.sheet-body { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+/* Rows grouped into rounded surface-2 cards (nav group + actions group), matching
+   the mockup's menu. Hairline separators between rows within a group. */
+.sheet-group {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    display: flex; flex-direction: column;
+}
 .sheet-row {
+    display: flex; align-items: center; gap: 12px;
     text-align: start; font: inherit; font-weight: 600; font-size: 0.98rem;
     color: var(--text); background: transparent; border: 0;
-    padding: 14px; border-radius: 10px; cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px; cursor: pointer; width: 100%;
 }
-.sheet-row:hover { background: var(--surface-2); }
-.sheet-row.active { background: var(--accent-soft); color: var(--accent); }
-.sheet-divider { height: 1px; background: var(--border); margin: 6px 8px; }
+.sheet-row:last-child { border-bottom: 0; }
+.sheet-row:hover { background: var(--surface-1); }
+.sheet-row.active { color: var(--accent); }
+.sheet-row.active .sheet-ic { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.sheet-ic {
+    flex: none; width: 38px; height: 38px; display: grid; place-items: center;
+    border-radius: 10px; background: var(--surface-1);
+    border: 1px solid var(--border); color: var(--text-dim);
+}
+.sheet-ic svg { width: 19px; height: 19px; }
+.sheet-lbl { flex: 1; min-width: 0; }
+.sheet-chev { flex: none; width: 18px; height: 18px; color: var(--text-faint); }
+.sheet-row-danger { color: var(--danger, #d64545); }
+.sheet-row-danger .sheet-ic { color: var(--danger, #d64545); }
+/* Toggle switch (Dark mode, Monitor-only) — reflects the bound store state. */
+.sheet-switch {
+    flex: none; width: 42px; height: 24px; border-radius: 999px;
+    background: var(--border-strong, var(--border)); position: relative;
+    transition: background 0.16s ease;
+}
+.sheet-switch.on { background: var(--accent); }
+.sheet-switch-knob {
+    position: absolute; top: 2px; inset-inline-start: 2px;
+    width: 20px; height: 20px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.16s ease;
+}
+.sheet-switch.on .sheet-switch-knob { transform: translateX(18px); }
+[dir="rtl"] .sheet-switch.on .sheet-switch-knob { transform: translateX(-18px); }
 
 @media (min-width: 640px) and (max-width: 1023px) {
     nav.app-nav .nav-links { display: none; }

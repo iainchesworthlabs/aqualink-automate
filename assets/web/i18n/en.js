@@ -99,6 +99,8 @@
         'nav.monitor_only_enable': 'Enable monitor-only mode',
         'nav.theme_to_light': 'Switch to light mode',
         'nav.theme_to_dark': 'Switch to dark mode',
+        'nav.dark_mode': 'Dark mode',
+        'nav.monitor_only': 'Monitor-only mode',
         'nav.sign_out': 'Sign out',
 
         // ---- Login overlay ----------------------------------------------------

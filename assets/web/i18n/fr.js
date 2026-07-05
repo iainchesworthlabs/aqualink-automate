@@ -95,6 +95,8 @@
         'nav.monitor_only_enable': 'Activer le mode surveillance seule',
         'nav.theme_to_light': 'Passer au mode clair',
         'nav.theme_to_dark': 'Passer au mode sombre',
+        'nav.dark_mode': 'Mode sombre',
+        'nav.monitor_only': 'Mode surveillance seule',
         'nav.sign_out': 'Se déconnecter',
 
         // ---- Login overlay ----------------------------------------------------

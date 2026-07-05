@@ -93,6 +93,8 @@
         'nav.monitor_only_enable': '启用仅监视模式',
         'nav.theme_to_light': '切换到浅色模式',
         'nav.theme_to_dark': '切换到深色模式',
+        'nav.dark_mode': '深色模式',
+        'nav.monitor_only': '仅监视模式',
         'nav.sign_out': '退出登录',
 
         // ---- Login overlay ----------------------------------------------------

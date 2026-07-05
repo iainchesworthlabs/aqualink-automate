@@ -984,25 +984,69 @@
                 </button>
             </div>
             <div class="sheet-body">
-                <template x-for="r in ['detailed','settings','about','diagnostics']" :key="r">
-                    <button class="sheet-row" type="button" :class="{ active: isRoute(r) }"
-                            @click="navigate(r); $store.layout.closeSheet()" x-text="$t('nav.' + r)"></button>
-                </template>
-                <div class="sheet-divider"></div>
-                <button class="sheet-row" type="button" @click="$store.theme.toggle()"
-                        x-text="$store.theme.isDark ? $t('nav.theme_to_light') : $t('nav.theme_to_dark')"></button>
-                <button class="sheet-row" type="button" @click="$store.system.toggleMonitorOnly()"
-                        :class="{ active: $store.system.monitorOnly }"
-                        x-text="$store.system.monitorOnly ? $t('nav.monitor_only_disable') : $t('nav.monitor_only_enable')"></button>
-                <button class="sheet-row" type="button" x-show="$store.auth.authenticated" x-cloak
-                        @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('account:open'))"
-                        x-text="$t('account.title')"></button>
-                <button class="sheet-row" type="button" x-show="$store.auth.can && $store.auth.can('system.admin')" x-cloak
-                        @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('admin:open'))"
-                        x-text="$t('admin.title')"></button>
-                <button class="sheet-row" type="button" x-show="$store.auth.isEnabled && !$store.auth.authenticated" x-cloak
-                        @click="$store.layout.closeSheet(); $store.auth.showLogin = true"
-                        x-text="$t('auth.sign_in')"></button>
+                <!-- Navigation group: the routes that don't fit the tab bar. Each row
+                     is icon + label + a drill-in chevron, inside a grouped card. -->
+                <div class="sheet-group">
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('detailed') }"
+                            @click="navigate('detailed'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.detailed')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('settings') }"
+                            @click="navigate('settings'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.settings')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('about') }"
+                            @click="navigate('about'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.about')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('diagnostics') }"
+                            @click="navigate('diagnostics'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.diagnostics')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
+                <!-- Actions group: quick toggles + account controls. Dark mode and
+                     monitor-only carry a real switch; account/admin/sign-in are the
+                     auth-gated real extras (kept, styled to match). -->
+                <div class="sheet-group">
+                    <button class="sheet-row sheet-row-switch" type="button" role="switch"
+                            :aria-checked="$store.theme.isDark ? 'true' : 'false'" @click="$store.theme.toggle()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.dark_mode')"></span>
+                        <span class="sheet-switch" :class="{ on: $store.theme.isDark }" aria-hidden="true"><span class="sheet-switch-knob"></span></span>
+                    </button>
+                    <button class="sheet-row sheet-row-switch" type="button" role="switch"
+                            :aria-checked="$store.system.monitorOnly ? 'true' : 'false'" @click="$store.system.toggleMonitorOnly()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.monitor_only')"></span>
+                        <span class="sheet-switch" :class="{ on: $store.system.monitorOnly }" aria-hidden="true"><span class="sheet-switch-knob"></span></span>
+                    </button>
+                    <button class="sheet-row" type="button" x-show="$store.auth.authenticated" x-cloak
+                            @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('account:open'))">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('account.title')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" x-show="$store.auth.can && $store.auth.can('system.admin')" x-cloak
+                            @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('admin:open'))">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('admin.title')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row sheet-row-danger" type="button" x-show="$store.auth.isEnabled && !$store.auth.authenticated" x-cloak
+                            @click="$store.layout.closeSheet(); $store.auth.showLogin = true">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('auth.sign_in')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

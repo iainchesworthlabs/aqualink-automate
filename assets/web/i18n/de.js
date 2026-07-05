@@ -95,6 +95,8 @@
         'nav.monitor_only_enable': 'Nur-Überwachung-Modus aktivieren',
         'nav.theme_to_light': 'Zum hellen Design wechseln',
         'nav.theme_to_dark': 'Zum dunklen Design wechseln',
+        'nav.dark_mode': 'Dunkelmodus',
+        'nav.monitor_only': 'Nur-Beobachten-Modus',
         'nav.sign_out': 'Abmelden',
 
         // ---- Login overlay ----------------------------------------------------

@@ -94,6 +94,8 @@
         'nav.monitor_only_enable': 'הפעלת מצב ניטור בלבד',
         'nav.theme_to_light': 'מעבר למצב בהיר',
         'nav.theme_to_dark': 'מעבר למצב כהה',
+        'nav.dark_mode': 'מצב כהה',
+        'nav.monitor_only': 'מצב צפייה בלבד',
         'nav.sign_out': 'התנתקות',
 
         // ---- Login overlay ----------------------------------------------------
