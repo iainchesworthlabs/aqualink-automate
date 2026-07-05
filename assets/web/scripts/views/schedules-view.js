@@ -157,6 +157,27 @@ function schedulesView() {
         isButtonAction(t) { return _schedIsButton(t); },
         isValueAction(t) { return _schedIsValue(t); },
 
+        // An app schedule can be promoted to a controller program only when it is
+        // one edge (button_on OR button_off) of a pair the backend can fold into
+        // an on→off span: a complementary app schedule must exist that toggles the
+        // SAME target the opposite way on the SAME days. (button_toggle and
+        // value/mode actions have no span form and are never promotable.)
+        promotableApp(s) {
+            const a = (s && s.action) || {};
+            if (a.type !== 'button_on' && a.type !== 'button_off') { return false; }
+            const want = (a.type === 'button_on') ? 'button_off' : 'button_on';
+            const target = a.target || '';
+            const days = s.days_of_week || 0;
+            if (!target) { return false; }
+            return (this.schedules || []).some((o) => {
+                if (o === s || o.uuid === s.uuid) { return false; }
+                const oa = o.action || {};
+                return oa.type === want
+                    && (oa.target || '') === target
+                    && (o.days_of_week || 0) === days;
+            });
+        },
+
         actionSummary(s) {
             const t = window.AquaI18n.t;
             const a = s.action || {};
@@ -332,6 +353,50 @@ function schedulesView() {
             if (!window.confirm(`Delete schedule "${s.name || s.uuid}"?`)) { return; }
             await fetch(`/api/schedules/${s.uuid}`, { method: 'DELETE' });
             await this.load();
+        },
+
+        // --- promote an app edge-pair to a controller program -------------
+
+        // Localize a backend blocker code from the 400 { blockers:[...] } list.
+        _promoteBlockerText(code) {
+            const t = window.AquaI18n.t;
+            switch (code) {
+                case 'day_selection_not_expressible': return t('sched.promote_blocker_day_selection_not_expressible');
+                case 'target_missing': return t('sched.promote_blocker_target_missing');
+                case 'time_invalid': return t('sched.promote_blocker_time_invalid');
+                case 'action_not_on_off': return t('sched.promote_blocker_action_not_on_off');
+                default: return code;
+            }
+        },
+
+        async promote(s) {
+            this.error = '';
+            let resp;
+            try {
+                resp = await fetch(`/api/schedules/${s.uuid}/promote`, { method: 'POST' });
+            } catch (_) {
+                this.error = window.AquaI18n.t('sched.promote_failed');
+                return;
+            }
+            if (resp.ok) {
+                Alpine.store('toast').show(window.AquaI18n.t('sched.promote_queued'), 'info');
+                // The controller program appears once the write is applied and the
+                // programs are re-read; refresh shortly to pick it up.
+                setTimeout(() => { this.load(); }, 1500);
+                return;
+            }
+            if (resp.status === 400) {
+                let blockers = [];
+                try { const data = await resp.json(); blockers = Array.isArray(data.blockers) ? data.blockers : []; } catch (_) { /* ignore */ }
+                const reasons = blockers.map((b) => this._promoteBlockerText(b)).filter(Boolean).join(' ');
+                this.error = window.AquaI18n.t('sched.promote_not_representable', { reasons: reasons || window.AquaI18n.t('sched.promote_reason_unknown') });
+                return;
+            }
+            if (resp.status === 422) {
+                this.error = window.AquaI18n.t('sched.promote_no_span');
+                return;
+            }
+            this.error = window.AquaI18n.t('sched.promote_failed');
         },
     };
 }
