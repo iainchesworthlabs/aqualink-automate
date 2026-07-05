@@ -157,6 +157,33 @@ BOOST_AUTO_TEST_CASE(EnsureSelfSignedMaterial_RefusesToGenerateForOperatorSpecif
 	BOOST_CHECK(!resolved.has_value());
 }
 
+BOOST_AUTO_TEST_CASE(EnsureSelfSignedMaterial_OperatorPartialMaterial_RefusesToGenerate)
+{
+	// Only ONE half of an operator-specified (non-default) pair is present. The
+	// existence guard requires BOTH cert and key, so this is treated as missing;
+	// and because the paths are not the built-in defaults, no material may be
+	// fabricated -- the caller must surface the misconfiguration. This drives the
+	// "not using_defaults" early-return with a live-but-incomplete pair (distinct
+	// from the both-missing case already covered above).
+	const fs::path dir = fs::temp_directory_path() / "aqualink_certgen_partial";
+	std::error_code rm;
+	fs::remove_all(dir, rm);
+
+	const fs::path cert = dir / "cert.pem";
+	const fs::path key = dir / "key.pem";
+	BOOST_REQUIRE(Certificates::GenerateSelfSignedCertificate(cert, key));
+
+	// Remove the key so only the certificate remains present.
+	fs::remove(key, rm);
+	BOOST_REQUIRE(fs::exists(cert));
+	BOOST_REQUIRE(!fs::exists(key));
+
+	const auto resolved = Certificates::EnsureSelfSignedMaterial(Options::Web::SslCertificate{ cert, key });
+	BOOST_CHECK(!resolved.has_value());
+
+	fs::remove_all(dir, rm);
+}
+
 BOOST_AUTO_TEST_CASE(EnsureSelfSignedMaterial_DefaultPaths_GeneratesThenReuses)
 {
 	// Exercise the default-path branch of EnsureSelfSignedMaterial: when the

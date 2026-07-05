@@ -157,6 +157,61 @@ BOOST_AUTO_TEST_CASE(NoReferenceCycle_HubExpiresAfterScope)
 	BOOST_CHECK(hub_observer.expired());
 }
 
+// =============================================================================
+// Every supported destination class drives its own arm of the IdentifyAndAddDevice
+// switch (a distinct device subtype per class). Each address below lands in exactly
+// one arm (see the known-ids table): 0x30 AqualinkTouch, 0xA0 IAQ, 0x40 OneTouch,
+// 0x60 PDA, 0x08 RS_Keypad, 0x48 SerialAdapter, 0x78 ePump, 0x80 Chemlink,
+// 0xF0 Jandy_Light. Each must create exactly one device.
+// =============================================================================
+
+BOOST_AUTO_TEST_CASE(EachSupportedClass_CreatesExactlyOneDevice)
+{
+    Test::HubLocatorInjector hub_locator;
+    auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+
+    Equipment::JandyEquipment equipment(hub_locator);
+
+    const std::vector<uint8_t> one_per_class{
+        0x30,  // AqualinkTouch (iAqualink2 UI) -> IAQDevice
+        0xA0,  // IAQ                            -> IAQDevice
+        0x40,  // OneTouch                       -> OneTouchDevice
+        0x60,  // PDA                            -> PDADevice
+        0x08,  // RS_Keypad                      -> KeypadDevice
+        0x48,  // SerialAdapter                  -> SerialAdapterDevice
+        0x78,  // Jandy_ePump                    -> EPumpDevice
+        0x80,  // Chemlink                       -> ChemlinkDevice
+        0xF0,  // Jandy_Light                    -> LightsDevice
+    };
+
+    for (const auto id : one_per_class)
+    {
+        EmitAckTo(id);
+    }
+
+    // Nine distinct classes -> nine devices, proving each switch arm ran once.
+    BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), one_per_class.size());
+}
+
+// =============================================================================
+// --decode-to-master: a frame addressed TO the master (class AqualinkMaster,
+// 0x00-0x03) is surfaced for observe-only analysis and creates no device. Only
+// reachable when JandyEquipment is constructed with decode_to_master = true.
+// =============================================================================
+
+BOOST_AUTO_TEST_CASE(DecodeToMaster_MasterAddressedFrame_LoggedAndCreatesNoDevice)
+{
+    Test::HubLocatorInjector hub_locator;
+    auto equipment_hub = hub_locator.Find<Kernel::EquipmentHub>();
+
+    Equipment::JandyEquipment equipment(hub_locator, /*decode_to_master=*/true);
+
+    // 0x01 is an AqualinkMaster id; with decode-to-master on it takes the observe-only branch.
+    EmitAckTo(0x01);
+
+    BOOST_CHECK_EQUAL(DeviceCount(*equipment_hub), 0U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // =============================================================================

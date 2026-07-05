@@ -1,9 +1,11 @@
 #include <boost/test/unit_test.hpp>
 
+#include <chrono>
 #include <deque>
 #include <memory>
 #include <optional>
 #include <string>
+#include <thread>
 
 #include <boost/asio.hpp>
 #include <nlohmann/json.hpp>
@@ -969,6 +971,138 @@ BOOST_AUTO_TEST_CASE(Test_Statistics_PublishedFromHubMetrics)
 	BOOST_REQUIRE(serial.has_value());
 	BOOST_CHECK_EQUAL((*serial)["overflow_count"].get<std::uint64_t>(), 3u);
 	BOOST_CHECK_EQUAL((*serial)["transmission_failures"].get<std::uint64_t>(), 1u);
+
+	hub.Stop();
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// Poll()'s connected-path branches: the periodic status + statistics publishes,
+// the one-shot startup retained-reconcile, and the debounced on-change flush.
+// Each needs the hub started AND the client forced connected (so IsConnected()
+// gates open) with the relevant deadline already elapsed.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_MqttHub_PollPublishing)
+
+namespace
+{
+	// A hub whose periodic publish intervals are zero, so the very first Poll() sees
+	// now >= m_NextStatusPublish / m_NextStatsPublish and runs both periodic branches.
+	Options::Mqtt::MqttSettings MakeZeroIntervalSettings()
+	{
+		auto s = Test::MakeMqttSettings();
+		s.status_publish_interval = std::chrono::seconds(0);
+		s.statistics_publish_interval = std::chrono::seconds(0);
+		return s;
+	}
+}
+
+BOOST_AUTO_TEST_CASE(Test_Poll_WhenConnected_RunsPeriodicPublishes)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeZeroIntervalSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	auto stats_hub = std::make_shared<Kernel::StatisticsHub>();
+	hub.ConnectDataHub(data_hub);
+	hub.ConnectStatisticsHub(stats_hub);
+
+	hub.Start();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+
+	// Zero intervals => the periodic status + statistics deadlines are already due on the
+	// first Poll(), so both periodic branches publish their topics.
+	hub.Poll();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	BOOST_CHECK(FindPayloadContaining(queue, "/system/status").has_value());
+	BOOST_CHECK(FindPayloadContaining(queue, "/pool/temperatures").has_value());
+	BOOST_CHECK(FindPayloadContaining(queue, "/statistics/messages").has_value());
+
+	hub.Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_Poll_RunsStartupReconcileOnceDeadlineElapsed)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();   // no devices -> nothing owned
+	hub.ConnectDataHub(data_hub);
+
+	hub.Start();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+
+	// OnConnected arms the retained-reconcile window and records the device/HA prefixes; a
+	// replayed retained topic is then collected while the window is open.
+	hub.GetMqttClient()->OnConnected();
+	hub.GetMqttClient()->OnMessageReceived("test/device/ghost", R"({"stale":true})");
+
+	// The reconcile deadline is RETAINED_RECONCILE_GRACE (10s) out, so an immediate Poll() does
+	// NOT reconcile yet - the collected topic is untouched.
+	{
+		auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+		auto before = LastEntryForTopicEnding(queue, "/device/ghost");
+		hub.Poll();
+		auto after = LastEntryForTopicEnding(queue, "/device/ghost");
+		BOOST_CHECK_MESSAGE(before.has_value() == after.has_value(),
+			"reconcile must not fire before its grace deadline");
+	}
+
+	// Force the deadline into the past via the test seam, then Poll() runs the one-shot reconcile,
+	// clearing the un-owned collected topic (empty + retained).
+	Test::MqttHubReconcileTest::SeedSeenRetainedTopics(hub, { std::string("test/device/ghost") });
+	Test::MqttHubReconcileTest::ExpireRetainedReconcileDeadline(hub);
+	hub.Poll();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	auto cleared = LastEntryForTopicEnding(queue, "/device/ghost");
+	BOOST_REQUIRE_MESSAGE(cleared.has_value(), "Poll() should have reconciled the collected topic");
+	BOOST_CHECK(cleared->first.empty());
+	BOOST_CHECK(cleared->second);
+
+	hub.Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_DataHubConfigChange_ArmsOnChangePublish_FlushedByPoll)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	settings.publish_on_change = true;
+	// Large periodic intervals so the flush we observe is the on-change one, not a periodic tick.
+	settings.status_publish_interval = std::chrono::seconds(3600);
+	settings.statistics_publish_interval = std::chrono::seconds(3600);
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	hub.ConnectDataHub(data_hub);
+
+	// Deterministic monotonic clock via the hub's injectable-clock seam, so the debounce
+	// deadline is driven by advancing the clock rather than a real wall-clock sleep.
+	auto fake_now = std::chrono::steady_clock::time_point{} + std::chrono::hours(1);
+	hub.SetSteadyClock([&] { return fake_now; });
+
+	hub.Start();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+
+	// A DataHub value change fires ConfigUpdateSignal with a real config event. With the hub
+	// running + connected + publish_on_change, OnDataHubConfigChanged arms the debounced publish
+	// with a deadline of now + ON_CHANGE_DEBOUNCE.
+	data_hub->AirTemp(Celsius(24.0));
+
+	// Advance the clock past the debounce window, then Poll() flushes the coalesced on-change
+	// publish (system + pool + device status).
+	fake_now += std::chrono::milliseconds(300);
+	hub.Poll();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	BOOST_CHECK_MESSAGE(FindPayloadContaining(queue, "/system/status").has_value(),
+		"the on-change flush should have published system status");
+	BOOST_CHECK(FindPayloadContaining(queue, "/pool/temperatures").has_value());
 
 	hub.Stop();
 }

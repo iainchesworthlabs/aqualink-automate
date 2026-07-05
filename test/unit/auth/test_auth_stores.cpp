@@ -198,6 +198,48 @@ BOOST_FIXTURE_TEST_CASE(Test_GroupStore_BuiltInsUndeletable_CustomGroupsRemovabl
 }
 
 //-----------------------------------------------------------------------------
+// GROUP REGISTRY — EFFECTIVE ENTITLEMENT RESOLUTION
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(Test_GroupRegistry_ResolveMergesDirectEveryoneAndMemberships)
+{
+	auto registry = Auth::GroupRegistry::WithBuiltIns();
+
+	// Everyone applies to every subject; a custom group adds more on top.
+	auto everyone = *registry.Find(Auth::BuiltInGroups::EVERYONE);
+	everyone.Entitlements = Auth::EntitlementSet::Parse({ "equipment.view" });
+	registry.Upsert(std::move(everyone));
+
+	registry.Upsert(Auth::Group{ .Name = "Household", .Entitlements = Auth::EntitlementSet::Parse({ "equipment.control.aux:*" }) });
+
+	const auto direct = Auth::EntitlementSet::Parse({ "schedules.view" });
+	const auto effective = registry.ResolveEffectiveEntitlements(direct, { "Household" });
+
+	BOOST_CHECK(effective.Permits("schedules.view"));                       // direct grant
+	BOOST_CHECK(effective.Permits("equipment.view"));                       // Everyone grant
+	BOOST_CHECK(effective.Permits("equipment.control.aux", "AUX3"));        // Household grant
+	BOOST_CHECK(!effective.Permits("system.admin"));
+}
+
+BOOST_AUTO_TEST_CASE(Test_GroupRegistry_ResolveSkipsExplicitEveryoneMembershipAndUnknownGroups)
+{
+	auto registry = Auth::GroupRegistry::WithBuiltIns();
+
+	auto everyone = *registry.Find(Auth::BuiltInGroups::EVERYONE);
+	everyone.Entitlements = Auth::EntitlementSet::Parse({ "equipment.view" });
+	registry.Upsert(std::move(everyone));
+
+	// "Everyone" listed as an explicit membership must be short-circuited (it is
+	// already merged once, above) and a membership referencing a group that does
+	// not exist must degrade to nothing rather than failing resolution.
+	const auto effective = registry.ResolveEffectiveEntitlements({}, { std::string{ Auth::BuiltInGroups::EVERYONE }, "GhostGroup" });
+
+	BOOST_CHECK(effective.Permits("equipment.view"));   // Everyone, applied exactly once.
+	BOOST_CHECK_EQUAL(effective.Size(), 1u);            // Nothing double-counted or invented.
+	BOOST_CHECK(!effective.Permits("system.admin"));
+}
+
+//-----------------------------------------------------------------------------
 // API KEY STORE
 //-----------------------------------------------------------------------------
 

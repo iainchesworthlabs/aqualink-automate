@@ -92,7 +92,21 @@ protected:
 		{
 		case 1:   // CONNECT -> CONNACK (accepted, or refused when rejecting)
 			m_SawConnect = true;
-			self->SendRaw(Frame(0x20, std::string{ '\x00', static_cast<char>(m_RejectConnect ? 0x05 : 0x00) }));
+			// The CONNECT variable header is "MQTT" (2-byte length + 4 chars) then a 1-byte
+			// protocol level at body[6] (5 => MQTT v5, 4 => v3.1.1). A v5 client parses a v5
+			// CONNACK, which unlike the 2-byte v3.1.1 form carries a trailing property-length
+			// varint; reply in the version the client actually spoke so the v5 CONNECT/CONNACK
+			// arm is exercised end to end.
+			m_IsV5 = (body.size() >= 7 && static_cast<std::uint8_t>(body[6]) >= 5);
+			if (m_IsV5)
+			{
+				// v5 CONNACK: ack-flags, reason-code, property-length (0 => no properties).
+				self->SendRaw(Frame(0x20, std::string{ '\x00', static_cast<char>(m_RejectConnect ? 0x80 : 0x00), '\x00' }));
+			}
+			else
+			{
+				self->SendRaw(Frame(0x20, std::string{ '\x00', static_cast<char>(m_RejectConnect ? 0x05 : 0x00) }));
+			}
 			break;
 
 		case 3:   // PUBLISH from client (QoS 0) -> record topic
@@ -111,6 +125,9 @@ protected:
 				std::string suback;
 				suback.push_back(body[0]);
 				suback.push_back(body[1]);
+				// v5 SUBACK carries a property-length varint before the reason codes; the
+				// v3.1.1 form goes straight to the granted-QoS byte.
+				if (m_IsV5) { suback.push_back('\x00'); }
 				suback.push_back('\x00');
 				self->SendRaw(Frame(0x90, suback));
 			}
@@ -149,6 +166,7 @@ protected:
 	bool m_SawConnect{ false };
 	bool m_SawDisconnect{ false };
 	bool m_RejectConnect{ false };
+	bool m_IsV5{ false };   // negotiated from the CONNECT's protocol-level byte
 	std::size_t m_PublishesReceived{ 0 };
 	std::size_t m_SubscribesReceived{ 0 };
 	std::string m_LastPublishTopic;

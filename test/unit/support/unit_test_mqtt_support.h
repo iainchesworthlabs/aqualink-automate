@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <deque>
 #include <string>
 #include <unordered_set>
@@ -85,6 +86,14 @@ public:
 	static std::unordered_set<std::string> CallComputeOwnedDeviceTopics(const Mqtt::MqttHub& hub)
 	{
 		return hub.ComputeOwnedDeviceTopics();
+	}
+
+	/// Backdate the startup retained-reconcile deadline into the past so the next Poll()
+	/// (with the window still pending) runs the one-shot reconcile without a real 10s wait.
+	static void ExpireRetainedReconcileDeadline(Mqtt::MqttHub& hub)
+	{
+		hub.m_RetainedReconcilePending = true;
+		hub.m_RetainedReconcileDeadline = std::chrono::steady_clock::now() - std::chrono::seconds(1);
 	}
 };
 

@@ -47,7 +47,7 @@ namespace AqualinkAutomate::Mqtt
 
 		LogInfo(Channel::Mqtt, "Starting MQTT Hub");
 
-		m_StartTime = std::chrono::steady_clock::now();
+		m_StartTime = m_SteadyNow();
 
 		// Connect client signals
 		m_ClientConnectedConnection = m_Client->OnConnected.connect([this]()
@@ -71,7 +71,7 @@ namespace AqualinkAutomate::Mqtt
 			m_Client->Subscribe(m_HaStateTopicPrefix + "#", 0);
 			m_SeenRetainedTopics.clear();
 			m_RetainedReconcilePending = true;
-			m_RetainedReconcileDeadline = std::chrono::steady_clock::now() + RETAINED_RECONCILE_GRACE;
+			m_RetainedReconcileDeadline = m_SteadyNow() + RETAINED_RECONCILE_GRACE;
 
 			// Publish initial status on connect
 			PublishAllStatus();
@@ -88,7 +88,7 @@ namespace AqualinkAutomate::Mqtt
 		m_Running = true;
 
 		// Initialize periodic publish timers
-		auto now = std::chrono::steady_clock::now();
+		auto now = m_SteadyNow();
 		m_NextStatusPublish = now + m_Settings.status_publish_interval;
 		m_NextStatsPublish = now + m_Settings.statistics_publish_interval;
 
@@ -133,7 +133,7 @@ namespace AqualinkAutomate::Mqtt
 			return;
 		}
 
-		auto now = std::chrono::steady_clock::now();
+		auto now = m_SteadyNow();
 
 		// One-shot startup broker reconciliation, once retained delivery has had time to complete.
 		if (m_RetainedReconcilePending && now >= m_RetainedReconcileDeadline)
@@ -300,7 +300,7 @@ namespace AqualinkAutomate::Mqtt
 		if (!m_OnChangePending)
 		{
 			m_OnChangePending = true;
-			m_OnChangeDeadline = std::chrono::steady_clock::now() + ON_CHANGE_DEBOUNCE;
+			m_OnChangeDeadline = m_SteadyNow() + ON_CHANGE_DEBOUNCE;
 		}
 	}
 
@@ -672,7 +672,7 @@ namespace AqualinkAutomate::Mqtt
 	nlohmann::json MqttHub::SerializeSystemStatus() const
 	{
 		auto uptime = std::chrono::duration_cast<std::chrono::seconds>(
-			std::chrono::steady_clock::now() - m_StartTime);
+			m_SteadyNow() - m_StartTime);
 
 		return {
 			{"online", true},

@@ -280,6 +280,41 @@ BOOST_AUTO_TEST_CASE(TestSerialize_ReturnsFalse)
 	BOOST_CHECK(!msg.SerializeContents(out));
 }
 
+BOOST_AUTO_TEST_CASE(TestToString_ContainsDecodedFields)
+{
+	// ToString() renders the button index, the enum names of status/type and the name.
+	// index=3, status=On(0x01), type=Light(0x07), name="Pool Light".
+	std::vector<uint8_t> payload = {
+		0x03, 0x01, 0x00, 0x07,
+		'P','o','o','l',' ','L','i','g','h','t'
+	};
+	auto pkt = MakePacket(0x33, 0x24, payload);
+	IAQMessage_PageButton msg;
+	BOOST_REQUIRE(msg.DeserializeContents(std::span<const uint8_t>(pkt)));
+
+	const auto str = msg.ToString();
+	BOOST_CHECK(str.find("Index: 3") != std::string::npos);
+	BOOST_CHECK(str.find("Status: On") != std::string::npos);
+	BOOST_CHECK(str.find("Type: Light") != std::string::npos);
+	BOOST_CHECK(str.find("Name: 'Pool Light'") != std::string::npos);
+}
+
+BOOST_AUTO_TEST_CASE(TestToString_RendersUnknownEnums)
+{
+	// Invalid status/type map to Unknown; ToString() must render "Unknown" for them.
+	std::vector<uint8_t> payload = {
+		0x00, 0x99, 0x00, 0x99,
+		'T','e','s','t'
+	};
+	auto pkt = MakePacket(0x33, 0x24, payload);
+	IAQMessage_PageButton msg;
+	BOOST_REQUIRE(msg.DeserializeContents(std::span<const uint8_t>(pkt)));
+
+	const auto str = msg.ToString();
+	BOOST_CHECK(str.find("Status: Unknown") != std::string::npos);
+	BOOST_CHECK(str.find("Type: Unknown") != std::string::npos);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // =============================================================================

@@ -188,6 +188,18 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_UppercaseHexSecretLoads, TempDirFixture
 	BOOST_CHECK_EQUAL(store.Active().Secret.size(), 32u);
 }
 
+BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_UnwritableKeyFileThrows, TempDirFixture)
+{
+	// Target a key file inside a directory that does NOT exist: the atomic
+	// write-temp-then-rename cannot even open the ".tmp" stream, so LoadOrCreate
+	// (which Saves the freshly generated key) must surface the failure instead of
+	// pretending a key was persisted.
+	const auto key_file = Dir / "missing-subdir" / "jwt-signing.key";
+
+	BOOST_CHECK(!fs::exists(key_file.parent_path()));
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+}
+
 //-----------------------------------------------------------------------------
 // CODEC — ROUND TRIP + CLAIMS
 //-----------------------------------------------------------------------------

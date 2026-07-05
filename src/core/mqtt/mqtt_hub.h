@@ -75,6 +75,13 @@ namespace AqualinkAutomate::Mqtt
 		/// Check if the hub is running and connected.
 		bool IsRunning() const;
 
+		/// Test seam: override the monotonic clock backing Poll()'s debounce,
+		/// startup-reconcile and periodic-publish deadlines, so those timed branches
+		/// can be driven deterministically without real waits. Defaults to
+		/// std::chrono::steady_clock::now.
+		using SteadyClockFn = std::function<std::chrono::steady_clock::time_point()>;
+		void SetSteadyClock(SteadyClockFn clock) { m_SteadyNow = std::move(clock); }
+
 		//---------------------------------------------------------------------
 		// HUB INTEGRATION
 		//---------------------------------------------------------------------
@@ -233,6 +240,10 @@ namespace AqualinkAutomate::Mqtt
 		bool m_Running{ false };
 		bool m_StaticPublished{ false };
 		std::chrono::steady_clock::time_point m_StartTime;
+
+		// Monotonic clock for the Poll() deadlines; overridable in tests via
+		// SetSteadyClock(). Production uses the real steady_clock.
+		SteadyClockFn m_SteadyNow{ [] { return std::chrono::steady_clock::now(); } };
 
 		// Periodic publish timers (using steady_clock comparisons)
 		std::chrono::steady_clock::time_point m_NextStatusPublish;
