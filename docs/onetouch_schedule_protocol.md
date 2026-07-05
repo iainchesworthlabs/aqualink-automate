@@ -1,8 +1,10 @@
 # OneTouch Schedule Protocol (read path — reverse-engineered)
 
 Status: **read path decoded AND implemented** (parser + detection fix + store population landed
-2026-07-05). Decoded from a live capture (`captures/onetouch_program.cap` in the schedule-reveng
-worktree + the recorder log). Companion to the IAQ decode (`docs/iaq_schedule_protocol.md`).
+2026-07-05); **write path DECODED** (add/change/delete keypress flow — see "Write path" below —
+implementation is the next slice). Decoded from a live capture (`captures/onetouch_program.cap` in
+the schedule-reveng worktree + the recorder log). Companion to the IAQ decode
+(`docs/iaq_schedule_protocol.md`).
 This is the "OneTouch delta" of the controller-schedule integration: the OneTouch (device 0x40)
 is a **16×12 character text-menu** panel (not a touchscreen), so its Program pages are
 reconstructed by the existing OneTouch Screen capability (`onetouch_messageprocessors.cpp` →
@@ -107,9 +109,124 @@ the same navigation). Until then, a OneTouch-only system populates the controlle
 only once a Program detail page is actually visited. Tracked here rather than half-wiring fragile
 menu-model edges.
 
-## Write path — NOT yet decoded
+## Write path — DECODED (2026-07-05)
 
-Add/Change/Delete Program on the OneTouch is menu navigation (Navigator: select/back/scroll, arrow
-value entry for times/days) rather than the IAQ touch grid. The capture recorded a full add → change
-time → change day → delete cycle, but the per-keypress decode is deferred to a follow-up; the read
-path lands first.
+Decoded from the same capture (`captures/onetouch_program.cap` + recorder log), which recorded a full
+**add → change-time → change-day → delete** cycle on the Pool Light equipment. Unlike the IAQ
+touchscreen (fixed touch-grid `0x11+position` + a `0x31/0x24` value-submit handshake), the OneTouch
+is driven entirely by **discrete navigation keys** — the same keys the existing `Navigator` /
+`OneTouchDevice::m_KeyCommand_ToSend` path already emits. There is **no value payload on the wire**:
+values are dialled in on the panel with arrow keys and the controller commits internally.
+
+### Keypress wire encoding
+
+A OneTouch keypress rides the device's **poll-ACK** to the master: `JandyMessage_Ack` with
+`AckType = 0x80` (`V2_Normal`) and the `Command` byte = a `KeyCommands` value
+(`onetouch_device.h`). Only four keys appear in the whole write session:
+
+| Command | `KeyCommands` | Role in the write flow |
+|--------:|---------------|------------------------|
+| `0x02`  | `Back_Or_Select2` | Exit a page / editor without committing the remaining fields |
+| `0x04`  | `Select`          | Enter a menu item; **commit the current editor field and advance to the next** |
+| `0x05`  | `LineDown`        | Move cursor **down** one menu row; **−1** on the active editor field |
+| `0x06`  | `LineUp`          | Move cursor **up** one menu row; **+1** on the active editor field |
+
+(`PageDown_Or_Select1 = 0x01` / `PageUp_Or_Select3 = 0x03` were not used in this session.)
+Acks with `AckType = 0x1f`/`Command = 0x00` are the chlorinator/idle heartbeat, **not** keys.
+
+### Navigating to an equipment's Program detail page
+
+```
+Home ──Select(Menu/Help, row 11)──▶ Menu
+Menu ──Select(Program, row 2)─────▶ Equipment list (Group A/B)
+Equipment list ──scroll──▶ target equipment ──Select──▶ Program detail page
+```
+
+The **equipment list** is a scrolling list: the cursor parks on a fixed selectable row and the list
+text scrolls beneath it (`LineDown` scrolls the list down, `LineUp` up — mirrors the IAQ device
+picker). `Select` on the row holding the target equipment opens its detail page. This is the *same*
+navigation the read-path spider must eventually drive (the deferred spidering gap above).
+
+### Detail-page action rows → which editor
+
+- Equipment **with** a program → detail shows three action rows: **`Add Program` (row 9)**,
+  **`Delete Program` (row 10)**, **`Change Program` (row 11)**. `Select` the highlighted one.
+- Equipment **with no** program → detail shows a single **`Add Program` (row 9)**; `Select` it.
+
+### The editor (Add and Change share one wizard)
+
+`Select`ing **Add Program** opens the editor titled **`New Program`** (line 1) with defaults
+`ON 1:00 PM / OFF 1:00 PM / All Days`. `Select`ing **Change Program** opens the identical editor
+titled **`Change Program`**, pre-filled with the program's current values. The editor also shows
+`Use Arrow Keys / to set value. / Then SELECT.` (lines 7–9). The panel reports **no line highlight**
+in the editor (`PDA_Highlight line_id = 255 / 0xFF`) — the field cursor is internal, so the driver
+must track the active field itself.
+
+**Field order (fixed):** `ON hour → ON minute → OFF hour → OFF minute → days`. For each field:
+
+- **`LineUp` = +1, `LineDown` = −1** on that field's value (the screen echoes the new value on the
+  next frame, so the driver can **closed-loop**: read the echoed value, step one key toward target,
+  repeat).
+- **`Select`** commits the current field and advances to the next.
+- After the **last** field (days) is committed with `Select`, the program is **saved** and the panel
+  returns to the detail page showing the new `Pgm N of M`. **There is no separate save opcode.**
+- **`Back`** at any point abandons the edit.
+
+Field value semantics:
+
+- **Hour** is a single 12-hour-with-meridiem wheel: `… 11 AM, 12 PM, 1 PM, 2 PM …`; crossing 12
+  flips AM/PM. There is **no separate AM/PM field** (simpler than the IAQ). Convert to/from the
+  store's 24-hour value.
+- **Minute** is a 0–59 wheel (wraps).
+- **Days** is a wheel over the controller-allowed set only — observed `LineUp` order:
+  `All Days → Weekends → Weekdays → Sun → Mon → Tue → Wed → Thu → Fri → Sat → …`. This is exactly the
+  all/weekdays/weekends/single-day constraint the promotion checker (`ClassifyDaySelection`) already
+  enforces — **no arbitrary multi-day** (so a promoted app schedule that isn't representable is
+  rejected before we ever reach the panel).
+
+Worked example from the capture (Add Pool Light `11:00 AM → 2:01 PM All Days`):
+
+```
+Select(Add Program)                     → New Program, ON 1:00 PM
+LineDown ×2  (1PM→12PM→11AM)  Select    → ON hour = 11 AM, advance
+Select                                   → ON minute = 00 (unchanged), advance
+LineUp  (OFF 1PM→2PM)         Select    → OFF hour = 2 PM, advance
+LineUp  (OFF 2:00→2:01)       Select    → OFF minute = 01, advance
+Select                                   → days = All Days (unchanged) → SAVED
+```
+
+### Delete
+
+`Select` **Delete Program** (row 10) on the detail page removes the program **immediately — there is
+NO confirmation dialog** (contrast the IAQ, which pops a confirm dialog needing `0x01` Ok). The panel
+returns to the detail page showing `No Programs`.
+
+### Implementation plan (tee-up for the write slice)
+
+Mirror the IAQ write state machine (`ControllerScheduleWrite_ProcessStep`) but drive the OneTouch
+**Navigator** instead of touch commands — the `OneTouchDevice` already owns a Navigator, menu model,
+and the `m_KeyCommand_ToSend` send path, and already implements the shared
+`Capabilities::ControllerScheduleWriter` for the read path's device. So the HTTP routes + dispatcher
+(`Create/Delete/EditControllerProgram` → `DispatchToCapable<ControllerScheduleWriter>`) and the
+promotion/constraint checks are **already wired** — this slice only adds the OneTouch device-side
+actuation.
+
+- **Phases (Create/Edit):** `NavigateToProgramMenu → SelectEquipment(target)` (scroll-to-target,
+  closed-loop on the parked row) `→ EnterEditor` (Add row for Create, Change row for Edit)
+  `→ SetOnHour → SetOnMinute → SetOffHour → SetOffMinute → SetDays → Verify` (re-parse the returned
+  detail page via `ParseProgramDetailPage` and confirm target+times+days).
+- **Phases (Delete):** `NavigateToProgramMenu → SelectEquipment → SelectDeleteRow → Verify` (detail
+  now `No Programs`).
+- **Each field phase is closed-loop, not press-counting:** read the field's current value from the
+  reconstructed editor screen (ON = line 3, OFF = line 4, days = line 5), emit one `LineUp`/`LineDown`
+  toward the target, wait a poll for the echo, repeat until it matches, then `Select` to advance. This
+  is robust to wheel direction, meridiem crossing, minute/day wrap, and pre-filled Edit values without
+  hardcoding step counts. Track the active field by counting `Select`s since editor entry
+  (`0`=ON-hour … `4`=days) since the panel gives no field-cursor highlight.
+- **Backstop:** reuse the IAQ writer's per-poll page-gating + settle/abandon backstop so a UI that
+  adds/rejects steps (e.g. max-programs, day rules) fails cleanly rather than mis-keying.
+
+Capture coverage is complete for a single-program add/change/delete on one equipment; **still
+unexercised** (defer or capture if needed): multiple programs per equipment (`Pgm N of M` > 1, i.e.
+Page Up/Down to select which program to Change/Delete), and the equipment-list scroll key→row map for
+an equipment far down the list (the read-path spidering gap covers the same navigation).
