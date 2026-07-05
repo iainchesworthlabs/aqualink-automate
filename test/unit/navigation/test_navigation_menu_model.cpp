@@ -2,12 +2,39 @@
 
 #include <set>
 
+#include "logging/logging_channels.h"
+#include "logging/logging_severity_filter.h"
+#include "logging/logging_severity_levels.h"
 #include "navigation/menu_model.h"
 #include "navigation/navigator.h"
 #include "navigation/onetouch_menu_model.h"
 
 using namespace AqualinkAutomate::Navigation;
 using namespace AqualinkAutomate::Utility;
+
+namespace
+{
+	// RAII helper: raise the Navigation channel to Trace for the scope of a test, then restore
+	// the previous level. The deferred log-message lambdas in MenuModel (RegisterPage,
+	// RegisterGlobalEdge, DetectPage best-match reporting, FindPath "no path") are only evaluated
+	// when the channel's filter admits Trace, so exercising those formatting branches requires
+	// lowering the filter first.
+	struct ScopedNavigationTrace
+	{
+		AqualinkAutomate::Logging::Severity previous;
+		ScopedNavigationTrace()
+			: previous(AqualinkAutomate::Logging::SeverityFiltering::GetChannelFilterLevel(AqualinkAutomate::Logging::Channel::Navigation))
+		{
+			AqualinkAutomate::Logging::SeverityFiltering::SetChannelFilterLevel(
+				AqualinkAutomate::Logging::Channel::Navigation, AqualinkAutomate::Logging::Severity::Trace);
+		}
+		~ScopedNavigationTrace()
+		{
+			AqualinkAutomate::Logging::SeverityFiltering::SetChannelFilterLevel(
+				AqualinkAutomate::Logging::Channel::Navigation, previous);
+		}
+	};
+}
 
 // =============================================================================
 // Helper: collect Select edges from a page
@@ -1223,6 +1250,45 @@ BOOST_AUTO_TEST_CASE(TestDetectPageSubstringMatching)
 
 	auto detected = model.DetectPage(page);
 	BOOST_CHECK(detected == PageId::SetTime);
+}
+
+BOOST_AUTO_TEST_CASE(TestTraceLoggingBranchesAreExercised_DetectAndNoPath)
+{
+	// With the Navigation channel raised to Trace, the deferred log-message lambdas along the
+	// register / detect / pathfind paths are actually evaluated. This drives those formatting
+	// branches while still asserting the real observable results (a correct detection and an
+	// empty path). Behaviour must be identical to the Info-filtered case.
+	ScopedNavigationTrace trace_guard;
+
+	MenuModel model;
+
+	// Register a page (RegisterPage's trace lambda) with a single detector...
+	MenuPage system;
+	system.id = PageId::System;
+	system.name = "System";
+	system.page_type = ScreenDataPageTypes::Page_Unknown;
+	system.detectors.push_back(Detector{ 9, "Equipment ON/OFF" });
+	model.RegisterPage(std::move(system));
+
+	// ...and a second, unconnected page so a path query between them can genuinely fail.
+	MenuPage isolated;
+	isolated.id = PageId::OneTouch;
+	isolated.name = "OneTouch";
+	isolated.page_type = ScreenDataPageTypes::Page_Unknown;
+	isolated.detectors.push_back(Detector{ 0, "OneTouch" });
+	model.RegisterPage(std::move(isolated));
+
+	// Register a global edge (RegisterGlobalEdge's trace lambda).
+	model.RegisterGlobalEdge(MenuEdge{ EdgeTrigger::SystemTimeout, PageId::Unknown, PageId::TimeOut, 0, "Timeout" });
+
+	// A matching detection drives the best-match / detector-report trace lambdas.
+	ScreenDataPage page(12);
+	page[9].Text = "Equipment ON/OFF";
+	BOOST_CHECK(model.DetectPage(page) == PageId::System);
+
+	// No edges connect System to OneTouch -> FindPath exhausts the BFS and hits the
+	// "no path found" trace lambda, returning an empty path.
+	BOOST_CHECK(model.FindPath(PageId::System, PageId::OneTouch).empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

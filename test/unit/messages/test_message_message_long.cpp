@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -81,6 +83,43 @@ BOOST_AUTO_TEST_CASE(TestDoubleDeserialize_DoesNotAppend)
 
     BOOST_REQUIRE(target.Deserialize(std::as_bytes(std::span<uint8_t>(bytes_b))));
     BOOST_CHECK_EQUAL(target.Line(), LINE_B);
+}
+
+BOOST_AUTO_TEST_CASE(TestDeserializeContentsTooShortForLineId)
+{
+    // A packet whose span does not even reach the LineId byte (absolute index 4) must be
+    // rejected by the RequireIndex guard before any field is read. DeserializeContents is
+    // the code under test directly (bypassing framing) so the too-short guard is reachable.
+    JandyMessage_MessageLong message;
+
+    const std::vector<uint8_t> too_short{ 0x00, 0x04, 0x00, 0x00 };  // size 4 -> index 4 out of range
+    BOOST_CHECK(!message.DeserializeContents(std::span<const uint8_t>(too_short)));
+}
+
+BOOST_AUTO_TEST_CASE(TestDeserializeContentsTooShortForLineText)
+{
+    // Long enough for the LineId byte but with no room for even one LineText character above
+    // the 3-byte footer (size <= Index_LineText + PACKET_FOOTER_LENGTH == 8) -> rejected.
+    JandyMessage_MessageLong message;
+
+    const std::vector<uint8_t> no_text(8, 0x00);  // index 4 present, but no LineText payload
+    BOOST_CHECK(!message.DeserializeContents(std::span<const uint8_t>(no_text)));
+}
+
+BOOST_AUTO_TEST_CASE(TestDeserializeContentsClampsOverlongLineToDisplayLength)
+{
+    // A payload carrying more printable characters than a display line holds must be clamped
+    // to DISPLAY_LINE_LENGTH (16). Build: 4 header bytes, LineId, 20 'A' text bytes, 3 footer.
+    JandyMessage_MessageLong message;
+
+    std::vector<uint8_t> bytes;
+    bytes.insert(bytes.end(), { 0x00, 0x04, 0x00, 0x07 });  // header (dest, id, ..)
+    bytes.insert(bytes.end(), 20, static_cast<uint8_t>('A'));  // 20 printable LineText chars
+    bytes.insert(bytes.end(), { 0x00, 0x00, 0x00 });         // 3-byte footer
+
+    BOOST_REQUIRE(message.DeserializeContents(std::span<const uint8_t>(bytes)));
+    BOOST_CHECK_EQUAL(message.Line().size(), 16U);        // clamped to DISPLAY_LINE_LENGTH
+    BOOST_CHECK_EQUAL(message.Line(), std::string(16, 'A'));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

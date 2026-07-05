@@ -279,6 +279,20 @@ BOOST_AUTO_TEST_CASE(CurrentTempForReporting_InactiveBody_ReturnsUnavailable)
 	BOOST_CHECK(!reported.has_value());
 }
 
+BOOST_AUTO_TEST_CASE(CurrentTempForReporting_NonPoolNonSpaBody_ReturnsUnavailable)
+{
+	DataHub hub;
+
+	// A fresh hub has no bodies, so GetBody(Shared) is nullopt (the inactive-body guard
+	// is skipped) and the switch falls through to its default arm -> unavailable. This
+	// covers the neither-Pool-nor-Spa dispatch case.
+	auto reported = hub.CurrentTempForReporting(BodyOfWaterIds::Shared);
+	BOOST_CHECK(!reported.has_value());
+
+	auto unknown = hub.CurrentTempForReporting(BodyOfWaterIds::Unknown);
+	BOOST_CHECK(!unknown.has_value());
+}
+
 BOOST_AUTO_TEST_CASE(SpaSwitchAssignment_MissThenHit)
 {
 	DataHub hub;
@@ -291,6 +305,88 @@ BOOST_AUTO_TEST_CASE(SpaSwitchAssignment_MissThenHit)
 	auto fn = hub.SpaSwitchAssignment(1, 2);
 	BOOST_REQUIRE(fn.has_value());
 	BOOST_CHECK_EQUAL(fn.value(), "Spa Jets");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// DataHub_ConfigEvent_Temperature is the DTO fanned out on a Temperature change.
+// The setpoint / heater / spa-setpoint accessors and their ToJSON serialisation
+// branches are exercised directly here (the DataHub setters only populate the
+// current-temperature fields, never the setpoint fields on the event object).
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(DataHub_TemperatureEvent_TestSuite)
+
+BOOST_AUTO_TEST_CASE(TemperatureEvent_DefaultsAreEmpty)
+{
+	DataHub_ConfigEvent_Temperature ev;
+
+	// A freshly constructed event carries no readings; every accessor is nullopt and
+	// ToJSON emits an empty object (each has_value() guard takes its false arm).
+	BOOST_CHECK(!ev.PoolTemp().has_value());
+	BOOST_CHECK(!ev.SpaTemp().has_value());
+	BOOST_CHECK(!ev.AirTemp().has_value());
+	BOOST_CHECK(!ev.PoolSetpoint().has_value());
+	BOOST_CHECK(!ev.PoolSetpoint2().has_value());
+	BOOST_CHECK(!ev.PoolHeater2Enabled().has_value());
+	BOOST_CHECK(!ev.SpaSetpoint().has_value());
+
+	BOOST_CHECK(ev.ToJSON().empty());
+	BOOST_CHECK(ev.Type() == Hub_EventTypes::Temperature);
+}
+
+BOOST_AUTO_TEST_CASE(TemperatureEvent_SetpointsAndHeater2RoundTripThroughGettersAndJson)
+{
+	DataHub_ConfigEvent_Temperature ev;
+
+	ev.PoolSetpoint(Temperature::ConvertToTemperatureInCelsius(30.0));
+	ev.PoolSetpoint2(Temperature::ConvertToTemperatureInCelsius(31.0));
+	ev.PoolHeater2Enabled(true);
+	ev.SpaSetpoint(Temperature::ConvertToTemperatureInCelsius(38.5));
+
+	// Getters return the stored optionals (the setpoint2 / heater2 getter lines).
+	BOOST_REQUIRE(ev.PoolSetpoint().has_value());
+	BOOST_CHECK_CLOSE(ev.PoolSetpoint()->InCelsius().value(), 30.0, 0.01);
+	BOOST_REQUIRE(ev.PoolSetpoint2().has_value());
+	BOOST_CHECK_CLOSE(ev.PoolSetpoint2()->InCelsius().value(), 31.0, 0.01);
+	BOOST_REQUIRE(ev.PoolHeater2Enabled().has_value());
+	BOOST_CHECK_EQUAL(ev.PoolHeater2Enabled().value(), true);
+	BOOST_REQUIRE(ev.SpaSetpoint().has_value());
+	BOOST_CHECK_CLOSE(ev.SpaSetpoint()->InCelsius().value(), 38.5, 0.01);
+
+	// ToJSON serialises each populated field (the has_value() true arms). Temperatures
+	// serialise to a {celsius, fahrenheit} object; the heater flag is a raw bool.
+	const auto j = ev.ToJSON();
+	BOOST_REQUIRE(j.contains("pool_setpoint"));
+	BOOST_CHECK_CLOSE(j["pool_setpoint"]["celsius"].get<double>(), 30.0, 0.01);
+	BOOST_REQUIRE(j.contains("pool_setpoint_2"));
+	BOOST_CHECK_CLOSE(j["pool_setpoint_2"]["celsius"].get<double>(), 31.0, 0.01);
+	BOOST_REQUIRE(j.contains("pool_heater_2_enabled"));
+	BOOST_CHECK_EQUAL(j["pool_heater_2_enabled"].get<bool>(), true);
+	BOOST_REQUIRE(j.contains("spa_setpoint"));
+	BOOST_CHECK_CLOSE(j["spa_setpoint"]["celsius"].get<double>(), 38.5, 0.01);
+}
+
+BOOST_AUTO_TEST_CASE(TemperatureEvent_CurrentTemperaturesSerialise)
+{
+	DataHub_ConfigEvent_Temperature ev;
+
+	ev.PoolTemp(Temperature::ConvertToTemperatureInCelsius(27.0));
+	ev.SpaTemp(Temperature::ConvertToTemperatureInCelsius(36.0));
+	ev.AirTemp(Temperature::ConvertToTemperatureInCelsius(19.0));
+
+	const auto j = ev.ToJSON();
+	BOOST_REQUIRE(j.contains("pool_temp"));
+	BOOST_CHECK_CLOSE(j["pool_temp"]["celsius"].get<double>(), 27.0, 0.01);
+	BOOST_REQUIRE(j.contains("spa_temp"));
+	BOOST_CHECK_CLOSE(j["spa_temp"]["celsius"].get<double>(), 36.0, 0.01);
+	BOOST_REQUIRE(j.contains("air_temp"));
+	BOOST_CHECK_CLOSE(j["air_temp"]["celsius"].get<double>(), 19.0, 0.01);
+
+	// The setpoint fields were never populated -> their ToJSON guards stay false.
+	BOOST_CHECK(!j.contains("pool_setpoint"));
+	BOOST_CHECK(!j.contains("spa_setpoint"));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

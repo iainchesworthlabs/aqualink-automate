@@ -367,6 +367,106 @@ BOOST_AUTO_TEST_CASE(Start_EmptyDbPath_StaysDisabled)
 	BOOST_CHECK(service.ListSeries().empty());
 }
 
+// The read API is safe to call on a never-Started service: with no open database
+// SeriesExists / QuerySeries / ListSeries all take their `!m_Db` early returns.
+BOOST_AUTO_TEST_CASE(ReadApi_BeforeStart_NoDb_ReturnsEmpty)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+
+	// Never Started -> m_Db is null; every read takes the no-db guard.
+	BOOST_CHECK(!service.SeriesExists("temp/pool"));
+	BOOST_CHECK(service.ListSeries().empty());
+	BOOST_CHECK(service.QuerySeries("temp/pool", 0, 100, 10).empty());
+}
+
+// QuerySeries rejects degenerate arguments before touching the database: a
+// non-positive max_points and an inverted [from, to] window both return empty.
+BOOST_AUTO_TEST_CASE(QuerySeries_InvalidArgs_ReturnEmpty)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 0;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	// A real series exists, so only the argument guards can be responsible for the
+	// empty result.
+	service.RecordNumeric("temp/pool", "C", 20.0, /*is_heartbeat=*/true);
+	service.Flush();
+
+	BOOST_CHECK(service.QuerySeries("temp/pool", 0, 100, 0).empty());   // max_points <= 0
+	BOOST_CHECK(service.QuerySeries("temp/pool", 0, 100, -5).empty());  // max_points <= 0
+	BOOST_CHECK(service.QuerySeries("temp/pool", 100, 0, 10).empty());  // to < from
+}
+
+// max_points wider than the sampled span forces the bucket floor to 1 (the
+// `bucket < 1` clamp), so every distinct timestamp becomes its own point.
+BOOST_AUTO_TEST_CASE(QuerySeries_MaxPointsExceedsSpan_ClampsBucketToOne)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 0;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	// Two samples one second apart; span=1, max_points=100 -> bucket=0 -> clamped to 1.
+	now = 10;
+	service.RecordNumeric("temp/pool", "C", 20.0, /*is_heartbeat=*/true);
+	now = 11;
+	service.RecordNumeric("temp/pool", "C", 21.0, /*is_heartbeat=*/true);
+
+	auto points = service.QuerySeries("temp/pool", 10, 11, 100);
+	BOOST_REQUIRE_EQUAL(points.size(), 2u);   // each ts is its own bucket
+	BOOST_CHECK_EQUAL(points.front().value, 20.0);
+	BOOST_CHECK_EQUAL(points.back().value, 21.0);
+}
+
+// A device that never carries a friendly label records via the empty-label branch
+// of RecordDeviceState (no relabel, no legacy fold), storing a state series whose
+// label column stays empty.
+BOOST_AUTO_TEST_CASE(RecordDeviceState_EmptyLabel_NoLegacyFoldOrRelabel)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 100;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	// Empty label -> the `!label.empty()` guards around relabel + legacy-fold are all
+	// skipped; a single unlabelled state series results.
+	service.RecordDeviceState("device/uuid-nolabel", "", 1.0);
+
+	auto series = service.ListSeries();
+	BOOST_REQUIRE_EQUAL(series.size(), 1u);
+	BOOST_CHECK_EQUAL(series.front().key, "device/uuid-nolabel");
+	BOOST_CHECK(series.front().label.empty());
+	BOOST_CHECK_EQUAL(series.front().count, 1);
+}
+
+// The legacy-fold check runs at most once per legacy key per process: a second
+// RecordDeviceState for the same device does not re-attempt the merge (the
+// m_DeviceMergeChecked guard), and the series keeps accumulating.
+BOOST_AUTO_TEST_CASE(RecordDeviceState_LegacyFoldCheckedOncePerKey)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 100;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	// No legacy series exists, so the first fold attempt is a no-op; the second
+	// recording re-enters with the merge already marked checked.
+	service.RecordDeviceState("device/uuid-1", "Pool Light", 1.0);
+	now += 5;
+	service.RecordDeviceState("device/uuid-1", "Pool Light", 0.0);
+
+	auto series = service.ListSeries();
+	BOOST_REQUIRE_EQUAL(series.size(), 1u);
+	BOOST_CHECK_EQUAL(series.front().key, "device/uuid-1");
+	BOOST_CHECK_EQUAL(series.front().count, 2);
+}
+
 //=============================================================================
 // OnConfigEvent: after Start() the service subscribes to the DataHub's
 // ConfigUpdateSignal and records temperature / chemistry / device-state events.

@@ -4,15 +4,18 @@
 
 ## Workflow set
 
-The pipeline is five workflow files plus two composite actions, all under `.github/`.
+The pipeline is eight workflow files plus two composite actions, all under `.github/`.
 
 | File | Kind | Purpose |
 |------|------|---------|
 | `.github/workflows/ci.yml` | Workflow | Build, test, e2e, and Docker verification on every push and PR. |
 | `.github/workflows/_build.yml` | Reusable workflow (`workflow_call`) | The shared configure/build/test/package matrix. Called by both `ci.yml` and `release.yml`. |
 | `.github/workflows/release.yml` | Workflow | Build packages, publish the Docker image, and create the GitHub release for a `v*` tag. |
-| `.github/workflows/automated-codescanning.yml` | Workflow | CodeQL, SonarCloud, and MSVC static analysis on PRs and a weekly cron. |
+| `.github/workflows/automated-codescanning.yml` | Workflow | CodeQL (C/C++ and JavaScript/TypeScript), SonarCloud, and MSVC static analysis on PRs and a weekly cron. |
 | `.github/workflows/cleanup-branch-caches.yml` | Workflow | Delete a PR's branch caches when it closes. |
+| `.github/workflows/trivy.yml` | Workflow | Trivy scan of the runtime container image (OS packages + Node deps) → Security tab. |
+| `.github/workflows/osv-scanner.yml` | Workflow | OSV-Scanner CVE check of declared dependencies, incl. the vcpkg C++ manifest → Security tab. |
+| `.github/workflows/scorecard.yml` | Workflow | OpenSSF Scorecard supply-chain posture grade → Security tab. |
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 
@@ -199,6 +202,7 @@ There is **no `push` trigger.** Scanning happens on PRs into `develop` or `main`
 | Job | Runs on | Scanner |
 |-----|---------|---------|
 | `CodeScanning_CodeQL` | Linux | CodeQL (`c-cpp`). Runs its own full build, filters the SARIF to `src/**`, and uploads to the Security tab. |
+| `CodeScanning_CodeQL_JS` | Linux (GitHub-hosted) | CodeQL (`javascript-typescript`, `build-mode: none`) for the Alpine.js web UI (`assets/web/scripts`, `sw.js`) and the TypeScript Matter sidecar (`matter-bridge/src`). No compile, so it runs on `ubuntu-latest` (not the self-hosted C++ fleet); `.github/codeql/codeql-config-js.yml` scopes it to first-party source (vendored/minified libraries and `i18n/` data excluded). |
 | `CodeScanning_E2ECoverage` | Linux | Builds a gcov-instrumented `aqualink-automate` (`config-linux-gcc-coverage`), runs the four Playwright modes against it, and `gcovr`s the `.gcda` into a SonarQube coverage report (`coverage-e2e.xml`) uploaded as the `e2e-coverage-xml` artifact. |
 | `CodeScanning_SonarCloud` | Linux | SonarCloud via build-wrapper over a coverage build (`config-linux-gcc-coverage`, `-DUSE_SONARQUBE=ON`). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with **both** (`sonar.coverageReportPaths` comma-separated; Sonar merges line coverage). |
 | `CodeScanning_MSVCCodeAnalysis` | Windows | MSVC code analysis (`NativeRecommendedRules.ruleset`) over the `config-windows-msvc` build; uploads SARIF. |
@@ -206,6 +210,20 @@ There is **no `push` trigger.** Scanning happens on PRs into `develop` or `main`
 Each job has the same skip condition: it does not run for a `develop` -> `main` promotion PR, because that code was already scanned when it entered `develop`. Re-scanning the promotion is pure duplication.
 
 **Coverage = unit + e2e.** The SonarCloud new-code coverage gate reflects what *both* test layers exercise. The unit/integration binary's coverage alone misses every line only the running app reaches (HTTP routes, WebSocket, MQTT, bootstrap), which read as uncovered and depressed the gate. `CodeScanning_E2ECoverage` instruments the app, drives the Playwright suite against it (the app exits cleanly on Playwright's `SIGTERM` — see `gracefulShutdown` in `playwright.config.ts` — so gcov flushes `.gcda`), and emits a second report. `CodeScanning_SonarCloud` `needs:` it and merges the two; if the e2e job fails, the scan still runs with unit-only coverage (it never drops the whole gate).
+
+## Supply-chain scanning (trivy.yml, osv-scanner.yml, scorecard.yml)
+
+Three lightweight workflows cover the supply-chain surfaces the compile-heavy `automated-codescanning.yml` does not. Unlike the code scanners, they run on GitHub-hosted `ubuntu-latest` (free for public repos, no self-hosted runner), need no C++ build, and publish to **Security > Code scanning**. None fails a PR — a finding surfaces in the Security tab rather than blocking the merge.
+
+| Workflow | Scanner | Covers | Triggers |
+|----------|---------|--------|----------|
+| `trivy.yml` | [Trivy](https://github.com/aquasecurity/trivy-action) | The runtime **container image**: Ubuntu base packages + NodeSource Node + the Matter sidecar's `node_modules`. Builds only the `runtime-base` Docker stage (no C++ `ci` compile), which is exactly that OS/Node surface. Reports fixable HIGH/CRITICAL. | PR/push touching `Dockerfile`, `matter-bridge/**`, etc.; weekly cron; dispatch |
+| `osv-scanner.yml` | [OSV-Scanner](https://github.com/google/osv-scanner-action) | Declared **dependencies** vs. the OSV database. The only scanner that reads the **vcpkg C++ manifest** (`vcpkg.json`) — Dependabot has no vcpkg ecosystem — plus the npm lockfiles. Uses the upstream reusable workflow, which uploads its own SARIF. | PR/push touching `vcpkg.json`, `**/package-lock.json`, etc.; weekly cron; dispatch |
+| `scorecard.yml` | [OpenSSF Scorecard](https://github.com/ossf/scorecard-action) | **Supply-chain posture**: Action SHA-pinning, branch protection, token permissions, dangerous-workflow patterns, dependency tooling. `publish_results: true` feeds the public Scorecard badge/API. | `branch_protection_rule`; push to `main`; weekly cron; dispatch |
+
+Division of labour with the existing tooling: **CodeQL / SonarCloud / MSVC** scan first-party source; **Dependabot** *updates* the Actions + npm manifests (and raises its own vulnerability alerts for them); **OSV-Scanner** closes the vcpkg gap Dependabot cannot see; **Trivy** covers the image layers no source or manifest scanner reaches. The vcpkg-built C++ libraries inside the image carry no package metadata for Trivy to match, so OSV-Scanner (reading the manifest) is what covers them — the two do not overlap.
+
+The three PR-facing jobs (`trivy.yml`, `osv-scanner.yml`) share the code scanners' promotion-PR skip and fork-PR gating. `scorecard.yml` does not run on `pull_request` at all (its checks are repository-level and need a token a fork PR lacks). The weekly crons are staggered (22:17 / 22:27 / 22:37 UTC) so they do not all contend at once.
 
 ## cleanup-branch-caches.yml
 

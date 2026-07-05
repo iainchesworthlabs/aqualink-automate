@@ -1,0 +1,56 @@
+<svg class="aa-hero-svg" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of a pool and spa">
+  <style>
+    .aa-hero-svg .wave { animation: aa-wave 7s ease-in-out infinite; }
+    .aa-hero-svg .wave-2 { animation: aa-wave 9s ease-in-out infinite reverse; }
+    .aa-hero-svg .drop { animation: aa-bob 5s ease-in-out infinite; transform-origin: center; }
+    @keyframes aa-wave { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-14px); } }
+    @keyframes aa-bob  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .aa-hero-svg .wave, .aa-hero-svg .wave-2, .aa-hero-svg .drop { animation: none; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="aaPool" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--aa-accent)"/>
+      <stop offset="100%" stop-color="color-mix(in oklab, var(--aa-accent) 68%, black)"/>
+    </linearGradient>
+    <linearGradient id="aaSpa" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--aa-spa)"/>
+      <stop offset="100%" stop-color="color-mix(in oklab, var(--aa-spa) 68%, black)"/>
+    </linearGradient>
+    <linearGradient id="aaDrop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <clipPath id="aaPoolClip"><rect x="24" y="70" width="300" height="180" rx="26"/></clipPath>
+    <clipPath id="aaSpaClip"><ellipse cx="392" cy="176" rx="72" ry="62"/></clipPath>
+  </defs>
+
+  <!-- Deck panel -->
+  <rect x="6" y="44" width="468" height="232" rx="24" fill="var(--aa-surface-2)" stroke="var(--aa-border)"/>
+
+  <!-- Pool -->
+  <rect x="24" y="70" width="300" height="180" rx="26" fill="url(#aaPool)"/>
+  <g clip-path="url(#aaPoolClip)">
+    <path class="wave"   d="M0 132 Q40 116 80 132 T160 132 T240 132 T320 132 T400 132" stroke="rgba(255,255,255,0.32)" stroke-width="2.5" fill="none"/>
+    <path class="wave-2" d="M0 158 Q40 142 80 158 T160 158 T240 158 T320 158 T400 158" stroke="rgba(255,255,255,0.2)"  stroke-width="2.5" fill="none"/>
+  </g>
+
+  <!-- Spa -->
+  <ellipse cx="392" cy="176" rx="72" ry="62" fill="url(#aaSpa)"/>
+  <g clip-path="url(#aaSpaClip)">
+    <circle cx="372" cy="206" r="3"   fill="rgba(255,255,255,0.6)"/>
+    <circle cx="396" cy="214" r="3.5" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="416" cy="202" r="3"   fill="rgba(255,255,255,0.6)"/>
+  </g>
+
+  <!-- Water drop (brand mark) -->
+  <g class="drop" transform="translate(300 28)">
+    <path d="M20 2 C20 2 4 22 4 33 A16 16 0 0036 33 C36 22 20 2 20 2z" fill="url(#aaDrop)"/>
+    <path d="M13 34 c3 -3 11 -3 14 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>
+  </g>
+
+  <!-- Labels -->
+  <text x="174" y="165" text-anchor="middle" font-family="var(--aa-font-display)" font-size="15" font-weight="700" fill="rgba(255,255,255,0.92)">Pool</text>
+  <text x="392" y="182" text-anchor="middle" font-family="var(--aa-font-display)" font-size="13" font-weight="700" fill="rgba(255,255,255,0.92)">Spa</text>
+</svg>

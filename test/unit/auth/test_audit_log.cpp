@@ -122,6 +122,34 @@ BOOST_FIXTURE_TEST_CASE(Test_AuditLog_RotatesWhenFileWouldExceedBudget, TempDirF
 	BOOST_CHECK_EQUAL(ReadLines(audit_file).size(), 1u);
 }
 
+BOOST_FIXTURE_TEST_CASE(Test_AuditLog_RotationFailureIsNonFatal, TempDirFixture)
+{
+	const auto audit_file = Dir / "audit.jsonl";
+
+	// Occupy the rotation target ("<name>.1") with a NON-EMPTY directory: fs::remove
+	// cannot clear it and the subsequent fs::rename of the live file onto it fails,
+	// exercising the rotate-failure warning path. Record must degrade gracefully
+	// (never throw out of the auth hot path) and keep appending to the live file.
+	const auto rotated = fs::path{ audit_file } += ".1";
+	fs::create_directories(rotated);
+	{
+		std::ofstream blocker(rotated / "occupant.txt");
+		blocker << "keeps the rotation target un-removable";
+	}
+
+	// A budget small enough that the second record trips rotation.
+	Auth::AuditLog audit({ .JsonlFile = audit_file, .MaxFileBytes = 64 });
+
+	audit.Record(MakeEvent());
+	BOOST_CHECK_NO_THROW(audit.Record(MakeEvent()));
+
+	// Rotation could not happen, so the live file survives and still grew (both
+	// records landed in it) and the blocked target directory is untouched.
+	BOOST_CHECK(fs::exists(audit_file));
+	BOOST_CHECK(fs::is_directory(rotated));
+	BOOST_CHECK_EQUAL(ReadLines(audit_file).size(), 2u);
+}
+
 BOOST_FIXTURE_TEST_CASE(Test_AuditLog_EmptyPathDisablesJsonlSink, TempDirFixture)
 {
 	Auth::AuditLog audit({});
