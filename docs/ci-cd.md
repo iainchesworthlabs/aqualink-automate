@@ -11,7 +11,7 @@ The pipeline is eight workflow files plus two composite actions, all under `.git
 | `.github/workflows/ci.yml` | Workflow | Build, test, e2e, and Docker verification on every push and PR. |
 | `.github/workflows/_build.yml` | Reusable workflow (`workflow_call`) | The shared configure/build/test/package matrix. Called by both `ci.yml` and `release.yml`. |
 | `.github/workflows/release.yml` | Workflow | Build packages, publish the Docker image, and create the GitHub release for a `v*` tag. |
-| `.github/workflows/automated-codescanning.yml` | Workflow | CodeQL, SonarCloud, and MSVC static analysis on PRs and a weekly cron. |
+| `.github/workflows/automated-codescanning.yml` | Workflow | CodeQL (C/C++ and JavaScript/TypeScript), SonarCloud, and MSVC static analysis on PRs and a weekly cron. |
 | `.github/workflows/cleanup-branch-caches.yml` | Workflow | Delete a PR's branch caches when it closes. |
 | `.github/workflows/trivy.yml` | Workflow | Trivy scan of the runtime container image (OS packages + Node deps) → Security tab. |
 | `.github/workflows/osv-scanner.yml` | Workflow | OSV-Scanner CVE check of declared dependencies, incl. the vcpkg C++ manifest → Security tab. |
@@ -202,6 +202,7 @@ There is **no `push` trigger.** Scanning happens on PRs into `develop` or `main`
 | Job | Runs on | Scanner |
 |-----|---------|---------|
 | `CodeScanning_CodeQL` | Linux | CodeQL (`c-cpp`). Runs its own full build, filters the SARIF to `src/**`, and uploads to the Security tab. |
+| `CodeScanning_CodeQL_JS` | Linux (GitHub-hosted) | CodeQL (`javascript-typescript`, `build-mode: none`) for the Alpine.js web UI (`assets/web/scripts`, `sw.js`) and the TypeScript Matter sidecar (`matter-bridge/src`). No compile, so it runs on `ubuntu-latest` (not the self-hosted C++ fleet); `.github/codeql/codeql-config-js.yml` scopes it to first-party source (vendored/minified libraries and `i18n/` data excluded). |
 | `CodeScanning_E2ECoverage` | Linux | Builds a gcov-instrumented `aqualink-automate` (`config-linux-gcc-coverage`), runs the four Playwright modes against it, and `gcovr`s the `.gcda` into a SonarQube coverage report (`coverage-e2e.xml`) uploaded as the `e2e-coverage-xml` artifact. |
 | `CodeScanning_SonarCloud` | Linux | SonarCloud via build-wrapper over a coverage build (`config-linux-gcc-coverage`, `-DUSE_SONARQUBE=ON`). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with **both** (`sonar.coverageReportPaths` comma-separated; Sonar merges line coverage). |
 | `CodeScanning_MSVCCodeAnalysis` | Windows | MSVC code analysis (`NativeRecommendedRules.ruleset`) over the `config-windows-msvc` build; uploads SARIF. |
