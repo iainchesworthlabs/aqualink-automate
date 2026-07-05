@@ -30,10 +30,22 @@ Fonts use the same trick: with `theme.font: false`, Material builds body/code
 font-family from the `--md-text-font` / `--md-code-font` primitives, so those are
 set to the brand faces rather than overriding `--md-*-font-family`.
 
+## Social cards
+
+Open Graph / Twitter preview images are auto-generated per page by Material's
+`social` plugin (`mkdocs.yml` → `plugins.social`), styled dark (`#0f172a`) with
+Hanken Grotesk. The plugin is gated with `enabled: !ENV [CI, false]`:
+
+- **CI** (GitHub Actions sets `CI=true`) → cards render. `docs.yml` installs
+  `mkdocs-material[imaging]` + the Cairo system libs the imaging backend needs.
+- **Local** (no `CI` env) → the plugin is disabled, so `mkdocs serve` / `mkdocs
+  build --strict` work without Cairo installed. To preview cards locally, install
+  the imaging deps and run with `CI=true mkdocs build`.
+
 ## Preview locally
 
 ```bash
-pip install "mkdocs-material>=9.7"
+pip install "mkdocs-material>=9.7"   # add [imaging] only to preview social cards
 mkdocs serve          # http://127.0.0.1:8000/aqualink-automate/
 mkdocs build --strict # what CI (.github/workflows/docs.yml) runs
 ```

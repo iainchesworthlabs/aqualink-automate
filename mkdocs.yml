@@ -17,6 +17,21 @@ edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: site
 
+plugins:
+  # `search` is a default plugin, but declaring `plugins:` replaces the defaults,
+  # so it must be listed explicitly.
+  - search
+  # Auto-generated Open Graph / Twitter preview cards, styled in the brand's dark
+  # palette + Hanken Grotesk. Gated to CI (`enabled: !ENV [CI, false]`) because
+  # the imaging backend needs Cairo — local `mkdocs serve/build` skips it, CI
+  # (.github/workflows/docs.yml installs mkdocs-material[imaging] + Cairo) runs it.
+  - social:
+      enabled: !ENV [CI, false]
+      cards_layout_options:
+        background_color: "#0f172a"
+        color: "#e6edf5"
+        font_family: Hanken Grotesk
+
 theme:
   name: material
   # Brand skin lives in overrides/ (templates) + docs/stylesheets/aqualink.css
