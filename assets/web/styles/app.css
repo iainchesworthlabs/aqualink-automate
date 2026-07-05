@@ -2104,9 +2104,11 @@ nav.app-nav .nav-hamburger:hover { color: var(--text); background: var(--surface
 @media (max-width: 639px) {
     nav.app-nav .nav-links { display: none; }
     .mobile-tab-bar { display: flex; }
-    /* Clear the fixed bottom tab bar (~64px) plus the iOS home-indicator inset so
-       the last card on every view isn't hidden behind it. */
-    main { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+    /* Clear the fixed bottom tab bar (66px) plus the iOS home-indicator inset so
+       the last card on every view isn't hidden behind it. NB: the selector must be
+       `main.app-container` — a bare `main` (element specificity) loses to
+       `.app-container { padding: 0 1.25rem }` above, which zeroes padding-bottom. */
+    main.app-container { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
 
     /* Phone top bar = one non-wrapping row: brand on the left, the live/ready
        status + alerts bell pushed to the right. The settings toggles (monitor,
