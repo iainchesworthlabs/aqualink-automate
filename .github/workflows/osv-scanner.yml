@@ -1,0 +1,60 @@
+name: OSV-Scanner
+
+# OSV-Scanner checks our declared dependencies against the OSV vulnerability
+# database. It is the ONLY scanner that understands the vcpkg C++ manifest
+# (vcpkg.json): Dependabot has no vcpkg ecosystem, so the entire C++ dependency
+# supply chain (Boost, OpenSSL, nlohmann, ...) was previously unscanned for CVEs.
+# It also cross-checks the npm lockfiles (root Playwright harness + matter-bridge);
+# Dependabot already tracks those, but OSV flags a fresh disclosure faster.
+#
+# Runs on GitHub-hosted runners (free for public repos) via the upstream reusable
+# workflow, which scans and uploads SARIF to Security > Code scanning itself.
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'vcpkg.json'
+      - 'vcpkg-configuration.json'
+      - '**/package-lock.json'
+      - '.github/workflows/osv-scanner.yml'
+  pull_request:
+    branches: [ "develop", "main" ]
+    paths:
+      - 'vcpkg.json'
+      - 'vcpkg-configuration.json'
+      - '**/package-lock.json'
+      - '.github/workflows/osv-scanner.yml'
+  schedule:
+    - cron: '37 22 * * 2'   # weekly, Tuesday 22:37 UTC (offset from the codescanning cron)
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  OSV_Scan:
+    # Skip a develop->main promotion PR (already scanned on develop entry), and skip
+    # fork PRs -- a fork PR runs with a read-only token, so the SARIF upload would
+    # fail regardless.
+    if: >-
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository) &&
+      (github.event_name != 'pull_request' ||
+       github.head_ref != 'develop' ||
+       github.base_ref != 'main')
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      # Recursively scan the working tree for supported manifests/lockfiles: this
+      # finds vcpkg.json plus the two npm lockfiles (root + matter-bridge).
+      # Submodules stay unchecked-out (default), so vcpkg's own bundled ports under
+      # deps/ are not scanned -- only our declared manifest is.
+      scan-args: |-
+        -r
+        ./
+      # A newly-disclosed CVE in an already-merged dependency must not block
+      # unrelated PRs; it still surfaces in Security > Code scanning.
+      fail-on-vuln: false

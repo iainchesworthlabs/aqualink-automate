@@ -1,0 +1,56 @@
+name: OpenSSF Scorecard
+
+# Scorecard grades the repository's SUPPLY-CHAIN posture -- GitHub Actions pinning
+# (every `uses:` here is pinned to a 40-char SHA), branch protection, token
+# permissions, dangerous-workflow patterns, dependency-update tooling, and more --
+# and publishes the result to Security > Code scanning. It complements the code
+# scanners: they inspect what the code DOES, Scorecard inspects how the project is
+# BUILT and RELEASED.
+#
+# Runs on GitHub-hosted `ubuntu-latest` (free for public repos). It does NOT run on
+# pull_request: the checks are repository-level and several need the elevated token
+# a PR does not grant.
+
+on:
+  # Re-grade when a branch protection rule changes (a Scorecard signal).
+  branch_protection_rule:
+  schedule:
+    - cron: '27 22 * * 2'   # weekly, Tuesday 22:27 UTC (offset from the codescanning cron)
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# Least-privilege by default; the job elevates only what it needs.
+permissions: read-all
+
+jobs:
+  Scorecard_Analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # security-events: write -> upload SARIF to the Security tab.
+      # id-token: write        -> OIDC token so publish_results can attest to the
+      #                           public OpenSSF Scorecard API (drives the badge).
+      security-events: write
+      id-token: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        persist-credentials: false
+
+    - name: Run Scorecard analysis
+      uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+      with:
+        results_file: results.sarif
+        results_format: sarif
+        # Publish to the public OpenSSF Scorecard API (the repo is public). This
+        # feeds the Scorecard badge and the cross-project dashboard.
+        publish_results: true
+
+    - name: Upload Scorecard SARIF
+      uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+      with:
+        sarif_file: results.sarif
+        category: scorecard
