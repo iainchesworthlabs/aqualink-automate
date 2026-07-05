@@ -61,9 +61,11 @@ if (!fs.existsSync(EXE)) {
 }
 
 // --replay-filename depends on --dev-mode, --profiler and every per-channel
-// log level (see playwright.config.ts for the full explanation).
+// log level (see playwright.config.ts for the full explanation). 'audit' is
+// deliberately absent — it is a separate subsystem, not an operational log
+// channel, so the binary exposes no --loglevel-audit (matches playwright.config.ts).
 const LOG_CHANNELS = [
-  'audit', 'main', 'certificates', 'coroutines', 'developer', 'devices',
+  'main', 'certificates', 'coroutines', 'developer', 'devices',
   'equipment', 'exceptions', 'messages', 'mqtt', 'navigation', 'options',
   'platform', 'profiling', 'protocol', 'scraping', 'serial', 'signals', 'web',
 ];
@@ -193,13 +195,17 @@ async function captureMobile(browser) {
       }
     });
 
-    // Phone: iPhone-ish 390-wide viewport — bottom tab bar, 2-up gauges,
-    // equipment tap-tiles.
+    // Phone: iPhone-ish 390-wide viewport — bottom tab bar, equipment tap-tiles,
+    // heater+setpoints, and the CONSOLIDATED chemistry card (which replaces the
+    // circular dials on phone), so wait on that card's live value rather than the
+    // desktop dials waitLiveDashboard() keys off.
     await shot('aqualink-automate-mobile-dashboard.png', async () => {
       const { ctx, page } = await newPage(browser, base, { width: 390, height: 1180 });
       await page.goto('/');
-      await waitLiveDashboard(page);
       await page.locator('.mobile-tab-bar').waitFor({ timeout: 10_000 });
+      await page.locator('.chem-compact').waitFor({ timeout: 20_000 });
+      await page.locator('.chem-compact .chem-cell-value').filter({ hasText: /\d/ }).first().waitFor({ timeout: 20_000 });
+      await page.waitForTimeout(750);
       await tidy(page);
       await page.waitForTimeout(400);
       await page.screenshot(png('aqualink-automate-mobile-dashboard.png'));

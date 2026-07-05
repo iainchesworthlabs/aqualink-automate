@@ -991,6 +991,9 @@
                 <div class="sheet-divider"></div>
                 <button class="sheet-row" type="button" @click="$store.theme.toggle()"
                         x-text="$store.theme.isDark ? $t('nav.theme_to_light') : $t('nav.theme_to_dark')"></button>
+                <button class="sheet-row" type="button" @click="$store.system.toggleMonitorOnly()"
+                        :class="{ active: $store.system.monitorOnly }"
+                        x-text="$store.system.monitorOnly ? $t('nav.monitor_only_disable') : $t('nav.monitor_only_enable')"></button>
                 <button class="sheet-row" type="button" x-show="$store.auth.authenticated" x-cloak
                         @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('account:open'))"
                         x-text="$t('account.title')"></button>
@@ -1155,8 +1158,11 @@
                 </div>
             </template>
 
-            <!-- Temperature Setpoints \u2014 always-visible per-body steppers -->
-            <div class="card" x-show="$store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--'">
+            <!-- Temperature Setpoints \u2014 always-visible per-body steppers.
+                 On phone these fold into the Heater card (see .heater-setpoints
+                 below), so hide this standalone card there UNLESS there is no
+                 heater section to host them (setpoints without a heater button). -->
+            <div class="card" x-show="($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--') && !($store.layout.isPhone && heaterButtons().length > 0)">
                 <div class="card-header" x-text="$t('dash.temperature_setpoints')"></div>
                 <div class="card-body">
                     <!-- Pool setpoint -->
@@ -1192,6 +1198,8 @@
             <!-- Chemistry Gauges -->
             <section class="dsec sec-chem">
             <div class="section-title" x-text="$t('dash.water_chemistry')"></div>
+            <!-- Desktop/tablet: circular gauge dials + a separate SWG card. -->
+            <template x-if="!$store.layout.isPhone">
             <div class="gauge-grid mb-2">
                 <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
                     <div class="gauge-card" x-data="chemistryGauge(type)"
@@ -1254,6 +1262,57 @@
                     </div>
                 </div>
             </div>
+            </template>
+
+            <!-- Phone: one consolidated card — pH·ORP·Salt as a divided row
+                 (mirrors the temperature header), then SWG output + Set/Boost
+                 below a divider. Same chemistryGauge()/chlorinatorControl()
+                 components as the desktop dials, so no data path is duplicated. -->
+            <template x-if="$store.layout.isPhone">
+            <div class="chem-compact card mb-2">
+                <div class="chem-compact-row">
+                    <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
+                        <div class="chem-cell" x-data="chemistryGauge(type)" :class="'chem-cell--' + type">
+                            <span class="chem-cell-accent" aria-hidden="true"></span>
+                            <span class="chem-cell-label" x-text="cfg.label"></span>
+                            <span class="chem-cell-value" :style="`color:${statusColor}`"
+                                  x-text="numericValue === null ? '--' : $nf(numericValue, cfg.decimals)"></span>
+                            <span class="chem-cell-unit" x-text="unitLabel"></span>
+                            <span class="chem-cell-band" x-show="band" :class="'gauge-band-' + (band || '')" x-text="statusLabel"></span>
+                        </div>
+                    </template>
+                </div>
+                <div class="chem-compact-swg" x-data="chlorinatorControl()" x-show="present" x-cloak
+                     role="region" :aria-label="$t('dash.swg_aria')">
+                    <div class="chem-compact-divider" aria-hidden="true"></div>
+                    <div class="chem-swg-head">
+                        <span class="chem-swg-label" x-text="$t('dash.swg_output')"></span>
+                        <span class="chem-swg-value" :style="`color:${healthColor}`" x-text="actualLabel"></span>
+                        <span class="gauge-band-indicator" x-show="healthBand" :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
+                    </div>
+                    <div class="swg-target">
+                        <span class="swg-target-label" x-text="$t('dash.target')"></span>
+                        <input type="range" min="0" max="100" step="5" class="swg-slider"
+                               x-model.number="target" @input="touched = true"
+                               :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
+                               :aria-label="$t('dash.target_aria')">
+                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
+                    </div>
+                    <div class="swg-actions">
+                        <template x-if="$store.auth.can('equipment.control.chlorinator')">
+                            <div class="swg-actions-inner">
+                                <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
+                                <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
+                                        :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
+                                <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
+                                <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
+                            </div>
+                        </template>
+                        <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
+                    </div>
+                </div>
+            </div>
+            </template>
             </section>
 
             <!-- Heater Controls -->
@@ -1294,6 +1353,38 @@
                             </div>
                         </template>
                     </div>
+                    <!-- Setpoints folded into the Heater card on phone (mockup:
+                         "Heater & Setpoints"). Same store-backed steppers as the
+                         standalone card, which is hidden here at phone width. -->
+                    <template x-if="$store.layout.isPhone && ($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--')">
+                        <div class="heater-setpoints">
+                            <div class="heater-setpoints-title" x-text="$t('dash.temperature_setpoints')"></div>
+                            <div class="setpoint-row" x-show="$store.pool.poolSetpoint !== '--'">
+                                <span class="setpoint-row-label" x-text="$t('common.pool')"></span>
+                                <span class="setpoint-feedback">
+                                    <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:pool') === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                                    <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:pool') === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
+                                </span>
+                                <div class="setpoint-stepper">
+                                    <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', -0.5)">&minus;</button>
+                                    <span class="setpoint-row-value" x-text="$store.pool.poolSetpointDisplay"></span>
+                                    <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', 0.5)">+</button>
+                                </div>
+                            </div>
+                            <div class="setpoint-row" x-show="$store.pool.spaSetpoint !== '--'">
+                                <span class="setpoint-row-label" x-text="$t('common.spa')"></span>
+                                <span class="setpoint-feedback">
+                                    <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:spa') === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                                    <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:spa') === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
+                                </span>
+                                <div class="setpoint-stepper">
+                                    <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', -0.5)">&minus;</button>
+                                    <span class="setpoint-row-value" x-text="$store.pool.spaSetpointDisplay"></span>
+                                    <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', 0.5)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </template>
 

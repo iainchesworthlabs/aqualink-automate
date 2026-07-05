@@ -172,3 +172,42 @@ test.describe('RTL / Arabic (phone)', () => {
     await expect(page).toHaveScreenshot('dashboard-phone-rtl.png', { fullPage: true, maxDiffPixelRatio: 0.02, ...mask(page) });
   });
 });
+
+// Phone dashboard structural reflow (the mockup-matching Phase 2 pieces). The
+// e2e webServer runs the chemistry-only AquaRite fixture, so these cover the
+// chemistry consolidation + header condensation; the heater-setpoints fold-in
+// needs the equipment-rich OneTouch fixture and is exercised by
+// scripts/capture-responsive-screenshots.js + verify.
+test.describe('phone dashboard structure (390)', () => {
+  test.use({ viewport: { width: 390, height: 800 } });
+
+  test('chemistry collapses to one consolidated card (no circular dials)', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    await expect(page.locator('.chem-compact'), 'phone: one consolidated chemistry card').toBeVisible();
+    await expect(page.locator('.gauge-card'), 'phone: circular gauge dials replaced').toHaveCount(0);
+  });
+
+  test('top bar stays a single row with the settings toggles in the More sheet', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(400);
+    await expect(page.locator('nav.app-nav .nav-controls'), 'phone: header toggles hidden (live in More)').toBeHidden();
+    // Brand and the live/ready status cluster share one row — no wrap onto a second line.
+    const brand = await page.locator('nav.app-nav .nav-brand').boundingBox();
+    const status = await page.locator('nav.app-nav .nav-status').boundingBox();
+    expect(brand && status, 'brand + status both present').toBeTruthy();
+    expect(Math.abs(brand!.y - status!.y), 'brand and status on the same row').toBeLessThan(brand!.height);
+  });
+});
+
+test.describe('desktop dashboard structure (1280)', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('keeps the circular chemistry dials and the header control toggles', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    await expect(page.locator('.chem-compact'), 'desktop: no phone consolidated card').toHaveCount(0);
+    await expect(page.locator('.gauge-card').first(), 'desktop: circular dials present').toBeVisible();
+    await expect(page.locator('nav.app-nav .nav-controls'), 'desktop: header toggles visible').toBeVisible();
+  });
+});

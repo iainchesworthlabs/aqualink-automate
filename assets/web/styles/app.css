@@ -2102,4 +2102,13 @@ nav.app-nav .nav-hamburger:hover { color: var(--text); background: var(--surface
     nav.app-nav .nav-links { display: none; }
     .mobile-tab-bar { display: flex; }
     main { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+
+    /* Phone top bar = one non-wrapping row: brand on the left, the live/ready
+       status + alerts bell pushed to the right. The settings toggles (monitor,
+       theme, account, admin, sign-in) move out of the bar and into the "More"
+       sheet, so they no longer wrap onto a second line. */
+    nav.app-nav .nav-inner { flex-wrap: nowrap; gap: 8px; padding-inline: 16px; }
+    nav.app-nav .nav-brand { flex: 0 0 auto; }
+    nav.app-nav .nav-status { margin-inline-start: auto; flex: 0 0 auto; }
+    nav.app-nav .nav-controls { display: none; }
 }
