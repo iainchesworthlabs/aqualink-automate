@@ -52,7 +52,7 @@ namespace AqualinkAutomate::HTTP
 		// action the schedule performs.  Returns a 403 response on denial (or
 		// nullopt to proceed).  A null DataHub / auth-off posture makes this a
 		// no-op.  See scheduling/schedule_authorization.h.
-		std::optional<HTTP::Response> AuthorizeSave(const HTTP::Request& req, const Scheduling::Schedule& schedule, Kernel::DataHub* data_hub)
+		std::optional<HTTP::Response> AuthorizeSave(const HTTP::Request& req, const Scheduling::Schedule& schedule, const Kernel::DataHub* data_hub)
 		{
 			const bool auth_enabled = HTTP::Routing::GetSecurityConfig().AuthModeEnabled;
 

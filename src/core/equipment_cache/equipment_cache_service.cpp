@@ -33,7 +33,6 @@ namespace AqualinkAutomate::EquipmentCache
 	// unnamed namespace
 
 	EquipmentCacheService::EquipmentCacheService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::Equipment::EquipmentSettings& settings) :
-		m_IoContext(io_context),
 		m_Settings(settings),
 		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
 		m_Timer(io_context)

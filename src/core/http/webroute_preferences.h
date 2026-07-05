@@ -32,7 +32,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Preferences : public Interfaces::IWebRoute<PREFERENCES_ROUTE_URL>
 	{
 	public:
-		WebRoute_Preferences(std::shared_ptr<Preferences::PreferencesService> service, std::shared_ptr<Preferences::UserPreferencesStore> user_prefs = {});
+		explicit WebRoute_Preferences(std::shared_ptr<Preferences::PreferencesService> service, std::shared_ptr<Preferences::UserPreferencesStore> user_prefs = {});
 		~WebRoute_Preferences() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;

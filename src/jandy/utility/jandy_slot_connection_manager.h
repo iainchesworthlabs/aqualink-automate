@@ -10,8 +10,6 @@
 #include "utility/slot_connection_manager.h"
 #include "logging/logging.h"
 
-using namespace AqualinkAutomate::Logging;
-
 namespace AqualinkAutomate::Utility
 {
 
@@ -28,7 +26,7 @@ namespace AqualinkAutomate::Utility
 		template<typename MESSAGE_TYPE>
 		bool RegisterSlot_FilterByDeviceId(std::function<void(const MESSAGE_TYPE& msg)> handler, Devices::JandyDeviceId device_id)
 		{
-			LogDebug(Channel::Signals, std::format("Registering filtered handler for device id {} for messages of type: {}", device_id, typeid(MESSAGE_TYPE*).name()));
+			LogDebug(Logging::Channel::Signals, std::format("Registering filtered handler for device id {} for messages of type: {}", device_id, typeid(MESSAGE_TYPE*).name()));
 
 			ConnectionVariant connection = std::make_unique<FilteredSlot_ByDeviceId<MESSAGE_TYPE>>(handler, device_id);
 			auto it = m_Connections.insert(m_Connections.cend(), std::move(connection));

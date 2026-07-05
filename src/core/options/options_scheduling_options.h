@@ -14,7 +14,7 @@ namespace AqualinkAutomate::Options::Scheduling
 {
 
 	/// Scheduler settings (WS4).
-	typedef struct tagSchedulingSettings
+	struct tagSchedulingSettings
 	{
 		static const std::string& AreaName()
 		{
@@ -27,8 +27,8 @@ namespace AqualinkAutomate::Options::Scheduling
 		/// JSON file persisting the schedules. EMPTY (the default) disables the
 		/// scheduler entirely; the CRUD routes then return 503.
 		std::string schedules_file;
-	}
-	SchedulingSettings;
+	};
+	using SchedulingSettings = tagSchedulingSettings;
 
 	class OptionsProcessor
 	{

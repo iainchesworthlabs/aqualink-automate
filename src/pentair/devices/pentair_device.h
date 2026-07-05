@@ -18,7 +18,7 @@ namespace AqualinkAutomate::Pentair::Devices
 	class PentairDevice : public Interfaces::IDevice, public Interfaces::IStatusPublisher
 	{
 	public:
-		PentairDevice(const std::shared_ptr<PentairDeviceId>& device_id);
+		explicit PentairDevice(const std::shared_ptr<PentairDeviceId>& device_id);
 		~PentairDevice() override = default;
 
 		const PentairDeviceId& DeviceId() const;

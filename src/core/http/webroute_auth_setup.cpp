@@ -56,7 +56,8 @@ namespace AqualinkAutomate::HTTP
 			return;
 		}
 
-		std::string username, password;
+		std::string username;
+		std::string password;
 
 		{
 			const auto body = nlohmann::json::parse(req.body(), nullptr, false);

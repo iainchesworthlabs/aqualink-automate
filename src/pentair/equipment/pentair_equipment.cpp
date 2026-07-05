@@ -26,20 +26,20 @@ namespace AqualinkAutomate::Pentair::Equipment
 
 		m_MessageConnections.push_back(
 			Messages::PentairPumpMessage_Status::GetSignal()->connect(
-				std::bind(&PentairEquipment::IdentifyAndAddPump, this, std::placeholders::_1)));
+				std::bind_front(&PentairEquipment::IdentifyAndAddPump, this)));
 
 		m_MessageConnections.push_back(
 			Messages::PentairChlorinatorMessage_Status::GetSignal()->connect(
-				std::bind(&PentairEquipment::IdentifyAndAddChlorinator, this, std::placeholders::_1)));
+				std::bind_front(&PentairEquipment::IdentifyAndAddChlorinator, this)));
 
 		m_MessageConnections.push_back(
 			Messages::PentairControllerMessage_Status::GetSignal()->connect(
-				std::bind(&PentairEquipment::IdentifyAndAddController, this, std::placeholders::_1)));
+				std::bind_front(&PentairEquipment::IdentifyAndAddController, this)));
 	}
 
 	PentairEquipment::~PentairEquipment()
 	{
-		for (auto& connection : m_MessageConnections)
+		for (const auto& connection : m_MessageConnections)
 		{
 			connection.disconnect();
 		}

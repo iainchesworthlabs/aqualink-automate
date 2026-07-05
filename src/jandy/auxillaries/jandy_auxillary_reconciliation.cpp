@@ -87,7 +87,7 @@ namespace AqualinkAutomate::Auxillaries
 			if (!belongs)
 			{
 				if (auto hw = orphan->AuxillaryTraits.TryGet(HardwareLabelTrait{});
-					hw.has_value() && ParseAuxId(std::string{ hw.value() }) == aux_id)
+					hw.has_value() && ParseAuxId(std::string_view{ hw.value() }) == aux_id)
 				{
 					belongs = true;
 				}

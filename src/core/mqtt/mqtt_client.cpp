@@ -243,7 +243,7 @@ namespace AqualinkAutomate::Mqtt
 						pv->visit(am::overload{
 							[&accepted](am::v3_1_1::connack_packet const& p) { accepted = (p.code() == am::connect_return_code::accepted); },
 							[&accepted](am::v5::connack_packet const& p) { accepted = (p.code() == am::connect_reason_code::success); },
-							[](auto const&) {}
+							[](auto const&) { /* Non-CONNACK packets are not expected here and are ignored. */ }
 						});
 					}
 
@@ -290,7 +290,7 @@ namespace AqualinkAutomate::Mqtt
 						pv->visit(am::overload{
 							[this](am::v3_1_1::publish_packet const& p) { DeliverPublish(p.topic(), p.payload()); },
 							[this](am::v5::publish_packet const& p) { DeliverPublish(p.topic(), p.payload()); },
-							[](auto const&) {}
+							[](auto const&) { /* Only PUBLISH packets carry application messages; others are ignored. */ }
 						});
 					}
 
@@ -316,7 +316,7 @@ namespace AqualinkAutomate::Mqtt
 				m_Owner.m_PublishQueue.pop_front();
 				++m_Owner.m_DroppedCount;
 			}
-			m_Owner.m_PublishQueue.push_back({ topic, payload, retain });
+			m_Owner.m_PublishQueue.emplace_back(topic, payload, retain);
 		}
 
 		void FlushIfConnected()

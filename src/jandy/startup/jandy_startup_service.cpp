@@ -12,8 +12,7 @@ namespace AqualinkAutomate::Jandy::Startup
 {
 
 	JandyStartupService::JandyStartupService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, std::chrono::seconds chlorinator_setpoint_refresh_interval)
-		: m_IoContext(io_context)
-		, m_Timer(io_context)
+		: m_Timer(io_context)
 		, m_Environment(std::make_unique<JandyStartupEnvironment>(hub_locator, chlorinator_setpoint_refresh_interval))
 		, m_Coordinator(std::make_unique<StartupCoordinator>(*m_Environment))
 	{

@@ -36,7 +36,7 @@ namespace AqualinkAutomate::Application
 		if (const char* sd = NonEmptyEnv("STATE_DIRECTORY"); nullptr != sd)
 		{
 			const std::string_view sv{ sd };
-			dirs.emplace_back(fs::path{ std::string{ sv.substr(0, sv.find(':')) } });
+			dirs.emplace_back(std::string{ sv.substr(0, sv.find(':')) });
 		}
 
 		// 2. XDG runtime directory -- interactive user sessions. Guaranteed by the

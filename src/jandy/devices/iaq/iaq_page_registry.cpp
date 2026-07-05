@@ -30,7 +30,7 @@ namespace AqualinkAutomate::Devices::IAQ
 			}
 
 			// Navigate back out to the home page (one Back per level descended).
-			for (std::size_t i = 0; i < target.button_path.size(); ++i)
+			for ([[maybe_unused]] const auto& level : target.button_path)
 			{
 				commands.push_back(SURVEY_BACK);
 			}

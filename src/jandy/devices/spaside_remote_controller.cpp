@@ -33,7 +33,7 @@ namespace AqualinkAutomate::Devices
 
 		m_EquipmentHub->ForEachDevice([&remotes](Interfaces::IDevice& device)
 		{
-			auto* spaside = dynamic_cast<SpasideRemoteDevice*>(&device);
+			const auto* spaside = dynamic_cast<const SpasideRemoteDevice*>(&device);
 			if (nullptr == spaside)
 			{
 				return;

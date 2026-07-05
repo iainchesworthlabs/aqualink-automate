@@ -22,7 +22,7 @@ namespace AqualinkAutomate::Options::Matter
 	/// --help / the config file, and so the diagnostics route knows where to fetch the
 	/// sidecar's status/QR. The opt-out flag is also read by the Docker entrypoint to
 	/// decide whether to launch the sidecar at all.
-	typedef struct tagMatterSettings
+	struct tagMatterSettings
 	{
 		static const std::string& AreaName()
 		{
@@ -49,8 +49,9 @@ namespace AqualinkAutomate::Options::Matter
 		/// Commissioning discriminator (0-4095). 0 => the sidecar generates and persists one.
 		uint16_t discriminator{ 0 };
 
-	}
-	MatterSettings;
+	};
+
+	using MatterSettings = tagMatterSettings;
 
 	class OptionsProcessor
 	{

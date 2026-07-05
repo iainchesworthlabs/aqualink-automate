@@ -16,7 +16,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Diagnostics_Profiling : public Interfaces::IWebRoute<DIAGNOSTICS_PROFILING_ROUTE_URL>
 	{
 	public:
-		WebRoute_Diagnostics_Profiling(Kernel::HubLocator& hub_locator);
+		explicit WebRoute_Diagnostics_Profiling(Kernel::HubLocator& hub_locator);
 		~WebRoute_Diagnostics_Profiling() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;

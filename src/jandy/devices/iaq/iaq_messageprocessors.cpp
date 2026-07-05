@@ -28,7 +28,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_Probe(const Messages::JandyMessage_Probe& msg)
+	void IAQDevice::Slot_IAQ_Probe(const Messages::JandyMessage_Probe& /*msg*/)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_Probe", std::source_location::current(), UnitColours::Red);
 

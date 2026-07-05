@@ -104,7 +104,7 @@ namespace AqualinkAutomate::Auth
 		std::string MintAccessToken(const UserRecord& user) const;
 
 	private:
-		void FinishLogin(bool verified, UserRecord user, std::string peer_ip, std::string user_agent, LoginCompletion& completion);
+		void FinishLogin(bool verified, const UserRecord& user, const std::string& peer_ip, std::string user_agent, const LoginCompletion& completion);
 
 		void RecordFailure(const std::string& username_key);
 		bool IsLockedOut(const std::string& username_key);

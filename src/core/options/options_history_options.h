@@ -15,7 +15,7 @@ namespace AqualinkAutomate::Options::History
 {
 
 	/// Time-series history / persistence settings (WS2).
-	typedef struct tagHistorySettings
+	struct tagHistorySettings
 	{
 		static const std::string& AreaName()
 		{
@@ -34,8 +34,8 @@ namespace AqualinkAutomate::Options::History
 
 		/// Buffered-sample flush interval (seconds).
 		std::uint32_t flush_seconds{ 10 };
-	}
-	HistorySettings;
+	};
+	using HistorySettings = tagHistorySettings;
 
 	class OptionsProcessor
 	{

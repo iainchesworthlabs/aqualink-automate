@@ -17,7 +17,8 @@ namespace AqualinkAutomate::Scheduling
 
 			const auto h = std::string_view(text).substr(0, colon);
 			const auto m = std::string_view(text).substr(colon + 1);
-			int hour = 0, minute = 0;
+			int hour = 0;
+			int minute = 0;
 			if (h.empty() || m.empty()) { return false; }
 			if (std::from_chars(h.data(), h.data() + h.size(), hour).ec != std::errc{}) { return false; }
 			if (std::from_chars(m.data(), m.data() + m.size(), minute).ec != std::errc{}) { return false; }

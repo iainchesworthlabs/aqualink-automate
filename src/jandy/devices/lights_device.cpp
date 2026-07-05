@@ -137,7 +137,7 @@ namespace AqualinkAutomate::Devices
 			return;
 		}
 
-		auto& device = lights.front();
+		const auto& device = lights.front();
 		device->AuxillaryTraits.Set(AuxillaryStatusTrait{}, ConvertToAuxillaryStatus(msg.State()));
 		device->AuxillaryTraits.Set(ColourTrait{}, msg.LightMode());
 	}

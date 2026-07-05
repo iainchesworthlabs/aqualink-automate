@@ -136,7 +136,7 @@ namespace AqualinkAutomate::Jandy::Startup
 		// revision in the first place; the gate only bites on a re-plan once Rev < I is known.)
 		if (!RevisionGatesOutEmulation(profile.revision_caps, DeviceType::SerialAdapter))
 		{
-			plan.devices.push_back(PlannedDevice{ DeviceType::SerialAdapter, SERIALADAPTER_IDS, 0x00, false, "panel model + command channel" });
+			plan.devices.emplace_back(DeviceType::SerialAdapter, SERIALADAPTER_IDS, 0x00, false, "panel model + command channel");
 		}
 		else
 		{
@@ -148,7 +148,7 @@ namespace AqualinkAutomate::Jandy::Startup
 			if (!RevisionGatesOutEmulation(profile.revision_caps, DeviceType::IAQ))
 			{
 				plan.method = DataGatheringMethod::PagePush;
-				plan.devices.push_back(PlannedDevice{ DeviceType::IAQ, AQUALINKTOUCH_IDS, 0x00, false, "live status via AqualinkTouch page-push (no menu crawl)" });
+				plan.devices.emplace_back(DeviceType::IAQ, AQUALINKTOUCH_IDS, 0x00, false, "live status via AqualinkTouch page-push (no menu crawl)");
 				plan.rationale += profile.probes_aqualinktouch
 					? "master probes the AqualinkTouch range (0x30-0x33): source status from pushed pages, navigating to specific pages on demand"
 					: "no controller probed yet, but revision is Touch-capable (Rev Q+): provisionally use AqualinkTouch page-push, to be confirmed once the touch range is probed";
@@ -164,7 +164,7 @@ namespace AqualinkAutomate::Jandy::Startup
 			if (!RevisionGatesOutEmulation(profile.revision_caps, DeviceType::OneTouch))
 			{
 				plan.method = DataGatheringMethod::MenuSpider;
-				plan.devices.push_back(PlannedDevice{ DeviceType::OneTouch, ONETOUCH_IDS, 0x00, false, "live status via OneTouch menu scrape" });
+				plan.devices.emplace_back(DeviceType::OneTouch, ONETOUCH_IDS, 0x00, false, "live status via OneTouch menu scrape");
 				plan.rationale += "master probes the OneTouch range (0x40-0x43) but not AqualinkTouch: fall back to autonomous menu spidering";
 			}
 			else
@@ -176,7 +176,7 @@ namespace AqualinkAutomate::Jandy::Startup
 		else if (profile.probes_pda)
 		{
 			plan.method = DataGatheringMethod::PdaGraph;
-			plan.devices.push_back(PlannedDevice{ DeviceType::PDA, PDA_IDS, 0x00, false, "live status via PDA page-graph scrape" });
+			plan.devices.emplace_back(DeviceType::PDA, PDA_IDS, 0x00, false, "live status via PDA page-graph scrape");
 			plan.rationale += "master probes the PDA range (0x60-0x63): use the PDA page-graph scraper";
 		}
 		else

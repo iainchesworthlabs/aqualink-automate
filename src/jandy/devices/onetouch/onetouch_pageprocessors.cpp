@@ -509,7 +509,7 @@ namespace AqualinkAutomate::Devices
 			return;
 		}
 
-		auto& device = chlorinators.front();
+		const auto& device = chlorinators.front();
 		if (pool_pct.has_value())
 		{
 			device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, pool_pct.value());
@@ -841,7 +841,7 @@ namespace AqualinkAutomate::Devices
 
 		std::vector<Scheduling::ControllerSchedule> schedules;
 		schedules.reserve(m_ControllerSchedules.size());
-		for (auto& [entry_key, schedule] : m_ControllerSchedules)
+		for (const auto& [entry_key, schedule] : m_ControllerSchedules)
 		{
 			auto snapshot = schedule;
 			snapshot.group = m_ControllerScheduleGroup;

@@ -40,12 +40,12 @@ namespace AqualinkAutomate::Options::Mqtt
 	/// /api/diagnostics/mqtt response (magic_enum would yield "v3_1_1"/"v5").
 	[[nodiscard]] constexpr std::string_view ToString(ProtocolVersion version) noexcept
 	{
-		switch (version)
+		if (ProtocolVersion::v5 == version)
 		{
-		case ProtocolVersion::v5:    return "5.0";
-		case ProtocolVersion::v3_1_1:
-		default:                     return "3.1.1";
+			return "5.0";
 		}
+
+		return "3.1.1";
 	}
 
 	/// boost::program_options validator for ProtocolVersion. Declared in the

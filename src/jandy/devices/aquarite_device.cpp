@@ -107,7 +107,7 @@ namespace AqualinkAutomate::Devices
 
 		if (auto chlorinators = m_DataHub->Chlorinators(); !chlorinators.empty())
 		{
-			auto& device = chlorinators.front();
+			const auto& device = chlorinators.front();
 			device->AuxillaryTraits.Set(ChlorinatorStatusTrait{}, Kernel::ChlorinatorStatuses::Off);
 			device->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Unknown);
 		}

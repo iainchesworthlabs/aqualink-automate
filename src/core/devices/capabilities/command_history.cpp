@@ -9,7 +9,7 @@ namespace AqualinkAutomate::Devices::Capabilities
 
 	void CommandHistory::RecordCommand(std::string description, std::string outcome)
 	{
-		m_Entries.push_back(Entry{ std::chrono::system_clock::now(), std::move(description), std::move(outcome) });
+		m_Entries.emplace_back(std::chrono::system_clock::now(), std::move(description), std::move(outcome));
 
 		while (m_Entries.size() > MAX_ENTRIES)
 		{

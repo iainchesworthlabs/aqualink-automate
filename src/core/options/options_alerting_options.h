@@ -15,7 +15,7 @@ namespace AqualinkAutomate::Options::Alerting
 {
 
 	/// Fault-detection / alerting settings (WS3).
-	typedef struct tagAlertingSettings
+	struct tagAlertingSettings
 	{
 		static const std::string& AreaName()
 		{
@@ -36,8 +36,9 @@ namespace AqualinkAutomate::Options::Alerting
 		/// Seconds with no decoded protocol message before serial_comms_loss
 		/// raises.  Must be > 0.
 		std::uint32_t comms_timeout_seconds{ 60 };
-	}
-	AlertingSettings;
+	};
+
+	using AlertingSettings = tagAlertingSettings;
 
 	class OptionsProcessor
 	{

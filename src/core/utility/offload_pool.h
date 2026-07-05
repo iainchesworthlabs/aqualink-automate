@@ -24,7 +24,7 @@ namespace AqualinkAutomate::Utility
 	//
 	//     offload.Run(io_context.get_executor(),
 	//                 []            { return Argon2Verify(hash, password); },
-	//                 [](bool okay) { /* back on the kernel thread */ });
+	//                 [](bool okay) { ... back on the kernel thread ... });
 	//=========================================================================
 	class OffloadPool
 	{

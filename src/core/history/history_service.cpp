@@ -43,7 +43,6 @@ namespace AqualinkAutomate::History
 	// unnamed namespace
 
 	HistoryService::HistoryService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::History::HistorySettings& settings) :
-		m_IoContext(io_context),
 		m_Settings(settings),
 		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
 		m_PreferencesHub(hub_locator.Find<Kernel::PreferencesHub>()),
@@ -319,7 +318,7 @@ namespace AqualinkAutomate::History
 		try
 		{
 			const std::int64_t series_id = EnsureSeries(key, unit);
-			m_Buffer.push_back(Buffered{ series_id, now, value });
+			m_Buffer.emplace_back(series_id, now, value);
 			m_LastSampleTs[key] = now;
 		}
 		catch (const std::exception& ex)
@@ -338,7 +337,7 @@ namespace AqualinkAutomate::History
 		try
 		{
 			const std::int64_t series_id = EnsureSeries(key, "state");
-			m_Buffer.push_back(Buffered{ series_id, m_Clock(), value });
+			m_Buffer.emplace_back(series_id, m_Clock(), value);
 			m_LastSampleTs[key] = m_Clock();
 		}
 		catch (const std::exception& ex)
@@ -370,7 +369,7 @@ namespace AqualinkAutomate::History
 				}
 			}
 
-			m_Buffer.push_back(Buffered{ series_id, m_Clock(), value });
+			m_Buffer.emplace_back(series_id, m_Clock(), value);
 			m_LastSampleTs[key] = m_Clock();
 		}
 		catch (const std::exception& ex)

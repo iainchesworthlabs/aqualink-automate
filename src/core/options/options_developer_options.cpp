@@ -52,7 +52,7 @@ namespace AqualinkAutomate::Options::Developer
 					std::format("Set the logging level for Channel::{}", channel_name),
 					boost::program_options::value<AqualinkAutomate::Logging::Severity>()->multitoken());
 
-				OPTION_LOGLEVELS.emplace(log_channel, option);
+				OPTION_LOGLEVELS.try_emplace(log_channel, option);
 			});
 
 		DeveloperOptionsCollection =

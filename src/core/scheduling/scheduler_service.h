@@ -77,7 +77,6 @@ namespace AqualinkAutomate::Scheduling
 		void Fire(const Schedule& schedule) const;
 
 	private:
-		boost::asio::io_context& m_IoContext;
 		Options::Scheduling::SchedulingSettings m_Settings;
 		std::shared_ptr<Kernel::DataHub> m_DataHub;
 		std::shared_ptr<Interfaces::ICommandDispatcher> m_Dispatcher;

@@ -29,8 +29,8 @@ namespace AqualinkAutomate::HTTP
 			{
 				switch (c)
 				{
-				case '\\': out += "\\\\"; break;
-				case '"':  out += "\\\""; break;
+				case '\\': out += R"(\\)"; break;
+				case '"':  out += R"(\")"; break;
 				case '\n': out += "\\n";  break;
 				default:   out += c;      break;
 				}
@@ -64,13 +64,13 @@ namespace AqualinkAutomate::HTTP
 		// to the nanosecond, so format with up to 3 decimals and trim.
 		std::string FormatDouble(double value)
 		{
-			char buf[32];
-			auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), value, std::chars_format::fixed, 3);
+			std::array<char, 32> buf;
+			auto [ptr, ec] = std::to_chars(buf.data(), buf.data() + buf.size(), value, std::chars_format::fixed, 3);
 			if (ec != std::errc{})
 			{
 				return "0";
 			}
-			std::string_view sv{ buf, static_cast<std::size_t>(ptr - buf) };
+			std::string_view sv{ buf.data(), static_cast<std::size_t>(ptr - buf.data()) };
 			// Trim trailing zeros / dangling decimal point for a tidy "12.5" / "0".
 			std::size_t end = sv.size();
 			if (sv.contains('.'))

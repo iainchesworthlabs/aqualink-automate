@@ -220,7 +220,7 @@ namespace AqualinkAutomate::HTTP::Routing
 		// checking (legacy callers) and the historical unchecked behaviour is kept.
 		// On overflow the write is dropped and the cursor is clamped at end so the
 		// invariant it <= end holds and subsequent bookmark arithmetic stays in range.
-		static void WriteCapture(std::string_view*& it, std::string_view* end, std::string_view value)
+		static void WriteCapture(std::string_view*& it, const std::string_view* end, std::string_view value)
 		{
 			BOOST_ASSERT(end == nullptr || it != end);
 			if (end == nullptr || it != end)
@@ -232,7 +232,7 @@ namespace AqualinkAutomate::HTTP::Routing
 
 		// Bounded write to an already-claimed slot (e.g. a rewind bookmark). Guards
 		// the dereference without advancing the cursor.
-		static void WriteCaptureAt(std::string_view* slot, std::string_view* end, std::string_view value)
+		static void WriteCaptureAt(std::string_view* slot, const std::string_view* end, std::string_view value)
 		{
 			BOOST_ASSERT(end == nullptr || slot < end);
 			if (end == nullptr || slot < end)

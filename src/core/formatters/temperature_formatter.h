@@ -11,7 +11,7 @@ namespace AqualinkAutomate::Formatters
 {
 
 	// The degree symbol (U+00B0) emitted between the numeric value and the unit glyph.
-	inline constexpr std::string_view TEMPERATURE_DEGREE_SYMBOL{ "\u00B0" };
+	inline constexpr std::string_view TEMPERATURE_DEGREE_SYMBOL{ "\u{B0}" };
 
 	// Maps a TemperatureUnits enumerator to its single-character unit glyph. The mapping is total
 	// over the enum (only Celsius / Fahrenheit exist), so the formatter needs no unreachable

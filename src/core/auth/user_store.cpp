@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <memory>
 
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -123,7 +124,7 @@ namespace AqualinkAutomate::Auth
 			return false;
 		}
 
-		if (WouldLoseLastAdmin(&(*it), &user, registry))
+		if (WouldLoseLastAdmin(std::to_address(it), &user, registry))
 		{
 			error = "Refused: this change would remove the last enabled administrator";
 			return false;
@@ -145,7 +146,7 @@ namespace AqualinkAutomate::Auth
 			return false;
 		}
 
-		if (WouldLoseLastAdmin(&(*it), nullptr, registry))
+		if (WouldLoseLastAdmin(std::to_address(it), nullptr, registry))
 		{
 			error = "Refused: this change would remove the last enabled administrator";
 			return false;

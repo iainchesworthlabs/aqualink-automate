@@ -31,7 +31,6 @@ namespace AqualinkAutomate::Jandy::Startup
 		void Tick();
 
 	private:
-		boost::asio::io_context& m_IoContext;
 		boost::asio::steady_timer m_Timer;
 		std::unique_ptr<JandyStartupEnvironment> m_Environment;
 		std::unique_ptr<StartupCoordinator> m_Coordinator;

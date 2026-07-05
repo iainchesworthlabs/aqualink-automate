@@ -106,7 +106,7 @@ namespace AqualinkAutomate::Options::App
 		}
 	}
 
-	void HandleLogSourceRegistration(boost::program_options::variables_map& vm)
+	void HandleLogSourceRegistration(const boost::program_options::variables_map& vm)
 	{
 		const bool do_register = (0 < vm.count("register-log-source"));
 
@@ -146,7 +146,7 @@ namespace AqualinkAutomate::Options::App
 		throw Exceptions::OptionsHelpOrVersion();
 	}
 
-	void HandleServiceInstallation(boost::program_options::variables_map& vm)
+	void HandleServiceInstallation(const boost::program_options::variables_map& vm)
 	{
 		const bool do_install = (0 < vm.count("install-service"));
 		const bool do_uninstall = (0 < vm.count("uninstall-service"));

@@ -86,7 +86,6 @@ namespace AqualinkAutomate::Alerting
 	// unnamed namespace
 
 	AlertMonitor::AlertMonitor(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::Alerting::AlertingSettings& settings) :
-		m_IoContext(io_context),
 		m_Settings(settings),
 		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
 		m_EquipmentHub(hub_locator.Find<Kernel::EquipmentHub>()),
@@ -99,7 +98,7 @@ namespace AqualinkAutomate::Alerting
 		// from a known (cleared) baseline.
 		for (const auto& condition : AlertConditions)
 		{
-			m_Latched.emplace(std::string{ condition.key }, false);
+			m_Latched.try_emplace(std::string{ condition.key }, false);
 		}
 	}
 
@@ -380,7 +379,7 @@ namespace AqualinkAutomate::Alerting
 		auto it = m_Latched.find(key);
 		if (it == m_Latched.end())
 		{
-			it = m_Latched.emplace(std::string{ key }, false).first;
+			it = m_Latched.try_emplace(std::string{ key }, false).first;
 		}
 
 		if (it->second == raised)

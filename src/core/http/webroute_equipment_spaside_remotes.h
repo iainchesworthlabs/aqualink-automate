@@ -29,7 +29,7 @@ namespace AqualinkAutomate::HTTP
 	public:
 		// preferences_service may be null (e.g. dev-mode/tests) -> assign requests still program the
 		// controller, they just are not persisted.
-		WebRoute_Equipment_SpasideRemotes(Kernel::HubLocator& hub_locator, std::shared_ptr<Preferences::PreferencesService> preferences_service = nullptr);
+		explicit WebRoute_Equipment_SpasideRemotes(Kernel::HubLocator& hub_locator, std::shared_ptr<Preferences::PreferencesService> preferences_service = nullptr);
 		~WebRoute_Equipment_SpasideRemotes() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;

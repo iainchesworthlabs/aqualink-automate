@@ -16,7 +16,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Diagnostics_Recording : public Interfaces::IWebRoute<DIAGNOSTICS_RECORDING_ROUTE_URL>
 	{
 	public:
-		WebRoute_Diagnostics_Recording(Kernel::HubLocator& hub_locator);
+		explicit WebRoute_Diagnostics_Recording(Kernel::HubLocator& hub_locator);
 		~WebRoute_Diagnostics_Recording() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;

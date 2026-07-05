@@ -164,7 +164,8 @@ namespace AqualinkAutomate::Alerting
 			host = parsed->host();
 			if (host.empty()) { return false; }
 
-			port = parsed->has_port() ? std::string{ parsed->port() } : (use_tls ? "443" : "80");
+			const char* const default_port = use_tls ? "443" : "80";
+			port = parsed->has_port() ? std::string{ parsed->port() } : std::string{ default_port };
 
 			std::string t{ parsed->path() };
 			if (t.empty()) { t = "/"; }

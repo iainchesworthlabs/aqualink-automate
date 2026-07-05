@@ -22,9 +22,9 @@ namespace AqualinkAutomate::Devices
 			// We ARE the remote: ACK the master's discovery probe and its cmd-0x02 LED-image
 			// poll, injecting any pending button press into the [0x01][0x00][button] reply.
 			m_SlotManager.RegisterSlot_FilterByDeviceId<Messages::JandyMessage_Probe>(
-				std::bind(&SpasideRemoteDevice::Slot_Spaside_EmulatedProbe, this, std::placeholders::_1), (*device_id)());
+				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_EmulatedProbe, this), (*device_id)());
 			m_SlotManager.RegisterSlot_FilterByDeviceId<Messages::JandyMessage_Status>(
-				std::bind(&SpasideRemoteDevice::Slot_Spaside_EmulatedPoll, this, std::placeholders::_1), (*device_id)());
+				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_EmulatedPoll, this), (*device_id)());
 		}
 		else
 		{
@@ -32,12 +32,12 @@ namespace AqualinkAutomate::Devices
 			// Status addressed to our id; use it purely as the "we were just polled" trigger that
 			// arms the button-Ack correlation.
 			m_SlotManager.RegisterSlot_FilterByDeviceId<Messages::JandyMessage_Status>(
-				std::bind(&SpasideRemoteDevice::Slot_Spaside_Status, this, std::placeholders::_1), (*device_id)());
+				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_Status, this), (*device_id)());
 
 			// Button presses are reported as a generic Ack (cmd 0x01) addressed to the MASTER
 			// (0x00), so we CANNOT filter by our own id -- register unfiltered and correlate.
 			m_SlotManager.RegisterSlot<Messages::JandyMessage_Ack>(
-				std::bind(&SpasideRemoteDevice::Slot_Spaside_Ack, this, std::placeholders::_1));
+				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_Ack, this));
 		}
 	}
 
@@ -47,7 +47,7 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, [this, button_index]() { return std::format("SpasideRemote (0x{:02x}): queued emulated press of button {}", DeviceId().Id()(), button_index); });
 	}
 
-	void SpasideRemoteDevice::Slot_Spaside_EmulatedProbe(const Messages::JandyMessage_Probe& msg)
+	void SpasideRemoteDevice::Slot_Spaside_EmulatedProbe(const Messages::JandyMessage_Probe& /*msg*/)
 	{
 		SendButtonAck();
 	}
@@ -77,10 +77,14 @@ namespace AqualinkAutomate::Devices
 
 	void SpasideRemoteDevice::ProcessControllerUpdates()
 	{
+		// Intentionally empty: the spa-side remote is driven entirely by inbound slots (probe/poll/
+		// ack); it has no periodic controller-update work to perform on the poll loop.
 	}
 
 	void SpasideRemoteDevice::WatchdogTimeoutOccurred()
 	{
+		// Intentionally empty: a spa-side remote may legitimately be absent/idle for long periods,
+		// so a watchdog timeout carries no recovery action for this device.
 	}
 
 	void SpasideRemoteDevice::Slot_Spaside_Status(const Messages::JandyMessage_Status& msg)
@@ -113,9 +117,18 @@ namespace AqualinkAutomate::Devices
 		for (std::size_t i = 0; i < m_Leds.size(); ++i)
 		{
 			const uint8_t bits = static_cast<uint8_t>((led_byte >> (2 * i)) & 0x03);
-			m_Leds[i] = (0x00 == bits) ? Off
-				: (0x01 == bits) ? On
-				: Blink;
+			if (0x00 == bits)
+			{
+				m_Leds[i] = Off;
+			}
+			else if (0x01 == bits)
+			{
+				m_Leds[i] = On;
+			}
+			else
+			{
+				m_Leds[i] = Blink;
+			}
 		}
 	}
 

@@ -304,36 +304,33 @@ namespace AqualinkAutomate::Devices
 		{
 			action = SerialAdapter_CommandTypes::SetOff;
 		}
-		else if (requested_action == Capabilities::ActuationAction::Toggle)
+		else if (requested_action == Capabilities::ActuationAction::Toggle && device->AuxillaryTraits.Has(AuxillaryTypeTrait{}))
 		{
 			// Auto-detect: default to SetOn; if device is already on, use SetOff.
-			if (device->AuxillaryTraits.Has(AuxillaryTypeTrait{}))
+			auto device_type = *(device->AuxillaryTraits[AuxillaryTypeTrait{}]);
+
+			using enum AuxillaryTypes;
+			switch (device_type)
 			{
-				auto device_type = *(device->AuxillaryTraits[AuxillaryTypeTrait{}]);
-
-				using enum AuxillaryTypes;
-				switch (device_type)
+			case Auxillary:
+			case Cleaner:
+			case Spillover:
+			case Sprinkler:
+				if (auto status = device->AuxillaryTraits.TryGet(AuxillaryStatusTrait{}); status.has_value() && *status == Kernel::AuxillaryStatuses::On)
 				{
-				case Auxillary:
-				case Cleaner:
-				case Spillover:
-				case Sprinkler:
-					if (auto status = device->AuxillaryTraits.TryGet(AuxillaryStatusTrait{}); status.has_value() && *status == Kernel::AuxillaryStatuses::On)
-					{
-						action = SerialAdapter_CommandTypes::SetOff;
-					}
-					break;
-
-				case Pump:
-					if (auto status = device->AuxillaryTraits.TryGet(PumpStatusTrait{}); status.has_value() && *status == Kernel::PumpStatuses::Running)
-					{
-						action = SerialAdapter_CommandTypes::SetOff;
-					}
-					break;
-
-				default:
-					break;
+					action = SerialAdapter_CommandTypes::SetOff;
 				}
+				break;
+
+			case Pump:
+				if (auto status = device->AuxillaryTraits.TryGet(PumpStatusTrait{}); status.has_value() && *status == Kernel::PumpStatuses::Running)
+				{
+					action = SerialAdapter_CommandTypes::SetOff;
+				}
+				break;
+
+			default:
+				break;
 			}
 		}
 
@@ -357,7 +354,7 @@ namespace AqualinkAutomate::Devices
 		{
 			auto device_type = *(device->AuxillaryTraits[AuxillaryTypeTrait{}]);
 			auto label_opt = device->AuxillaryTraits.TryGet(LabelTrait{});
-			std::string label = label_opt.has_value() ? *label_opt : "";
+			std::string label = label_opt.value_or("");
 
 			switch (device_type)
 			{

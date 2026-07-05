@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <format>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -221,7 +222,7 @@ namespace AqualinkAutomate::HTTP::Routing
 		template<typename SV>
 		[[nodiscard]] std::string_view ToStringView(const SV& sv) noexcept
 		{
-			return std::string_view{ sv.data(), sv.size() };
+			return std::string_view{ std::data(sv), std::size(sv) };
 		}
 
 		// Look up a header value as a std::string_view, returning an empty view when
@@ -695,8 +696,8 @@ namespace AqualinkAutomate::HTTP::Routing
 			}
 			else
 			{
-				// Unmatched path -> still enforce security so an unknown /api/* path
-				// answers 401 (not 404) when a token is required.
+				// Unmatched path -> still enforce security so an unknown path under
+				// /api answers 401 (not 404) when a token is required.
 				if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
 				{
 					respond(std::move(*rejection));
@@ -704,7 +705,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				}
 
 				// Same non-leak rule under the identity system: an unauthenticated
-				// subject probing an unknown /api/* path gets 401 (not 404) so the
+				// subject probing an unknown path under /api gets 401 (not 404) so the
 				// route surface is not enumerable without credentials.
 				if (security_config.AuthModeEnabled)
 				{
@@ -816,7 +817,7 @@ namespace AqualinkAutomate::HTTP::Routing
 
 			Interfaces::AccessRequirement required{};
 
-			if (auto* ws = WS_OnAccept(ToStringView(req.target())); nullptr != ws)
+			if (const auto* ws = WS_OnAccept(ToStringView(req.target())); nullptr != ws)
 			{
 				required = ws->RequiredAccess();
 

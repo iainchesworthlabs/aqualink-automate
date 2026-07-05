@@ -110,7 +110,6 @@ namespace AqualinkAutomate::History
 		void SchedulePurge();
 
 	private:
-		boost::asio::io_context& m_IoContext;
 		Options::History::HistorySettings m_Settings;
 		std::shared_ptr<Kernel::DataHub> m_DataHub;
 		std::shared_ptr<Kernel::PreferencesHub> m_PreferencesHub;

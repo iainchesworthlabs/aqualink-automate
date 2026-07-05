@@ -76,7 +76,8 @@ namespace AqualinkAutomate::HTTP
 			return;
 		}
 
-		std::string pin, target_group;
+		std::string pin;
+		std::string target_group;
 
 		{
 			const auto body = nlohmann::json::parse(req.body(), nullptr, false);

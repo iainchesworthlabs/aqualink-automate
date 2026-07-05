@@ -23,10 +23,6 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::HTTP
 {
 
-	namespace
-	{
-	}
-
 	// TryFind (not Find): a spa-side controller is only present when the Jandy stack is running.
 	// In dev-mode/replay there is none, and the route should still construct and report an empty
 	// list rather than throw.

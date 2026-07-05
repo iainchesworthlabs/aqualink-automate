@@ -122,7 +122,7 @@ namespace AqualinkAutomate::Pentair::Devices
 			return;
 		}
 
-		auto& device = chlorinators.front();
+		const auto& device = chlorinators.front();
 		device->AuxillaryTraits.Set(GeneratingPercentageTrait{}, msg.OutputPercent());
 		device->AuxillaryTraits.Set(DutyCycleTrait{}, msg.OutputPercent());
 		device->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, FlagsToHealth(msg));

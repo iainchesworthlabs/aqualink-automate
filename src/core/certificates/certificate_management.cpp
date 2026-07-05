@@ -40,7 +40,7 @@ namespace AqualinkAutomate::Certificates
 		using BioPtr = std::unique_ptr<BIO, decltype(&BIO_free_all)>;
 
 		// SHA-256 fingerprint of a certificate, as colon-separated uppercase hex.
-		std::string CertificateFingerprint(X509* cert)
+		std::string CertificateFingerprint(const X509* cert)
 		{
 			std::array<unsigned char, EVP_MAX_MD_SIZE> md{};
 			unsigned int md_len = 0;

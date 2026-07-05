@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <format>
 #include <memory>
 #include <optional>
@@ -69,7 +70,7 @@ namespace AqualinkAutomate::Mqtt
 			{
 				if (component.contains("p") && component["p"].is_string())
 				{
-					current_keys.emplace(key, component["p"].get<std::string>());
+					current_keys.try_emplace(key, component["p"].get<std::string>());
 				}
 			}
 			for (const auto& [key, platform] : m_PublishedComponentKeys)
@@ -202,7 +203,7 @@ namespace AqualinkAutomate::Mqtt
 			{
 				if (component.is_object() && component.contains("p") && component["p"].is_string())
 				{
-					m_PublishedComponentKeys.emplace(key, component["p"].get<std::string>());
+					m_PublishedComponentKeys.try_emplace(key, component["p"].get<std::string>());
 					++adopted;
 				}
 			}
@@ -280,11 +281,11 @@ namespace AqualinkAutomate::Mqtt
 			bool emit;
 		};
 
-		const FreshnessSensor freshness[] = {
+		const std::array<FreshnessSensor, 3> freshness = {{
 			{ "Pool Temperature", "pool", "pool_temp", has_pool },
 			{ "Spa Temperature",  "spa",  "spa_temp",  has_spa },
 			{ "Air Temperature",  "air",  "air_temp",  true },
-		};
+		}};
 
 		for (const auto& f : freshness)
 		{
@@ -364,7 +365,7 @@ namespace AqualinkAutomate::Mqtt
 		const auto prefs = m_PreferencesHub.lock();
 		const bool fahrenheit = prefs && (prefs->Temperature_DisplayUnits == Kernel::TemperatureUnits::Fahrenheit);
 		const char* setpoint_unit_field = fahrenheit ? "fahrenheit" : "celsius";
-		const char* setpoint_unit_symbol = fahrenheit ? "\u00B0F" : "\u00B0C";
+		const char* setpoint_unit_symbol = fahrenheit ? "\u{B0}F" : "\u{B0}C";
 		const double setpoint_min = fahrenheit ? 59.0 : 15.0;   // 15\u201341 \u00B0C \u2259 59\u2013105.8 \u00B0F
 		const double setpoint_max = fahrenheit ? 106.0 : 41.0;
 		const double setpoint_step = fahrenheit ? 1.0 : 0.5;
@@ -402,7 +403,7 @@ namespace AqualinkAutomate::Mqtt
 			{"unique_id", UniqueId("pool_setpoint_2")},
 			{"state_topic", temperatures_topic},
 			{"value_template", "{{ value_json.pool_setpoint_2.celsius if value_json.pool_setpoint_2 else '' }}"},
-			{"unit_of_measurement", "\u00B0C"},
+			{"unit_of_measurement", "\u{B0}C"},
 			{"device_class", "temperature"},
 			{"state_class", "measurement"}
 		};
@@ -706,11 +707,11 @@ namespace AqualinkAutomate::Mqtt
 			bool measurement;        // true => state_class "measurement"
 		};
 
-		static constexpr ChlorinatorSensor sensors[] = {
+		static constexpr std::array<ChlorinatorSensor, 3> sensors = {{
 			{ "generating", "Generating %", "{{ value_json.generating_percentage }}", "%", true },
 			{ "boost",      "Boost Mode",   "{{ value_json.boost_mode }}",            nullptr, false },
 			{ "health",     "Health",       "{{ value_json.chlorinator_health }}",    nullptr, false },
-		};
+		}};
 
 		for (const auto& sensor : sensors)
 		{

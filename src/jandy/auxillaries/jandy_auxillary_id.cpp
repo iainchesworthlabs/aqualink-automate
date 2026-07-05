@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <format>
+#include <string>
 #include <utility>
 
 #include "kernel/auxillary_devices/stable_id.h"
@@ -42,7 +43,7 @@ namespace AqualinkAutomate::Auxillaries
 		// "Extra Aux" / "ExtraAux" (accept with or without the interior space).
 		{
 			std::string compact = s;
-			compact.erase(std::ranges::remove(compact, ' ').begin(), compact.end());
+			std::erase(compact, ' ');
 			if (compact == "ExtraAux") { return JandyAuxillaryIds::ExtraAux; }
 		}
 

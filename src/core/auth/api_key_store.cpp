@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <array>
+#include <span>
 #include <stdexcept>
 
 #include <boost/uuid/random_generator.hpp>
@@ -18,17 +20,17 @@ namespace AqualinkAutomate::Auth
 		constexpr std::string_view BOOTSTRAP_KEY_ID{ "bootstrap-legacy-token" };
 		constexpr std::size_t KEY_RANDOM_BYTES{ 32 };
 
-		std::string ToHex(const std::uint8_t* data, std::size_t length)
+		std::string ToHex(std::span<const std::uint8_t> data)
 		{
-			static constexpr char HEX_DIGITS[] = "0123456789abcdef";
+			static constexpr std::string_view HEX_DIGITS{ "0123456789abcdef" };
 
 			std::string hex;
-			hex.reserve(length * 2);
+			hex.reserve(data.size() * 2);
 
-			for (std::size_t i = 0; i < length; ++i)
+			for (const std::uint8_t byte : data)
 			{
-				hex.push_back(HEX_DIGITS[data[i] >> 4]);
-				hex.push_back(HEX_DIGITS[data[i] & 0x0F]);
+				hex.push_back(HEX_DIGITS[byte >> 4]);
+				hex.push_back(HEX_DIGITS[byte & 0x0F]);
 			}
 
 			return hex;
@@ -91,15 +93,15 @@ namespace AqualinkAutomate::Auth
 
 	std::string ApiKeyStore::Create(std::string label, EntitlementSet entitlements, std::int64_t expiry_unix, std::string& out_key_id)
 	{
-		std::uint8_t random_bytes[KEY_RANDOM_BYTES];
+		std::array<std::uint8_t, KEY_RANDOM_BYTES> random_bytes{};
 
-		if (1 != RAND_bytes(random_bytes, static_cast<int>(sizeof(random_bytes))))
+		if (1 != RAND_bytes(random_bytes.data(), static_cast<int>(random_bytes.size())))
 		{
 			throw std::runtime_error("OpenSSL RAND_bytes failed while generating an API key");
 		}
 
 		// Hex keeps the secret URL/header-safe without a base64url helper.
-		const std::string secret = std::string{ KEY_PREFIX } + ToHex(random_bytes, sizeof(random_bytes));
+		const std::string secret = std::string{ KEY_PREFIX } + ToHex(random_bytes);
 
 		ApiKeyRecord key;
 		key.Id = boost::uuids::to_string(boost::uuids::random_generator()());

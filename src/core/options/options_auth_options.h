@@ -15,7 +15,7 @@ namespace AqualinkAutomate::Options::Auth
 {
 
 	/// Identity-system (authN/authZ) settings — docs/auth-redesign.md §10.
-	typedef struct tagAuthSettings
+	struct tagAuthSettings
 	{
 		static const std::string& AreaName()
 		{
@@ -50,8 +50,8 @@ namespace AqualinkAutomate::Options::Auth
 		/// File whose first line (whitespace-trimmed) is the bootstrap
 		/// administrator's password.
 		std::string bootstrap_admin_password_file;
-	}
-	AuthSettings;
+	};
+	using AuthSettings = tagAuthSettings;
 
 	class OptionsProcessor
 	{

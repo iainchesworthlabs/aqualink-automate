@@ -22,7 +22,7 @@ namespace AqualinkAutomate::Interfaces
         virtual ~IWebSocketBase() = default;
 
     public:
-        virtual const std::string_view Route() const = 0;
+        virtual std::string_view Route() const = 0;
 
         // The entitlement required to complete the upgrade handshake (evaluated
         // by AuthorizeWebSocketUpgrade when --auth-mode is enabled).  Live-data
@@ -50,7 +50,7 @@ namespace AqualinkAutomate::Interfaces
         virtual ~IWebSocket() = default;
 
 	public:
-        virtual const std::string_view Route() const final
+        std::string_view Route() const final
         {
             return ROUTE_URL;
         }

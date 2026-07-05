@@ -1,6 +1,7 @@
 #include <format>
 #include <fstream>
 #include <stdexcept>
+#include <string_view>
 #include <system_error>
 
 #include <openssl/sha.h>
@@ -69,7 +70,7 @@ namespace AqualinkAutomate::Auth
 
 	std::string Sha256Hex(std::string_view data)
 	{
-		static constexpr char HEX_DIGITS[] = "0123456789abcdef";
+		static constexpr std::string_view HEX_DIGITS = "0123456789abcdef";
 
 		std::uint8_t digest[SHA256_DIGEST_LENGTH];
 		SHA256(reinterpret_cast<const std::uint8_t*>(data.data()), data.size(), digest);

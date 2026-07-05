@@ -39,7 +39,6 @@ namespace AqualinkAutomate::Scheduling
 	// unnamed namespace
 
 	SchedulerService::SchedulerService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::Scheduling::SchedulingSettings& settings) :
-		m_IoContext(io_context),
 		m_Settings(settings),
 		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
 		m_Dispatcher(hub_locator.TryFind<Interfaces::ICommandDispatcher>()),

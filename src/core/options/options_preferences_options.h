@@ -14,7 +14,7 @@ namespace AqualinkAutomate::Options::Preferences
 {
 
 	/// User/admin preferences persistence settings.
-	typedef struct tagPreferencesSettings
+	struct tagPreferencesSettings
 	{
 		static const std::string& AreaName()
 		{
@@ -28,8 +28,8 @@ namespace AqualinkAutomate::Options::Preferences
 		/// preferences in-memory only (still editable for the session, reset on
 		/// restart); the API works either way.
 		std::string preferences_file;
-	}
-	PreferencesSettings;
+	};
+	using PreferencesSettings = tagPreferencesSettings;
 
 	class OptionsProcessor
 	{

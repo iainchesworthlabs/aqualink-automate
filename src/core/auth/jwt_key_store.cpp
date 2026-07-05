@@ -1,6 +1,7 @@
 #include <chrono>
 #include <format>
 #include <fstream>
+#include <span>
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
@@ -19,17 +20,17 @@ namespace AqualinkAutomate::Auth
 		constexpr std::size_t MAX_RETAINED_KEYS{ 2 };  // Active + one grace key.
 		constexpr std::uint32_t SCHEMA_VERSION{ 1 };
 
-		std::string ToHex(const std::uint8_t* data, std::size_t length)
+		std::string ToHex(std::span<const std::uint8_t> data)
 		{
 			static constexpr char HEX_DIGITS[] = "0123456789abcdef";
 
 			std::string hex;
-			hex.reserve(length * 2);
+			hex.reserve(data.size() * 2);
 
-			for (std::size_t i = 0; i < length; ++i)
+			for (const auto byte : data)
 			{
-				hex.push_back(HEX_DIGITS[data[i] >> 4]);
-				hex.push_back(HEX_DIGITS[data[i] & 0x0F]);
+				hex.push_back(HEX_DIGITS[byte >> 4]);
+				hex.push_back(HEX_DIGITS[byte & 0x0F]);
 			}
 
 			return hex;
@@ -55,7 +56,8 @@ namespace AqualinkAutomate::Auth
 
 			for (std::size_t i = 0; i < hex.size(); i += 2)
 			{
-				const auto hi = nibble(hex[i]), lo = nibble(hex[i + 1]);
+				const auto hi = nibble(hex[i]);
+				const auto lo = nibble(hex[i + 1]);
 
 				if ((hi < 0) || (lo < 0))
 				{
@@ -73,7 +75,7 @@ namespace AqualinkAutomate::Auth
 			std::uint8_t digest[SHA256_DIGEST_LENGTH];
 			SHA256(secret.data(), secret.size(), digest);
 
-			return ToHex(digest, sizeof(digest)).substr(0, KID_HEX_CHARS);
+			return ToHex(digest).substr(0, KID_HEX_CHARS);
 		}
 	}
 	// anonymous namespace
@@ -170,7 +172,7 @@ namespace AqualinkAutomate::Auth
 
 		for (const auto& key : m_Keys)
 		{
-			keys.push_back({ { "kid", key.Kid }, { "secret_hex", ToHex(key.Secret.data(), key.Secret.size()) }, { "created", key.CreatedUnix } });
+			keys.push_back({ { "kid", key.Kid }, { "secret_hex", ToHex(key.Secret) }, { "created", key.CreatedUnix } });
 		}
 
 		doc["keys"] = std::move(keys);

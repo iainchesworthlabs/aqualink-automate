@@ -152,7 +152,7 @@ namespace AqualinkAutomate::Devices
 			}
 
 			const auto pump_status = msg.PumpOn() ? Kernel::PumpStatuses::Running : Kernel::PumpStatuses::Off;
-			for (auto& pump : filter_pumps)
+			for (const auto& pump : filter_pumps)
 			{
 				pump->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::PumpStatusTrait{}, pump_status);
 

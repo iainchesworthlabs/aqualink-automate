@@ -25,7 +25,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Schedules : public Interfaces::IWebRoute<SCHEDULES_ROUTE_URL>
 	{
 	public:
-		WebRoute_Schedules(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub = {});
+		explicit WebRoute_Schedules(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub = {});
 		~WebRoute_Schedules() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
@@ -51,7 +51,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Schedule : public Interfaces::IWebRoute<SCHEDULE_ITEM_ROUTE_URL>
 	{
 	public:
-		WebRoute_Schedule(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub = {});
+		explicit WebRoute_Schedule(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub = {});
 		~WebRoute_Schedule() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;

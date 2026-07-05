@@ -91,7 +91,6 @@ namespace AqualinkAutomate::Alerting
 		void ScheduleCommsTimer();
 
 	private:
-		boost::asio::io_context& m_IoContext;
 		Options::Alerting::AlertingSettings m_Settings;
 
 		std::shared_ptr<Kernel::DataHub> m_DataHub;

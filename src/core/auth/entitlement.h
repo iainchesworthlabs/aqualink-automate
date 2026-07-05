@@ -31,7 +31,7 @@ namespace AqualinkAutomate::Auth
 	class Entitlement
 	{
 	public:
-		Entitlement(std::string action, std::optional<std::string> selector = std::nullopt);
+		explicit Entitlement(std::string action, std::optional<std::string> selector = std::nullopt);
 
 		// Parse "<domain>.<action>[:<selector>]".  The action path requires at
 		// least two dot-separated segments of [a-z0-9_-]; the selector (after the

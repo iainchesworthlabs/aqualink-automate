@@ -26,7 +26,7 @@ namespace AqualinkAutomate::Profiling
 
 		// True when a backend has been selected AND it was compiled into this
 		// build (so Get() returns a real profiler rather than the NoOp fallback).
-		bool HasActiveBackend(Factory::ProfilerFactory& factory)
+		bool HasActiveBackend(const Factory::ProfilerFactory& factory)
 		{
 			const auto selected = factory.Selected();
 			return selected.has_value() && factory.IsRegistered(*selected);

@@ -1,3 +1,4 @@
+#include <format>
 #include <string>
 #include <utility>
 #include <vector>
@@ -76,7 +77,7 @@ namespace AqualinkAutomate::Logging::Sinks
 				std::vector<std::string> fields;
 				fields.reserve(6);
 				fields.emplace_back("MESSAGE=" + formatted_message);
-				fields.emplace_back("PRIORITY=" + std::to_string(SyslogPriorityValue(record_severity)));
+				fields.emplace_back(std::format("PRIORITY={}", SyslogPriorityValue(record_severity)));
 				fields.emplace_back("SYSLOG_IDENTIFIER=" + m_Identifier);
 
 				if (const auto record_channel = rec[channel])
@@ -92,7 +93,7 @@ namespace AqualinkAutomate::Logging::Sinks
 					}
 					if (const auto line = rec[source_line])
 					{
-						fields.emplace_back("CODE_LINE=" + std::to_string(line.get()));
+						fields.emplace_back(std::format("CODE_LINE={}", line.get()));
 					}
 				}
 

@@ -75,16 +75,16 @@ namespace AqualinkAutomate::Devices
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_LabelAux, { 2, "Current Label" }, std::bind(&OneTouchDevice::PageProcessor_LabelAux, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SetPoolHeat, { 0, "Pool Heat" }, std::bind(&OneTouchDevice::PageProcessor_SetPoolHeat, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SetSpaHeat, { 0, "Spa Heat" }, std::bind(&OneTouchDevice::PageProcessor_SetSpaHeat, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SpaSwitch, { 0, "Spa Switch" }, std::bind(&OneTouchDevice::PageProcessor_SpaSwitch, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SpaSwitch, { 0, "Spa Switch" }, std::bind_front(&OneTouchDevice::PageProcessor_SpaSwitch, this)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_MoreOneTouch, { 10, "OneTouch ON/OFF" }, std::bind(&OneTouchDevice::PageProcessor_MoreOneTouch, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Program, { 0, "Program" }, std::bind(&OneTouchDevice::PageProcessor_Program, this, std::placeholders::_1)),
 				// The per-equipment Program DETAIL page has the EQUIPMENT NAME on line 0 (e.g.
 				// "Filter Pump"), NOT "Program", so the { 0, "Program" } matcher above misses it.
 				// Detect it by a STABLE row instead: line 2 always carries "Pgm N of M". (Its
 				// line-0 name also trips the Page_EquipmentOnOff { 0, "Filter Pump" } matcher, but
-				// that processor rejects every detail-page row - none end in ON/OFF/ENA/*** - so it
+				// that processor rejects every detail-page row - none end in ON/OFF/ENA or *** - so it
 				// is a harmless no-op while THIS processor does the real parse.)
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Program, { 2, "Pgm " }, std::bind(&OneTouchDevice::PageProcessor_Program, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Program, { 2, "Pgm " }, std::bind_front(&OneTouchDevice::PageProcessor_Program, this)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_DisplayLight, { 0, "Display Light" }, std::bind(&OneTouchDevice::PageProcessor_DisplayLight, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Lockouts, { 0, "Lockout" }, std::bind(&OneTouchDevice::PageProcessor_Lockouts, this, std::placeholders::_1)),
 				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_PasswordSettings, { 0, "Password" }, std::bind(&OneTouchDevice::PageProcessor_PasswordSettings, this, std::placeholders::_1)),
@@ -468,22 +468,20 @@ namespace AqualinkAutomate::Devices
 			return std::nullopt;
 		}
 
-		switch (*(device->AuxillaryTraits[ATT::AuxillaryTypeTrait{}]))
+		if (*(device->AuxillaryTraits[ATT::AuxillaryTypeTrait{}]) == ATT::AuxillaryTypes::Pump)
 		{
-		case ATT::AuxillaryTypes::Pump:
 			if (auto s = device->AuxillaryTraits.TryGet(ATT::PumpStatusTrait{}); s.has_value())
 			{
 				return (s.value() == Kernel::PumpStatuses::Running);
 			}
 			return std::nullopt;
-
-		default:
-			if (auto s = device->AuxillaryTraits.TryGet(ATT::AuxillaryStatusTrait{}); s.has_value())
-			{
-				return (s.value() == Kernel::AuxillaryStatuses::On);
-			}
-			return std::nullopt;
 		}
+
+		if (auto s = device->AuxillaryTraits.TryGet(ATT::AuxillaryStatusTrait{}); s.has_value())
+		{
+			return (s.value() == Kernel::AuxillaryStatuses::On);
+		}
+		return std::nullopt;
 	}
 
 	void OneTouchDevice::Actuation_ProcessStep()
@@ -1042,7 +1040,8 @@ namespace AqualinkAutomate::Devices
 			const auto u = static_cast<unsigned char>(c);
 			return (u < 0x20) || (u == 0x7f) || (c == ' ');
 		};
-		std::size_t b = 0, e = raw.size();
+		std::size_t b = 0;
+		std::size_t e = raw.size();
 		while (b < e && is_trim(raw[b])) { ++b; }
 		while (e > b && is_trim(raw[e - 1])) { --e; }
 		return raw.substr(b, e - b);
@@ -1765,7 +1764,8 @@ namespace AqualinkAutomate::Devices
 			// The program saved and the panel returned to the detail page. Re-parse it and confirm it
 			// now carries the target program (target + on/off + days). Dwell until it renders.
 			if (!on_detail_page()) { break; }
-			int idx = 0, count = 0;
+			int idx = 0;
+			int count = 0;
 			if (const auto parsed = OneTouch::ParseProgramDetailPage(page, &idx, &count);
 				parsed.has_value()
 				&& equals_ci(parsed->target, goal.program.target)

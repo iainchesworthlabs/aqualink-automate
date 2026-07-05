@@ -39,7 +39,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	class PentairMessage : public Interfaces::IMessage<PentairMessageIds>, public Interfaces::ISerializable
 	{
 	public:
-		PentairMessage(const PentairMessageIds msg_id);
+		explicit PentairMessage(const PentairMessageIds msg_id);
 		~PentairMessage() override = default;
 
 		uint8_t From() const;

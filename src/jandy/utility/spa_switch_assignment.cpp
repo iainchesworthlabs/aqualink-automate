@@ -23,7 +23,8 @@ namespace AqualinkAutomate::Utility
 
 		std::string TrimSep(const std::string& s)
 		{
-			std::size_t b = 0, e = s.size();
+			std::size_t b = 0;
+			std::size_t e = s.size();
 			while (b < e && IsSep(s[b])) { ++b; }
 			while (e > b && IsSep(s[e - 1])) { --e; }
 			return s.substr(b, e - b);

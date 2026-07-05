@@ -25,7 +25,7 @@ namespace AqualinkAutomate::Equipment
 	class JandyEquipment : public Interfaces::IEquipment, public Interfaces::IStatusPublisher
 	{
 	public:
-		JandyEquipment(Kernel::HubLocator& hub_locator, bool decode_to_master = false);
+		explicit JandyEquipment(Kernel::HubLocator& hub_locator, bool decode_to_master = false);
 		~JandyEquipment() override;
 
 	private:

@@ -73,12 +73,9 @@ namespace AqualinkAutomate::Preferences
 					return "accent must be a non-empty short string";
 				}
 			}
-			else if ("chemistry_bands" == key)
+			else if (("chemistry_bands" == key) && !value.is_object())
 			{
-				if (!value.is_object())
-				{
-					return "chemistry_bands must be an object";
-				}
+				return "chemistry_bands must be an object";
 			}
 
 			return {};

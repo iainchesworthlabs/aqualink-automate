@@ -33,7 +33,7 @@ namespace AqualinkAutomate::Options::LogSinks
 		Explicit
 	};
 
-	typedef struct tagLoggingSettings
+	struct tagLoggingSettings
 	{
 		static const std::string& AreaName()
 		{
@@ -63,8 +63,8 @@ namespace AqualinkAutomate::Options::LogSinks
 		std::optional<std::filesystem::path> LogFile;
 		std::uintmax_t LogFileMaxBytes{ 10ULL * 1024ULL * 1024ULL };
 		std::size_t LogFileMaxFiles{ 5 };
-	}
-	LoggingSettings;
+	};
+	using LoggingSettings = tagLoggingSettings;
 
 	class OptionsProcessor
 	{

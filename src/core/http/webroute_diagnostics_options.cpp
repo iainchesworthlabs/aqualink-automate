@@ -12,14 +12,12 @@ namespace AqualinkAutomate::HTTP
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("WebRoute_Diagnostics_Options::OnRequest", std::source_location::current());
 
-		switch (req.method())
+		if (Verbs::get == req.method())
 		{
-		case Verbs::get:
 			return HandleGet(req);
-
-		default:
-			return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET.", {{"allowed", "GET"}});
 		}
+
+		return MakeErrorResponse(req, HTTP::Status::method_not_allowed, "method_not_allowed", "Method not allowed. Use GET.", {{"allowed", "GET"}});
 	}
 
 	HTTP::Response WebRoute_Diagnostics_Options::HandleGet(const HTTP::Request& req) const

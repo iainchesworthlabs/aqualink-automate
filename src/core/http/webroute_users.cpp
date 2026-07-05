@@ -68,7 +68,8 @@ namespace AqualinkAutomate::HTTP
 			return;
 		}
 
-		std::string username, password;
+		std::string username;
+		std::string password;
 		std::vector<std::string> groups;
 		Auth::EntitlementSet direct_entitlements;
 

@@ -122,6 +122,9 @@ namespace AqualinkAutomate::Devices
 
 				case Capabilities::ActuationResult::NotSupported:
 					break;
+
+				default:
+					break;
 				}
 			}
 

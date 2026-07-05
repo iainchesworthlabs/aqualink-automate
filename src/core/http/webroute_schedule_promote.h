@@ -23,7 +23,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_SchedulePromote : public Interfaces::IWebRoute<SCHEDULE_PROMOTE_ROUTE_URL>
 	{
 	public:
-		WebRoute_SchedulePromote(std::shared_ptr<Scheduling::SchedulerService> service,
+		explicit WebRoute_SchedulePromote(std::shared_ptr<Scheduling::SchedulerService> service,
 			std::shared_ptr<Interfaces::ICommandDispatcher> dispatcher = {});
 		~WebRoute_SchedulePromote() override = default;
 

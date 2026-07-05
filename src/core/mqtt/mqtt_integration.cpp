@@ -352,7 +352,7 @@ namespace AqualinkAutomate::Mqtt
 
 		// Register status command - republishes all status
 		m_Hub->RegisterCommand("status",
-			[weak_hub](std::string_view topic, const nlohmann::json& payload)
+			[weak_hub](std::string_view /*topic*/, const nlohmann::json& /*payload*/)
 			{
 				LogDebug(Channel::Mqtt, "Received status command");
 				try
@@ -372,7 +372,7 @@ namespace AqualinkAutomate::Mqtt
 
 		// Register refresh command - forces status refresh
 		m_Hub->RegisterCommand("refresh",
-			[weak_hub](const std::string& topic, const nlohmann::json& payload)
+			[weak_hub](const std::string& topic, const nlohmann::json& /*payload*/)
 			{
 				LogDebug(Channel::Mqtt, "Received refresh command");
 				try
@@ -407,7 +407,7 @@ namespace AqualinkAutomate::Mqtt
 		std::weak_ptr<Interfaces::ICommandDispatcher> weak_dispatcher = m_CommandDispatcher;
 
 		m_Hub->RegisterCommand("device",
-			[weak_hub, weak_dispatcher](std::string_view topic, const nlohmann::json& payload)
+			[weak_hub, weak_dispatcher](std::string_view /*topic*/, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, "Received device command");
 				try
@@ -533,7 +533,7 @@ namespace AqualinkAutomate::Mqtt
 
 		// JSON command handler: {"target": "pool"|"spa", "temperature": <celsius>}
 		m_Hub->RegisterCommand("setpoint",
-			[weak_hub, dispatch_setpoint](std::string_view topic, const nlohmann::json& payload)
+			[weak_hub, dispatch_setpoint](std::string_view /*topic*/, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, "Received setpoint command");
 				try
@@ -570,7 +570,7 @@ namespace AqualinkAutomate::Mqtt
 		std::weak_ptr<Kernel::PreferencesHub> weak_prefs = m_PreferencesHub;
 		auto make_ha_setpoint_handler = [weak_hub, dispatch_setpoint, weak_prefs](const std::string& target)
 		{
-			return [weak_hub, dispatch_setpoint, weak_prefs, target](std::string_view topic, const nlohmann::json& payload)
+			return [weak_hub, dispatch_setpoint, weak_prefs, target](std::string_view /*topic*/, const nlohmann::json& payload)
 			{
 				LogDebug(Channel::Mqtt, std::format("Received HA {} setpoint command", target));
 				try
@@ -669,7 +669,7 @@ namespace AqualinkAutomate::Mqtt
 			}
 
 			m_Hub->RegisterCommand(command_key,
-				[weak_dispatcher, label](std::string_view topic, const nlohmann::json& payload)
+				[weak_dispatcher, label](std::string_view /*topic*/, const nlohmann::json& payload)
 				{
 					LogDebug(Channel::Mqtt, std::format("Received device command for '{}'", label));
 					try
@@ -756,7 +756,7 @@ namespace AqualinkAutomate::Mqtt
 			}
 
 			m_Hub->RegisterCommand(command_key,
-				[weak_dispatcher, label, body_id](std::string_view topic, const nlohmann::json& payload)
+				[weak_dispatcher, label, body_id](std::string_view /*topic*/, const nlohmann::json& payload)
 				{
 					LogDebug(Channel::Mqtt, std::format("Received heater command for '{}'", label));
 					try

@@ -15,7 +15,7 @@ namespace
 	// Installed layout (FHS-aligned, relocatable — see cmake/CPackConfig.cmake):
 	//   <prefix>/bin/aqualink-automate
 	//   <prefix>/share/aqualink-automate/<relative>
-	std::string AssetPath(const std::string& relative)
+	std::string AssetPath(const std::filesystem::path& relative)
 	{
 		try
 		{

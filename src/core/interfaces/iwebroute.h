@@ -31,7 +31,7 @@ namespace AqualinkAutomate::Interfaces
         virtual ~IWebRouteBase() = default;
 
     public:
-        virtual const std::string_view Route() const = 0;
+        virtual std::string_view Route() const = 0;
 
     public:
         // Returns a mutable Response (not a type-erased message_generator) so the
@@ -84,7 +84,7 @@ namespace AqualinkAutomate::Interfaces
         virtual ~IWebRoute() = default;
 
 	public:
-        virtual const std::string_view Route() const final
+        virtual std::string_view Route() const final
 		{
             return ROUTE_URL;
 		}

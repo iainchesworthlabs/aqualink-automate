@@ -31,7 +31,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_ControllerSchedules : public Interfaces::IWebRoute<CONTROLLER_SCHEDULES_ROUTE_URL>
 	{
 	public:
-		WebRoute_ControllerSchedules(std::shared_ptr<Scheduling::ControllerScheduleStore> store,
+		explicit WebRoute_ControllerSchedules(std::shared_ptr<Scheduling::ControllerScheduleStore> store,
 			std::shared_ptr<Interfaces::ICommandDispatcher> dispatcher = {});
 		~WebRoute_ControllerSchedules() override = default;
 
@@ -60,7 +60,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_ControllerSchedule : public Interfaces::IWebRoute<CONTROLLER_SCHEDULE_ITEM_ROUTE_URL>
 	{
 	public:
-		WebRoute_ControllerSchedule(std::shared_ptr<Scheduling::ControllerScheduleStore> store,
+		explicit WebRoute_ControllerSchedule(std::shared_ptr<Scheduling::ControllerScheduleStore> store,
 			std::shared_ptr<Interfaces::ICommandDispatcher> dispatcher = {});
 		~WebRoute_ControllerSchedule() override = default;
 

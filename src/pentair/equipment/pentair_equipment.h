@@ -31,7 +31,7 @@ namespace AqualinkAutomate::Pentair::Equipment
 	class PentairEquipment : public Interfaces::IEquipment, public Interfaces::IStatusPublisher
 	{
 	public:
-		PentairEquipment(Kernel::HubLocator& hub_locator);
+		explicit PentairEquipment(Kernel::HubLocator& hub_locator);
 		~PentairEquipment() override;
 
 	private:

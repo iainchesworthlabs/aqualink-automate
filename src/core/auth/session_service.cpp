@@ -103,11 +103,11 @@ namespace AqualinkAutomate::Auth
 
 				m_Failures.erase(username_key);
 
-				FinishLogin(verified, *user, std::move(peer_ip), std::move(user_agent), completion);
+				FinishLogin(verified, *user, peer_ip, std::move(user_agent), completion);
 			});
 	}
 
-	void SessionService::FinishLogin(bool /*verified*/, UserRecord user, std::string peer_ip, std::string user_agent, LoginCompletion& completion)
+	void SessionService::FinishLogin(bool /*verified*/, const UserRecord& user, const std::string& peer_ip, std::string user_agent, const LoginCompletion& completion)
 	{
 		const auto now_unix = NowUnix();
 		const auto refresh_expiry = now_unix + m_Config.RefreshTtl.count();

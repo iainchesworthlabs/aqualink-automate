@@ -114,7 +114,7 @@ namespace AqualinkAutomate::HTTP
 	WebRoute_Diagnostics_Matter::~WebRoute_Diagnostics_Matter()
 	{
 		{
-			std::lock_guard<std::mutex> lock(m_WakeMutex);
+			std::scoped_lock lock(m_WakeMutex);
 			m_Stop = true;
 		}
 		m_WakeCv.notify_all();
@@ -136,11 +136,11 @@ namespace AqualinkAutomate::HTTP
 		{
 			auto body = FetchSidecarStatus(m_StatusPort);
 			{
-				std::lock_guard<std::mutex> lock(m_StatusMutex);
+				std::scoped_lock lock(m_StatusMutex);
 				m_CachedStatusBody = std::move(body);
 			}
 
-			std::unique_lock<std::mutex> wake_lock(m_WakeMutex);
+			std::unique_lock wake_lock(m_WakeMutex);
 			m_WakeCv.wait_for(wake_lock, REFRESH_INTERVAL, [this]() { return m_Stop; });
 			if (m_Stop)
 			{
@@ -172,7 +172,7 @@ namespace AqualinkAutomate::HTTP
 		// loop: the actual (potentially slow) sidecar fetch happens on RefreshLoop's thread.
 		std::optional<std::string> status_body;
 		{
-			std::lock_guard<std::mutex> lock(m_StatusMutex);
+			std::scoped_lock lock(m_StatusMutex);
 			status_body = m_CachedStatusBody;
 		}
 

@@ -23,7 +23,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Diagnostics_ActualDevices : public Interfaces::IWebRoute<DIAGNOSTICS_ACTUAL_DEVICES_ROUTE_URL>
 	{
 	public:
-		WebRoute_Diagnostics_ActualDevices(Kernel::HubLocator& hub_locator);
+		explicit WebRoute_Diagnostics_ActualDevices(Kernel::HubLocator& hub_locator);
 		~WebRoute_Diagnostics_ActualDevices() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;

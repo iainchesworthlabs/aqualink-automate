@@ -22,7 +22,8 @@ namespace AqualinkAutomate::Auth
 				return false;
 			}
 
-			std::size_t segment_count = 0, segment_len = 0;
+			std::size_t segment_count = 0;
+			std::size_t segment_len = 0;
 
 			for (const auto ch : action)
 			{

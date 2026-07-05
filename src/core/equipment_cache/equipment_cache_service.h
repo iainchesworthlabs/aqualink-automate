@@ -49,7 +49,6 @@ namespace AqualinkAutomate::EquipmentCache
 		std::string Fingerprint() const;
 
 	private:
-		boost::asio::io_context& m_IoContext;
 		Options::Equipment::EquipmentSettings m_Settings;
 		std::shared_ptr<Kernel::DataHub> m_DataHub;
 		boost::asio::steady_timer m_Timer;
