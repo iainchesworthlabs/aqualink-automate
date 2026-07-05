@@ -1,0 +1,297 @@
+/* ==========================================================================
+   Aqualink Automate — MkDocs Material brand skin
+   --------------------------------------------------------------------------
+   Retints the stock Material "slate" (dark) and "default" (light) schemes with
+   the web-UI's calm-premium OKLCH palette, self-hosts the Bricolage Grotesque
+   + Hanken Grotesk brand faces, and styles the landing hero. The web UI is the
+   source of truth for these tokens (assets/web/styles/app.css); keep them in
+   sync when the app palette changes.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Brand fonts (self-hosted woff2, mirrors assets/web/vendor/fonts/fonts.css)
+   Latin renders from Bricolage/Hanken; Arabic/Hebrew/Vietnamese/Cyrillic ranges
+   fall through to the Noto + extended faces via unicode-range.
+   -------------------------------------------------------------------------- */
+/* Hebrew */
+@font-face { font-family: 'Noto Sans Hebrew'; font-style: normal; font-weight: 400 700; font-stretch: 100%; font-display: swap; src: url(../assets/fonts/noto-hebrew.woff2) format('woff2'); unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+/* Arabic */
+@font-face { font-family: 'Noto Sans Arabic'; font-style: normal; font-weight: 400 700; font-stretch: 100%; font-display: swap; src: url(../assets/fonts/noto-arabic.woff2) format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1; }
+/* Bricolage Grotesque — vietnamese */
+@font-face { font-family: 'Bricolage Grotesque'; font-style: normal; font-weight: 400 700; font-stretch: 100%; font-display: swap; src: url(../assets/fonts/bricolage-0.woff2) format('woff2'); unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+/* Bricolage Grotesque — latin-ext */
+@font-face { font-family: 'Bricolage Grotesque'; font-style: normal; font-weight: 400 700; font-stretch: 100%; font-display: swap; src: url(../assets/fonts/bricolage-1.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+/* Bricolage Grotesque — latin */
+@font-face { font-family: 'Bricolage Grotesque'; font-style: normal; font-weight: 400 700; font-stretch: 100%; font-display: swap; src: url(../assets/fonts/bricolage-2.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+/* Hanken Grotesk — cyrillic-ext */
+@font-face { font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(../assets/fonts/hanken-0.woff2) format('woff2'); unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F; }
+/* Hanken Grotesk — vietnamese */
+@font-face { font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(../assets/fonts/hanken-1.woff2) format('woff2'); unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+/* Hanken Grotesk — latin-ext */
+@font-face { font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(../assets/fonts/hanken-2.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+/* Hanken Grotesk — latin */
+@font-face { font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(../assets/fonts/hanken-3.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* --------------------------------------------------------------------------
+   2. Font application
+   -------------------------------------------------------------------------- */
+:root {
+  /* With `font: false`, Material leaves --md-text-font / --md-code-font as the
+     `_` sentinel and builds body/code font-family from THESE primitives (not
+     from --md-*-font-family). Feed them the brand faces; the -apple-system,…
+     fallback stack Material appends stays intact. */
+  --md-text-font: "Hanken Grotesk";
+  --md-code-font: ui-monospace;
+  --aa-font-display: 'Bricolage Grotesque', 'Hanken Grotesk', 'Noto Sans Arabic', 'Noto Sans Hebrew', system-ui, sans-serif;
+}
+
+/* Headings + brand chrome use the display face, matching the web UI. */
+.md-typeset h1, .md-typeset h2, .md-typeset h3,
+.md-header__title, .md-nav__title, .md-tabs__link {
+  font-family: var(--aa-font-display);
+  letter-spacing: -0.01em;
+}
+.md-typeset h1 { font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   3a. Dark scheme (slate) — the default. Mirrors app.css :root[data-theme=dark].
+   -------------------------------------------------------------------------- */
+[data-md-color-scheme="slate"] {
+  --aa-bg:         oklch(0.165 0.014 250);
+  --aa-bg-glow:    oklch(0.24 0.035 215);
+  --aa-surface-1:  oklch(0.205 0.015 250);
+  --aa-surface-2:  oklch(0.235 0.016 250);
+  --aa-surface-3:  oklch(0.275 0.017 250);
+  --aa-border:     oklch(0.36 0.018 250 / 0.55);
+  --aa-accent:     oklch(0.745 0.105 200);
+  --aa-accent-soft: oklch(0.745 0.105 200 / 0.15);
+  --aa-spa:        oklch(0.77 0.105 42);
+  --aa-good:       oklch(0.78 0.12 162);
+  --aa-warn:       oklch(0.83 0.11 82);
+  --aa-bad:        oklch(0.68 0.16 25);
+
+  /* Material variable overrides */
+  --md-default-bg-color:            var(--aa-bg);
+  --md-default-fg-color:            oklch(0.96 0.006 250);
+  --md-default-fg-color--light:     oklch(0.745 0.012 250);
+  --md-default-fg-color--lighter:   oklch(0.57 0.014 250);
+  --md-default-fg-color--lightest:  oklch(0.36 0.018 250 / 0.4);
+
+  --md-primary-fg-color:            var(--aa-surface-1);
+  --md-primary-fg-color--light:     var(--aa-surface-2);
+  --md-primary-fg-color--dark:      var(--aa-bg);
+  --md-primary-bg-color:            oklch(0.96 0.006 250);
+  --md-primary-bg-color--light:     oklch(0.745 0.012 250);
+
+  --md-accent-fg-color:             var(--aa-accent);
+  --md-accent-fg-color--transparent: var(--aa-accent-soft);
+
+  --md-typeset-a-color:             var(--aa-accent);
+  --md-code-bg-color:               var(--aa-surface-2);
+  --md-code-fg-color:               oklch(0.9 0.008 250);
+
+  --md-footer-bg-color:             var(--aa-surface-1);
+  --md-footer-bg-color--dark:       var(--aa-bg);
+}
+
+/* --------------------------------------------------------------------------
+   3b. Light scheme (default). Mirrors app.css :root[data-theme=light].
+   -------------------------------------------------------------------------- */
+[data-md-color-scheme="default"] {
+  --aa-bg:         oklch(0.975 0.006 240);
+  --aa-bg-glow:    oklch(0.95 0.022 210);
+  --aa-surface-1:  oklch(1 0 0);
+  --aa-surface-2:  oklch(0.985 0.005 240);
+  --aa-surface-3:  oklch(0.96 0.006 240);
+  --aa-border:     oklch(0.905 0.008 240);
+  --aa-accent:     oklch(0.56 0.12 205);
+  --aa-accent-soft: oklch(0.56 0.12 205 / 0.1);
+  --aa-spa:        oklch(0.6 0.13 40);
+  --aa-good:       oklch(0.58 0.13 162);
+  --aa-warn:       oklch(0.66 0.13 78);
+  --aa-bad:        oklch(0.56 0.17 25);
+
+  --md-default-bg-color:            var(--aa-bg);
+  --md-default-fg-color:            oklch(0.26 0.02 250);
+  --md-default-fg-color--light:     oklch(0.46 0.018 250);
+  --md-default-fg-color--lighter:   oklch(0.605 0.015 250);
+  --md-default-fg-color--lightest:  oklch(0.84 0.01 240 / 0.5);
+
+  --md-primary-fg-color:            var(--aa-surface-1);
+  --md-primary-fg-color--light:     var(--aa-surface-2);
+  --md-primary-fg-color--dark:      var(--aa-surface-3);
+  --md-primary-bg-color:            oklch(0.26 0.02 250);
+  --md-primary-bg-color--light:     oklch(0.46 0.018 250);
+
+  --md-accent-fg-color:             var(--aa-accent);
+  --md-accent-fg-color--transparent: var(--aa-accent-soft);
+
+  --md-typeset-a-color:             var(--aa-accent);
+  --md-code-bg-color:               var(--aa-surface-3);
+  --md-code-fg-color:               oklch(0.26 0.02 250);
+
+  --md-footer-bg-color:             oklch(0.205 0.015 250);
+  --md-footer-bg-color--dark:       oklch(0.165 0.014 250);
+}
+
+/* --------------------------------------------------------------------------
+   4. Header / nav — calm hairline instead of the stock drop shadow, matching
+   the web-UI's sticky nav (translucent surface + 1px border).
+   -------------------------------------------------------------------------- */
+.md-header {
+  border-bottom: 1px solid var(--aa-border);
+  box-shadow: none;
+}
+.md-header[data-md-state="shadow"],
+.md-header--shadow {
+  box-shadow: 0 0 0.2rem oklch(0 0 0 / 0.1), 0 0.2rem 0.4rem oklch(0 0 0 / 0.2);
+}
+.md-tabs {
+  border-bottom: 1px solid var(--aa-border);
+}
+/* Active tab / nav item picks up the accent, like the app's active pill. */
+.md-tabs__link--active,
+.md-nav__link--active,
+.md-nav__item .md-nav__link--active {
+  color: var(--aa-accent);
+}
+
+/* --------------------------------------------------------------------------
+   5. Content polish — rounded code/cards, accent rules, branded admonitions.
+   -------------------------------------------------------------------------- */
+.md-typeset :not(pre) > code {
+  border-radius: 0.35rem;
+}
+.md-typeset pre > code {
+  border-radius: 0.5rem;
+}
+.md-typeset .md-button {
+  border-radius: 0.6rem;
+  font-weight: 600;
+}
+.md-typeset hr {
+  border-bottom: 1px solid var(--aa-border);
+}
+/* Map admonition accents onto the app's semantic colours. */
+.md-typeset .admonition.note,   .md-typeset details.note   { border-color: var(--aa-accent); }
+.md-typeset .note > .admonition-title,  .md-typeset .note > summary  { background-color: var(--aa-accent-soft); }
+.md-typeset .admonition.tip,    .md-typeset details.tip    { border-color: var(--aa-good); }
+.md-typeset .admonition.success,.md-typeset details.success{ border-color: var(--aa-good); }
+.md-typeset .admonition.warning,.md-typeset details.warning{ border-color: var(--aa-warn); }
+.md-typeset .admonition.danger, .md-typeset details.danger { border-color: var(--aa-bad); }
+
+/* --------------------------------------------------------------------------
+   6. Landing hero (rendered by overrides/main.html on the homepage only).
+   -------------------------------------------------------------------------- */
+.aa-hero {
+  position: relative;
+  margin: 0 0 2.5rem;
+  padding: 2.5rem 0 0.5rem;
+  overflow: hidden;
+}
+/* Soft radial glow behind the hero, echoing the app's --bg-glow. */
+.aa-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40% -20% auto -20%;
+  height: 130%;
+  background: radial-gradient(60% 70% at 70% 25%, var(--aa-bg-glow) 0%, transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+.aa-hero__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+  align-items: center;
+}
+@media screen and (min-width: 60em) {
+  .aa-hero__inner { grid-template-columns: 1.05fr 0.95fr; gap: 2.5rem; }
+}
+.aa-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--aa-accent);
+}
+.aa-hero__eyebrow::before {
+  content: "";
+  width: 0.5rem; height: 0.5rem;
+  border-radius: 50%;
+  background: var(--aa-good);
+  box-shadow: 0 0 0.5rem var(--aa-good);
+}
+.md-typeset .aa-hero__title {
+  margin: 0.6rem 0 0.4rem;
+  font-family: var(--aa-font-display);
+  font-weight: 700;
+  font-size: 2.4rem;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+.aa-hero__tagline {
+  margin: 0 0 1.4rem;
+  max-width: 34ch;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.aa-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+/* Scoped under .md-typeset so these win over Material's `.md-typeset a` colour
+   and underline rules (the hero lives inside the content article). */
+.md-typeset .aa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--aa-border);
+  background: var(--aa-surface-1);
+  color: var(--md-default-fg-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+.md-typeset .aa-btn:hover { transform: translateY(-1px); border-color: var(--aa-accent); }
+.md-typeset .aa-btn--primary {
+  background: var(--aa-accent);
+  border-color: var(--aa-accent);
+  color: oklch(0.16 0.02 250);
+}
+.md-typeset .aa-btn--primary:hover { filter: brightness(1.06); }
+/* Cap + centre the illustration so it never dominates the hero (it would
+   otherwise stretch to full content width whenever the layout is single-column). */
+.aa-hero__art {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  margin-inline: auto;
+}
+@media screen and (min-width: 60em) {
+  .aa-hero__art { max-width: 420px; }
+}
+.aa-hero__art svg { width: 100%; height: auto; display: block; }
+
+/* Hide the homepage's duplicate H1 + intro paragraph (the hero carries them)
+   and the edit pencil (which would overlap the hero). Scoped via :has() to the
+   article that contains the hero, so it only ever affects the landing page.
+   Browsers without :has() simply keep the original heading — graceful. */
+.md-content__inner:has(> .aa-hero) > h1:first-of-type,
+.md-content__inner:has(> .aa-hero) > h1:first-of-type + p {
+  display: none;
+}
+.md-content__inner:has(> .aa-hero) > .md-content__button {
+  display: none;
+}
