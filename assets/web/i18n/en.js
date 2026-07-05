@@ -219,6 +219,8 @@
         'diag.toggle_read_series': 'Toggle the Read series',
         'diag.toggle_write_series': 'Toggle the Write series',
         'diag.serial_health': 'Serial Health',
+        'diag.advanced_show': 'Show advanced diagnostics',
+        'diag.advanced_hide': 'Hide advanced diagnostics',
         'diag.error_rate': 'Error Rate',
         'diag.overflow': 'Overflow',
         'diag.underflow': 'Underflow',

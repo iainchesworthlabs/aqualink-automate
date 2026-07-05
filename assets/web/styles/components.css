@@ -2967,6 +2967,12 @@ main input[type="range"] { accent-color: var(--accent); }
    (Appended last so it out-orders the legacy max-width:480 /
    max-width:768 gauge rules above.)
    ============================================================ */
+/* Diagnostics collapse wrappers are layout-transparent at every width: on desktop
+   they pass through (display:contents) so wrapping the Serial-Health and power-user
+   tail sections changes nothing; the compact media block below hides Serial Health
+   and the tail folds behind a toggle (x-show drives the tail's visibility). */
+.diag-adv-serial, .diag-adv-tail { display: contents; }
+
 /* ===== Consolidated-card treatment — shared by EVERY compact dashboard mode:
    phone, iPad portrait (< 1024), AND iPad landscape (>= 1024 + touch). These
    style the elements Alpine renders only when layout.isCompact is true (the
@@ -3080,6 +3086,30 @@ main input[type="range"] { accent-color: var(--accent); }
     /* Equipment tap-tiles are shorter on compact than the desktop 66px — the
        phone/tablet ones were too tall for what they carry (icon + label). */
     .eq-control { padding: 10px 14px; min-height: 50px; }
+
+    /* ===== Diagnostics compaction (phone + iPad portrait + iPad landscape) =====
+       The mockup collapses diagnostics to its essential subset: System Health,
+       Serial Port Utilization, Bandwidth, Message Errors, Communication Latency.
+       Serial Health folds away entirely (covered by Message Errors + System
+       Health); the heavier power-user tail (device list, message statistics, MQTT
+       broker, log levels, serial recording) folds behind the .diag-adv-toggle. */
+    .diag-adv-serial { display: none; }          /* folded away on compact */
+    .diag-adv-toggle {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; margin: 4px 0 14px; padding: 12px 16px;
+        font: inherit; font-weight: 600; font-size: 0.95rem;
+        color: var(--accent); background: var(--accent-soft);
+        border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
+    }
+    .diag-adv-caret { width: 18px; height: 18px; transition: transform 0.18s ease; }
+    .diag-adv-caret.open { transform: rotate(180deg); }
+
+    /* Communication Latency trims to the mockup's 4 percentiles (P1/P50/P95/P99);
+       Mean/Samples/Cum-mean/Max (children 5-8) and the since-restart footer fold
+       away. The pct grid then reads as a compact 4-up (2x2) block. */
+    .latency-pct-grid > .latency-pct:nth-child(n + 5) { display: none; }
+    .latency-card-foot { display: none; }
+    .latency-pct-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* ===== Compact STACKING layout — phone + iPad portrait only (< 1024). Landscape

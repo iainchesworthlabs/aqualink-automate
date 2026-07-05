@@ -215,6 +215,8 @@
         'diag.toggle_read_series': 'Basculer la série Lecture',
         'diag.toggle_write_series': 'Basculer la série Écriture',
         'diag.serial_health': 'Santé série',
+        'diag.advanced_show': 'Afficher le diagnostic avancé',
+        'diag.advanced_hide': 'Masquer le diagnostic avancé',
         'diag.error_rate': 'Taux d’erreur',
         'diag.overflow': 'Débordement',
         'diag.underflow': 'Sous-débordement',

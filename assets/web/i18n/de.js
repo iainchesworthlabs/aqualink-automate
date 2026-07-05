@@ -215,6 +215,8 @@
         'diag.toggle_read_series': 'Datenreihe „Lesen“ umschalten',
         'diag.toggle_write_series': 'Datenreihe „Schreiben“ umschalten',
         'diag.serial_health': 'Serieller Zustand',
+        'diag.advanced_show': 'Erweiterte Diagnose anzeigen',
+        'diag.advanced_hide': 'Erweiterte Diagnose ausblenden',
         'diag.error_rate': 'Fehlerrate',
         'diag.overflow': 'Überlauf',
         'diag.underflow': 'Unterlauf',

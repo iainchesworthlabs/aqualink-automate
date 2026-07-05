@@ -212,6 +212,8 @@
         'diag.toggle_read_series': 'איבערשאַלטן די לייען-סעריע',
         'diag.toggle_write_series': 'איבערשאַלטן די שרײַב-סעריע',
         'diag.serial_health': 'סעריעל-געזונט',
+        'diag.advanced_show': 'ווײַז אַוואַנסירטע דיאַגנאָסטיק',
+        'diag.advanced_hide': 'באַהאַלטן אַוואַנסירטע דיאַגנאָסטיק',
         'diag.error_rate': 'גרייס פֿון גרייזן',
         'diag.overflow': 'איבערגאָס',
         'diag.underflow': 'אונטערגאָס',

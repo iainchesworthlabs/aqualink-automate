@@ -44,6 +44,13 @@ function _handlePollFailure(key, resp, err) {
 function diagnosticsView() {
     return {
         windowSeconds: 60,
+        // On compact layouts (phone / iPad) the diagnostics page collapses to the
+        // mockup's essential subset (System Health, Serial Port Utilization,
+        // Bandwidth, Message Errors, Communication Latency). The heavier power-user
+        // sections (device list, message statistics, MQTT broker, log levels, serial
+        // recording) fold behind this toggle, closed by default. Desktop is
+        // unaffected: the wrapper is display:contents and always shown there.
+        showAdvanced: false,
         // Getter so the labels re-resolve on a locale switch (duration
         // abbreviations differ per language: "1m" vs "١ د" vs "1分").
         get windowOptions() {

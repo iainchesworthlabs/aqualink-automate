@@ -214,6 +214,8 @@
         'diag.toggle_read_series': 'החלפת תצוגת סדרת הקריאה',
         'diag.toggle_write_series': 'החלפת תצוגת סדרת הכתיבה',
         'diag.serial_health': 'תקינות התקשורת הטורית',
+        'diag.advanced_show': 'הצג אבחון מתקדם',
+        'diag.advanced_hide': 'הסתר אבחון מתקדם',
         'diag.error_rate': 'שיעור שגיאות',
         'diag.overflow': 'גלישה',
         'diag.underflow': 'תת-גלישה',

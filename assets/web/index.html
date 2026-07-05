@@ -1698,7 +1698,10 @@
                 </div>
             </div>
 
-            <!-- Serial health metrics (FIX 3: moved to after Bandwidth) -->
+            <!-- Serial health metrics (FIX 3: moved to after Bandwidth).
+                 Hidden on compact layouts — its error stats are already covered by
+                 Message Errors + System Health per the responsive mockup. -->
+            <div class="diag-adv-serial">
             <div class="section-title" x-text="$t('diag.serial_health')"></div>
             <div x-show="$store.stats.serial" class="stat-cards mb-2">
                 <div class="stat-card">
@@ -1723,6 +1726,7 @@
                 </div>
             </div>
             <div x-show="!$store.stats.serial" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_serial')"></div>
+            </div><!-- /.diag-adv-serial -->
 
             <!-- Message error metrics (FIX 4: after Serial Health, before Latency) -->
             <div class="section-title" x-text="$t('diag.message_errors')"></div>
@@ -1818,6 +1822,17 @@
             </div>
             <div x-show="!$store.stats.latency" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_latency')"></div>
 
+            <!-- Compact-only disclosure: on phone / iPad the diagnostics page matches
+                 the mockup's essential subset above; the heavier power-user sections
+                 below fold behind this toggle (closed by default). -->
+            <button type="button" class="diag-adv-toggle" x-show="$store.layout.isCompact"
+                    :aria-expanded="showAdvanced ? 'true' : 'false'"
+                    @click="showAdvanced = !showAdvanced">
+                <span x-text="showAdvanced ? $t('diag.advanced_hide') : $t('diag.advanced_show')"></span>
+                <svg class="diag-adv-caret" :class="{ open: showAdvanced }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+
+            <div class="diag-adv-tail" x-show="!$store.layout.isCompact || showAdvanced">
             <!-- Device sections (FIX 6/7: compact clickable cards; rich detail moved to modal.
                  Both Emulated + Actual render the same compact card via ONE shared
                  deviceCard() definition; the outer deviceGroups() loop differs only by the
@@ -2000,6 +2015,7 @@
                     <span x-html="$t('diag.rec_hint_html')"></span>
                 </div>
             </div>
+            </div><!-- /.diag-adv-tail -->
 
             <!-- Matter Status -->
             <!-- Stats connection indicator -->

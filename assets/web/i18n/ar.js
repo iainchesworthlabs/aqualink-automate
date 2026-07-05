@@ -214,6 +214,8 @@
         'diag.toggle_read_series': 'تبديل سلسلة القراءة',
         'diag.toggle_write_series': 'تبديل سلسلة الكتابة',
         'diag.serial_health': 'صحة الاتصال التسلسلي',
+        'diag.advanced_show': 'إظهار التشخيص المتقدم',
+        'diag.advanced_hide': 'إخفاء التشخيص المتقدم',
         'diag.error_rate': 'معدل الأخطاء',
         'diag.overflow': 'فيض',
         'diag.underflow': 'نضوب',

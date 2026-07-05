@@ -215,6 +215,8 @@
         'diag.toggle_read_series': 'Alternar la serie de lectura',
         'diag.toggle_write_series': 'Alternar la serie de escritura',
         'diag.serial_health': 'Salud del puerto serie',
+        'diag.advanced_show': 'Mostrar diagnóstico avanzado',
+        'diag.advanced_hide': 'Ocultar diagnóstico avanzado',
         'diag.error_rate': 'Tasa de errores',
         'diag.overflow': 'Desbordamiento',
         'diag.underflow': 'Subdesbordamiento',

@@ -214,6 +214,8 @@
         'diag.toggle_read_series': '読み取り系列の表示切り替え',
         'diag.toggle_write_series': '書き込み系列の表示切り替え',
         'diag.serial_health': 'シリアルヘルス',
+        'diag.advanced_show': '詳細診断を表示',
+        'diag.advanced_hide': '詳細診断を非表示',
         'diag.error_rate': 'エラー率',
         'diag.overflow': 'オーバーフロー',
         'diag.underflow': 'アンダーフロー',

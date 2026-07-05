@@ -213,6 +213,8 @@
         'diag.toggle_read_series': '切换读取序列的显示',
         'diag.toggle_write_series': '切换写入序列的显示',
         'diag.serial_health': '串口健康',
+        'diag.advanced_show': '显示高级诊断',
+        'diag.advanced_hide': '隐藏高级诊断',
         'diag.error_rate': '错误率',
         'diag.overflow': '上溢',
         'diag.underflow': '下溢',
