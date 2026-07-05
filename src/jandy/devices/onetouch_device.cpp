@@ -804,11 +804,14 @@ namespace AqualinkAutomate::Devices
 
 		// Frame backstop so a mis-detected page can never wedge NormalOperation (the
 		// Navigator's own timeouts normally drive it to Failed first).
-		if (m_ValueEditInProgress && (++m_ValueEditStepCount > ONETOUCH_VALUEEDIT_STEP_LIMIT))
+		if (m_ValueEditInProgress)
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} edit exceeded {} steps - abandoning", DeviceId(), desc, ONETOUCH_VALUEEDIT_STEP_LIMIT));
-			finish(false);
-			return;
+			if (++m_ValueEditStepCount > ONETOUCH_VALUEEDIT_STEP_LIMIT)
+			{
+				LogWarning(Channel::Devices, std::format("OneTouch ({}): {} edit exceeded {} steps - abandoning", DeviceId(), desc, ONETOUCH_VALUEEDIT_STEP_LIMIT));
+				finish(false);
+				return;
+			}
 		}
 
 		switch (m_ValueEditPhase)
@@ -924,11 +927,14 @@ namespace AqualinkAutomate::Devices
 			m_BoostPhase = BoostPhase::Navigating;
 		};
 
-		if (m_BoostInProgress && (++m_BoostStepCount > ONETOUCH_BOOST_STEP_LIMIT))
+		if (m_BoostInProgress)
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): boost {} exceeded {} steps - abandoning", DeviceId(), want_start ? "start" : "stop", ONETOUCH_BOOST_STEP_LIMIT));
-			finish(false);
-			return;
+			if (++m_BoostStepCount > ONETOUCH_BOOST_STEP_LIMIT)
+			{
+				LogWarning(Channel::Devices, std::format("OneTouch ({}): boost {} exceeded {} steps - abandoning", DeviceId(), want_start ? "start" : "stop", ONETOUCH_BOOST_STEP_LIMIT));
+				finish(false);
+				return;
+			}
 		}
 
 		// The Boost Pool page shows "Time Remaining" while a boost is running and "Operate ...
@@ -1151,11 +1157,14 @@ namespace AqualinkAutomate::Devices
 			m_SpaSwitchCursorStuck = 0;
 		};
 
-		if (m_SpaSwitchEditInProgress && (++m_SpaSwitchEditStepCount > ONETOUCH_SPASWITCH_STEP_LIMIT))
+		if (m_SpaSwitchEditInProgress)
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", DeviceId(), goal.desc, ONETOUCH_SPASWITCH_STEP_LIMIT));
-			finish(false);
-			return;
+			if (++m_SpaSwitchEditStepCount > ONETOUCH_SPASWITCH_STEP_LIMIT)
+			{
+				LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", DeviceId(), goal.desc, ONETOUCH_SPASWITCH_STEP_LIMIT));
+				finish(false);
+				return;
+			}
 		}
 
 		const auto& page = DisplayedPage();
@@ -1512,11 +1521,14 @@ namespace AqualinkAutomate::Devices
 		};
 
 		// Frame backstop so a mis-detected page can never wedge NormalOperation.
-		if (m_ScheduleWriteInProgress && (++m_ScheduleWriteStepCount > ONETOUCH_SCHEDULE_STEP_LIMIT))
+		if (m_ScheduleWriteInProgress)
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", DeviceId(), goal.desc, ONETOUCH_SCHEDULE_STEP_LIMIT));
-			finish(false);
-			return;
+			if (++m_ScheduleWriteStepCount > ONETOUCH_SCHEDULE_STEP_LIMIT)
+			{
+				LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", DeviceId(), goal.desc, ONETOUCH_SCHEDULE_STEP_LIMIT));
+				finish(false);
+				return;
+			}
 		}
 
 		const auto& page = DisplayedPage();

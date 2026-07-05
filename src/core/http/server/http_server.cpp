@@ -64,7 +64,12 @@ namespace AqualinkAutomate::HTTP
 		// entitlement loss) closes the socket, so the client reconnects with a
 		// fresh credential.  Throttled — token state changes on the order of
 		// seconds, not frames.  No revalidator (auth-mode off) => never closes.
-		if (m_WsActive && m_WsRevalidator && (++m_WsRevalidateTick >= WS_REVALIDATE_INTERVAL))
+		if (m_WsActive && m_WsRevalidator)
+		{
+			++m_WsRevalidateTick;
+		}
+
+		if (m_WsActive && m_WsRevalidator && (m_WsRevalidateTick >= WS_REVALIDATE_INTERVAL))
 		{
 			m_WsRevalidateTick = 0;
 
