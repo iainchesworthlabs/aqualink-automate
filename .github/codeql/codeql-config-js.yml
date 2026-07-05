@@ -1,0 +1,23 @@
+# CodeQL configuration for the JavaScript/TypeScript analysis (used by the
+# CodeScanning_CodeQL_JS job in .github/workflows/automated-codescanning.yml).
+#
+# Scope the scan to FIRST-PARTY source only:
+#   * assets/web/scripts -- the Alpine.js web UI (stores, views, components)
+#   * assets/web/sw.js    -- the service worker
+#   * matter-bridge/src   -- the TypeScript Matter sidecar
+#
+# Everything else under assets/web is either vendored third-party code we cannot
+# action (assets/web/vendor/*.min.js: Alpine, Chart.js, QRCode, ...), pure
+# translation data (assets/web/i18n/*.js), or generated output. Scanning those only
+# produces un-actionable noise, so they are left out of `paths`. The paths-ignore
+# entries are belt-and-braces against any stray minified/vendored file.
+name: "CodeQL config (JavaScript/TypeScript)"
+
+paths:
+  - assets/web/scripts
+  - assets/web/sw.js
+  - matter-bridge/src
+
+paths-ignore:
+  - "**/*.min.js"
+  - "**/node_modules"
