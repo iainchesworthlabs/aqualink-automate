@@ -146,8 +146,30 @@ document.addEventListener('alpine:init', () => {
             ws.onmessage = null;
             ws.onclose = null;
             ws.onerror = null;
-            try { ws.close(); } catch (_) { /* already closing/closed */ }
             conn.socket = null;
+
+            // Calling close() on a socket that is still CONNECTING makes the browser
+            // log "WebSocket is closed before the connection is established." This is
+            // easy to hit for the diagnostics-scoped stats socket on a remote wss://
+            // deployment: the TLS+WS handshake is slow, and leaving the diagnostics
+            // view (destroyChart -> disconnectStats) tears the socket down mid-connect.
+            // Defer the close until the handshake resolves so it happens cleanly and
+            // silently. (If the handshake fails, the socket goes straight to CLOSED
+            // with our handlers already detached — no reconnect, no noise.)
+            if (ws.readyState === WebSocket.CONNECTING) {
+                ws.onopen = () => { try { ws.close(); } catch (_) { /* raced to closed */ } };
+                return;
+            }
+
+            try { ws.close(); } catch (_) { /* already closing/closed */ }
+        },
+
+        // Whether a named connection currently owns a socket (open, connecting, or
+        // mid-teardown). Used to keep the diagnostics-scoped stats socket from being
+        // spun up on views that don't display it.
+        _hasSocket(name) {
+            const conn = this._conns[name];
+            return !!(conn && conn.socket);
         },
 
         disconnectEquipment() {
@@ -240,6 +262,13 @@ document.addEventListener('alpine:init', () => {
         const ws = Alpine.store('ws');
         if (!ws) return;
         ws.connectEquipment();
-        ws.connectStats();
+        // The equipment socket is global (the dashboard always needs it), but the
+        // stats socket is diagnostics-scoped — the diagnostics view opens it on
+        // enter and closes it on leave. Only recreate it here if it is already in
+        // play, so a login/logout that lands WHILE the diagnostics view is open
+        // swaps its anonymous socket for a token-bearing one, without spinning up
+        // an unwanted stats stream (and its connect/teardown races) on every other
+        // view.
+        if (ws._hasSocket('stats')) ws.connectStats();
     });
 });
