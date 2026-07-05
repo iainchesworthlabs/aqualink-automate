@@ -271,7 +271,17 @@
   color: oklch(0.16 0.02 250);
 }
 .md-typeset .aa-btn--primary:hover { filter: brightness(1.06); }
-.aa-hero__art { position: relative; }
+/* Cap + centre the illustration so it never dominates the hero (it would
+   otherwise stretch to full content width whenever the layout is single-column). */
+.aa-hero__art {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  margin-inline: auto;
+}
+@media screen and (min-width: 60em) {
+  .aa-hero__art { max-width: 420px; }
+}
 .aa-hero__art svg { width: 100%; height: auto; display: block; }
 
 /* Hide the homepage's duplicate H1 + intro paragraph (the hero carries them)
