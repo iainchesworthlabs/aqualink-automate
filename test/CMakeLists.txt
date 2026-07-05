@@ -54,7 +54,9 @@ target_sources(
 	unit/http/test_display_label.cpp
 	unit/http/test_http_chlorinator.cpp
 	unit/http/test_http_circulation.cpp
+	unit/http/test_http_controller_schedules.cpp
 	unit/http/test_http_heater.cpp
+	unit/http/test_http_schedule_promote.cpp
 	unit/http/test_http_diagnostics_devices.cpp
 	unit/http/test_http_diagnostics_profiling.cpp
 	unit/http/test_http_diagnostics_recording.cpp
@@ -104,6 +106,7 @@ target_sources(
 	unit/preferences/test_preferences_service.cpp
 	unit/preferences/test_user_preferences_store.cpp
 	unit/scheduling/test_controller_schedule.cpp
+	unit/scheduling/test_promotion_constraints.cpp
 	unit/scheduling/test_schedule_authorization.cpp
 	unit/scheduling/test_schedule.cpp
 	unit/scheduling/test_scheduler_service.cpp
@@ -196,6 +199,12 @@ target_sources(
 	unit/devices/test_devices_iaq_spaswitch_config.cpp
 	unit/devices/test_devices_onetouch_spaswitch_config.cpp
 	unit/devices/test_jandy_iaq_page_registry.cpp
+	unit/devices/test_jandy_iaq_schedule_parser.cpp
+	unit/devices/test_jandy_iaq_schedule_read.cpp
+	unit/devices/test_jandy_iaq_schedule_write.cpp
+	unit/devices/test_jandy_onetouch_schedule_parser.cpp
+	unit/devices/test_jandy_onetouch_schedule_read.cpp
+	unit/devices/test_jandy_onetouch_schedule_write.cpp
 	unit/devices/test_pentair_vsp_pump.cpp
 	unit/devices/test_pentair_chlorinator.cpp
 	unit/devices/test_pentair_controller.cpp

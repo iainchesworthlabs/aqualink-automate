@@ -537,6 +537,9 @@ namespace
 		CommandResult SetCirculationMode(Kernel::CirculationModes mode) override { circulation_modes.push_back(mode); return CommandResult::Success; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds body, bool enable) override { heater_calls.emplace_back(body, enable); return CommandResult::Success; }
 		CommandResult SelectIAQPageButton(std::uint8_t) override { return CommandResult::Success; }
+		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult EditControllerProgram(const Scheduling::ControllerSchedule&, const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
 	};
 
 	struct HeaterCommandFixture

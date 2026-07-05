@@ -407,6 +407,8 @@
         'sched.to_time': 'hasta {time}',
         'sched.owner_controller': 'Controlador',
         'sched.owner_app': 'App',
+        'sched.group_label': 'Grupo {group}',
+        'sched.active_group_note': 'Mostrando el grupo de programas activo del controlador ({group}). El controlador puede almacenar un segundo grupo; cambia de grupo en el controlador para verlo.',
         'sched.conflict': 'Conflicto',
         'sched.none_yet_title': 'Aún no hay programaciones',
         'sched.none_yet_text': 'Automatice la calefacción, la filtración y la iluminación según la hora del día. Cree su primera programación para comenzar.',

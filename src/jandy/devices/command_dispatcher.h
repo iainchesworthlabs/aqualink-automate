@@ -52,6 +52,9 @@ namespace AqualinkAutomate::Devices
 		CommandResult SetCirculationMode(Kernel::CirculationModes mode) override;
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds heater_body, bool enable) override;
 		CommandResult SelectIAQPageButton(uint8_t button_index) override;
+		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) override;
+		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) override;
+		CommandResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override;
 
 	private:
 		// Dispatch a command to the connected controllers that advertise capability Cap,

@@ -1,4 +1,7 @@
 #include <format>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -96,6 +99,12 @@ namespace AqualinkAutomate::Devices
 		// (0x3b = the 4-Function detail) so it never issues a row-select/commit off that page.
 		m_CurrentPageId = msg.PageId();
 
+		// A fresh page invalidates any accumulated Schedule-list title/rows and the
+		// device-picker rows the schedule writer reads.
+		m_CurrentPageTitle.clear();
+		m_ScheduleRows.clear();
+		m_DevicePickerRows.clear();
+
 		m_SM_PageUpdate.process_event(Utility::ScreenDataPageUpdaterImpl::evSequenceStart());
 		m_SM_PageUpdate.process_event(Utility::ScreenDataPageUpdaterImpl::evClear());
 
@@ -132,9 +141,60 @@ namespace AqualinkAutomate::Devices
 
 		m_SM_PageUpdate.process_event(Utility::ScreenDataPageUpdaterImpl::evSequenceEnd());
 
+		// A completed Schedule list page -> parse the accumulated rows into the
+		// controller-schedule store (the /api/controller/schedules source).
+		if (IAQ_SCHEDULE_PAGE_ID == m_CurrentPageId)
+		{
+			PublishSchedulePage();
+		}
+
 		ProcessControllerUpdates();
 
 		Restartable::Kick();
+	}
+
+	void IAQDevice::PublishSchedulePage()
+	{
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::PublishSchedulePage", std::source_location::current(), UnitColours::Red);
+
+		if (nullptr == m_ControllerScheduleStore)
+		{
+			return;
+		}
+
+		// Derive the program group from the page title. The controller labels it
+		// "Schedule Group A"/"B"; a custom label (owner manual 6.12) replaces the
+		// group token, so strip the known "Schedule Group "/"Schedule " prefix and
+		// keep whatever remains as the group name.
+		std::string group = Utility::TrimWhitespace(m_CurrentPageTitle);
+		for (const std::string_view prefix : { std::string_view{ "Schedule Group " }, std::string_view{ "Schedule " } })
+		{
+			if (group.starts_with(prefix))
+			{
+				group = group.substr(prefix.size());
+				break;
+			}
+		}
+
+		std::vector<Scheduling::ControllerSchedule> schedules;
+		for (const auto& [ordinal, text] : m_ScheduleRows)
+		{
+			auto parsed = IAQ::ParseScheduleRow(text);
+			if (!parsed.has_value())
+			{
+				LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): schedule row {} not parseable: '{}'", DeviceId(), ordinal, text); });
+				continue;
+			}
+
+			parsed->group = group;
+			// Stable per-slot id so the UI can key rows across reads (group + ordinal).
+			parsed->id = std::format("iaq-{}-{}", group.empty() ? "?" : group, ordinal);
+			parsed->name = parsed->target;
+			schedules.push_back(std::move(parsed.value()));
+		}
+
+		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): parsed {} controller schedule(s) from group '{}'", DeviceId(), schedules.size(), group); });
+		m_ControllerScheduleStore->Replace(Scheduling::ControllerScheduleStatus::Available, std::move(schedules), group);
 	}
 
 	void IAQDevice::Slot_IAQ_PageContinue(const Messages::IAQMessage_PageContinue& msg)
@@ -179,6 +239,10 @@ namespace AqualinkAutomate::Devices
 
 		LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_TitleMessage: title='{}'", DeviceId(), msg.Title()); });
 
+		// The Schedule list page's title carries the program group ("Schedule Group
+		// A"/"B" or a custom label); retain it for PublishSchedulePage() on PageEnd.
+		m_CurrentPageTitle = msg.Title();
+
 		ProcessControllerUpdates();
 
 		Restartable::Kick();
@@ -197,6 +261,22 @@ namespace AqualinkAutomate::Devices
 		else
 		{
 			m_TableInfo[msg.LineId()].Text = msg.Line();
+		}
+
+		// On the Schedule list page each program entry is a TableMessage keyed by its
+		// Attribute (1-based entry ordinal); LineId is a constant 0 across the rows so
+		// cannot separate them. Accumulate by Attribute; PageEnd parses the batch.
+		if (IAQ_SCHEDULE_PAGE_ID == m_CurrentPageId)
+		{
+			m_ScheduleRows[msg.Attribute()] = msg.Line();
+		}
+
+		// On the schedule editor's device picker, the selectable equipment are group-0 (LineId 0)
+		// TableMessages keyed by Attribute (0 = the "Devices" header). The schedule writer reads
+		// these to decide whether the target device is visible on the current picker page.
+		if (IAQ_DEVICE_PICKER_PAGE_ID == m_CurrentPageId && 0x00 == msg.LineId() && 0x00 != msg.Attribute())
+		{
+			m_DevicePickerRows[msg.Attribute()] = msg.Line();
 		}
 
 		// Spa-side switch button assignments appear on the iAQ "Spa Remotes" config page as

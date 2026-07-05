@@ -88,7 +88,7 @@ function schedulesView() {
         loading: false,
         error: '',
         schedules: [],               // app-side point schedules
-        controller: { status: 'pending_capture', schedules: [] },
+        controller: { status: 'pending_capture', active_group: '', schedules: [] },
         buttons: [],                 // device labels for the target dropdown
         editing: null,               // null | 'new' | <uuid>
         form: _schedDefaultForm(),
@@ -129,6 +129,7 @@ function schedulesView() {
                         const cj = await c.json();
                         this.controller = {
                             status: cj.status || 'pending_capture',
+                            active_group: cj.active_group || '',
                             schedules: Array.isArray(cj.schedules) ? cj.schedules : [],
                         };
                     }
@@ -222,6 +223,7 @@ function schedulesView() {
                 out.push({
                     key: `c:${c.id}`, owner: 'controller', editable: false, kind: 'span',
                     name: c.name || c.target || window.AquaI18n.t('sched.unnamed_program'), target: c.target || '',
+                    group: c.group || '',
                     days: c.days_of_week || 0, enabled: c.enabled !== false,
                     start: _schedHm(c.on_local), end: _schedHm(c.off_local),
                     summary: window.AquaI18n.t('sched.span_summary', { on: c.on_local, off: c.off_local }), raw: c, conflict: false,
@@ -247,6 +249,11 @@ function schedulesView() {
 
         get controllerPending() { return this.controller.status === 'pending_capture'; },
         get controllerUnsupported() { return this.controller.status === 'unsupported'; },
+        // The program group (A/B or a custom label) the listed controller programs
+        // belong to. Only the active group is observable on the wire, so this labels
+        // what is shown and hints that another group exists on the controller.
+        get controllerActiveGroup() { return this.controller.active_group || ''; },
+        get hasControllerSchedules() { return (this.controller.schedules || []).length > 0; },
 
         // --- timeline ------------------------------------------------------
 

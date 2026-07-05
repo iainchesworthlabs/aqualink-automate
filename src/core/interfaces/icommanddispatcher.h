@@ -8,6 +8,8 @@
 #include "kernel/body_of_water_ids.h"
 #include "kernel/circulation.h"
 
+namespace AqualinkAutomate::Scheduling { struct ControllerSchedule; }
+
 namespace AqualinkAutomate::Interfaces
 {
 
@@ -45,6 +47,16 @@ namespace AqualinkAutomate::Interfaces
 		// the solar heater).
 		virtual CommandResult SetHeaterMode(Kernel::BodyOfWaterIds heater_body, bool enable) = 0;
 		virtual CommandResult SelectIAQPageButton(uint8_t button_index) = 0;
+
+		// Create / delete one of the CONTROLLER's own internal programs (its built-in timers) by
+		// driving a capable panel's Program menu. Unlike the point actions above these are SPANS and
+		// run asynchronously over the bus, so Success means "accepted / queued" -- the caller polls
+		// /api/controller/schedules to observe the result. Routed to a ControllerScheduleWriter.
+		virtual CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) = 0;
+		virtual CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) = 0;
+		// Edit an existing controller program in place: `existing` locates the current row, `desired`
+		// carries the new field values it is changed to. Async like the create/delete above.
+		virtual CommandResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) = 0;
 	};
 
 }

@@ -406,6 +406,8 @@
         'sched.to_time': '{time} まで',
         'sched.owner_controller': 'コントローラー',
         'sched.owner_app': 'アプリ',
+        'sched.group_label': 'グループ {group}',
+        'sched.active_group_note': 'コントローラーの現在有効なプログラムグループ（{group}）を表示しています。コントローラーは2つ目のグループを保存できます。表示するにはコントローラーでグループを切り替えてください。',
         'sched.conflict': '競合',
         'sched.none_yet_title': 'スケジュールはまだありません',
         'sched.none_yet_text': '加熱・ろ過・照明を時刻で自動化できます。最初のスケジュールを作成して始めましょう。',

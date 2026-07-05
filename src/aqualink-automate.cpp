@@ -128,6 +128,7 @@
 #include "scheduling/controller_schedule.h"
 #include "scheduling/scheduler_service.h"
 #include "http/webroute_controller_schedules.h"
+#include "http/webroute_schedule_promote.h"
 #include "http/webroute_schedules.h"
 
 // Core — MQTT, serial, protocol
@@ -398,11 +399,16 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 		auto preferences_hub = std::make_shared<Kernel::PreferencesHub>();
 		auto statistics_hub = std::make_shared<Kernel::StatisticsHub>();
 
+		// Declared at function scope (rather than inside the hub_initialisation block below)
+		// so the controller-schedule write/promote web routes, constructed later, can be handed
+		// the same dispatcher instance. It is constructed and registered in that block.
+		std::shared_ptr<Devices::CommandDispatcher> command_dispatcher;
+
 		{
 			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("main -> hub_initialisation", std::source_location::current());
 			hub_locator.Register(data_hub).Register(equipment_hub).Register(preferences_hub).Register(statistics_hub);
 
-			auto command_dispatcher = std::make_shared<Devices::CommandDispatcher>(data_hub, equipment_hub);
+			command_dispatcher = std::make_shared<Devices::CommandDispatcher>(data_hub, equipment_hub);
 			hub_locator.Register<Interfaces::ICommandDispatcher>(command_dispatcher);
 
 			// Spa-side remote control surface (read decoded LED/last-press state; inject button
@@ -622,6 +628,19 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 		// SUPPORTED EQUIPMENT
 		//---------------------------------------------------------------------
 
+		// Read-only snapshot of the controller's own internal schedules. Always
+		// present (independent of --schedules-file) so the route can report a
+		// status; the OneTouch/IAQ Program page processors fill it in once a
+		// capture has been decoded. Registered BEFORE the equipment is configured so
+		// a statically-created emulated device can resolve and populate it in its
+		// constructor (auto-startup devices are created later, on the io_context).
+		// Fully-qualified because a `using namespace AqualinkAutomate::Options;` leaked in
+		// via the Jandy/Pentair options headers makes bare `Scheduling` ambiguous between
+		// AqualinkAutomate::Scheduling and AqualinkAutomate::Options::Scheduling. (The block
+		// alias below disambiguates later uses; these predate it.)
+		auto controller_schedule_store = std::make_shared<AqualinkAutomate::Scheduling::ControllerScheduleStore>();
+		hub_locator.Register<AqualinkAutomate::Scheduling::ControllerScheduleStore>(controller_schedule_store);
+
 		Jandy::Configure(hub_locator, settings);
 		Pentair::Configure(hub_locator, settings);
 
@@ -742,14 +761,6 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 				LogInfo(Channel::Main, std::format("Scheduler enabled (file: {})", scheduling_settings.schedules_file));
 			}
 		}
-
-		// Read-only snapshot of the controller's own internal schedules. Always
-		// present (independent of --schedules-file) so the route can report a
-		// status; the OneTouch/IAQ Program page processors fill it in once a
-		// capture has been decoded. Registered so the Jandy device side can resolve
-		// and populate it.
-		auto controller_schedule_store = std::make_shared<Scheduling::ControllerScheduleStore>();
-		hub_locator.Register<Scheduling::ControllerScheduleStore>(controller_schedule_store);
 
 		auto web_settings_result = settings.Get<Options::Web::WebSettings>();
 
@@ -1051,7 +1062,9 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Preferences>(preferences_service, user_preferences_store));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedule>(scheduler_service, data_hub));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Schedules>(scheduler_service, data_hub));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedules>(controller_schedule_store));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_SchedulePromote>(scheduler_service, command_dispatcher));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedules>(controller_schedule_store, command_dispatcher));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_ControllerSchedule>(controller_schedule_store, command_dispatcher));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Version>());
 
 			HTTP::Routing::Add(std::make_unique<HTTP::WebSocket_Equipment>(hub_locator));

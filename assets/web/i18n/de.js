@@ -407,6 +407,8 @@
         'sched.to_time': 'bis {time}',
         'sched.owner_controller': 'Controller',
         'sched.owner_app': 'App',
+        'sched.group_label': 'Gruppe {group}',
+        'sched.active_group_note': 'Aktive Programmgruppe des Controllers ({group}) wird angezeigt. Der Controller kann eine zweite Gruppe speichern; wechseln Sie die Gruppe am Controller, um sie anzuzeigen.',
         'sched.conflict': 'Konflikt',
         'sched.none_yet_title': 'Noch keine Zeitpläne',
         'sched.none_yet_text': 'Automatisieren Sie Heizung, Filterung und Beleuchtung nach Tageszeit. Erstellen Sie Ihren ersten Zeitplan, um zu beginnen.',

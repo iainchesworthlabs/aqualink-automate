@@ -407,6 +407,8 @@
         'sched.to_time': 'jusqu’à {time}',
         'sched.owner_controller': 'Contrôleur',
         'sched.owner_app': 'App',
+        'sched.group_label': 'Groupe {group}',
+        'sched.active_group_note': 'Affichage du groupe de programmes actif du contrôleur ({group}). Le contrôleur peut stocker un second groupe ; changez de groupe sur le contrôleur pour l’afficher.',
         'sched.conflict': 'Conflit',
         'sched.none_yet_title': 'Aucune planification pour l’instant',
         'sched.none_yet_text': 'Automatisez le chauffage, la filtration et l’éclairage selon l’heure de la journée. Créez votre première planification pour commencer.',

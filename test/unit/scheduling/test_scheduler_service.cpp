@@ -43,6 +43,9 @@ namespace
 		CommandResult SetCirculationMode(Kernel::CirculationModes) override { ++calls; last_kind = "circ"; return CommandResult::Success; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds, bool) override { ++calls; last_kind = "heater"; return CommandResult::Success; }
 		CommandResult SelectIAQPageButton(uint8_t) override { return CommandResult::Success; }
+		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult EditControllerProgram(const Scheduling::ControllerSchedule&, const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
 	};
 
 	// Build a schedule aligned to the current local minute of `tp`.

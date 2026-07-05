@@ -411,6 +411,8 @@
         'sched.to_time': 'to {time}',
         'sched.owner_controller': 'Controller',
         'sched.owner_app': 'App',
+        'sched.group_label': 'Group {group}',
+        'sched.active_group_note': 'Showing the controller’s active program group ({group}). The controller can store a second group; switch groups on the controller to view it.',
         'sched.conflict': 'Conflict',
         'sched.none_yet_title': 'No schedules yet',
         'sched.none_yet_text': 'Automate heating, filtration and lighting by time of day. Create your first schedule to get started.',
