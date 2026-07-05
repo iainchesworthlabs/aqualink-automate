@@ -629,8 +629,12 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 		// capture has been decoded. Registered BEFORE the equipment is configured so
 		// a statically-created emulated device can resolve and populate it in its
 		// constructor (auto-startup devices are created later, on the io_context).
-		auto controller_schedule_store = std::make_shared<Scheduling::ControllerScheduleStore>();
-		hub_locator.Register<Scheduling::ControllerScheduleStore>(controller_schedule_store);
+		// Fully-qualified because a `using namespace AqualinkAutomate::Options;` leaked in
+		// via the Jandy/Pentair options headers makes bare `Scheduling` ambiguous between
+		// AqualinkAutomate::Scheduling and AqualinkAutomate::Options::Scheduling. (The block
+		// alias below disambiguates later uses; these predate it.)
+		auto controller_schedule_store = std::make_shared<AqualinkAutomate::Scheduling::ControllerScheduleStore>();
+		hub_locator.Register<AqualinkAutomate::Scheduling::ControllerScheduleStore>(controller_schedule_store);
 
 		Jandy::Configure(hub_locator, settings);
 		Pentair::Configure(hub_locator, settings);
