@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -50,6 +51,12 @@ namespace AqualinkAutomate::Mqtt
 
 		/// Poll the MQTT integration (forwards to hub).
 		void Poll();
+
+		/// Test seam: override the monotonic clock backing the HA-discovery seed-grace
+		/// deadline so that timed Poll() branch can be driven deterministically without
+		/// a real wait. Defaults to std::chrono::steady_clock::now.
+		using SteadyClockFn = std::function<std::chrono::steady_clock::time_point()>;
+		void SetSteadyClock(SteadyClockFn clock) { m_SteadyNow = std::move(clock); }
 
 		/// Check if MQTT is enabled in settings.
 		bool IsEnabled() const;
@@ -107,6 +114,10 @@ namespace AqualinkAutomate::Mqtt
 		std::chrono::steady_clock::time_point m_HaSeedDeadline;
 		std::string m_HaConfigTopic;
 		static constexpr std::chrono::seconds HA_SEED_GRACE{ 3 };
+
+		// Monotonic clock for the HA seed-grace deadline; overridable in tests via
+		// SetSteadyClock(). Production uses the real steady_clock.
+		SteadyClockFn m_SteadyNow{ [] { return std::chrono::steady_clock::now(); } };
 
 		// Weak references to connected hubs
 		std::weak_ptr<Kernel::DataHub> m_DataHub;

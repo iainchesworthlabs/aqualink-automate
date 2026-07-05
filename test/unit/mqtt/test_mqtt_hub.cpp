@@ -1081,16 +1081,22 @@ BOOST_AUTO_TEST_CASE(Test_DataHubConfigChange_ArmsOnChangePublish_FlushedByPoll)
 	auto data_hub = std::make_shared<Kernel::DataHub>();
 	hub.ConnectDataHub(data_hub);
 
+	// Deterministic monotonic clock via the hub's injectable-clock seam, so the debounce
+	// deadline is driven by advancing the clock rather than a real wall-clock sleep.
+	auto fake_now = std::chrono::steady_clock::time_point{} + std::chrono::hours(1);
+	hub.SetSteadyClock([&] { return fake_now; });
+
 	hub.Start();
 	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
 
 	// A DataHub value change fires ConfigUpdateSignal with a real config event. With the hub
-	// running + connected + publish_on_change, OnDataHubConfigChanged arms the debounced publish.
+	// running + connected + publish_on_change, OnDataHubConfigChanged arms the debounced publish
+	// with a deadline of now + ON_CHANGE_DEBOUNCE.
 	data_hub->AirTemp(Celsius(24.0));
 
-	// The on-change deadline is ON_CHANGE_DEBOUNCE (250ms) out; wait past it, then Poll() flushes
-	// the coalesced on-change publish (system + pool + device status).
-	std::this_thread::sleep_for(std::chrono::milliseconds(300));
+	// Advance the clock past the debounce window, then Poll() flushes the coalesced on-change
+	// publish (system + pool + device status).
+	fake_now += std::chrono::milliseconds(300);
 	hub.Poll();
 
 	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());

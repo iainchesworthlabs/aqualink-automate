@@ -154,7 +154,7 @@ namespace AqualinkAutomate::Mqtt
 					// Defer the first discovery publish until the existing retained config is read
 					// back (so removed entities can be tombstoned). Subscribe + arm the grace window.
 					m_HaSeedPending = true;
-					m_HaSeedDeadline = std::chrono::steady_clock::now() + HA_SEED_GRACE;
+					m_HaSeedDeadline = m_SteadyNow() + HA_SEED_GRACE;
 					m_Hub->GetMqttClient()->Subscribe(m_HaConfigTopic, 0);
 
 					ha->PublishDeviceStates();
@@ -215,7 +215,7 @@ namespace AqualinkAutomate::Mqtt
 
 		// No retained discovery config arrived within the grace window (fresh broker / first run):
 		// publish discovery now so HA entities are not held back indefinitely.
-		if (m_HaDiscovery && m_HaSeedPending && std::chrono::steady_clock::now() >= m_HaSeedDeadline)
+		if (m_HaDiscovery && m_HaSeedPending && m_SteadyNow() >= m_HaSeedDeadline)
 		{
 			m_HaSeedPending = false;
 			m_HaDiscovery->PublishDiscoveryConfigs();

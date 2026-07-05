@@ -1065,6 +1065,43 @@ BOOST_AUTO_TEST_CASE(Test_HaSeed_RetainedConfigReplay_AdoptsAndRepublishes)
 	BOOST_CHECK_MESSAGE(republished, "adopting the retained config should trigger a discovery republish");
 }
 
+BOOST_AUTO_TEST_CASE(Test_HaSeed_GraceElapsed_PollPublishesDeferredDiscovery)
+{
+	// Drive the seed-grace deadline deterministically via the integration's
+	// injectable monotonic clock (no real wait against HA_SEED_GRACE).
+	auto fake_now = std::chrono::steady_clock::time_point{} + std::chrono::hours(1);
+	integration.SetSteadyClock([&] { return fake_now; });
+
+	auto& hub = ConnectAndPublish();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+
+	// Arm the seed window: OnConnected sets m_HaSeedPending and the deadline = now + grace.
+	hub.GetMqttClient()->OnConnected();
+
+	const std::string config_topic = "homeassistant/device/aqualink_test/config";
+	auto count_config_publishes = [&]
+	{
+		auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+		std::size_t n = 0;
+		for (const auto& pending : queue)
+		{
+			if (pending.topic == config_topic && !pending.payload.empty()) { ++n; }
+		}
+		return n;
+	};
+
+	// A pre-deadline Poll settles the queue (the hub flush drains prior publishes) and must NOT
+	// fire the deferred discovery config; capture that settled baseline.
+	integration.Poll();
+	const auto before = count_config_publishes();
+
+	// Advance past HA_SEED_GRACE: with no retained config ever replayed (fresh broker), the next
+	// Poll() publishes the deferred discovery config so HA entities are not held back indefinitely.
+	fake_now += std::chrono::seconds(4);
+	integration.Poll();
+	BOOST_CHECK_GT(count_config_publishes(), before);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(TestSuite_MqttIntegration_NoDispatcher)
