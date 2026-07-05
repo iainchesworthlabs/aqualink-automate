@@ -2876,6 +2876,16 @@
         <!-- ====== ABOUT VIEW ====== -->
         <div x-show="route === 'about'" x-cloak x-data="aboutView()">
 
+            <!-- Branding hero (compact only — the mockup leads About with an identity
+                 block; desktop keeps its dense info-first layout, unchanged). -->
+            <div class="about-hero" x-show="$store.layout.isCompact" x-cloak>
+                <span class="about-hero-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 3C16 3 6 15 6 21a10 10 0 0020 0C26 15 16 3 16 3z" fill="currentColor"/></svg></span>
+                <div class="about-hero-text">
+                    <div class="about-hero-name" x-text="$store.pool.projectName || 'Aqualink Automate'"></div>
+                    <div class="about-hero-tagline" x-text="$t('about.tagline')"></div>
+                </div>
+            </div>
+
             <div class="section-title mt-2" x-text="$t('about.software_info')"></div>
             <div class="card mb-2">
                 <div class="card-body">

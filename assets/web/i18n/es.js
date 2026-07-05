@@ -679,6 +679,7 @@
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'Información del software',
+        'about.tagline': 'Puente de automatización de piscinas RS-485',
         'about.application': 'Aplicación',
         'about.version': 'Versión',
         'about.description': 'Descripción',

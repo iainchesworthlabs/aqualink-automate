@@ -679,6 +679,7 @@
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'Informations logicielles',
+        'about.tagline': 'Passerelle d\'automatisation de piscine RS-485',
         'about.application': 'Application',
         'about.version': 'Version',
         'about.description': 'Description',

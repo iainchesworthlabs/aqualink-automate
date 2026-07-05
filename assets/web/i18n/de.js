@@ -676,6 +676,7 @@
         'alert_detail.serial_comms_loss': 'Seit {timeout_seconds} s keine Protokollnachricht dekodiert',
         'alert_detail.temperature_stale': 'Seit über {threshold_seconds} s keine aktuelle Temperatur ({body}) bei laufender Pumpe',
         'about.software_info': 'Softwareinformationen',
+        'about.tagline': 'RS-485-Pool-Automatisierungsbrücke',
         'about.application': 'Anwendung',
         'about.version': 'Version',
         'about.description': 'Beschreibung',

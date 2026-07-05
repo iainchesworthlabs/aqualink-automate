@@ -678,6 +678,7 @@
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'פרטי תוכנה',
+        'about.tagline': 'גשר אוטומציה לבריכה RS-485',
         'about.application': 'אפליקציה',
         'about.version': 'גרסה',
         'about.description': 'תיאור',

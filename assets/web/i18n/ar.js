@@ -675,6 +675,7 @@
         'alert_detail.serial_comms_loss': 'لم تُفكّ أي رسالة بروتوكول منذ {timeout_seconds} ث',
         'alert_detail.temperature_stale': 'لا توجد درجة حرارة حديثة لـ{body} منذ أكثر من {threshold_seconds} ث مع تشغيل المضخة',
         'about.software_info': 'معلومات البرنامج',
+        'about.tagline': 'جسر أتمتة المسبح RS-485',
         'about.application': 'التطبيق',
         'about.version': 'الإصدار',
         'about.description': 'الوصف',

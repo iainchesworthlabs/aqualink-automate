@@ -677,6 +677,7 @@
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': '软件信息',
+        'about.tagline': 'RS-485 泳池自动化桥接器',
         'about.application': '应用程序',
         'about.version': '版本',
         'about.description': '描述',

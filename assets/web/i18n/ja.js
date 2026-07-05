@@ -675,6 +675,7 @@
         'alert_detail.serial_comms_loss': '{timeout_seconds} 秒間プロトコルメッセージを解読していません',
         'alert_detail.temperature_stale': 'ポンプ稼働中に{body}の温度が {threshold_seconds} 秒以上更新されていません',
         'about.software_info': 'ソフトウェア情報',
+        'about.tagline': 'RS-485 プール自動化ブリッジ',
         'about.application': 'アプリケーション',
         'about.version': 'バージョン',
         'about.description': '説明',

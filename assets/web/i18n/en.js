@@ -683,6 +683,7 @@
 
         // ---- About -----------------------------------------------------------------------
         'about.software_info': 'Software Information',
+        'about.tagline': 'RS-485 pool automation bridge',
         'about.application': 'Application',
         'about.version': 'Version',
         'about.description': 'Description',

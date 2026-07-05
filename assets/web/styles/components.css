@@ -2906,6 +2906,23 @@ main input[type="range"] { accent-color: var(--accent); }
 }
 
 /* --- About → Language support ------------------------------------------ */
+/* About branding hero — rendered only on compact layouts (x-show gated), so it
+   never appears on the frozen desktop About view. Mirrors the mockup's identity
+   block: droplet tile + app name + tagline. */
+.about-hero {
+    display: flex; align-items: center; gap: 14px;
+    margin: 8px 0 4px; padding: 16px;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 16px;
+}
+.about-hero-mark {
+    flex: none; width: 48px; height: 48px; display: grid; place-items: center;
+    border-radius: 13px; background: var(--accent-soft); color: var(--accent);
+}
+.about-hero-mark svg { width: 28px; height: 28px; }
+.about-hero-name { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+.about-hero-tagline { font-size: 0.85rem; color: var(--text-dim); margin-top: 2px; }
+
 /* Endonym chips rendered from the locale registry; every language shows in
    its own script (the per-glyph font fallbacks cover Arabic/Hebrew/CJK). */
 .about-lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
