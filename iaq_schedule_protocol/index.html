@@ -1,0 +1,1583 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.">
+      
+      
+        <meta name="author" content="Iain Chesworth">
+      
+      
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/iaq_schedule_protocol/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>IAQ / AqualinkTouch Schedule Protocol (reverse-engineered) - Aqualink Automate</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#iaq--aqualinktouch-schedule-protocol-reverse-engineered" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Aqualink Automate" class="md-header__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Aqualink Automate
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              IAQ / AqualinkTouch Schedule Protocol (reverse-engineered)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Aqualink Automate" class="md-nav__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Aqualink Automate
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage-and-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage, HTTP API & WebSocket
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mqtt-home-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MQTT & Home Assistant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MATTER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matter (smart home)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberry-pi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Raspberry Pi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-rs485-connectivity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RS-485 wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-server-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server & hosting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECURITY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../worktrees/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git worktrees
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RECORD_REPLAY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Record / replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#validated-premise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validated premise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#page-id-map-pagestart-0x23-payload-byte-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page id map (PageStart 0x23 payload byte 0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#page-message-layouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page message layouts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Page message layouts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedule-list-row-page-0x28-tablemessage-0x26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule list row (page 0x28, TableMessage 0x26)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#program-group-page-0x12-pagebutton-0x24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Program group (page 0x12, PageButton 0x24)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#write-path-decoded-2026-07-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write path (decoded 2026-07-04)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Write path (decoded 2026-07-04)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-command-channel-fixed-touch-grid-keys-not-per-label-buttons" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The command channel: fixed touch-grid keys, not per-label buttons
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-value-handshake-firm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time value handshake (firm)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-a-program-firm-skeleton-inner-edit-nav-partial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CREATE a program (firm skeleton; inner edit-nav partial)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edit-a-program-firm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EDIT a program (firm)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-a-program-firm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DELETE a program (firm)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#switch-the-active-program-group-firm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Switch the active Program Group (firm)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resolved-by-the-clean-capture-capturesiaq_schedule_cleancap-2026-07-04-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved by the clean capture (captures/iaq_schedule_clean.cap, 2026-07-04 #2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#device-picker-0x38--fully-decoded-capturesiaq_pickercap-2026-07-04-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device picker (0x38) — fully decoded (captures/iaq_picker.cap, 2026-07-04 #3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edit--delete-an-existing-program-capturesiaq_editdeletecap-2026-07-05--decoded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edit / delete an existing program (captures/iaq_editdelete.cap, 2026-07-05) — decoded
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implications-for-the-store--model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implications for the store / model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#onetouch-text-menu-equivalent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OneTouch (text-menu) equivalent
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/iaq_schedule_protocol.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="iaq--aqualinktouch-schedule-protocol-reverse-engineered">IAQ / AqualinkTouch Schedule Protocol (reverse-engineered)<a class="headerlink" href="#iaq--aqualinktouch-schedule-protocol-reverse-engineered" title="Permanent link">&para;</a></h1>
+<p>Status: <strong>read path decoded</strong> from a live RS-485 capture (2026-07-04, passive snoop of a
+physical iAQ/AqualinkTouch 0x33 driven via its web UI); write path decoded and implemented
+for CREATE, DELETE, and EDIT (the IAQDevice <code>ControllerScheduleWrite_ProcessStep</code> state machine
+drives all three; routed via <code>/api/controller/schedules</code> POST/PUT/DELETE).
+Fixture/source capture: <code>captures/iaq_schedule_session.cap</code> (not committed; large).
+Decoder: <code>captures/decode_iaq.py</code>.</p>
+<p>This documents how the controller's <strong>internal schedules</strong> (its built-in program timers)
+are read and set over the wire via the AqualinkTouch page protocol (device 0x33). It is
+distinct from the app-side <code>SchedulerService</code> (which fires app commands on a clock). It
+feeds <code>Scheduling::ControllerScheduleStore</code> (<code>/api/controller/schedules</code>).</p>
+<h2 id="validated-premise">Validated premise<a class="headerlink" href="#validated-premise" title="Permanent link">&para;</a></h2>
+<p>Schedules are <strong>controller-resident</strong>, not stored in the iAqualink gateway: the schedule
+list is served by the master to page 0x28 over RS-485, and switching the active program
+group (page 0x12) changes the served list — Group B was observed genuinely empty on the
+wire while Group A returned five entries. So emulating 0x33 and reading/setting these pages
+reads/writes the controller's real timers.</p>
+<h2 id="page-id-map-pagestart-0x23-payload-byte-0">Page id map (PageStart 0x23 payload byte 0)<a class="headerlink" href="#page-id-map-pagestart-0x23-payload-byte-0" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>pid</th>
+<th>Page</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x0f</td>
+<td>Settings / menu root</td>
+<td></td>
+</tr>
+<tr>
+<td>0x12</td>
+<td><strong>Program Group</strong></td>
+<td>Group A / Group B toggle, Auto Switch, (start date on a deeper page)</td>
+</tr>
+<tr>
+<td>0x14</td>
+<td>System Setup menu</td>
+<td>VSP Setup, Label Aux, Color Lights, OneTouch Setup, Spa Remotes, …</td>
+</tr>
+<tr>
+<td>0x28</td>
+<td><strong>Schedule list</strong></td>
+<td>title <code>Schedule Group A</code>/<code>B</code>; the active group's entries</td>
+</tr>
+<tr>
+<td>0x29</td>
+<td><strong>Time picker</strong></td>
+<td>row1 <code>HH:MM</code>, row2 <code>AM</code>/<code>PM</code></td>
+</tr>
+<tr>
+<td>0x38</td>
+<td><strong>Schedule editor / device picker</strong></td>
+<td><code>Devices</code> list: Filter Pump, Spa, Pool Heat, Spa Heat, Solar Heat, Spa Jets, Swim Jet</td>
+</tr>
+<tr>
+<td>0x49, 0x4a</td>
+<td>deeper System Setup (Heat Pump, DST, …)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="page-message-layouts">Page message layouts<a class="headerlink" href="#page-message-layouts" title="Permanent link">&para;</a></h2>
+<p>Frames are standard Jandy <code>DLE STX | dest cmd payload… chk | DLE ETX</code>, dest <code>0x33</code> for
+page pushes (master→iAQ), dest <code>0x00</code> for the iAQ's control-data replies (master-addressed).</p>
+<ul>
+<li><strong>TitleMessage <code>0x2d</code></strong>: <code>[ascii title]</code> — e.g. <code>Schedule Group A</code>.</li>
+<li><strong>PageMessage <code>0x25</code></strong>: <code>[line_id][ascii text]</code> — used by the time picker (line 1 = <code>HH:MM</code>, line 2 = <code>AM</code>/<code>PM</code>).</li>
+<li><strong>TableMessage <code>0x26</code></strong>: <code>[idx][state][ascii text]</code> — <strong>no u16 field</strong>. Used for list rows.
+  <code>idx</code> = 0 (group id), <code>state</code> = 1-based entry/row number, text = the row.</li>
+<li><strong>PageButton <code>0x24</code></strong>: <code>[idx][state][u16][ascii name]</code> — note the extra u16 vs TableMessage.
+  <code>state</code> bit0 = selected/active (e.g. the current day-filter, the active program group).</li>
+</ul>
+<h3 id="schedule-list-row-page-0x28-tablemessage-0x26">Schedule list row (page 0x28, TableMessage 0x26)<a class="headerlink" href="#schedule-list-row-page-0x28-tablemessage-0x26" title="Permanent link">&para;</a></h3>
+<p>Text format: <code>&lt;Target&gt; &lt;On h:mm&gt; &lt;AM|PM&gt; &lt;Off h:mm&gt; &lt;AM|PM&gt; &lt;Days&gt;</code></p>
+<p>Observed initial Group A:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Filter Pump 11:00 AM 2:00 PM All
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Filter Pump 11:00 AM 2:00 PM All
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Pool Heat   11:00 AM 2:00 PM All
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Solar Heat   2:00 PM 11:00 AM All   (off &lt; on: overnight span)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>Spillway    11:00 AM 2:00 PM All
+</code></pre></div>
+<code>&lt;Days&gt;</code> ∈ { <code>All</code>, <code>Wkdays</code>, <code>Wkends</code>, <code>Su</code>,<code>M</code>,<code>Tu</code>,<code>W</code>,<code>Th</code>,<code>F</code>,<code>Sa</code> }. The controller
+UI only allows all-days / weekdays / weekends / a <strong>single</strong> day (no arbitrary multi-day
+bitmask), so the app-side <code>days_of_week</code> bitmask must round-trip through this constraint.
+Target is the equipment label and may contain spaces — parse fields from the <strong>right</strong>
+(Days, then AM/PM+time ×2) so a multi-word target is what remains on the left.</p>
+<p>Times are <strong>12-hour + AM/PM</strong> on the wire (the UI is 12-hour). Convert to the store's
+24-hour <code>on_hour</code>/<code>off_hour</code>. <code>off &lt; on</code> denotes an overnight span (Solar Heat above).</p>
+<h3 id="program-group-page-0x12-pagebutton-0x24">Program group (page 0x12, PageButton 0x24)<a class="headerlink" href="#program-group-page-0x12-pagebutton-0x24" title="Permanent link">&para;</a></h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>btn idx=0 &#39;Group A&#39;                 state bit0 = active
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>btn idx=2 &#39;Auto Switch Disabled&#39;
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>btn idx=3 &#39;Group B&#39;                 state bit0 = active
+</code></pre></div>
+Only the <strong>active</strong> group's schedules are observable on page 0x28; reading the other group
+requires switching active group (a write) — so a passive/emulated read exposes the active
+group only. Auto Switch + a per-group start date (winter/summer style) exist under here; a
+per-group custom label is also settable (see the user's controller PDF, pending).</p>
+<h2 id="write-path-decoded-2026-07-04">Write path (decoded 2026-07-04)<a class="headerlink" href="#write-path-decoded-2026-07-04" title="Permanent link">&para;</a></h2>
+<p>Decoded from the same live capture (<code>captures/iaq_schedule_session.cap</code>) by correlating the
+narrated user actions against the wire. Decoder mode: <code>python decode_iaq.py &lt;cap&gt; --commands</code>
+prints, in time order, PageStart page-id transitions, every non-idle iAQ→master ACK command,
+the <code>0x80</code> submit / <code>0x31</code> ControlReady handshake, and every <code>0x24</code> value write. Checksums:
+26 911 / 26 926 frames pass; none of the write-relevant frames (submits, <code>0x24</code> writes,
+delete-confirm dialogs) are among the 15 bad ones, so the decode below is trustworthy.</p>
+<p>This section <strong>supersedes</strong> the earlier "value-set handshake — partially decoded" notes.</p>
+<h3 id="the-command-channel-fixed-touch-grid-keys-not-per-label-buttons">The command channel: fixed touch-grid keys, not per-label buttons<a class="headerlink" href="#the-command-channel-fixed-touch-grid-keys-not-per-label-buttons" title="Permanent link">&para;</a></h3>
+<p>The iAQ carries every keypress to the master on its poll-ACK frame: a 2-byte
+<code>Ack (cmd 0x01)</code> to master(0x00) with payload <code>[AckType][Command]</code>.</p>
+<ul>
+<li><strong><code>Command</code> (payload[1]) is the keypress.</strong> <code>0x00</code> = no key. A genuine press is flagged by
+  <strong><code>AckType (payload[0]) == 0x00</code></strong>; other AckType values (<code>0x1f</code>, <code>0x23</code>–<code>0x2d</code>, <code>0x40</code>,
+  <code>0x41</code>, <code>0x70</code>, <code>0x72</code>, …) are page-render / poll echoes and carry <code>Command == 0x00</code>. The
+  <code>AckType 0x1f</code> beacon with <code>Command 0x08</code>/<code>0x18</code> is the <strong>chlorinator-active heartbeat</strong>
+  (from the 0xA3 device) leaking onto the bus — <strong>not</strong> a keypress; the decoder filters it.</li>
+<li><strong>Command values are a fixed screen-position grid</strong>, <code>Command = 0x11 + position</code>
+  (<code>0x11</code>=pos0 … <code>0x20</code>=pos15 …), <strong>plus</strong> the three nav opcodes <code>0x01</code>=SELECT/OK,
+  <code>0x02</code>=BACK, and <code>0x80</code>=SUBMIT (value commit). The <em>meaning</em> of a position is whatever the
+  master rendered there on the current page — so a press must be interpreted against the page
+  layout at press time, <strong>not</strong> by matching a PageButton <code>idx</code>. Positions above the highest
+  rendered PageButton <code>idx</code> (which tops out at 15) address <strong>table rows / scroll hotspots</strong>
+  on list pages (positions 16, 17, 20, 22, 23, 24 were all seen — they move the row cursor or
+  open the per-row time fields, see below).</li>
+<li>The highlighted list row is broadcast by the master as a <strong><code>0x40</code> frame <code>[00][row][sel]</code></strong>
+  (<code>sel</code> bit = highlighted); this is the cursor that CREATE/EDIT/DELETE act on.</li>
+</ul>
+<p>Firmly-established keys used by the schedule flows:</p>
+<table>
+<thead>
+<tr>
+<th>Key (Command)</th>
+<th>Page context</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0x11</code> (pos0)</td>
+<td>Schedule list 0x28</td>
+<td><strong>Add Program</strong> (fixed hard-key; no on-screen button is rendered for it) → opens device picker 0x38</td>
+</tr>
+<tr>
+<td><code>0x11</code> (pos0)</td>
+<td>Time picker 0x29</td>
+<td><strong>Toggle AM ↔ PM</strong> (master re-pushes PageMessage line 02)</td>
+</tr>
+<tr>
+<td><code>0x12</code> (pos1)</td>
+<td>Schedule list 0x28, row highlighted</td>
+<td><strong>Edit</strong> (idx1 <code>'Edit'</code>) → enter row edit mode</td>
+</tr>
+<tr>
+<td><code>0x13</code> (pos2)</td>
+<td>Schedule list 0x28, row highlighted</td>
+<td><strong>Delete</strong> → master shows confirm dialog (see DELETE)</td>
+</tr>
+<tr>
+<td><code>0x17</code>–<code>0x20</code></td>
+<td>Schedule list / editor 0x28</td>
+<td><strong>Day buttons</strong> — <code>0x17</code>=All(idx6) <code>0x18</code>=M(7) <code>0x19</code>=Tu(8) <code>0x1a</code>=W(9) <code>0x1b</code>=Th(10) <code>0x1c</code>=F(11) <code>0x1d</code>=Sa(12) <code>0x1e</code>=Su(13) <code>0x1f</code>=Wkdays(14) <code>0x20</code>=Wkends(15). Pressing one sets that day on the highlighted row immediately.</td>
+</tr>
+<tr>
+<td><code>0x21</code> (pos16)</td>
+<td>Schedule list / editor 0x28</td>
+<td><strong>Open ON-time field</strong> → time picker 0x29 for the ON time</td>
+</tr>
+<tr>
+<td><code>0x22</code> (pos17)</td>
+<td>Schedule list / editor 0x28</td>
+<td><strong>Open OFF-time field</strong> → time picker 0x29 for the OFF time</td>
+</tr>
+<tr>
+<td><code>0x25</code>,<code>0x27</code>,<code>0x28</code>,<code>0x29</code></td>
+<td>Schedule list 0x28</td>
+<td><strong>Row-cursor scroll hotspots</strong> — move the <code>0x40</code> highlight to another program row (exact per-position mapping not pinned; the <code>0x40 [00][row][01]</code> frame is the ground truth for which row is active)</td>
+</tr>
+<tr>
+<td><code>0x01</code></td>
+<td>any</td>
+<td><strong>SELECT / OK</strong> (advance a field, confirm a dialog)</td>
+</tr>
+<tr>
+<td><code>0x02</code></td>
+<td>any</td>
+<td><strong>BACK</strong></td>
+</tr>
+<tr>
+<td><code>0x80</code></td>
+<td>Time picker 0x29</td>
+<td><strong>SUBMIT</strong> value → <code>0x31</code> ControlReady → <code>0x24</code> write</td>
+</tr>
+</tbody>
+</table>
+<h3 id="time-value-handshake-firm">Time value handshake (firm)<a class="headerlink" href="#time-value-handshake-firm" title="Permanent link">&para;</a></h3>
+<p>Setting a time uses the known IAQ value-submit handshake:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>(on time picker 0x29, HH:MM entered locally, optional pos0 AM/PM toggles)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>iAQ  → master : SUBMIT   Ack [00 80]
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>master → iAQ  : ControlReady 0x31
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>iAQ  → master : 0x24 (PageButton to 0x00), 17-byte fixed field:
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>                31 &lt;H H : M M&gt; 00 00 …   ascii &quot;1HH:MM&quot;
+</code></pre></div>
+<p>The <code>0x24</code> payload is <code>'1'</code> (0x31, the <strong>field index</strong> within the picker — always <code>'1'</code> for
+the single time field) followed by the 5-char <code>HH:MM</code>, NUL-padded to 17 bytes. Observed:</p>
+<table>
+<thead>
+<tr>
+<th>write ascii</th>
+<th>ts (ms)</th>
+<th>field</th>
+<th>note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>109:00</code></td>
+<td>86147 / 99376</td>
+<td>create-A ON</td>
+<td>9:00 (entered twice during the fumble)</td>
+</tr>
+<tr>
+<td><code>117:00</code></td>
+<td>109376</td>
+<td>create-A OFF</td>
+<td>17:00 — first (wrong) OFF attempt</td>
+</tr>
+<tr>
+<td><code>105:00</code></td>
+<td>117189</td>
+<td>create-A OFF</td>
+<td>5:00 — corrected OFF</td>
+</tr>
+<tr>
+<td><code>106:30</code></td>
+<td>176735</td>
+<td>create-B ON</td>
+<td>6:30</td>
+</tr>
+<tr>
+<td><code>108:15</code></td>
+<td>186779</td>
+<td>create-B OFF</td>
+<td>8:15</td>
+</tr>
+<tr>
+<td><code>106:00</code></td>
+<td>205126</td>
+<td>edit-A OFF</td>
+<td>5:00 PM → 6:00 PM</td>
+</tr>
+</tbody>
+</table>
+<p><strong>HH:MM digit entry is a local touch-panel widget and is <em>not</em> observable on the wire</strong> —
+between the picker render (default <code>01:00 PM</code>) and the submit, no per-digit ACK commands
+appear, yet the value changes (e.g. <code>01:00</code>→<code>09:00</code>). Only the AM/PM toggle round-trips
+(because the master must re-render line 02), and the final 12-hour value ships in the <code>0x24</code>.
+The <code>117:00</code> vs <code>105:00</code> pair shows the panel will accept either a 24-h-looking or 12-h hour
+during entry; the <strong>committed</strong> <code>0x24</code> is what the controller stores.</p>
+<p><strong>AM/PM (firm):</strong> on picker 0x29 the master pushes <code>PageMessage 01 = HH:MM</code>, <code>02 = AM|PM</code>.
+Pressing <strong>pos0 (<code>0x11</code>)</strong> flips line 02 (<code>PM</code>→<code>AM</code>→<code>PM</code>, e.g. @83236/@84038). AM/PM is a
+separate field from the HH:MM string.</p>
+<h3 id="create-a-program-firm-skeleton-inner-edit-nav-partial">CREATE a program (firm skeleton; inner edit-nav partial)<a class="headerlink" href="#create-a-program-firm-skeleton-inner-edit-nav-partial" title="Permanent link">&para;</a></h3>
+<p>Example — create-A = Filter Pump / ON 9:00 AM / OFF 5:00 PM / Monday (@45055–117220):</p>
+<ol>
+<li><strong>Schedule list 0x28</strong> → press <strong><code>0x11</code> (Add Program)</strong> → <strong>device picker 0x38</strong> opens
+   (<code>Devices</code> header + a scrollable device list as <code>TableMessage [00][row][name]</code>).</li>
+<li><strong>Pick device on 0x38.</strong> The list scrolls (a scroll key repaints the list window and moves
+   the <code>0x40 [00][row][01]</code> highlight); a select press commits the <strong>highlighted</strong> row. The
+   committed device becomes a <strong>new list row with default <code>1:00 PM 1:00 PM All</code></strong>. (create-A
+   selected Filter Pump with a single <code>0x13</code>; create-B <em>scrolled</em> — <code>0x12</code> repainted the list
+   to reveal <code>Pool Light</code>, highlight moved to it via <code>0x40</code>, then a select committed it. The
+   exact per-position key meaning <em>on this scrolling list</em> is <strong>only partially pinned</strong> — the
+   <code>0x40</code> highlight frame is the reliable indicator of what gets selected, not the raw Command
+   byte.) Note the device list here is the controller's <strong>actuator</strong> list (Filter Pump, Spa,
+   Pool Heat/Spa Heat/Solar Heat, Spa Jets, Swim Jet, then Pool Light, Air Blower, Spillway,
+   Spa Mode, Clean Mode …) — richer than the 7 devices visible without scrolling.</li>
+<li>Back on <strong>0x28</strong>, the new row is highlighted (<code>0x40 [00][row][01]</code>). Set fields on it:</li>
+<li><strong>Day:</strong> press a day key (<code>0x18</code>=M …). Row re-renders with the new day token immediately.</li>
+<li><strong>ON time:</strong> press <strong><code>0x21</code></strong> → picker 0x29 → enter HH:MM, toggle AM/PM (pos0), <strong>SUBMIT</strong>.</li>
+<li><strong>OFF time:</strong> press <strong><code>0x22</code></strong> → picker 0x29 → … → <strong>SUBMIT</strong>.
+   These sub-steps are reached through an in-edit-mode cursor (<code>Edit</code>=<code>0x12</code> then a run of
+   <code>SELECT 0x01</code> + field keys). The <strong>landmarks are firm</strong> (<code>0x21</code>/<code>0x22</code> open the ON/OFF
+   picker every time — 7/7; day keys change the day token every time). The <strong>precise ordering
+   of the intervening <code>SELECT</code>s / field-advance keys inside edit mode is only partially
+   determined</strong> because the user fumbled and the field cursor is not separately rendered.
+   A new program is <strong>committed incrementally</strong> — there is no distinct "save" opcode; each
+   field write (day key, time submit) mutates the row on the controller as it happens.</li>
+</ol>
+<h3 id="edit-a-program-firm">EDIT a program (firm)<a class="headerlink" href="#edit-a-program-firm" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Change a time</strong> (edit-A OFF 5:00 PM → 6:00 PM, @200686→205156): highlight the row, press
+  <strong><code>0x22</code></strong> (OFF field) → picker → SUBMIT <code>106:00</code> → row re-renders <code>Filter Pump 9:00 AM
+  6:00 PM M</code>. Same handshake as CREATE; no separate "edit" verb for time.</li>
+<li><strong>Change the day</strong> (Pool Light M→W→F, @225436–255320): press <strong><code>0x12</code> (Edit)</strong> to enter row
+  edit, then the target <strong>day key</strong> — <code>0x1a</code> (W) → row shows <code>…W</code> (@229746); later <code>0x12</code>
+  then <code>0x1c</code> (F) → row shows <code>…F</code> (@255320). The row's day token is rewritten live.</li>
+</ul>
+<h3 id="delete-a-program-firm">DELETE a program (firm)<a class="headerlink" href="#delete-a-program-firm" title="Permanent link">&para;</a></h3>
+<p>Highlight the target row (row cursor via scroll keys; ground truth <code>0x40 [00][row][01]</code>), then:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>iAQ → master : 0x13  (Delete key, pos2)
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>master → iAQ : PageSubMsg 0x2c  &quot;Are you sure you want\nto delete this program?&quot;  [Ok][Cancel]
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>iAQ → master : 0x01  (SELECT = Ok)
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>→ program removed; schedule list 0x28 re-renders with the row gone (rows shift up)
+</code></pre></div>
+<p>Observed twice, identically: delete Filter Pump @268521(<code>0x13</code>)→dialog@268568→<code>0x01</code>@270764
+(row 3 gone @271200); delete Pool Light @374685(<code>0x13</code>)→dialog@374731→<code>0x01</code>@376659 (row 5
+gone @377077). <code>Cancel</code> would be the other dialog button (not exercised in this capture).</p>
+<h3 id="switch-the-active-program-group-firm">Switch the active Program Group (firm)<a class="headerlink" href="#switch-the-active-program-group-firm" title="Permanent link">&para;</a></h3>
+<p>Page <strong>0x12</strong> renders three PageButtons: <code>idx0 'Group A'</code>, <code>idx2 'Auto Switch Disabled'</code>,
+<code>idx3 'Group B'</code>; <code>state</code> bit0 marks the <strong>active</strong> group. To switch, press the target group's
+key <code>Command = 0x11 + idx</code>:</p>
+<ul>
+<li><strong><code>0x14</code></strong> (idx3) → <strong>Group B</strong> — re-renders with idx3 <code>state=01</code>; visiting 0x28 afterward
+  shows title <code>Schedule Group B</code> (empty here) (@456277 → @461413).</li>
+<li><strong><code>0x11</code></strong> (idx0) → <strong>Group A</strong> — re-renders idx0 <code>state=01</code>; 0x28 shows <code>Schedule Group A</code>
+  (@471533 → @476511).</li>
+</ul>
+<p>This is a genuine controller write: the served schedule list on 0x28 changes with the active
+group, confirming schedules are controller-resident (see "Validated premise").</p>
+<h3 id="resolved-by-the-clean-capture-capturesiaq_schedule_cleancap-2026-07-04-2">Resolved by the clean capture (<code>captures/iaq_schedule_clean.cap</code>, 2026-07-04 #2)<a class="headerlink" href="#resolved-by-the-clean-capture-capturesiaq_schedule_cleancap-2026-07-04-2" title="Permanent link">&para;</a></h3>
+<p>A deliberate, un-fumbled run (create Pool Light → set ON → set OFF → set day → edit time →
+edit day → delete) pinned the canonical flow. Genuine presses (<code>AckType==0x00</code>) only:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>0x11 on Settings(0x0f)            -&gt; Schedule list (navigate in)
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>0x11 on Schedule list(0x28)       -&gt; ADD PROGRAM -&gt; device picker (0x38)
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>[picker 0x38: scroll keys] then a select -&gt; creates a row with defaults &quot;1:00 PM 1:00 PM All&quot;
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>0x21 on list(0x28)                -&gt; open ON-time picker(0x29); 0x11 = AM/PM toggle; 0x80 submit -&gt; 0x24 &#39;1&#39;+HH:MM
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>0x22 on list(0x28)                -&gt; open OFF-time picker; (no 0x11 toggle) 0x80 submit
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>0x17..0x20 on list(0x28)          -&gt; set day directly (0x1c=Fri here)
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>[row cursor] 0x12 = EDIT, re-uses 0x21/0x22 (time) and 0x17..0x20 (day)
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>0x13 = DELETE -&gt; confirm dialog -&gt; 0x01 (Ok)
+</code></pre></div>
+<ul>
+<li><strong>Device picker (0x38) is a SCROLLING list</strong>, confirmed: the created device was <strong>Pool Light</strong>,
+  which is <em>not</em> among the 7 rows the picker first renders (Filter Pump/Spa/Pool Heat/Spa Heat/
+  Solar Heat/Spa Jets/Swim Jet) — so it was reached by scrolling. Implement device selection the
+  same way as the spa-switch writer: scroll, read the <code>0x40 [00][row][sel]</code> highlight + the <code>0x26</code>
+  row text, repeat until the target label is highlighted, then select. Do <strong>not</strong> hard-map a key→device.</li>
+<li><strong>AM/PM = the <code>0x11</code> toggle on the time picker</strong>, applied to whichever field's picker is open,
+  starting from the field's current value. In the capture ON was toggled (→ <code>9:00 AM</code>) and OFF was
+  not (→ <code>10:00 PM</code>), matching the resulting list rows. The <code>0x24</code> write still carries only <code>'1'</code>+<code>HH:MM</code>;
+  AM/PM never rides that frame.</li>
+<li><strong>A new program defaults to <code>1:00 PM / 1:00 PM / All</code></strong>; fields are then set incrementally (there
+  is no batch "save" — each submit/day-press mutates the highlighted row live).</li>
+</ul>
+<h3 id="device-picker-0x38--fully-decoded-capturesiaq_pickercap-2026-07-04-3">Device picker (0x38) — fully decoded (<code>captures/iaq_picker.cap</code>, 2026-07-04 #3)<a class="headerlink" href="#device-picker-0x38--fully-decoded-capturesiaq_pickercap-2026-07-04-3" title="Permanent link">&para;</a></h3>
+<p>The picker is a <strong>scrolling touchscreen list</strong>; a mouse click on a row is a single touch-position
+command, not a navigate+select. Four controlled picks (device at row 1, 2, 4, and a scrolled row)
+pinned the mapping, consistent with the earlier Pool-Light pick (row 3 → <code>0x16</code>):</p>
+<ul>
+<li><strong>Click visible row R (1-based) → <code>0x13 + R</code></strong> — row1 <code>0x14</code>, row2 <code>0x15</code>, row3 <code>0x16</code>, row4 <code>0x17</code>, …</li>
+<li><strong><code>0x12</code> = scroll the picker down</strong> one page (rows re-render as Attribute 1..7 of the new page).</li>
+<li><strong><code>0x13</code> = OK / confirm</strong> the highlighted device → returns to the list with the new program
+  (defaulted to <code>1:00 PM / 1:00 PM / All</code>).</li>
+</ul>
+<p>Select flow: scroll (<code>0x12</code>) until the target label appears in the group-0 rows, click its row
+(<code>0x13 + row</code>), then <code>0x13</code> to confirm. Implemented in <code>IAQDevice::ControllerScheduleWrite_ProcessStep</code>.</p>
+<p>The full create is now implemented in <code>IAQDevice::ControllerScheduleWrite_ProcessStep</code>
+(navigate → Add → pick device → set ON/OFF times → set day → verify), including the time
+submit: open the field (<code>0x21</code>/<code>0x22</code>) → on the time picker read line 2, toggle AM/PM (<code>0x11</code>)
+to match, then <code>0x80</code> submit → the value rides the control-data response as <code>"1"+HH:MM</code>
+(12-hour), via the same <code>IAQ_ControlReady</code> handshake as the setpoint writer.</p>
+<h3 id="edit--delete-an-existing-program-capturesiaq_editdeletecap-2026-07-05--decoded">Edit / delete an existing program (<code>captures/iaq_editdelete.cap</code>, 2026-07-05) — decoded<a class="headerlink" href="#edit--delete-an-existing-program-capturesiaq_editdeletecap-2026-07-05--decoded" title="Permanent link">&para;</a></h3>
+<p>Existing programs are rows in the list; <strong>click program row R → <code>0x22 + R</code></strong> (row1 <code>0x23</code>,
+row2 <code>0x24</code>, …), confirmed against the <code>0x40 [00][row][sel]</code> highlight (pressing <code>0x23</code> highlights
+row 1, <code>0x24</code> highlights row 2). With a row highlighted:</p>
+<ul>
+<li><strong>Edit = <code>0x12</code></strong> → enter edit mode, then change fields with the same keys as create
+  (ON <code>0x21</code> / OFF <code>0x22</code> + submit, days <code>0x17</code>-<code>0x20</code>).</li>
+<li><strong>Delete = <code>0x13</code></strong> → the master shows the confirm dialog (PageSubMsg <code>0x2c</code>) → <strong>Ok = <code>0x01</code></strong>
+  (deletes) or <strong>Cancel = <code>0x02</code>/Back</strong> (leaves it). Both paths observed: a cancelled delete of
+  row 1, then a confirmed delete of row 2 (= Pool Heat).</li>
+</ul>
+<p>So DELETE(program) = navigate to the list → find the program's row ordinal in the parsed rows →
+click it (<code>0x22 + ordinal</code>) → <code>0x13</code> → <code>0x01</code> → verify it is gone. EDIT(existing, desired) =
+navigate to the list → find <code>existing</code>'s row ordinal → click it (<code>0x22 + ordinal</code>) → <code>0x12</code>
+(Edit) → re-run the create field phases against <code>desired</code> (ON <code>0x21</code> / OFF <code>0x22</code> + submit,
+day <code>0x17</code>-<code>0x20</code>) → verify the list now shows <code>desired</code>. Both are implemented by the shared
+<code>ControllerScheduleWrite_ProcessStep</code> state machine (op = Delete / Edit; the goal carries a
+<code>match</code> = existing program to locate and, for edit, a <code>program</code> = desired). UI rules can add
+steps (e.g. a day change needing a <code>0x01</code> confirm); the writer tolerates extra renders via its
+settle/backstop.</p>
+<h2 id="implications-for-the-store--model">Implications for the store / model<a class="headerlink" href="#implications-for-the-store--model" title="Permanent link">&para;</a></h2>
+<p><code>ControllerSchedule</code> currently models one span (target, days bitmask, on/off HH:MM). To
+represent this controller faithfully add: <strong>program group</strong> (A/B) + which is active, and
+respect the day constraint (all / weekdays / weekends / single day). Reading populates from
+the active group's page 0x28; <code>PendingCapture</code> → <code>Available</code> once parsed.</p>
+<h2 id="onetouch-text-menu-equivalent">OneTouch (text-menu) equivalent<a class="headerlink" href="#onetouch-text-menu-equivalent" title="Permanent link">&para;</a></h2>
+<p>The <strong>same</strong> <code>Scheduling::ControllerScheduleStore</code> is populated by the OneTouch (device 0x40)
+text-menu read path — see <code>docs/onetouch_schedule_protocol.md</code>. Where the IAQ serves the whole
+group as one list page (0x28) parsed row-by-row (<code>ParseScheduleRow</code>), the OneTouch renders one
+program per <strong>Program detail page</strong> (a reconstructed 16×12 screen) parsed by
+<code>Devices::OneTouch::ParseProgramDetailPage</code>; the OneTouchDevice accumulates programs across
+detail-page visits and republishes the snapshot. Both feed <code>/api/controller/schedules</code> identically.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

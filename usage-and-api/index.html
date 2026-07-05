@@ -505,6 +505,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#responsive-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Responsive layout
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1507,6 +1518,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#responsive-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Responsive layout
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2048,6 +2070,42 @@
 <p>Right-to-left languages (Arabic, Hebrew, Yiddish) mirror the layout automatically, and numbers, dates, and temperatures format per the active locale — Arabic renders Eastern Arabic-Indic digits, and temperatures follow the °C/°F display-units preference everywhere, including the Trends charts.</p>
 <p><img alt="The dashboard in Arabic — the layout mirrors right-to-left and numbers render as Eastern Arabic-Indic digits" src="../assets/webui-dashboard-arabic-rtl.png" /></p>
 <p>Translations live in plain-text catalogs and are easy to contribute — see <a href="../CONTRIBUTING/#contributing-translations">Contributing translations</a> for the workflow and <a href="../i18n/">docs/i18n.md</a> for the mechanics.</p>
+<h3 id="responsive-layout">Responsive layout<a class="headerlink" href="#responsive-layout" title="Permanent link">&para;</a></h3>
+<p>The UI is a single responsive web app — there is no separate mobile build or native app. The same page reflows across three viewport bands, and the navigation adapts to match:</p>
+<table>
+<thead>
+<tr>
+<th>Width</th>
+<th>Band</th>
+<th>Navigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt; 640px</code></td>
+<td>Phone</td>
+<td>A fixed <strong>bottom tab bar</strong> (Dashboard · Trends · Schedules · More); secondary destinations live behind <strong>More</strong>, which opens a bottom sheet — a grouped menu with per-row icons, drill-in chevrons, and toggle switches for dark mode and monitor-only mode.</td>
+</tr>
+<tr>
+<td><code>640–1023px</code></td>
+<td>Tablet</td>
+<td>The inline links collapse behind a <strong>hamburger</strong> button that opens a nav drawer.</td>
+</tr>
+<tr>
+<td><code>≥ 1024px</code></td>
+<td>Desktop</td>
+<td>The full <strong>inline navigation</strong> in the top bar.</td>
+</tr>
+</tbody>
+</table>
+<p>On phones the dashboard reorders and consolidates itself around what you act on most: a condensed Pool/Spa/Air temperature header; equipment as two-up <strong>tap-tiles</strong> (tap to toggle; a tile fills with the accent colour when its device is on); the heater rows with the temperature-setpoint steppers folded in beneath them; and the water chemistry collapsed into a single card — pH, ORP and salt as an accent-striped row with the salt-water generator output and controls below. The top bar condenses to one row (brand, live/ready status, alerts), with the theme and other toggles moving into the <strong>More</strong> sheet. Tablet portrait keeps the richer multi-column card grid — circular chemistry dials, a standalone setpoints card — under the hamburger; tablet landscape and desktop use the full inline layout. Modals become full-width bottom sheets on phones and centred dialogs on wider screens. On compact layouts the dense <strong>Diagnostics</strong> page also collapses to the essentials (System Health, serial-port utilisation, bandwidth, message errors, communication latency); the heavier power-user sections — device list, message statistics, MQTT broker, log levels and serial recording — fold behind a <strong>Show advanced diagnostics</strong> disclosure, while desktop keeps the full page.</p>
+<p align="center">
+  <img src="assets/aqualink-automate-mobile-dashboard.png" alt="The dashboard on a phone — condensed temperature header, equipment tap-tiles, and a bottom tab bar" width="300">
+  &nbsp;&nbsp;
+  <img src="assets/aqualink-automate-tablet-dashboard.png" alt="The dashboard on a tablet in portrait — multi-column card grid behind a hamburger menu" width="440">
+</p>
+
+<p>The layout is regression-tested at every band by <code>e2e/responsive.spec.ts</code>, which asserts the correct navigation pattern, no horizontal overflow, RTL mirroring, and dark-mode heading contrast across the phone/tablet/desktop viewports.</p>
 <h2 id="security-model">Security model<a class="headerlink" href="#security-model" title="Permanent link">&para;</a></h2>
 <p>Authentication is <strong>opt-in</strong> and <strong>off by default</strong>. With no token configured the server behaves exactly as an open, unauthenticated service — every route is reachable without credentials.</p>
 <p>To require authentication, set a bearer token via <code>--api-auth-token &lt;token&gt;</code> (config key <code>api-auth-token</code>). When a token is configured:</p>
@@ -2392,18 +2450,51 @@
 <td><code>404</code>, <code>503</code>.</td>
 </tr>
 <tr>
+<td>POST</td>
+<td><code>/api/schedules/{uuid}/promote</code></td>
+<td><code>200</code> <code>{status:"queued", schedule}</code></td>
+<td><code>404</code> unknown; <code>422</code> no on/off complement or non-button action; <code>400</code> not representable (<code>blockers[]</code>); <code>503</code>.</td>
+</tr>
+<tr>
 <td>GET</td>
 <td><code>/api/controller/schedules</code></td>
-<td><code>200</code> <code>{status, schedules[]}</code></td>
+<td><code>200</code> <code>{status, active_group, schedules[]}</code></td>
 <td><code>503</code> when the store is unavailable.</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/controller/schedules</code></td>
+<td><code>200</code> <code>{status:"queued", schedule}</code></td>
+<td><code>400</code> bad body / not representable (with <code>blockers[]</code>); <code>503</code> no writer.</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/controller/schedules/{id}</code></td>
+<td><code>200</code> <code>{status:"queued", schedule}</code></td>
+<td><code>404</code> unknown id; <code>400</code> bad body / not representable (with <code>blockers[]</code>); <code>503</code> no writer.</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/controller/schedules/{id}</code></td>
+<td><code>200</code> <code>{status:"queued"}</code></td>
+<td><code>404</code> unknown id; <code>503</code> no writer.</td>
 </tr>
 </tbody>
 </table>
 <p>App-side schedules (<code>/api/schedules</code>) are point actions the app fires; controller
 schedules (<code>/api/controller/schedules</code>) are the controller's own built-in
-on→off programs, read-only and reported as spans. <code>status</code> is <code>available</code>,
-<code>pending_capture</code> (parser not yet wired), or <code>unsupported</code>. The web UI merges
-both into one timeline. Writing controller schedules is not yet supported.</p>
+on→off programs, reported as spans. <code>status</code> is <code>available</code>,
+<code>pending_capture</code> (parser not yet wired), or <code>unsupported</code>. The controller keeps
+two program groups (A/B) with only one active; <code>active_group</code> names it and each
+entry carries its <code>group</code>. Only the active group's schedules are observable on
+the wire. <strong>Writing</strong> a controller program (POST create / DELETE) drives a capable
+panel's Program menu over RS-485 and is <strong>asynchronous</strong> — a <code>200</code> means the write
+was <em>queued</em>, so poll GET to observe the result. Only a controller-representable
+span is accepted; an infeasible one is rejected <code>400</code> with stable <code>blockers</code> codes
+(the same <code>Scheduling::CheckControllerCandidate</code> predicate used for promotion). The
+web UI merges both sources into one timeline. See
+<a href="../schedules-design/">schedules-design.md</a> for the two-tier model and
+<a href="../iaq_schedule_protocol/">iaq_schedule_protocol.md</a> for the wire decode.</p>
 <h3 id="preferences">Preferences<a class="headerlink" href="#preferences" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

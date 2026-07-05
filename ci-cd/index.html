@@ -1815,6 +1815,26 @@
 <td><code>AQUALINK_SCHEDULES_FILE</code></td>
 <td>schedule CRUD</td>
 </tr>
+<tr>
+<td>TLS (https)</td>
+<td><code>AQUALINK_TLS=enabled</code></td>
+<td>the default (non-identity) suite over an HTTPS origin (self-signed cert auto-provisioned), exercising the server's TLS/SSL session path and certificate self-provisioning</td>
+</tr>
+<tr>
+<td>bootstrap admin</td>
+<td><code>AQUALINK_AUTH_MODE=enabled</code>, <code>AQUALINK_BOOTSTRAP_ADMIN=wbadmin</code>, <code>AQUALINK_BOOTSTRAP_ADMIN_PASSWORD=…</code>, <code>npx playwright test e2e/admin.spec.ts</code></td>
+<td>headless <code>--bootstrap-admin</code> start-up provisioning; admin.spec then logs in against the seeded admin</td>
+</tr>
+<tr>
+<td>open bind — warning</td>
+<td><code>AQUALINK_OPEN_BIND=warn</code></td>
+<td>non-loopback bind (0.0.0.0) with auth off → the open-control-plane start-up warning</td>
+</tr>
+<tr>
+<td>open bind — ack</td>
+<td><code>AQUALINK_OPEN_BIND=ack</code></td>
+<td>as above plus <code>--insecure-no-auth</code> → the acknowledged-posture branch</td>
+</tr>
 </tbody>
 </table>
 <p><strong>docker-verify checks.</strong> It builds the <code>ci</code> target, then the <code>runtime</code> target (tagged <code>aqualink-automate:verify</code>), runs <code>docker run --rm -e MATTER_ENABLED=false aqualink-automate:verify --version</code>, and confirms the bundled sidecar is present (<code>node --version</code> plus a test for <code>/opt/matter-bridge/dist/index.js</code>). Both Docker builds are wrapped in a bounded retry so a transient Docker Hub base-image timeout does not fail CI. The <code>Dockerfile</code> base (both the build and runtime stages) is <code>ubuntu:25.04</code> — note this is a different release from the self-hosted runner image, which Packer provisions on Ubuntu 26.04 LTS (see <a href="#provisioning">Provisioning</a> below).</p>
