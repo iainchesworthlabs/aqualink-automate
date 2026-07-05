@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace AqualinkAutomate::Kernel
 {
 
@@ -31,6 +33,14 @@ namespace AqualinkAutomate::Kernel
 
 		Unknown
 	};
+
+	// Human-readable label for a system board (e.g. RS8_Combo -> "RS-8 Combo").
+	// The strings match the canonical panel-type keys decoded by
+	// Utility::PoolConfigurationDecoder so a label round-trips back to the enum.
+	// Use this ONLY for user-facing display (e.g. the diagnostics page). The raw
+	// magic_enum name is retained where the value is a machine token, i.e. the
+	// equipment-cache snapshot (restored via enum_cast) and the cache fingerprint.
+	std::string ToDisplayString(SystemBoards board);
 
 }
 // namespace AqualinkAutomate::Kernel
