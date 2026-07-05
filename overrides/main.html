@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+<!--
+  Aqualink Automate theme overrides.
+  - Injects a branded hero on the homepage only (page.is_homepage).
+  - Adds brand theme-color meta matching the web-UI manifest.
+  Everything else inherits stock Material behaviour.
+-->
+
+{% block extrahead %}
+  {{ super() }}
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+{% endblock %}
+
+{% block content %}
+  {% if page.is_homepage %}
+    <div class="aa-hero">
+      <div class="aa-hero__inner">
+        <div class="aa-hero__text">
+          <span class="aa-hero__eyebrow">{{ config.site_name }}</span>
+          <h1 class="aa-hero__title">Local control of your pool. No cloud.</h1>
+          <p class="aa-hero__tagline">{{ config.site_description }}</p>
+          <div class="aa-hero__actions">
+            <a class="aa-btn aa-btn--primary" href="{{ 'INSTALL/' | url }}">Get started</a>
+            <a class="aa-btn" href="{{ config.repo_url }}" rel="noopener">View on GitHub</a>
+          </div>
+        </div>
+        <div class="aa-hero__art">
+          {% include "partials/hero-graphic.svg" %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {{ super() }}
+{% endblock %}

@@ -1,0 +1,94 @@
+name: Container Image Scanning
+
+# Trivy scans the RUNTIME CONTAINER for known-vulnerable OS packages and Node
+# dependencies -- the one supply-chain surface nothing else covers:
+#   * CodeQL / SonarCloud / MSVC   scan our own C++ / JS source.
+#   * Dependabot                    tracks the GitHub Actions + npm manifests.
+#   * OSV-Scanner (osv-scanner.yml) tracks the vcpkg C++ libraries.
+# But the shipped Docker image ALSO layers an Ubuntu base + a NodeSource Node
+# runtime + the Matter sidecar's node_modules, and CVEs in THOSE were invisible.
+#
+# The job builds only the `runtime-base` stage (Ubuntu + Node + the Matter sidecar)
+# -- NOT the app's `ci` stage -- so there is no expensive C++ compile: runtime-base
+# is exactly the OS/Node dependency surface Trivy understands. The app's own vcpkg
+# libraries carry no package metadata for Trivy to match and are covered by
+# OSV-Scanner instead, so scanning runtime-base loses nothing.
+#
+# Runs on GitHub-hosted `ubuntu-latest` (free for public repos): no self-hosted
+# runner needed, and findings go to Security > Code scanning (they never fail a PR).
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker-entrypoint.sh'
+      - 'matter-bridge/**'
+      - '.github/workflows/trivy.yml'
+  pull_request:
+    branches: [ "develop", "main" ]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker-entrypoint.sh'
+      - 'matter-bridge/**'
+      - '.github/workflows/trivy.yml'
+  schedule:
+    - cron: '17 22 * * 2'   # weekly, Tuesday 22:17 UTC (offset from the codescanning cron)
+  workflow_dispatch:
+
+concurrency:
+  group: trivy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  Trivy_Image:
+    # Skip a develop->main promotion PR (the image was already scanned on develop
+    # entry), and skip fork PRs -- a fork PR runs with a read-only token, so the
+    # SARIF upload to the Security tab would fail regardless.
+    if: >-
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository) &&
+      (github.event_name != 'pull_request' ||
+       github.head_ref != 'develop' ||
+       github.base_ref != 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+    # Build ONLY the runtime-base stage: Ubuntu + NodeSource Node + the Matter
+    # sidecar (matter-builder is a build dependency of runtime-base). This does NOT
+    # build the `ci` stage, so the C++ toolchain/vcpkg compile is skipped. VERSION is
+    # not needed by runtime-base, so no --build-arg is required.
+    - name: Build runtime-base image
+      run: docker build --target runtime-base -t aqualink-automate:scan .
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      with:
+        image-ref: aqualink-automate:scan
+        format: sarif
+        output: trivy-results.sarif
+        # Only fixable HIGH/CRITICAL reach the Security tab, keeping it actionable
+        # (ignore-unfixed drops base-image CVEs with no upstream patch yet).
+        severity: CRITICAL,HIGH
+        ignore-unfixed: true
+        limit-severities-for-sarif: true
+
+    # Upload whatever Trivy produced. The scan step does not fail the job on findings
+    # (default exit-code 0), so this always has a SARIF to publish.
+    - name: Upload Trivy SARIF
+      if: ${{ !cancelled() }}
+      uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+      with:
+        sarif_file: trivy-results.sarif
+        category: trivy-image

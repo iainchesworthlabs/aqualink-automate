@@ -4,6 +4,18 @@ Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers
 over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with **no cloud
 service required**.
 
+<!-- Build & code health -->
+[![CI](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml)
+[![Code Scanning](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=coverage)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+<!-- Supply chain & project meta -->
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworth/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworth/aqualink-automate)
+[![Latest release](https://img.shields.io/github/v/release/iainchesworth/aqualink-automate?include_prereleases&sort=semver)](https://github.com/iainchesworth/aqualink-automate/releases/latest)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/iainchesworth/aqualink-automate/blob/main/LICENSE.txt)
+
 Aqualink Automate is a C++ service that talks to your pool equipment over an
 RS-485 serial link and exposes it on your own network. It reads status from the
 panel and lets you control it through a built-in Web UI, an HTTP and WebSocket

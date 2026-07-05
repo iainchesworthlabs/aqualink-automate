@@ -18,6 +18,7 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "overrides/**"
       - "mkdocs.yml"
       - "README.md"
       - ".github/workflows/docs.yml"
@@ -46,11 +47,18 @@ jobs:
         with:
           python-version: "3.x"
 
+      # Cairo + friends back the social-cards plugin's image rendering.
+      - name: Install imaging libraries (social cards)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2-dev libfreetype6-dev libffi-dev libjpeg-dev libpng-dev libz-dev
+
       - name: Install MkDocs Material
         # Floor only (>=9.7) so the GitHub-compatible slugify and theme features
         # this site relies on are present; no upper cap, so future majors
-        # (incl. the MkDocs 2.0 line) are adopted as they ship.
-        run: pip install --disable-pip-version-check "mkdocs-material>=9.7"
+        # (incl. the MkDocs 2.0 line) are adopted as they ship. The [imaging]
+        # extra pulls cairosvg + pillow for the social-cards plugin.
+        run: pip install --disable-pip-version-check "mkdocs-material[imaging]>=9.7"
 
       # --strict turns broken internal links and other warnings into errors, so a
       # bad cross-link fails the build instead of shipping a broken page.
