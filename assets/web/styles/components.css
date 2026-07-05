@@ -2116,6 +2116,7 @@ main input[type="range"] { accent-color: var(--accent); }
 }
 .sched-icon-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .sched-icon-btn:disabled { opacity: .45; cursor: default; }
+.sched-icon-btn-promote { color: var(--accent); }
 .sched-readonly {
     display: flex; align-items: center; gap: 7px; flex: none;
     font: 600 11px/1 var(--font-ui); color: var(--text-faint);
