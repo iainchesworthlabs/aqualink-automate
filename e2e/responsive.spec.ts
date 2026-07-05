@@ -264,3 +264,114 @@ test.describe('iPad landscape dashboard structure (1194, touch)', () => {
     expect(overflow, `landscape overflows by ${overflow}px`).toBeLessThanOrEqual(1);
   });
 });
+
+// ===========================================================================
+// Diagnostics collapse — on compact layouts the page shows only the mockup's
+// essential subset; Serial Health folds away, the power-user tail folds behind
+// a toggle, and the latency cards trim their percentile matrix. Desktop keeps
+// the full page. (Section STRUCTURE is fixture-independent, so this is robust
+// against the sample_session fixture's data.)
+// ===========================================================================
+async function gotoDiagnostics(page: Page): Promise<void> {
+  await page.goto('/#diagnostics');
+  await page.waitForTimeout(700);
+}
+
+test.describe('diagnostics collapse (phone 390)', () => {
+  test.use({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+
+  test('folds Serial Health + the power-user tail; toggle reveals the tail', async ({ page }) => {
+    await gotoDiagnostics(page);
+    // Serial Health (mid-page) is hidden entirely on compact.
+    await expect(page.locator('.diag-adv-serial .section-title'), 'Serial Health hidden').toBeHidden();
+    // The disclosure toggle is offered.
+    await expect(page.locator('.diag-adv-toggle'), 'advanced toggle visible').toBeVisible();
+    // The tail (device list, message stats, log levels, recording) starts folded.
+    await expect(page.locator('.recording-card'), 'tail folded by default').toBeHidden();
+    // Latency trims: the since-restart footer folds away on compact.
+    await expect(page.locator('.latency-card-foot').first(), 'latency footer trimmed').toBeHidden();
+    // Tapping the toggle reveals the tail.
+    await page.locator('.diag-adv-toggle').click();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.recording-card'), 'tail revealed after toggle').toBeVisible();
+    expect(await horizontalOverflow(page), 'no overflow when expanded').toBeLessThanOrEqual(1);
+  });
+});
+
+test.describe('diagnostics collapse (tablet-portrait 820)', () => {
+  test.use({ viewport: { width: 820, height: 1180 } });
+
+  test('collapses to the essential subset at iPad-portrait width too', async ({ page }) => {
+    await gotoDiagnostics(page);
+    await expect(page.locator('.diag-adv-serial .section-title'), 'Serial Health hidden').toBeHidden();
+    await expect(page.locator('.diag-adv-toggle'), 'advanced toggle visible').toBeVisible();
+    await expect(page.locator('.recording-card'), 'tail folded by default').toBeHidden();
+  });
+});
+
+test.describe('diagnostics on desktop (1280) is unchanged', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('shows Serial Health and every section, with no compact toggle', async ({ page }) => {
+    await gotoDiagnostics(page);
+    await expect(page.locator('.diag-adv-serial .section-title'), 'Serial Health visible').toBeVisible();
+    await expect(page.locator('.diag-adv-toggle'), 'no compact toggle on desktop').toBeHidden();
+    await expect(page.locator('.recording-card'), 'tail visible on desktop').toBeVisible();
+  });
+});
+
+// ===========================================================================
+// Phone tab-bar clearance — the fixed bottom tab bar (~66px) must not sit over
+// the last card. The clearance is main.app-container padding-bottom; a bare
+// `main` selector loses to `.app-container { padding: 0 ... }` and silently
+// zeroes it (the bug this guards against).
+// ===========================================================================
+test.describe('phone bottom tab-bar clearance (390)', () => {
+  test.use({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+
+  test('main reserves space below the last card for the fixed tab bar', async ({ page }) => {
+    await page.goto('/#about');
+    await page.waitForTimeout(500);
+    const padB = await page.evaluate(() =>
+      parseFloat(getComputedStyle(document.querySelector('main.app-container')!).paddingBottom));
+    expect(padB, 'main padding-bottom clears the 66px tab bar').toBeGreaterThanOrEqual(66);
+  });
+});
+
+// ===========================================================================
+// Phone More sheet — grouped surface-2 cards with per-row icons + real toggle
+// switches (Dark mode / Monitor-only), matching the mockup's menu.
+// ===========================================================================
+test.describe('phone More sheet structure (390)', () => {
+  test.use({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+
+  test('is grouped cards with icons and toggle switches', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(500);
+    await page.locator('.mobile-tab-bar .tab-item').last().click();
+    await page.waitForTimeout(400);
+    await expect(page.locator('.sheet-group'), 'two grouped cards').toHaveCount(2);
+    await expect(page.locator('.sheet-row .sheet-ic').first(), 'rows carry icons').toBeVisible();
+    await expect(page.locator('.sheet-switch').first(), 'dark-mode toggle switch present').toBeVisible();
+    expect(await page.locator('.sheet-switch').count(), 'dark-mode + monitor-only switches').toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ===========================================================================
+// About branding hero — shown on compact, hidden on the frozen desktop view.
+// ===========================================================================
+test.describe('About branding hero', () => {
+  test('is shown on phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 780 });
+    await page.goto('/#about');
+    await page.waitForTimeout(500);
+    await expect(page.locator('.about-hero'), 'phone: hero visible').toBeVisible();
+  });
+
+  test('is hidden on desktop (frozen layout)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/#about');
+    await page.waitForTimeout(500);
+    await expect(page.locator('.about-hero'), 'desktop: hero hidden').toBeHidden();
+  });
+});
