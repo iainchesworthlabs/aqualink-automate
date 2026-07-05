@@ -54,6 +54,9 @@ namespace AqualinkAutomate::Interfaces
 		// /api/controller/schedules to observe the result. Routed to a ControllerScheduleWriter.
 		virtual CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) = 0;
 		virtual CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) = 0;
+		// Edit an existing controller program in place: `existing` locates the current row, `desired`
+		// carries the new field values it is changed to. Async like the create/delete above.
+		virtual CommandResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) = 0;
 	};
 
 }

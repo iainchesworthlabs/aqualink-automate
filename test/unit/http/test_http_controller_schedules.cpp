@@ -36,6 +36,7 @@ namespace
 		CommandResult result_to_return{ CommandResult::Success };
 		std::vector<Scheduling::ControllerSchedule> created;
 		std::vector<Scheduling::ControllerSchedule> deleted;
+		std::vector<std::pair<Scheduling::ControllerSchedule, Scheduling::ControllerSchedule>> edited;
 
 		CommandResult ToggleByUuid(const boost::uuids::uuid&) override { return CommandResult::Success; }
 		CommandResult ToggleByLabel(const std::string&) override { return CommandResult::Success; }
@@ -50,6 +51,7 @@ namespace
 		CommandResult SelectIAQPageButton(std::uint8_t) override { return CommandResult::Success; }
 		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule& p) override { created.push_back(p); return result_to_return; }
 		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule& p) override { deleted.push_back(p); return result_to_return; }
+		CommandResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override { edited.emplace_back(existing, desired); return result_to_return; }
 	};
 
 	struct Fixture
@@ -105,10 +107,10 @@ namespace
 			HTTP::WebRoute_ControllerSchedules route(store, dispatcher);
 			return Serialize(route.OnRequest(MakeRequest(verb, "/api/controller/schedules", body)));
 		}
-		HTTP::Response Item(boost::beast::http::verb verb, const std::string& id)
+		HTTP::Response Item(boost::beast::http::verb verb, const std::string& id, const std::string& body = "")
 		{
 			HTTP::WebRoute_ControllerSchedule route(store, dispatcher);
-			return Serialize(route.OnRequest(MakeRequest(verb, "/api/controller/schedules/" + id, "")));
+			return Serialize(route.OnRequest(MakeRequest(verb, "/api/controller/schedules/" + id, body)));
 		}
 	};
 
@@ -196,6 +198,49 @@ BOOST_AUTO_TEST_CASE(Delete_UnknownId_Returns404)
 	auto resp = Item(k_delete, "iaq-A-999");
 	BOOST_CHECK_EQUAL(boost::beast::http::status::not_found, resp.result());
 	BOOST_CHECK(dispatcher->deleted.empty());
+}
+
+BOOST_AUTO_TEST_CASE(Put_KnownId_Valid_QueuesEdit)
+{
+	// The fixture's existing program is iaq-A-1 (Pool Heat, All days, 11:00->14:00).
+	auto resp = Item(k_put, "iaq-A-1", R"({"target":"Pool Heat","days_of_week":127,"on_local":"11:00","off_local":"15:00"})");
+	BOOST_CHECK_EQUAL(boost::beast::http::status::ok, resp.result());
+	BOOST_REQUIRE_EQUAL(dispatcher->edited.size(), 1u);
+	// existing resolved from the store...
+	BOOST_CHECK_EQUAL(dispatcher->edited[0].first.id, "iaq-A-1");
+	BOOST_CHECK_EQUAL(dispatcher->edited[0].first.target, "Pool Heat");
+	BOOST_CHECK_EQUAL(dispatcher->edited[0].first.off_hour, 14);
+	// ...desired parsed from the body.
+	BOOST_CHECK_EQUAL(dispatcher->edited[0].second.target, "Pool Heat");
+	BOOST_CHECK_EQUAL(dispatcher->edited[0].second.off_hour, 15);
+	BOOST_CHECK_EQUAL(dispatcher->edited[0].second.days_of_week, 0x7f);
+}
+
+BOOST_AUTO_TEST_CASE(Put_UnknownId_Returns404_NoDispatch)
+{
+	auto resp = Item(k_put, "iaq-A-999", R"({"target":"Pool Heat","days_of_week":127,"on_local":"11:00","off_local":"15:00"})");
+	BOOST_CHECK_EQUAL(boost::beast::http::status::not_found, resp.result());
+	BOOST_CHECK(dispatcher->edited.empty());
+}
+
+BOOST_AUTO_TEST_CASE(Put_NotRepresentableDays_Returns400_WithBlockers_NoDispatch)
+{
+	// Mon+Wed+Fri (0x15) is not controller-representable.
+	auto resp = Item(k_put, "iaq-A-1", R"({"target":"Pool Heat","days_of_week":21,"on_local":"11:00","off_local":"15:00"})");
+	BOOST_CHECK_EQUAL(boost::beast::http::status::bad_request, resp.result());
+	BOOST_CHECK(dispatcher->edited.empty());
+	auto body = nlohmann::json::parse(resp.body(), nullptr, false);
+	BOOST_REQUIRE(!body.is_discarded());
+	BOOST_REQUIRE(body.contains("blockers"));
+	const auto blockers = body["blockers"];
+	BOOST_CHECK(std::find(blockers.begin(), blockers.end(), "day_selection_not_expressible") != blockers.end());
+}
+
+BOOST_AUTO_TEST_CASE(Put_BadBody_Returns400_NoDispatch)
+{
+	auto resp = Item(k_put, "iaq-A-1", R"({"target":"Pool Heat","days_of_week":127,"on_local":"11 o'clock","off_local":"15:00"})");
+	BOOST_CHECK_EQUAL(boost::beast::http::status::bad_request, resp.result());
+	BOOST_CHECK(dispatcher->edited.empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

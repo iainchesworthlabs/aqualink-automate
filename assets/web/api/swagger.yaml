@@ -1313,6 +1313,56 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
   /api/controller/schedules/{id}:
+    put:
+      tags:
+        - Schedules
+      summary: Edit a controller program (async)
+      description: >
+        Edits the controller program whose `id` matches a currently-listed
+        controller schedule (resolved from the latest read snapshot), by driving
+        the panel's Program menu over RS-485. The body is one span carrying the
+        DESIRED field values (same shape as the create body); only a
+        controller-representable program is accepted (single equipment on/off, an
+        expressible day selection — all/weekdays/weekends/one day). The write is
+        ASYNCHRONOUS: a `200` means the edit was queued, not applied — poll `GET`
+        to observe the change. A body the controller cannot represent is rejected
+        `400` with a `blockers` array. Requires `schedules.edit`.
+      operationId: editControllerSchedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              target: "Filter Pump"
+              days_of_week: 127
+              on_local: "09:00"
+              off_local: "18:00"
+              name: "Morning filtration"
+              group: "A"
+      responses:
+        '200':
+          description: Edit queued
+          content:
+            application/json:
+              example:
+                status: "queued"
+                schedule: { target: "Filter Pump", days_of_week: 127, on_local: "09:00", off_local: "18:00" }
+        '400':
+          description: Invalid body, or not representable on the controller
+          content:
+            application/json:
+              example:
+                error: "program is not representable on the controller"
+                blockers: ["day_selection_not_expressible"]
+        '404': { description: Unknown program id }
+        '503': { description: No controller schedule store / no capable writer present }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     delete:
       tags:
         - Schedules

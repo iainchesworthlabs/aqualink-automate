@@ -46,6 +46,7 @@ namespace
 		CommandResult SelectIAQPageButton(std::uint8_t) override { return CommandResult::Success; }
 		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
 		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult EditControllerProgram(const Scheduling::ControllerSchedule&, const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
 	};
 
 	struct CirculationFixture : public AqualinkAutomate::Test::HubLocatorInjector

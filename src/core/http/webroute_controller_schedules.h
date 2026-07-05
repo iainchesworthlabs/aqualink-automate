@@ -55,7 +55,10 @@ namespace AqualinkAutomate::HTTP
 
 	// Item route: DELETE /api/controller/schedules/{id} removes the program whose id matches a
 	// currently-listed controller schedule (resolved from the read store, then dispatched to a
-	// ControllerScheduleWriter). 404 unknown id, 503 no dispatcher, 405 for other verbs.
+	// ControllerScheduleWriter). PUT /api/controller/schedules/{id} edits that program in place: the
+	// body is a controller-schedule ({ target, days_of_week, on_local, off_local, name?, group? });
+	// on success (a write queued) it answers 200 and the caller polls GET for the result. 404 unknown
+	// id, 400 on a bad/not-representable body, 503 no dispatcher, 405 for other verbs.
 	class WebRoute_ControllerSchedule : public Interfaces::IWebRoute<CONTROLLER_SCHEDULE_ITEM_ROUTE_URL>
 	{
 	public:

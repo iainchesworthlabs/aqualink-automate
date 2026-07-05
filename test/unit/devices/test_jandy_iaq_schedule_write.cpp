@@ -318,4 +318,90 @@ BOOST_AUTO_TEST_CASE(Delete_ClicksRow_Delete_Ok_AndCompletes)
 	BOOST_CHECK(device.DeleteControllerProgram(target) == Capabilities::ActuationResult::Accepted);
 }
 
+//--- edit an existing program -----------------------------------------------
+
+BOOST_AUTO_TEST_CASE(Edit_NotEmulated_IsNotSupported_NotRepresentable_IsInvalid)
+{
+	Test::MockReplayHarness harness;
+	auto id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_UI_ID));
+
+	IAQDevice passive(id, harness.HubLocatorRef(), /*is_emulated=*/false);
+	BOOST_CHECK(passive.EditControllerProgram(ValidProgram("Pool Heat"), ValidProgram("Pool Heat")) == Capabilities::ActuationResult::NotSupported);
+
+	IAQDevice device(id, harness.HubLocatorRef(), /*is_emulated=*/true);
+	// Empty existing target -> InvalidValue.
+	BOOST_CHECK(device.EditControllerProgram(ValidProgram(""), ValidProgram("Pool Heat")) == Capabilities::ActuationResult::InvalidValue);
+	// A desired program the controller cannot represent (Mon+Wed+Fri) -> InvalidValue.
+	auto bad_desired = ValidProgram("Pool Heat");
+	bad_desired.days_of_week = 0x15;
+	BOOST_CHECK(device.EditControllerProgram(ValidProgram("Pool Heat"), bad_desired) == Capabilities::ActuationResult::InvalidValue);
+}
+
+BOOST_AUTO_TEST_CASE(Edit_ClicksRow_Edit_SetsTimesAndDay_AndCompletes)
+{
+	Test::MockReplayHarness harness;
+	auto id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_UI_ID));
+	IAQDevice device(id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	std::vector<uint8_t> cmds;
+	boost::signals2::scoped_connection conn = Messages::JandyMessage_Ack::GetPublisher()->connect(
+		[&cmds](std::reference_wrapper<const Messages::JandyMessage_Ack> r)
+		{ if (r.get().Command() != 0x00) { cmds.push_back(r.get().Command()); } });
+
+	std::vector<std::string> submits;
+	boost::signals2::scoped_connection conn2 = Messages::IAQMessage_ControlDataResponse::GetPublisher()->connect(
+		[&submits](std::reference_wrapper<const Messages::IAQMessage_ControlDataResponse> r)
+		{ submits.push_back(r.get().ToString()); });
+
+	auto poll_until = [&](std::size_t n)
+	{ for (int i = 0; (i < 40) && (cmds.size() < n); ++i) { harness.Replay({ Poll() }); } };
+
+	// Existing: Pool Light, ON 9:00 AM, OFF 5:00 PM, Monday (row 2 in the list below).
+	Scheduling::ControllerSchedule existing;
+	existing.target = "Pool Light"; existing.days_of_week = 0x01;
+	existing.on_hour = 9; existing.on_minute = 0; existing.off_hour = 17; existing.off_minute = 0;
+
+	// Desired: same device, ON 10:00 AM, OFF 6:00 PM (18:00), Wednesday (day key 0x1a).
+	Scheduling::ControllerSchedule desired;
+	desired.target = "Pool Light"; desired.days_of_week = 0x04;   // Wednesday -> 0x18 + 2 = 0x1a
+	desired.on_hour = 10; desired.on_minute = 0; desired.off_hour = 18; desired.off_minute = 0;
+
+	// The list shows the existing program at row 2 (row-click = 0x22 + 2 = 0x24).
+	ReplayList(harness, { "Filter Pump\t8:00 AM\t9:00 AM\tAll", "Pool Light\t9:00 AM\t5:00 PM\tM" });
+	BOOST_REQUIRE(device.EditControllerProgram(existing, desired) == Capabilities::ActuationResult::Accepted);
+
+	poll_until(2);                                                    // click row 2 (0x24) -> Edit (0x12)
+	ReplayList(harness, { "Filter Pump\t8:00 AM\t9:00 AM\tAll", "Pool Light\t9:00 AM\t5:00 PM\tM" });
+	poll_until(3);                                                    // open ON field (0x21)
+	ReplayTimePicker(harness, "PM");                                  // picker defaults PM; want AM (10:00)
+	poll_until(4);                                                    // AM/PM toggle (0x11)
+	ReplayTimePicker(harness, "AM");
+	poll_until(5);                                                    // submit ON (0x80)
+	ReplayControlReady(harness);                                      // -> sends "110:00"
+	ReplayList(harness, { "Filter Pump\t8:00 AM\t9:00 AM\tAll", "Pool Light\t10:00 AM\t5:00 PM\tM" });
+	poll_until(6);                                                    // open OFF field (0x22)
+	ReplayTimePicker(harness, "PM");                                  // want PM (18:00) -> no toggle
+	poll_until(7);                                                    // submit OFF (0x80)
+	ReplayControlReady(harness);                                      // -> sends "106:00"
+	ReplayList(harness, { "Filter Pump\t8:00 AM\t9:00 AM\tAll", "Pool Light\t10:00 AM\t6:00 PM\tM" });
+	poll_until(8);                                                    // day = Wednesday (0x1a)
+	ReplayList(harness, { "Filter Pump\t8:00 AM\t9:00 AM\tAll", "Pool Light\t10:00 AM\t6:00 PM\tW" });   // desired
+	for (int i = 0; i < 8; ++i) { harness.Replay({ Poll() }); }       // Verify -> Done
+
+	const std::vector<uint8_t> expected{ 0x24, 0x12, 0x21, 0x11, 0x80, 0x22, 0x80, 0x1a };
+	BOOST_REQUIRE_EQUAL(cmds.size(), expected.size());
+	for (std::size_t i = 0; i < expected.size(); ++i)
+	{
+		BOOST_CHECK_EQUAL(static_cast<int>(cmds[i]), static_cast<int>(expected[i]));
+	}
+
+	// The two time submits carried the desired 12-hour values (ON 10:00 AM, OFF 6:00 PM).
+	BOOST_REQUIRE_EQUAL(submits.size(), 2u);
+	BOOST_CHECK(submits[0].find("110:00") != std::string::npos);
+	BOOST_CHECK(submits[1].find("106:00") != std::string::npos);
+
+	// Verify saw the desired program -> goal completed, panel idle again.
+	BOOST_CHECK(device.EditControllerProgram(existing, desired) == Capabilities::ActuationResult::Accepted);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

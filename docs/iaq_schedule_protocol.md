@@ -1,7 +1,9 @@
 # IAQ / AqualinkTouch Schedule Protocol (reverse-engineered)
 
 Status: **read path decoded** from a live RS-485 capture (2026-07-04, passive snoop of a
-physical iAQ/AqualinkTouch 0x33 driven via its web UI); write path partially decoded.
+physical iAQ/AqualinkTouch 0x33 driven via its web UI); write path decoded and implemented
+for CREATE, DELETE, and EDIT (the IAQDevice `ControllerScheduleWrite_ProcessStep` state machine
+drives all three; routed via `/api/controller/schedules` POST/PUT/DELETE).
 Fixture/source capture: `captures/iaq_schedule_session.cap` (not committed; large).
 Decoder: `captures/decode_iaq.py`.
 
@@ -285,9 +287,14 @@ row 1, `0x24` highlights row 2). With a row highlighted:
   row 1, then a confirmed delete of row 2 (= Pool Heat).
 
 So DELETE(program) = navigate to the list → find the program's row ordinal in the parsed rows →
-click it (`0x22 + ordinal`) → `0x13` → `0x01` → verify it is gone. EDIT reuses the create field
-phases after a row click + `0x12`. UI rules can add steps (e.g. a day change needing a `0x01`
-confirm); the writer tolerates extra renders via its settle/backstop.
+click it (`0x22 + ordinal`) → `0x13` → `0x01` → verify it is gone. EDIT(existing, desired) =
+navigate to the list → find `existing`'s row ordinal → click it (`0x22 + ordinal`) → `0x12`
+(Edit) → re-run the create field phases against `desired` (ON `0x21` / OFF `0x22` + submit,
+day `0x17`-`0x20`) → verify the list now shows `desired`. Both are implemented by the shared
+`ControllerScheduleWrite_ProcessStep` state machine (op = Delete / Edit; the goal carries a
+`match` = existing program to locate and, for edit, a `program` = desired). UI rules can add
+steps (e.g. a day change needing a `0x01` confirm); the writer tolerates extra renders via its
+settle/backstop.
 
 ## Implications for the store / model
 

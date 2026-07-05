@@ -49,6 +49,7 @@ namespace
 		CommandResult SelectIAQPageButton(std::uint8_t) override { return CommandResult::Success; }
 		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule& p) override { created.push_back(p); return CommandResult::Success; }
 		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult EditControllerProgram(const Scheduling::ControllerSchedule&, const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
 	};
 
 	Scheduling::Schedule Point(Scheduling::ActionType type, const std::string& target, std::uint8_t days, int hour, int minute)

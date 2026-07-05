@@ -89,6 +89,7 @@ namespace AqualinkAutomate::Devices
 		// row2 0x24, ...); Delete = 0x13 -> confirm dialog; Ok = 0x01 (Cancel = 0x02/Back). Verified
 		// against the 0x40 highlight in captures/iaq_editdelete.cap.
 		constexpr uint8_t IAQ_SCHEDULE_ROW_BASE{ 0x22 };   // click program row R -> 0x22 + R
+		constexpr uint8_t IAQ_CMD_EDIT_PROGRAM{ 0x12 };    // Edit -> enter the highlighted row's edit mode
 		constexpr uint8_t IAQ_CMD_DELETE_PROGRAM{ 0x13 };  // Delete -> confirm dialog
 		constexpr uint8_t IAQ_CMD_CONFIRM_OK{ 0x01 };      // Ok on the confirm dialog
 		// Day keys on the schedule list (0x28): the day-selection touch cells.
@@ -696,7 +697,44 @@ namespace AqualinkAutomate::Devices
 		ScheduleWriteGoal goal;
 		goal.op = ScheduleWriteOp::Delete;
 		goal.program = program;
+		goal.match = program;   // SelectRow locates the row by matching `match`
 		goal.desc = std::format("delete controller program '{}'", program.target);
+		QueueScheduleWrite(std::move(goal));
+		return Capabilities::ActuationResult::Accepted;
+	}
+
+	Capabilities::ActuationResult IAQDevice::EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired)
+	{
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::EditControllerProgram", std::source_location::current());
+
+		if (!IsEmulated())
+		{
+			LogDebug(Channel::Devices, [this]() { return std::format("IAQ ({}): EditControllerProgram rejected -- device is passive (not emulated)", DeviceId()); });
+			return Capabilities::ActuationResult::NotSupported;
+		}
+		if (m_PendingScheduleWrite.has_value() || m_PendingSpaSwitchWrite.has_value() || !m_CommandQueue.empty() || m_AwaitingControlReady)
+		{
+			LogWarning(Channel::Devices, [this]() { return std::format("IAQ ({}): busy - rejecting controller-schedule edit", DeviceId()); });
+			return Capabilities::ActuationResult::NotSupported;
+		}
+		if (existing.target.empty())
+		{
+			return Capabilities::ActuationResult::InvalidValue;
+		}
+
+		// The desired program must be one the controller can represent -- same feasibility gate as create.
+		const auto feasibility = Scheduling::CheckControllerCandidate(desired);
+		if (!feasibility.promotable)
+		{
+			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): EditControllerProgram rejected -- desired program is not controller-representable (target='{}')", DeviceId(), desired.target); });
+			return Capabilities::ActuationResult::InvalidValue;
+		}
+
+		ScheduleWriteGoal goal;
+		goal.op = ScheduleWriteOp::Edit;
+		goal.program = desired;    // the field phases set from goal.program; Verify matches it
+		goal.match = existing;     // SelectRow locates the current row by matching `match`
+		goal.desc = std::format("edit controller program '{}'", existing.target);
 		QueueScheduleWrite(std::move(goal));
 		return Capabilities::ActuationResult::Accepted;
 	}
@@ -812,13 +850,14 @@ namespace AqualinkAutomate::Devices
 			m_ScheduleWritePhase = next;
 		};
 
-		// Does a parsed list row match the goal's program (target + day + on/off times)?
+		// Does a parsed list row match the program to LOCATE (delete/edit use `match`, the existing
+		// program; create is never in a row-locating phase so `match` is unset there)?
 		auto matches_program = [&](const Scheduling::ControllerSchedule& row)
 		{
-			return eq_ci(row.target, goal.program.target)
-				&& row.days_of_week == goal.program.days_of_week
-				&& row.on_hour == goal.program.on_hour && row.on_minute == goal.program.on_minute
-				&& row.off_hour == goal.program.off_hour && row.off_minute == goal.program.off_minute;
+			return eq_ci(row.target, goal.match.target)
+				&& row.days_of_week == goal.match.days_of_week
+				&& row.on_hour == goal.match.on_hour && row.on_minute == goal.match.on_minute
+				&& row.off_hour == goal.match.off_hour && row.off_minute == goal.match.off_minute;
 		};
 
 		switch (m_ScheduleWritePhase)
@@ -829,10 +868,10 @@ namespace AqualinkAutomate::Devices
 			switch (m_CurrentPageId)
 			{
 			case IAQ_SCHEDULE_PAGE_ID:
-				// Arrived on the list: create adds a program, delete finds the row to remove.
-				m_ScheduleWritePhase = (goal.op == ScheduleWriteOp::Delete)
-					? ScheduleWritePhase::SelectRow
-					: ScheduleWritePhase::AddProgram;
+				// Arrived on the list: create adds a program; delete/edit find the target row first.
+				m_ScheduleWritePhase = (goal.op == ScheduleWriteOp::Create)
+					? ScheduleWritePhase::AddProgram
+					: ScheduleWritePhase::SelectRow;
 				return;
 
 			case IAQ_PAGE_MENU:
@@ -955,18 +994,34 @@ namespace AqualinkAutomate::Devices
 				m_PendingCommand = 0x00;   // list not populated yet; wait (poll backstop bounds it)
 				return;
 			}
-			// Click the row whose parsed contents match the program to delete.
+			// Click the row whose parsed contents match the program to locate, then branch: delete
+			// presses Delete on the highlighted row, edit presses Edit to enter its field editor.
 			for (const auto& [ordinal, text] : m_ScheduleRows)
 			{
 				if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && matches_program(parsed.value()))
 				{
 					issue(static_cast<uint8_t>(IAQ_SCHEDULE_ROW_BASE + ordinal));   // highlight the target row
-					m_ScheduleWritePhase = ScheduleWritePhase::PressDelete;
+					m_ScheduleWritePhase = (goal.op == ScheduleWriteOp::Edit)
+						? ScheduleWritePhase::PressEdit
+						: ScheduleWritePhase::PressDelete;
 					return;
 				}
 			}
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- no matching program row to delete (target='{}')", DeviceId(), goal.desc, goal.program.target); });
+			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- no matching program row to {} (target='{}')", DeviceId(), goal.desc, (goal.op == ScheduleWriteOp::Edit) ? "edit" : "delete", goal.match.target); });
 			finish(false);
+			return;
+		}
+
+		case ScheduleWritePhase::PressEdit:
+		{
+			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			{
+				m_PendingCommand = 0x00;   // dwell until the list (with the highlighted row) renders
+				return;
+			}
+			issue(IAQ_CMD_EDIT_PROGRAM);   // Edit -> enter the highlighted row's field-edit mode
+			// Re-set the fields from the desired program with the same phases the create flow uses.
+			m_ScheduleWritePhase = ScheduleWritePhase::SetOnTime;
 			return;
 		}
 

@@ -154,34 +154,64 @@ namespace AqualinkAutomate::HTTP
 			return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "missing program id");
 		}
 
-		switch (req.method())
+		// Both DELETE and PUT act on an existing program, resolved by id against the read snapshot.
+		if ((HTTP::Verbs::delete_ != req.method()) && (HTTP::Verbs::put != req.method()))
 		{
-		case HTTP::Verbs::delete_:
+			return HTTP::Responses::Response_405(req);
+		}
+
+		if (auto err = RequireCommandDispatcher(req, m_Dispatcher); err.has_value())
 		{
-			if (auto err = RequireCommandDispatcher(req, m_Dispatcher); err.has_value())
-			{
-				return std::move(*err);
-			}
+			return std::move(*err);
+		}
 
-			// Resolve the id against the current read snapshot to get the full program to match.
-			const Scheduling::ControllerSchedule* found = nullptr;
-			for (const auto& schedule : m_Store->List())
-			{
-				if (schedule.id == *id) { found = &schedule; break; }
-			}
-			if (nullptr == found)
-			{
-				return MakeResponse(req, HTTP::Status::not_found, ContentTypes::TEXT_PLAIN, "unknown controller program");
-			}
+		// Resolve the id against the current read snapshot to get the full existing program.
+		const Scheduling::ControllerSchedule* found = nullptr;
+		for (const auto& schedule : m_Store->List())
+		{
+			if (schedule.id == *id) { found = &schedule; break; }
+		}
+		if (nullptr == found)
+		{
+			return MakeResponse(req, HTTP::Status::not_found, ContentTypes::TEXT_PLAIN, "unknown controller program");
+		}
 
+		if (HTTP::Verbs::delete_ == req.method())
+		{
 			const auto result = m_Dispatcher->DeleteControllerProgram(*found);
 			nlohmann::json ack{ { "status", (result == Interfaces::ICommandDispatcher::CommandResult::Success) ? "queued" : "rejected" } };
 			return MakeJsonResponse(req, StatusForCommandResult(result), ack.dump());
 		}
 
-		default:
-			return HTTP::Responses::Response_405(req);
+		// PUT: parse the desired program from the body, gate it on controller feasibility, then edit
+		// the resolved existing program in place. Copy the existing program (the store snapshot is
+		// stable within this request, but the dispatch is by value).
+		const Scheduling::ControllerSchedule existing = *found;
+
+		nlohmann::json body;
+		if (auto err = ParseJsonObjectBody(req, body); err.has_value())
+		{
+			return std::move(*err);
 		}
+
+		std::string parse_error;
+		auto desired = Scheduling::ControllerScheduleFromJson(body, parse_error);
+		if (!desired.has_value())
+		{
+			return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, parse_error);
+		}
+
+		if (const auto feasibility = Scheduling::CheckControllerCandidate(*desired); !feasibility.promotable)
+		{
+			return NotRepresentableResponse(req, feasibility);
+		}
+
+		const auto result = m_Dispatcher->EditControllerProgram(existing, *desired);
+		nlohmann::json ack{
+			{ "status", (result == Interfaces::ICommandDispatcher::CommandResult::Success) ? "queued" : "rejected" },
+			{ "schedule", Scheduling::ToJson(*desired) },
+		};
+		return MakeJsonResponse(req, StatusForCommandResult(result), ack.dump());
 	}
 
 }

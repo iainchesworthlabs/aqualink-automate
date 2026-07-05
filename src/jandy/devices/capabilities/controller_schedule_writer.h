@@ -20,6 +20,10 @@ namespace AqualinkAutomate::Devices::Capabilities
 		virtual ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) = 0;
 		virtual ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) = 0;
 
+		// EDIT an existing controller program: locate the row matching `existing` (target + day +
+		// on/off times), enter its edit mode, and change its fields to `desired`. Accepted == queued.
+		virtual ActuationResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) = 0;
+
 		// Precedence when several writers are connected at once (only the IAQ implements this today).
 		virtual ActuationPriority ControllerPriority() const = 0;
 	};

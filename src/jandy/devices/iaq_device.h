@@ -157,6 +157,12 @@ namespace AqualinkAutomate::Devices
 		// NotSupported when passive / busy; InvalidValue if no matching row is present to remove.
 		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) override;
 
+		// EDIT an existing controller program: navigate to the Schedule list, click the row matching
+		// `existing`, press Edit (0x12) to enter row-edit mode, then re-set the ON/OFF times and day
+		// from `desired` (same field keys as create) and verify the list now shows `desired`.
+		// NotSupported when passive / busy; InvalidValue if `desired` is not controller-representable.
+		Capabilities::ActuationResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override;
+
 	public:
 		// Operating-state queries (also exercised by the device tests).
 		bool IsInNormalOperation() const { return m_OpState == OperatingStates::NormalOperation; }
@@ -326,6 +332,7 @@ namespace AqualinkAutomate::Devices
 		{
 			Create,   // add a new program (device -> times -> day)
 			Delete,   // remove an existing program (click its row -> Delete -> Ok)
+			Edit,     // change an existing program (click its row -> Edit -> times -> day)
 		};
 		enum class ScheduleWritePhase
 		{
@@ -336,17 +343,19 @@ namespace AqualinkAutomate::Devices
 			SetOffTime,      // open the OFF field (0x22) -> time picker -> AM/PM toggle + submit
 			SetDay,          // on the list, press the day key (0x17-0x20) for the desired selection
 			Verify,          // confirm the new program is present in the parsed list
-			SelectRow,       // (delete) click the target program's row (0x22 + ordinal) to highlight it
+			SelectRow,       // (delete/edit) click the target program's row (0x22 + ordinal) to highlight it
 			PressDelete,     // (delete) press Delete (0x13) -> the confirm dialog
 			ConfirmDelete,   // (delete) press Ok (0x01) on the confirm dialog
 			VerifyGone,      // (delete) confirm the program is no longer in the parsed list
+			PressEdit,       // (edit) press Edit (0x12) -> enter the highlighted row's edit mode
 			Done,
 			Failed,
 		};
 		struct ScheduleWriteGoal
 		{
 			ScheduleWriteOp op{ ScheduleWriteOp::Create };
-			Scheduling::ControllerSchedule program;  // target device + on/off + day mask to write / match
+			Scheduling::ControllerSchedule program;  // desired device + on/off + day mask to write (create/edit)
+			Scheduling::ControllerSchedule match;    // the existing program to locate (delete/edit): its row is clicked
 			std::string desc;
 		};
 		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;

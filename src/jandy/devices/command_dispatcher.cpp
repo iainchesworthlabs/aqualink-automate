@@ -246,5 +246,13 @@ namespace AqualinkAutomate::Devices
 			CommandResult::NoSerialAdapter);
 	}
 
+	CommandDispatcher::CommandResult CommandDispatcher::EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired)
+	{
+		return DispatchToCapable<Capabilities::ControllerScheduleWriter>(
+			std::format("edit controller program for '{}'", existing.target),
+			[&](Capabilities::ControllerScheduleWriter& writer) { return writer.EditControllerProgram(existing, desired); },
+			CommandResult::NoSerialAdapter);
+	}
+
 }
 // namespace AqualinkAutomate::Devices
