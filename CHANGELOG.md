@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.12.0-beta.1] - 2026-07-05
+
+The scheduling and responsive-UI release. Aqualink Automate can now read, write, and manage the pool controller's own built-in RS-485 schedules alongside its richer app-level schedules in one unified view, and the entire web interface reflows for phones and tablets — a bottom tab bar, tap-tile equipment controls, and consolidated cards on small screens — while the desktop layout is unchanged.
+
+### Added
+
+- **Two-tier scheduling — the controller's own programs, first-class.** Aqualink Automate now decodes the schedules programmed into the Jandy controller itself (read from the IAQ Program page) and shows them alongside app-level schedules in one unified list and 24-hour timeline, each tagged with a per-source group badge. The controller tier is the resilient, always-works baseline; the app tier stays the rich, flexible one.
+- **Write controller schedules over RS-485.** Create and delete the controller's built-in programs directly through an IAQ page-navigation write state machine (with the edit path for existing programs decoded), exposed as `POST` / `DELETE /api/controller/schedules`.
+- **Promote an app schedule to the controller.** A feasibility constraint-checker validates whether an app schedule fits the controller's limited program model (A/B groups; all-days / weekdays / weekends / single-day), and a one-click **Promote to controller** action pairs an app on/off schedule into a controller span (`POST /api/schedules/{uuid}/promote`).
+- **Responsive mobile + tablet web UI.** The single web app now reflows across three viewport bands with an adaptive navigation pattern: a fixed **bottom tab bar** on phones (secondary destinations behind a grouped **More** sheet with icons and toggle switches), a **hamburger drawer** on tablet portrait, and the full **inline navigation** on desktop. On phones the dashboard reorders around what you act on most — a condensed Pool/Spa/Air header, equipment as **tap-tiles**, a consolidated water-chemistry card, and heater rows with the setpoint steppers folded in — and the dense **Diagnostics** page collapses to its essentials behind a "Show advanced diagnostics" disclosure. iPad portrait and landscape get dedicated layouts. The desktop layout is unchanged, and dark mode and right-to-left are carried through every breakpoint.
+
+### Fixed
+
+- **Phone views no longer hide their last card behind the tab bar.** A CSS specificity bug (`.app-container` overriding a bare `main` selector) silently zeroed the bottom-clearance padding, so the final card on Settings, About, and other views scrolled under the fixed tab bar.
+
 ## [0.11.0-beta.2] - 2026-07-04
 
 A translation-polish release for the internationalized web UI: device operating-state labels and every user-visible number now localize correctly in all nine languages. Bug fixes only — no behavior or configuration changes.
