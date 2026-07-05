@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <queue>
 #include <source_location>
+#include <utility>
 
 #include "logging/logging.h"
 #include "profiling/factories/profiling_unit_factory.h"
@@ -47,7 +48,7 @@ namespace AqualinkAutomate::Navigation
 	void MenuModel::RegisterPage(MenuPage page)
 	{
 		LogTrace(Channel::Navigation, [&page] { return std::format("MenuModel: Registering page '{}' (id={})",
-			page.name, static_cast<uint32_t>(page.id)); });
+			page.name, std::to_underlying(page.id)); });
 		m_Pages[page.id] = std::move(page);
 
 		// A new page may introduce new incoming-Select edges; invalidate the memoised index.
@@ -57,7 +58,7 @@ namespace AqualinkAutomate::Navigation
 	void MenuModel::RegisterGlobalEdge(MenuEdge edge)
 	{
 		LogTrace(Channel::Navigation, [&edge] { return std::format("MenuModel: Registering global edge '{}' -> page {}",
-			edge.label, static_cast<uint32_t>(edge.target)); });
+			edge.label, std::to_underlying(edge.target)); });
 		m_GlobalEdges.push_back(std::move(edge));
 	}
 
@@ -149,7 +150,7 @@ namespace AqualinkAutomate::Navigation
 		{
 			const MenuPage* matched_page = GetPage(best_match);
 			LogTrace(Channel::Navigation, [&matched_page, &best_match, &best_detector_count] { return std::format("MenuModel: Best match -> '{}' (id={}) with {} detectors",
-				matched_page->name, static_cast<uint32_t>(best_match), best_detector_count); });
+				matched_page->name, std::to_underlying(best_match), best_detector_count); });
 
 			// Log the detector patterns that matched
 			for (const auto& detector : matched_page->detectors)
@@ -246,7 +247,7 @@ namespace AqualinkAutomate::Navigation
 					std::ranges::reverse(path);
 
 					LogDebug(Channel::Navigation, [&from, &to, &path] { return std::format("MenuModel: Found path from {} to {} with {} steps",
-						static_cast<uint32_t>(from), static_cast<uint32_t>(to), path.size()); });
+						std::to_underlying(from), std::to_underlying(to), path.size()); });
 					return path;
 				}
 
@@ -255,7 +256,7 @@ namespace AqualinkAutomate::Navigation
 		}
 
 		LogTrace(Channel::Navigation, [&from, &to] { return std::format("MenuModel: No path found from {} to {}",
-			static_cast<uint32_t>(from), static_cast<uint32_t>(to)); });
+			std::to_underlying(from), std::to_underlying(to)); });
 		return {}; // No path found
 	}
 

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <exception>
 #include <format>
+#include <string_view>
 #include <utility>
 
 #include <boost/asio/co_spawn.hpp>
@@ -36,7 +37,7 @@ namespace AqualinkAutomate::Alerting
 	{
 		constexpr std::chrono::seconds WEBHOOK_TIMEOUT{ 10 };
 
-		http::request<http::string_body> BuildRequest(const std::string& host, const std::string& target, const std::string& body)
+		http::request<http::string_body> BuildRequest(std::string_view host, std::string_view target, std::string_view body)
 		{
 			http::request<http::string_body> req{ http::verb::post, target.empty() ? "/" : target, 11 };
 			req.set(http::field::host, host);

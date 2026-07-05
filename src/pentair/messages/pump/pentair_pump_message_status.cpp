@@ -64,7 +64,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	{
 		const uint8_t data_length = DataLengthOf(message_bytes);
 
-		auto data_at = [&](uint8_t data_index) -> uint8_t
+		auto data_at = [&](uint8_t data_index)
 		{
 			return DataByteAt(message_bytes, data_index);
 		};

@@ -67,10 +67,10 @@ namespace AqualinkAutomate::Logging
 	}
 
 	template<Loggable MESSAGE>
-	void Log(MESSAGE&& log_message, Channel channel, Severity severity, const std::source_location location)
+	void Log(MESSAGE&& log_message, Channel log_channel, Severity log_severity, const std::source_location location)
 	{
 		// Early-out: skip all work if this severity is below the channel's filter level
-		if (!SeverityFiltering::ShouldLog(channel, severity))
+		if (!SeverityFiltering::ShouldLog(log_channel, log_severity))
 		{
 			return;
 		}
@@ -88,9 +88,9 @@ namespace AqualinkAutomate::Logging
 			}
 		}();
 
-		auto GetGlobalLogger = [](auto channel) -> Logger&
+		auto GetGlobalLogger = [](auto lookup_channel) -> Logger&
 		{
-			switch (channel)
+			switch (lookup_channel)
 			{
 			case Channel::Certificates:
 				return GlobalLogger_Certificates::get();
@@ -153,18 +153,18 @@ namespace AqualinkAutomate::Logging
 			}
 		};
 
-		Logger& lg = GetGlobalLogger(channel);
+		Logger& lg = GetGlobalLogger(log_channel);
 		const std::string_view source_basename = SourceFileBasename(location.file_name());
-		BOOST_LOG_SEV(lg, severity)
+		BOOST_LOG_SEV(lg, log_severity)
 			<< boost::log::add_value(source_file, std::string(source_basename))
 			<< boost::log::add_value(source_line, location.line())
 			<< resolved;
 
 #if defined(TRACY_ENABLE) || defined(VTUNE_SUPPORT_ENABLED) || defined(UProf_SUPPORT_ENABLED)
-		if (severity >= Severity::Warning)
+		if (log_severity >= Severity::Warning)
 		{
 			uint32_t colour = 0;
-			switch (severity)
+			switch (log_severity)
 			{
 			case Severity::Warning: colour = static_cast<uint32_t>(Profiling::UnitColours::Orange); break;
 			case Severity::Error:   colour = static_cast<uint32_t>(Profiling::UnitColours::Red); break;
@@ -187,43 +187,43 @@ namespace AqualinkAutomate::Logging
 // namespace AqualinkAutomate::Logging
 
 template<AqualinkAutomate::Logging::Loggable MESSAGE>
-void LogTrace(AqualinkAutomate::Logging::Channel channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
+void LogTrace(AqualinkAutomate::Logging::Channel log_channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
 {
-	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), channel, AqualinkAutomate::Logging::Severity::Trace, location);
+	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), log_channel, AqualinkAutomate::Logging::Severity::Trace, location);
 }
 
 template<AqualinkAutomate::Logging::Loggable MESSAGE>
-void LogDebug(AqualinkAutomate::Logging::Channel channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
+void LogDebug(AqualinkAutomate::Logging::Channel log_channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
 {
-	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), channel, AqualinkAutomate::Logging::Severity::Debug, location);
+	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), log_channel, AqualinkAutomate::Logging::Severity::Debug, location);
 }
 
 template<AqualinkAutomate::Logging::Loggable MESSAGE>
-void LogInfo(AqualinkAutomate::Logging::Channel channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
+void LogInfo(AqualinkAutomate::Logging::Channel log_channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
 {
-	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), channel, AqualinkAutomate::Logging::Severity::Info, location);
+	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), log_channel, AqualinkAutomate::Logging::Severity::Info, location);
 }
 
 template<AqualinkAutomate::Logging::Loggable MESSAGE>
-void LogNotify(AqualinkAutomate::Logging::Channel channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
+void LogNotify(AqualinkAutomate::Logging::Channel log_channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
 {
-	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), channel, AqualinkAutomate::Logging::Severity::Notify, location);
+	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), log_channel, AqualinkAutomate::Logging::Severity::Notify, location);
 }
 
 template<AqualinkAutomate::Logging::Loggable MESSAGE>
-void LogWarning(AqualinkAutomate::Logging::Channel channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
+void LogWarning(AqualinkAutomate::Logging::Channel log_channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
 {
-	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), channel, AqualinkAutomate::Logging::Severity::Warning, location);
+	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), log_channel, AqualinkAutomate::Logging::Severity::Warning, location);
 }
 
 template<AqualinkAutomate::Logging::Loggable MESSAGE>
-void LogError(AqualinkAutomate::Logging::Channel channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
+void LogError(AqualinkAutomate::Logging::Channel log_channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
 {
-	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), channel, AqualinkAutomate::Logging::Severity::Error, location);
+	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), log_channel, AqualinkAutomate::Logging::Severity::Error, location);
 }
 
 template<AqualinkAutomate::Logging::Loggable MESSAGE>
-void LogFatal(AqualinkAutomate::Logging::Channel channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
+void LogFatal(AqualinkAutomate::Logging::Channel log_channel, MESSAGE&& log_message, const std::source_location location = std::source_location::current())
 {
-	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), channel, AqualinkAutomate::Logging::Severity::Fatal, location);
+	AqualinkAutomate::Logging::Log(std::forward<MESSAGE>(log_message), log_channel, AqualinkAutomate::Logging::Severity::Fatal, location);
 }

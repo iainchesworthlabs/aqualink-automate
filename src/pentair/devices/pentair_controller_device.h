@@ -36,7 +36,7 @@ namespace AqualinkAutomate::Pentair::Devices
 
 		void Slot_Controller_Status(const Messages::PentairControllerMessage_Status& msg);
 
-		void PushStatusToDataHub(const Messages::PentairControllerMessage_Status& msg);
+		void PushStatusToDataHub(const Messages::PentairControllerMessage_Status& msg) const;
 
 
 		uint8_t m_Address;

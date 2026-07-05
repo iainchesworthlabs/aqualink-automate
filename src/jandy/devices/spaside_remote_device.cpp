@@ -1,5 +1,6 @@
 #include <format>
 #include <functional>
+#include <utility>
 
 #include <nlohmann/json.hpp>
 
@@ -106,13 +107,15 @@ namespace AqualinkAutomate::Devices
 		m_LedImage = payload;
 		m_LedImageSeen = true;
 
-		const uint8_t led_byte = payload[0];
+		using enum SpasideLedState;
+
+		const auto led_byte = payload[0];
 		for (std::size_t i = 0; i < m_Leds.size(); ++i)
 		{
 			const uint8_t bits = static_cast<uint8_t>((led_byte >> (2 * i)) & 0x03);
-			m_Leds[i] = (0x00 == bits) ? SpasideLedState::Off
-				: (0x01 == bits) ? SpasideLedState::On
-				: SpasideLedState::Blink;
+			m_Leds[i] = (0x00 == bits) ? Off
+				: (0x01 == bits) ? On
+				: Blink;
 		}
 	}
 
@@ -131,7 +134,7 @@ namespace AqualinkAutomate::Devices
 
 		// Spa-side button reports carry ack_type 0x00 ([0x01][0x00][button]); OneTouch acks use
 		// 0x80 and PDA 0x40, so this distinguishes our reply from those other devices' acks.
-		if (static_cast<uint8_t>(msg.AckType()) != 0x00)
+		if (std::to_underlying(msg.AckType()) != 0x00)
 		{
 			return;
 		}
@@ -196,15 +199,17 @@ namespace AqualinkAutomate::Devices
 			return states;   // nothing decoded yet
 		}
 
+		using enum SpasideLedState;
+
 		states.reserve(m_Leds.size());
 		for (const auto state : m_Leds)
 		{
 			switch (state)
 			{
-			case SpasideLedState::On:    states.emplace_back("on");    break;
-			case SpasideLedState::Blink: states.emplace_back("blink"); break;
-			case SpasideLedState::Off:
-			default:                     states.emplace_back("off");   break;
+			case On:    states.emplace_back("on");    break;
+			case Blink: states.emplace_back("blink"); break;
+			case Off:
+			default:    states.emplace_back("off");   break;
 			}
 		}
 		return states;

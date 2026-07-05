@@ -1,6 +1,7 @@
 #include <array>
 #include <charconv>
 #include <format>
+#include <string_view>
 #include <utility>
 
 #include <magic_enum/magic_enum.hpp>
@@ -27,7 +28,8 @@ namespace AqualinkAutomate::Scheduling
 
 		bool IsButtonAction(ActionType type)
 		{
-			return type == ActionType::ButtonOn || type == ActionType::ButtonOff || type == ActionType::ButtonToggle;
+			using enum ActionType;
+			return type == ButtonOn || type == ButtonOff || type == ButtonToggle;
 		}
 
 		bool IsSetpointAction(ActionType type)
@@ -36,13 +38,13 @@ namespace AqualinkAutomate::Scheduling
 		}
 
 		// Parse "HH:MM" into hour/minute. Returns false on any malformation.
-		bool ParseTime(const std::string& text, int& hour, int& minute)
+		bool ParseTime(std::string_view text, int& hour, int& minute)
 		{
 			const auto colon = text.find(':');
-			if (colon == std::string::npos) { return false; }
+			if (colon == std::string_view::npos) { return false; }
 
-			const std::string h = text.substr(0, colon);
-			const std::string m = text.substr(colon + 1);
+			const std::string_view h = text.substr(0, colon);
+			const std::string_view m = text.substr(colon + 1);
 			if (h.empty() || m.empty()) { return false; }
 
 			int hv = 0;

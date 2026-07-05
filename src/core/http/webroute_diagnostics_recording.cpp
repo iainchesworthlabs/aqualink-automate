@@ -61,9 +61,9 @@ namespace AqualinkAutomate::HTTP
 			// front, so a Windows-style traversal cannot slip through on a POSIX
 			// host (where '\\' and ':' are ordinary filename characters and would
 			// not be parsed as separators by std::filesystem).
-			if (filename.find('/') != std::string::npos ||
-				filename.find('\\') != std::string::npos ||
-				filename.find(':') != std::string::npos)
+			if (filename.contains('/') ||
+				filename.contains('\\') ||
+				filename.contains(':'))
 			{
 				LogWarning(Channel::Web, std::format("Rejected recording filename (contains a path separator or drive specifier): '{}'", filename));
 				return std::nullopt;
@@ -86,7 +86,7 @@ namespace AqualinkAutomate::HTTP
 			// Defence in depth: explicitly reject the parent-directory token even
 			// though has_parent_path() above already catches separated forms.
 			const std::string basename = candidate.filename().string();
-			if (basename == "." || basename == ".." || basename.find("..") != std::string::npos)
+			if (basename == "." || basename == ".." || basename.contains(".."))
 			{
 				LogWarning(Channel::Web, std::format("Rejected recording filename (parent-directory token): '{}'", filename));
 				return std::nullopt;
@@ -166,7 +166,7 @@ namespace AqualinkAutomate::HTTP
 		}
 	}
 
-	HTTP::Response WebRoute_Diagnostics_Recording::HandleGet(const HTTP::Request& req)
+	HTTP::Response WebRoute_Diagnostics_Recording::HandleGet(const HTTP::Request& req) const
 	{
 		Interfaces::IRecordingController::Status status;
 		if (m_RecordingController)
@@ -179,7 +179,7 @@ namespace AqualinkAutomate::HTTP
 		return MakeJsonResponse(req, HTTP::Status::ok, StatusToJson(status).dump());
 	}
 
-	HTTP::Response WebRoute_Diagnostics_Recording::HandlePost(const HTTP::Request& req)
+	HTTP::Response WebRoute_Diagnostics_Recording::HandlePost(const HTTP::Request& req) const
 	{
 		if (!m_RecordingController)
 		{

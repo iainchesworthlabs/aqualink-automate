@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <format>
+#include <utility>
 
 #include "kernel/auxillary_devices/stable_id.h"
 
@@ -41,7 +42,7 @@ namespace AqualinkAutomate::Auxillaries
 		// "Extra Aux" / "ExtraAux" (accept with or without the interior space).
 		{
 			std::string compact = s;
-			compact.erase(std::remove(compact.begin(), compact.end(), ' '), compact.end());
+			compact.erase(std::ranges::remove(compact, ' ').begin(), compact.end());
 			if (compact == "ExtraAux") { return JandyAuxillaryIds::ExtraAux; }
 		}
 
@@ -53,7 +54,7 @@ namespace AqualinkAutomate::Auxillaries
 		if (rest.empty()) { return std::nullopt; }
 
 		char bank = 'A';
-		if (const char upper = static_cast<char>(std::toupper(static_cast<unsigned char>(rest.front())));
+		if (const auto upper = static_cast<char>(std::toupper(static_cast<unsigned char>(rest.front())));
 			'B' == upper || 'C' == upper || 'D' == upper)
 		{
 			bank = upper;
@@ -80,7 +81,7 @@ namespace AqualinkAutomate::Auxillaries
 
 	std::string AuxNativeKey(JandyAuxillaryIds id)
 	{
-		return std::format("jandy:aux:{}", static_cast<int>(id));
+		return std::format("jandy:aux:{}", std::to_underlying(id));
 	}
 
 	boost::uuids::uuid AuxStableId(JandyAuxillaryIds id)

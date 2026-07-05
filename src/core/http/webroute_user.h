@@ -42,7 +42,7 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
-		HTTP::Response User_GetHandler(const HTTP::Request& req, const std::string& user_id);
+		HTTP::Response User_GetHandler(const HTTP::Request& req, const std::string& user_id) const;
 		HTTP::Response User_PutHandler(const HTTP::Request& req, const std::string& user_id);
 		HTTP::Response User_DeleteHandler(const HTTP::Request& req, const std::string& user_id);
 

@@ -76,15 +76,15 @@ namespace AqualinkAutomate::Devices
 			auto area_lower = area.value();
 			std::transform(area_lower.begin(), area_lower.end(), area_lower.begin(), [](unsigned char c){ return std::tolower(c); });
 
-			if (area_lower.find("air") != std::string::npos)
+			if (area_lower.contains("air"))
 			{
 				JandyController::m_DataHub->AirTemp(temp().value());
 			}
-			else if (area_lower.find("pool") != std::string::npos)
+			else if (area_lower.contains("pool"))
 			{
 				JandyController::m_DataHub->PoolTemp(temp().value());
 			}
-			else if (area_lower.find("spa") != std::string::npos)
+			else if (area_lower.contains("spa"))
 			{
 				JandyController::m_DataHub->SpaTemp(temp().value());
 			}
@@ -272,15 +272,15 @@ namespace AqualinkAutomate::Devices
 		{
 			// Ignore line 0 on every page as it's the "Equipment Status" title line...
 
-			for (std::size_t line_id = 1; line_id < page.Size(); ++line_id)
+			for (std::size_t line_index = 1; line_index < page.Size(); ++line_index)
 			{
-				if (page[line_id].Text.empty())
+				if (page[line_index].Text.empty())
 				{
 					// Ignore empty lines...
 				}
 				else
 				{
-					(this->*matcher_processor)(page, static_cast<uint8_t>(line_id));
+					(this->*matcher_processor)(page, static_cast<uint8_t>(line_index));
 				}
 			}
 		}
@@ -341,15 +341,15 @@ namespace AqualinkAutomate::Devices
 			}
 
 			auto area_lower = area.value();
-			std::transform(area_lower.begin(), area_lower.end(), area_lower.begin(), [](unsigned char c){ return std::tolower(c); });
+			std::ranges::transform(area_lower, area_lower.begin(), [](unsigned char c){ return std::tolower(c); });
 
 			// "Spa Heat" before "Pool Heat": neither label contains the other's keyword, but
 			// guard order keeps it unambiguous if a future label ever does.
-			if (area_lower.find("spa") != std::string::npos)
+			if (area_lower.contains("spa"))
 			{
 				JandyController::m_DataHub->SpaTempSetpoint(temp().value());
 			}
-			else if (area_lower.find("pool") != std::string::npos)
+			else if (area_lower.contains("pool"))
 			{
 				JandyController::m_DataHub->PoolTempSetpoint(temp().value());
 			}

@@ -55,7 +55,7 @@ namespace AqualinkAutomate::HTTP
 		}
 	}
 
-	HTTP::Response WebRoute_Equipment_SpasideRemotes::HandleGet(const HTTP::Request& req)
+	HTTP::Response WebRoute_Equipment_SpasideRemotes::HandleGet(const HTTP::Request& req) const
 	{
 		// With no controller the empty (but well-formed) envelope is the correct picture -- no
 		// spa-side stack is running (e.g. dev-mode/replay).
@@ -82,7 +82,7 @@ namespace AqualinkAutomate::HTTP
 		// /api/preferences / the config file).  An uncaught throw here unwinds into
 		// the router's exception barrier and degrades to a blanket HTTP 500; ToNumber
 		// returns std::nullopt instead, so a malformed key is simply skipped below.
-		auto parse_uint = [](const std::string& s) -> std::optional<unsigned long>
+		auto parse_uint = [](const std::string& s)
 		{
 			return Utility::ToNumber<unsigned long>(s);
 		};
@@ -186,7 +186,7 @@ namespace AqualinkAutomate::HTTP
 		}
 		for (const auto& [key, function] : live)
 		{
-			if (std::find(available_list.begin(), available_list.end(), function) == available_list.end())
+			if (std::ranges::find(available_list, function) == available_list.end())
 			{
 				available_list.push_back(function);
 			}
@@ -200,7 +200,7 @@ namespace AqualinkAutomate::HTTP
 		return envelope;
 	}
 
-	HTTP::Response WebRoute_Equipment_SpasideRemotes::HandlePost(const HTTP::Request& req)
+	HTTP::Response WebRoute_Equipment_SpasideRemotes::HandlePost(const HTTP::Request& req) const
 	{
 		if (!m_Controller)
 		{
@@ -240,19 +240,20 @@ namespace AqualinkAutomate::HTTP
 				const auto address = static_cast<uint8_t>(address_value);
 				const auto button = static_cast<uint8_t>(button_value);
 
+				using enum Interfaces::ISpasideRemoteController::PressResult;
 				switch (m_Controller->PressButton(address, button))
 				{
-				case Interfaces::ISpasideRemoteController::PressResult::Success:
+				case Success:
 					LogInfo(Channel::Web, std::format("Spa-side remote 0x{:02x}: queued press of button {} via web UI", address, button));
 					return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
 
-				case Interfaces::ISpasideRemoteController::PressResult::RemoteNotFound:
+				case RemoteNotFound:
 					return MakeErrorResponse(req, HTTP::Status::not_found, "spaside_remote_not_found", "No spa-side remote at that address");
 
-				case Interfaces::ISpasideRemoteController::PressResult::NotEmulated:
+				case NotEmulated:
 					return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_remote_observed_only", "That spa-side remote is a real device we only observe; it cannot be actuated");
 
-				case Interfaces::ISpasideRemoteController::PressResult::InvalidButton:
+				case InvalidButton:
 				default:
 					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_button_out_of_range", "'button' is out of range for that remote (1..button_count)");
 				}
@@ -279,9 +280,10 @@ namespace AqualinkAutomate::HTTP
 				const auto sw = static_cast<uint8_t>(switch_value);
 				const auto btn = static_cast<uint8_t>(button_value);
 
+				using enum Interfaces::ISpasideRemoteController::AssignResult;
 				switch (m_Controller->SetButtonAssignment(sw, btn, function))
 				{
-				case Interfaces::ISpasideRemoteController::AssignResult::Accepted:
+				case Accepted:
 					LogInfo(Channel::Web, std::format("Spa-switch assign: switch {} button {} -> '{}' queued via web UI", sw, btn, function));
 					// Remember the user's request (desired state) so the UI reflects it and it
 					// survives a restart; the controller's live decoded map remains authoritative.
@@ -291,13 +293,13 @@ namespace AqualinkAutomate::HTTP
 					}
 					return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
 
-				case Interfaces::ISpasideRemoteController::AssignResult::InvalidRequest:
+				case InvalidRequest:
 					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_assign_invalid", "Invalid switch/button/function for assignment");
 
-				case Interfaces::ISpasideRemoteController::AssignResult::Busy:
+				case Busy:
 					return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_controller_busy", "A controller operation is in progress; retry shortly");
 
-				case Interfaces::ISpasideRemoteController::AssignResult::NotAvailable:
+				case NotAvailable:
 				default:
 					return MakeErrorResponse(req, HTTP::Status::service_unavailable, "spaside_no_programmer", "No controller can program spa-switch assignments on this system");
 				}

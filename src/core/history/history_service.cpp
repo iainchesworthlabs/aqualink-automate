@@ -172,7 +172,7 @@ namespace AqualinkAutomate::History
 
 		if (const double salt = m_DataHub->SaltLevel().value(); salt > 0.0) { RecordNumeric("chem/salt_ppm", "ppm", salt, is_heartbeat); }
 		if (const double orp = m_DataHub->ORP()().value(); orp > 0.0) { RecordNumeric("chem/orp", "mV", orp, is_heartbeat); }
-		if (const double ph = static_cast<double>(m_DataHub->pH()()); ph > 0.0) { RecordNumeric("chem/ph", "pH", ph, is_heartbeat); }
+		if (const auto ph = static_cast<double>(m_DataHub->pH()()); ph > 0.0) { RecordNumeric("chem/ph", "pH", ph, is_heartbeat); }
 
 		if (auto chlorinators = m_DataHub->Chlorinators(); !chlorinators.empty())
 		{

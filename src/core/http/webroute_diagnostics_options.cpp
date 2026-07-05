@@ -22,7 +22,7 @@ namespace AqualinkAutomate::HTTP
 		}
 	}
 
-	HTTP::Response WebRoute_Diagnostics_Options::HandleGet(const HTTP::Request& req)
+	HTTP::Response WebRoute_Diagnostics_Options::HandleGet(const HTTP::Request& req) const
 	{
 		nlohmann::json options = nlohmann::json::array();
 		for (const auto& meta : Options::AppOption::RegisteredOptions())

@@ -94,7 +94,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void LightsDevice::EnsureLightDeviceExists()
+	void LightsDevice::EnsureLightDeviceExists() const
 	{
 		if (!m_DataHub)
 		{

@@ -61,7 +61,7 @@ namespace AqualinkAutomate::Pentair::Devices
 		Capabilities::Restartable::Kick();
 	}
 
-	void PentairControllerDevice::PushStatusToDataHub(const Messages::PentairControllerMessage_Status& msg)
+	void PentairControllerDevice::PushStatusToDataHub(const Messages::PentairControllerMessage_Status& msg) const
 	{
 		if (!m_DataHub)
 		{

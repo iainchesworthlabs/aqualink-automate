@@ -1,6 +1,7 @@
 #include <format>
 #include <functional>
 #include <source_location>
+#include <utility>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -76,7 +77,7 @@ namespace AqualinkAutomate::Devices
 			break;
 
 		default:
-			LogDebug(Channel::Devices, [&msg]() { return std::format("Chemlink device received unknown data tag: 0x{:02x}", static_cast<uint8_t>(msg.DataTag())); });
+			LogDebug(Channel::Devices, [&msg]() { return std::format("Chemlink device received unknown data tag: 0x{:02x}", std::to_underlying(msg.DataTag())); });
 			break;
 		}
 

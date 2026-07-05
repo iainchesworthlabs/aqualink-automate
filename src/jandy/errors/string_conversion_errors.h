@@ -23,6 +23,11 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::String Conversion Error Category" };
 		static std::string_view Describe(StringConversion_ErrorCodes e);
+
+	protected:
+		// Meyers singleton; never destroyed through a base pointer (mirrors the
+		// EnumErrorCategory base's protected non-virtual destructor).
+		~StringConversion_ErrorCategory() = default;
 	};
 
 }

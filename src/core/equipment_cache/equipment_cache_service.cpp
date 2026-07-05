@@ -89,7 +89,7 @@ namespace AqualinkAutomate::EquipmentCache
 		return json;
 	}
 
-	void EquipmentCacheService::ApplySnapshot(const nlohmann::json& json)
+	void EquipmentCacheService::ApplySnapshot(const nlohmann::json& json) const
 	{
 		if (!m_DataHub || !json.is_object()) { return; }
 
@@ -202,7 +202,7 @@ namespace AqualinkAutomate::EquipmentCache
 		}
 	}
 
-	void EquipmentCacheService::SaveNow()
+	void EquipmentCacheService::SaveNow() const
 	{
 		if (m_Settings.equipment_cache_file.empty() || !m_DataHub) { return; }
 
@@ -278,7 +278,7 @@ namespace AqualinkAutomate::EquipmentCache
 			}
 			device_parts.push_back(std::move(part));
 		}
-		std::sort(device_parts.begin(), device_parts.end());
+		std::ranges::sort(device_parts);
 
 		std::string fingerprint;
 		fingerprint += std::string{ magic_enum::enum_name(m_DataHub->PoolConfiguration) };

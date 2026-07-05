@@ -689,7 +689,7 @@ namespace AqualinkAutomate::Kernel
 		return pumps.front();
 	}
 
-	void DataHub::SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, const std::string& function)
+	void DataHub::SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, std::string_view function)
 	{
 		m_SpaSwitchAssignments[std::make_pair(switch_number, button_number)] = function;
 	}

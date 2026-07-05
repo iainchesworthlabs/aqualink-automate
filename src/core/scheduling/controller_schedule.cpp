@@ -30,11 +30,13 @@ namespace AqualinkAutomate::Scheduling
 
 	std::string_view ControllerScheduleStatusToString(ControllerScheduleStatus status)
 	{
+		using enum ControllerScheduleStatus;
+
 		switch (status)
 		{
-		case ControllerScheduleStatus::Available:      return "available";
-		case ControllerScheduleStatus::PendingCapture: return "pending_capture";
-		case ControllerScheduleStatus::Unsupported:    return "unsupported";
+		case Available:      return "available";
+		case PendingCapture: return "pending_capture";
+		case Unsupported:    return "unsupported";
 		}
 		return "pending_capture";
 	}

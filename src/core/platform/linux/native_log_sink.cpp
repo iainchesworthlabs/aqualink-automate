@@ -34,17 +34,19 @@ namespace AqualinkAutomate::Logging::Sinks
 		{
 			switch (facility)
 			{
-			case SyslogFacility::Daemon:   return LOG_DAEMON;
-			case SyslogFacility::User:     return LOG_USER;
-			case SyslogFacility::AuthPriv: return LOG_AUTHPRIV;
-			case SyslogFacility::Local0:   return LOG_LOCAL0;
-			case SyslogFacility::Local1:   return LOG_LOCAL1;
-			case SyslogFacility::Local2:   return LOG_LOCAL2;
-			case SyslogFacility::Local3:   return LOG_LOCAL3;
-			case SyslogFacility::Local4:   return LOG_LOCAL4;
-			case SyslogFacility::Local5:   return LOG_LOCAL5;
-			case SyslogFacility::Local6:   return LOG_LOCAL6;
-			case SyslogFacility::Local7:   return LOG_LOCAL7;
+				using enum SyslogFacility;
+
+			case Daemon:   return LOG_DAEMON;
+			case User:     return LOG_USER;
+			case AuthPriv: return LOG_AUTHPRIV;
+			case Local0:   return LOG_LOCAL0;
+			case Local1:   return LOG_LOCAL1;
+			case Local2:   return LOG_LOCAL2;
+			case Local3:   return LOG_LOCAL3;
+			case Local4:   return LOG_LOCAL4;
+			case Local5:   return LOG_LOCAL5;
+			case Local6:   return LOG_LOCAL6;
+			case Local7:   return LOG_LOCAL7;
 			}
 
 			return LOG_DAEMON;

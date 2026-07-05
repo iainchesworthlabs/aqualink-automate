@@ -53,7 +53,7 @@ namespace AqualinkAutomate::Auth
 
 			// Size-based rotation: when the file would exceed this, it is
 			// renamed to "<name>.1" (replacing any previous) and restarted.
-			std::uintmax_t MaxFileBytes{ 10ull * 1024ull * 1024ull };
+			std::uintmax_t MaxFileBytes{ 10ULL * 1024ULL * 1024ULL };
 		};
 
 	public:
@@ -63,7 +63,7 @@ namespace AqualinkAutomate::Auth
 
 	private:
 		void AppendJsonl(const AuditEvent& event);
-		void RotateIfNeeded(std::uintmax_t incoming_bytes);
+		void RotateIfNeeded(std::uintmax_t incoming_bytes) const;
 
 	private:
 		Config m_Config;

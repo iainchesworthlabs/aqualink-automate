@@ -1,6 +1,7 @@
 #include "navigation/spider_engine.h"
 
 #include <source_location>
+#include <utility>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -112,7 +113,7 @@ namespace AqualinkAutomate::Navigation
 						// this edge visited and move on to the next aux.
 						auto edge = m_CurrentMultiEdge.value();
 						LogDebug(Channel::Scraping, std::format("SpiderEngine: Multi-instance edge (source={}, line={} '{}') not reachable - skipping (instance absent on this controller)",
-							static_cast<uint32_t>(edge->source), edge->trigger_line, edge->label));
+							std::to_underlying(edge->source), edge->trigger_line, edge->label));
 						m_VisitedMultiEdges[m_CurrentTarget].insert({ edge->source, edge->trigger_line });
 						m_CurrentMultiEdge = std::nullopt;
 
@@ -125,7 +126,7 @@ namespace AqualinkAutomate::Navigation
 						{
 							m_Visited.insert(m_CurrentTarget);
 							LogInfo(Channel::Scraping, std::format("SpiderEngine: All instances of multi-instance page {} processed (last one absent)",
-								static_cast<uint32_t>(m_CurrentTarget)));
+								std::to_underlying(m_CurrentTarget)));
 						}
 					}
 					else

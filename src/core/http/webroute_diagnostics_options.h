@@ -28,7 +28,7 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
-		HTTP::Response HandleGet(const HTTP::Request& req);
+		HTTP::Response HandleGet(const HTTP::Request& req) const;
 	};
 
 }

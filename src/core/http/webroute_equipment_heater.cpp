@@ -2,6 +2,7 @@
 #include <optional>
 #include <source_location>
 #include <string>
+#include <string_view>
 
 #include <nlohmann/json.hpp>
 
@@ -25,11 +26,12 @@ namespace AqualinkAutomate::HTTP
 
 		// Map the "body" field to a heater's body of water. Solar has no body of its own and is
 		// modelled as the Shared heater.
-		std::optional<Kernel::BodyOfWaterIds> ParseHeaterBody(const std::string& body)
+		std::optional<Kernel::BodyOfWaterIds> ParseHeaterBody(std::string_view body)
 		{
-			if (body == "pool")  return Kernel::BodyOfWaterIds::Pool;
-			if (body == "spa")   return Kernel::BodyOfWaterIds::Spa;
-			if (body == "solar") return Kernel::BodyOfWaterIds::Shared;
+			using enum Kernel::BodyOfWaterIds;
+			if (body == "pool")  return Pool;
+			if (body == "spa")   return Spa;
+			if (body == "solar") return Shared;
 			return std::nullopt;
 		}
 	}
@@ -44,7 +46,7 @@ namespace AqualinkAutomate::HTTP
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("WebRoute_Equipment_Heater::OnRequest", std::source_location::current());
 
-		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&req, this](const nlohmann::json& payload) -> HTTP::Response
+		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&req, this](const nlohmann::json& payload)
 		{
 			try
 			{

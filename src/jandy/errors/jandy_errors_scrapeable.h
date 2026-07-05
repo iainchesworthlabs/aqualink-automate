@@ -32,6 +32,11 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::Scrapeable Error Category" };
 		static std::string_view Describe(Scrapeable_ErrorCodes e);
+
+	protected:
+		// Meyers singleton; never destroyed through a base pointer (mirrors the
+		// EnumErrorCategory base's protected non-virtual destructor).
+		~Scrapeable_ErrorCategory() = default;
 	};
 
 }

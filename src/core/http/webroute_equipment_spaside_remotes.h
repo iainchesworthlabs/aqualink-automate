@@ -45,8 +45,8 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
-		HTTP::Response HandleGet(const HTTP::Request& req);
-		HTTP::Response HandlePost(const HTTP::Request& req);
+		HTTP::Response HandleGet(const HTTP::Request& req) const;
+		HTTP::Response HandlePost(const HTTP::Request& req) const;
 
 		// Build the full GET/command response envelope: every remote (with its per-key `buttons`
 		// joined to the live decoded function, the requested function and a pending flag), the flat

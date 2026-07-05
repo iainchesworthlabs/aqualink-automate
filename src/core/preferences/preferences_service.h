@@ -30,7 +30,7 @@ namespace AqualinkAutomate::Preferences
 
 		// Seed the runtime-editable fields from the effective CLI/config values so
 		// existing deployments behave identically until a preference is changed.
-		void Seed(std::uint32_t salt_low_ppm, std::uint32_t comms_timeout_seconds, const std::string& webhook_url, std::uint32_t retention_days);
+		void Seed(std::uint32_t salt_low_ppm, std::uint32_t comms_timeout_seconds, const std::string& webhook_url, std::uint32_t retention_days) const;
 
 		// Load the persisted file (overriding the seed) when a path is configured.
 		void Start();
@@ -55,7 +55,7 @@ namespace AqualinkAutomate::Preferences
 
 	private:
 		void Load();
-		void Save();
+		void Save() const;
 
 	private:
 		std::shared_ptr<Kernel::PreferencesHub> m_Hub;

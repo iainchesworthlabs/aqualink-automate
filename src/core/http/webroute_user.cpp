@@ -36,15 +36,17 @@ namespace AqualinkAutomate::HTTP
 			return MakeJsonResponse(req, HTTP::Status::not_found, nlohmann::json{ { "error", "User not found" } }.dump());
 		}
 
+		using enum boost::beast::http::verb;
+
 		switch (req.method())
 		{
-		case boost::beast::http::verb::get:
+		case get:
 			return User_GetHandler(req, *user_id);
 
-		case boost::beast::http::verb::put:
+		case put:
 			return User_PutHandler(req, *user_id);
 
-		case boost::beast::http::verb::delete_:
+		case delete_:
 			return User_DeleteHandler(req, *user_id);
 
 		default:
@@ -52,7 +54,7 @@ namespace AqualinkAutomate::HTTP
 		}
 	}
 
-	HTTP::Response WebRoute_User::User_GetHandler(const HTTP::Request& req, const std::string& user_id)
+	HTTP::Response WebRoute_User::User_GetHandler(const HTTP::Request& req, const std::string& user_id) const
 	{
 		const auto user = m_Users.FindById(user_id);
 

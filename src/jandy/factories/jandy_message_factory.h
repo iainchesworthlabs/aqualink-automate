@@ -8,6 +8,7 @@
 #include <optional>
 #include <ranges>
 #include <type_traits>
+#include <utility>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -154,7 +155,7 @@ namespace AqualinkAutomate::Factory
 				const Messages::JandyMessageIds message_type(magic_enum::enum_cast<Messages::JandyMessageIds>(raw_message_type)
 					.value_or(Messages::JandyMessageIds::Unknown));
 
-				LogTrace(Channel::Messages, [message_type]{ return std::format("Generating: Jandy message --> {} (0x{:02x})", magic_enum::enum_name(message_type), static_cast<uint8_t>(message_type)); });
+				LogTrace(Channel::Messages, [message_type]{ return std::format("Generating: Jandy message --> {} (0x{:02x})", magic_enum::enum_name(message_type), std::to_underlying(message_type)); });
 
 				if (Types::JandyMessageTypePtr message = CreateMessageFromRaw(message_type); !message)
 				{

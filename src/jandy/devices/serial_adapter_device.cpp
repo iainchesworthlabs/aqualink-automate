@@ -311,19 +311,20 @@ namespace AqualinkAutomate::Devices
 			{
 				auto device_type = *(device->AuxillaryTraits[AuxillaryTypeTrait{}]);
 
+				using enum AuxillaryTypes;
 				switch (device_type)
 				{
-				case AuxillaryTypes::Auxillary:
-				case AuxillaryTypes::Cleaner:
-				case AuxillaryTypes::Spillover:
-				case AuxillaryTypes::Sprinkler:
+				case Auxillary:
+				case Cleaner:
+				case Spillover:
+				case Sprinkler:
 					if (auto status = device->AuxillaryTraits.TryGet(AuxillaryStatusTrait{}); status.has_value() && *status == Kernel::AuxillaryStatuses::On)
 					{
 						action = SerialAdapter_CommandTypes::SetOff;
 					}
 					break;
 
-				case AuxillaryTypes::Pump:
+				case Pump:
 					if (auto status = device->AuxillaryTraits.TryGet(PumpStatusTrait{}); status.has_value() && *status == Kernel::PumpStatuses::Running)
 					{
 						action = SerialAdapter_CommandTypes::SetOff;
@@ -361,7 +362,7 @@ namespace AqualinkAutomate::Devices
 			switch (device_type)
 			{
 			case AuxillaryTypes::Pump:
-				if (label.find("Filter") != std::string::npos || label.find("Pump") != std::string::npos)
+				if (label.contains("Filter") || label.contains("Pump"))
 				{
 					LogInfo(Channel::Devices, std::format("SerialAdapterDevice: Actuating pump command PUMP (action=0x{:02x})", magic_enum::enum_integer(action)));
 					QueuePumpCommand(SerialAdapter_SystemPumpCommands::PUMP, action);
@@ -384,7 +385,7 @@ namespace AqualinkAutomate::Devices
 			}
 
 			// Check if it's a spa device by label.
-			if (label.find("Spa") != std::string::npos)
+			if (label.contains("Spa"))
 			{
 				LogInfo(Channel::Devices, std::format("SerialAdapterDevice: Actuating pump command SPA (action=0x{:02x})", magic_enum::enum_integer(action)));
 				QueuePumpCommand(SerialAdapter_SystemPumpCommands::SPA, action);

@@ -28,6 +28,11 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::Protocol Error Category" };
 		static std::string_view Describe(Protocol_ErrorCodes e);
+
+	protected:
+		// Meyers singleton; never destroyed through a base pointer (mirrors the
+		// EnumErrorCategory base's protected non-virtual destructor).
+		~Protocol_ErrorCategory() = default;
 	};
 
 }

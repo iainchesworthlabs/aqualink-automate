@@ -30,12 +30,12 @@ namespace AqualinkAutomate::Logging
 
 			std::array<Severity, CHANNEL_COUNT> MinimumSeverityLevelPerChannel = MakeDefaultSeverityTable();
 
-			[[nodiscard]] std::size_t ChannelIndex(Channel channel) noexcept
+			[[nodiscard]] std::size_t ChannelIndex(Channel channel_id) noexcept
 			{
 				// magic_enum::enum_index returns std::nullopt only for a value outside the
 				// declared enumerators; treat that as the default channel so an unknown
 				// channel "fails closed" to DEFAULT_SEVERITY rather than logging everything.
-				const auto index = magic_enum::enum_index(channel);
+				const auto index = magic_enum::enum_index(channel_id);
 				return index.has_value() ? *index : magic_enum::enum_index(DEFAULT_CHANNEL).value_or(0U);
 			}
 		}
@@ -60,9 +60,9 @@ namespace AqualinkAutomate::Logging
 			return MinimumSeverityLevelPerChannel[ChannelIndex(channel)];
 		}
 
-		bool ShouldLog(Channel channel, Severity severity)
+		bool ShouldLog(Channel channel_id, Severity severity_level)
 		{
-			return severity >= MinimumSeverityLevelPerChannel[ChannelIndex(channel)];
+			return severity_level >= MinimumSeverityLevelPerChannel[ChannelIndex(channel_id)];
 		}
 
 		bool PerChannelTest(boost::log::value_ref<Channel, tag::channel> const& channel, boost::log::value_ref<Severity, tag::severity> const& severity)

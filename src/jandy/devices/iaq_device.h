@@ -271,7 +271,7 @@ namespace AqualinkAutomate::Devices
 		// Parse the just-completed Schedule list page (m_ScheduleRows + m_CurrentPageTitle)
 		// into ControllerSchedule spans and swap them into the store, tagged with the
 		// active program group. A no-op when the store is absent.
-		void PublishSchedulePage();
+		void PublishSchedulePage() const;
 
 		// The 4-Function detail page's device/function PICKER (group-0x01 TableMessages): the live
 		// slot(attr) -> function rows, rebuilt each time the picker page renders. The writer scrolls

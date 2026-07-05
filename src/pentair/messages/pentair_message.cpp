@@ -2,6 +2,7 @@
 #include <array>
 #include <format>
 #include <span>
+#include <utility>
 #include <vector>
 
 #include <magic_enum/magic_enum.hpp>
@@ -113,10 +114,10 @@ namespace AqualinkAutomate::Pentair::Messages
 		}
 
 		std::array<uint8_t, MAXIMUM_FRAME_LENGTH> byte_buffer{};
-		std::transform(message_bytes.begin(), message_bytes.end(), byte_buffer.begin(),
+		std::ranges::transform(message_bytes, byte_buffer.begin(),
 			[](std::byte b)
 			{
-				return static_cast<uint8_t>(b);
+				return std::to_underlying(b);
 			}
 		);
 

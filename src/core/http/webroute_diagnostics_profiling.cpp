@@ -55,7 +55,7 @@ namespace AqualinkAutomate::HTTP
 		}
 	}
 
-	HTTP::Response WebRoute_Diagnostics_Profiling::HandleGet(const HTTP::Request& req)
+	HTTP::Response WebRoute_Diagnostics_Profiling::HandleGet(const HTTP::Request& req) const
 	{
 		Interfaces::IProfilingController::Status status;
 		if (m_ProfilingController)
@@ -68,7 +68,7 @@ namespace AqualinkAutomate::HTTP
 		return MakeJsonResponse(req, HTTP::Status::ok, StatusToJson(status).dump());
 	}
 
-	HTTP::Response WebRoute_Diagnostics_Profiling::HandlePost(const HTTP::Request& req)
+	HTTP::Response WebRoute_Diagnostics_Profiling::HandlePost(const HTTP::Request& req) const
 	{
 		if (!m_ProfilingController)
 		{

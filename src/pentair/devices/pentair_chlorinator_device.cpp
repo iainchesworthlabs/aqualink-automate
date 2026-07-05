@@ -22,11 +22,12 @@ namespace AqualinkAutomate::Pentair::Devices
 	{
 		Kernel::ChlorinatorHealth FlagsToHealth(const Messages::PentairChlorinatorMessage_Status& msg)
 		{
-			if (msg.IsLowFlow())      { return Kernel::ChlorinatorHealth::Warning_NoFlow; }
-			if (msg.IsLowSalt())      { return Kernel::ChlorinatorHealth::Warning_LowSalt; }
-			if (msg.IsHighSalt())     { return Kernel::ChlorinatorHealth::Warning_HighSalt; }
-			if (msg.NeedsCleanCell()) { return Kernel::ChlorinatorHealth::Warning_CleanCell; }
-			return Kernel::ChlorinatorHealth::Ok;
+			using enum Kernel::ChlorinatorHealth;
+			if (msg.IsLowFlow())      { return Warning_NoFlow; }
+			if (msg.IsLowSalt())      { return Warning_LowSalt; }
+			if (msg.IsHighSalt())     { return Warning_HighSalt; }
+			if (msg.NeedsCleanCell()) { return Warning_CleanCell; }
+			return Ok;
 		}
 
 		constexpr char CHLORINATOR_LABEL[] = "IntelliChlor";
@@ -89,7 +90,7 @@ namespace AqualinkAutomate::Pentair::Devices
 		Capabilities::Restartable::Kick();
 	}
 
-	void PentairChlorinatorDevice::EnsureChlorinatorDeviceExists()
+	void PentairChlorinatorDevice::EnsureChlorinatorDeviceExists() const
 	{
 		if (!m_DataHub || !m_DataHub->Chlorinators().empty())
 		{

@@ -122,7 +122,7 @@ namespace AqualinkAutomate::Scheduling
 		}
 	}
 
-	void SchedulerService::Fire(const Schedule& schedule)
+	void SchedulerService::Fire(const Schedule& schedule) const
 	{
 		// Service mode suppresses automation.
 		if (m_DataHub && m_DataHub->Mode == Kernel::EquipmentMode::Service)
@@ -211,7 +211,7 @@ namespace AqualinkAutomate::Scheduling
 		}
 	}
 
-	void SchedulerService::Save()
+	void SchedulerService::Save() const
 	{
 		if (m_Settings.schedules_file.empty())
 		{
@@ -246,7 +246,7 @@ namespace AqualinkAutomate::Scheduling
 		return m_Schedules;
 	}
 
-	std::optional<Schedule> SchedulerService::Get(const std::string& uuid) const
+	std::optional<Schedule> SchedulerService::Get(std::string_view uuid) const
 	{
 		for (const auto& schedule : m_Schedules)
 		{
@@ -263,7 +263,7 @@ namespace AqualinkAutomate::Scheduling
 		return schedule;
 	}
 
-	bool SchedulerService::Replace(const std::string& uuid, Schedule schedule)
+	bool SchedulerService::Replace(std::string_view uuid, Schedule schedule)
 	{
 		for (auto& existing : m_Schedules)
 		{

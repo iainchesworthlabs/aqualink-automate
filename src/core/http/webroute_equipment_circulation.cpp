@@ -2,6 +2,7 @@
 #include <optional>
 #include <source_location>
 #include <string>
+#include <string_view>
 
 #include <nlohmann/json.hpp>
 
@@ -23,11 +24,12 @@ namespace AqualinkAutomate::HTTP
 	{
 		using CommandResult = Interfaces::ICommandDispatcher::CommandResult;
 
-		std::optional<Kernel::CirculationModes> ParseMode(const std::string& mode)
+		std::optional<Kernel::CirculationModes> ParseMode(std::string_view mode)
 		{
-			if (mode == "pool")      return Kernel::CirculationModes::Pool;
-			if (mode == "spa")       return Kernel::CirculationModes::Spa;
-			if (mode == "spillover") return Kernel::CirculationModes::Spillover;
+			using enum Kernel::CirculationModes;
+			if (mode == "pool")      return Pool;
+			if (mode == "spa")       return Spa;
+			if (mode == "spillover") return Spillover;
 			return std::nullopt;
 		}
 	}
@@ -42,7 +44,7 @@ namespace AqualinkAutomate::HTTP
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("WebRoute_Equipment_Circulation::OnRequest", std::source_location::current());
 
-		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&req, this](const nlohmann::json& payload) -> HTTP::Response
+		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&req, this](const nlohmann::json& payload)
 		{
 			try
 			{

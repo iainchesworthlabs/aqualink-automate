@@ -106,7 +106,7 @@ namespace AqualinkAutomate::HTTP
 			return HTTP::Responses::Response_400(req);
 		}
 
-		int max_points = static_cast<int>(ParseInt64Query(req, "max_points").value_or(DEFAULT_MAX_POINTS));
+		auto max_points = static_cast<int>(ParseInt64Query(req, "max_points").value_or(DEFAULT_MAX_POINTS));
 		max_points = std::clamp(max_points, 1, MAX_MAX_POINTS);
 
 		nlohmann::json points = nlohmann::json::array();

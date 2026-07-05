@@ -36,7 +36,7 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
-		HTTP::Response HandlePost(const HTTP::Request& req);
+		HTTP::Response HandlePost(const HTTP::Request& req) const;
 
 	private:
 		std::shared_ptr<Interfaces::ICommandDispatcher> m_CommandDispatcher{ nullptr };

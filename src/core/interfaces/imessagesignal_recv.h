@@ -60,7 +60,7 @@ namespace AqualinkAutomate::Interfaces
 			{
 				// CRTP guarantees 'this' is a MESSAGE_TYPE subobject, so the cast
 				// cannot fail; no dynamic_cast / failure branch is required.
-				MESSAGE_TYPE* const upcast_ptr = static_cast<MESSAGE_TYPE*>(this);
+				auto* const upcast_ptr = static_cast<MESSAGE_TYPE*>(this);
 
 				LogTrace(Channel::Signals, "Signalling all registered slots for received message");
 				(*signal_ptr)(*upcast_ptr);

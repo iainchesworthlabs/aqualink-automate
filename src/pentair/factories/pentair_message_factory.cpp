@@ -12,30 +12,32 @@ namespace AqualinkAutomate::Pentair::Factory
 
 	Types::PentairMessageTypePtr PentairMessageFactory::CreateMessageFromCommand(Messages::PentairMessageIds id) noexcept
 	{
+		using enum Messages::PentairMessageIds;
+
 		switch (id)
 		{
 		// IntelliCenter / EasyTouch controller (B4).
-		case Messages::PentairMessageIds::Controller_Status:
+		case Controller_Status:
 			return std::make_shared<Messages::PentairControllerMessage_Status>();
 
 		// VSP pump (IntelliFlo) commands (B2).
-		case Messages::PentairMessageIds::Pump_Status:
+		case Pump_Status:
 			return std::make_shared<Messages::PentairPumpMessage_Status>();
 
-		case Messages::PentairMessageIds::Pump_Speed:
+		case Pump_Speed:
 			return std::make_shared<Messages::PentairPumpMessage_Speed>();
 
-		case Messages::PentairMessageIds::Pump_Power:
+		case Pump_Power:
 			return std::make_shared<Messages::PentairPumpMessage_Power>();
 
 		// IntelliChlor salt-water generator (B3).
-		case Messages::PentairMessageIds::Chlorinator_Status:
+		case Chlorinator_Status:
 			return std::make_shared<Messages::PentairChlorinatorMessage_Status>();
 
-		case Messages::PentairMessageIds::Chlorinator_SetOutput:
+		case Chlorinator_SetOutput:
 			return std::make_shared<Messages::PentairChlorinatorMessage_SetOutput>();
 
-		case Messages::PentairMessageIds::Unknown:
+		case Unknown:
 		default:
 			return std::make_shared<Messages::PentairMessage_Unknown>();
 		}

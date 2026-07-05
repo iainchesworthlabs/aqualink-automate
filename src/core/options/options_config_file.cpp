@@ -46,7 +46,7 @@ namespace AqualinkAutomate::Options
 		bool IsTruthy(const std::string& value)
 		{
 			std::string lower = value;
-			std::transform(lower.begin(), lower.end(), lower.begin(),
+			std::ranges::transform(lower, lower.begin(),
 				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 			return lower == "true" || lower == "yes" || lower == "on" || lower == "1";
 		}

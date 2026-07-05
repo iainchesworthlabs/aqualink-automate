@@ -42,7 +42,7 @@ namespace AqualinkAutomate::Auth
 				return std::nullopt;
 			}
 
-			const auto nibble = [](char ch) -> int
+			const auto nibble = [](char ch)
 			{
 				if (ch >= '0' && ch <= '9') { return ch - '0'; }
 				if (ch >= 'a' && ch <= 'f') { return 10 + (ch - 'a'); }

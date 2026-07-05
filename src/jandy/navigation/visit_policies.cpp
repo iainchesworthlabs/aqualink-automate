@@ -27,14 +27,15 @@ namespace AqualinkAutomate::Navigation
 	{
 		// The "Label Aux" scraping sub-tree: the aux list, the per-aux detail page
 		// (multi-instance), and the label-category leaves reachable from it.
+		using enum PageId;
 		switch (page)
 		{
-		case PageId::LabelAuxList:
-		case PageId::LabelAux:
-		case PageId::GeneralLabels:
-		case PageId::LightLabels:
-		case PageId::WaterfallLabels:
-		case PageId::CustomLabel:
+		case LabelAuxList:
+		case LabelAux:
+		case GeneralLabels:
+		case LightLabels:
+		case WaterfallLabels:
+		case CustomLabel:
 			return true;
 
 		default:

@@ -120,17 +120,17 @@ namespace AqualinkAutomate::History
 		bool m_Running{ false };
 
 		// key -> series row id (cache so we insert each series once).
-		std::map<std::string, std::int64_t> m_SeriesIds;
+		std::map<std::string, std::int64_t, std::less<>> m_SeriesIds;
 
 		// key -> last persisted label, so a relabel updates the row only on change.
-		std::map<std::string, std::string> m_SeriesLabels;
+		std::map<std::string, std::string, std::less<>> m_SeriesLabels;
 
 		// Legacy device-series keys whose merge has already been attempted, so the
 		// one-time fold runs at most once per (legacy-key) per process.
-		std::set<std::string> m_DeviceMergeChecked;
+		std::set<std::string, std::less<>> m_DeviceMergeChecked;
 
 		// Throttle bookkeeping: key -> last buffered sample timestamp.
-		std::map<std::string, std::int64_t> m_LastSampleTs;
+		std::map<std::string, std::int64_t, std::less<>> m_LastSampleTs;
 
 		struct Buffered { std::int64_t series_id; std::int64_t ts; double value; };
 		std::vector<Buffered> m_Buffer;

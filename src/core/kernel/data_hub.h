@@ -126,7 +126,7 @@ namespace AqualinkAutomate::Kernel
 	// same map -- the read path works for iAQ and OneTouch installs alike.
 
 	public:
-		void SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, const std::string& function);
+		void SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, std::string_view function);
 		std::optional<std::string> SpaSwitchAssignment(uint8_t switch_number, uint8_t button_number) const;
 		const std::map<std::pair<uint8_t, uint8_t>, std::string>& SpaSwitchAssignments() const;
 

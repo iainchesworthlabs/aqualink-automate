@@ -181,10 +181,10 @@ namespace AqualinkAutomate::Devices
 
 		// Test seam: render text onto a screen line exactly as an incoming MessageLong would, so a
 		// test can present a recognised page before driving a Status frame. Not used in production.
-		void RenderScreenLineForTest(uint8_t line_id, const std::string& text)
+		void RenderScreenLineForTest(uint8_t line_number, const std::string& text)
 		{
 			ScreenMode(Capabilities::ScreenModes::Updating);
-			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(line_id, text));
+			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(line_number, text));
 			ProcessScreenUpdates();
 		}
 
@@ -197,7 +197,7 @@ namespace AqualinkAutomate::Devices
 		// clear-all/no-cursor sentinel), so a test can position the panel cursor without a wire frame.
 		// The screen-driven write/spa-switch machines read m_HighlightedLine to decide cursor moves.
 		// Not used in production.
-		void SetHighlightedLineForTest(uint8_t line_id) { m_HighlightedLine = line_id; }
+		void SetHighlightedLineForTest(uint8_t line_number) { m_HighlightedLine = line_number; }
 
 		// Test seam: read the key command the current service step queued (before it is cleared by the
 		// Status-ACK send), so a test can assert the emitted KeyCommands stream frame by frame. Not

@@ -15,7 +15,7 @@ namespace AqualinkAutomate::Logging::Sinks
 		// Written as one lambda over the record's attributes (rather than composed
 		// Boost.Log expression templates) so the audit exclusion is unmistakable and
 		// cannot be accidentally reordered away.
-		return [](boost::log::attribute_value_set const& attrs) -> bool
+		return [](boost::log::attribute_value_set const& attrs)
 		{
 			// Audit records never reach an operational sink.
 			if (const auto audit = attrs[is_audit]; audit && audit.get())
@@ -30,7 +30,7 @@ namespace AqualinkAutomate::Logging::Sinks
 
 	boost::log::filter MakeAuditFilter()
 	{
-		return [](boost::log::attribute_value_set const& attrs) -> bool
+		return [](boost::log::attribute_value_set const& attrs)
 		{
 			const auto audit = attrs[is_audit];
 			return audit && audit.get();

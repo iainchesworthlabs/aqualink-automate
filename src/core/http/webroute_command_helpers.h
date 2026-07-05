@@ -20,15 +20,16 @@ namespace AqualinkAutomate::HTTP
 	// Map a command-dispatch result to the HTTP status a route should return.
 	inline HTTP::Status StatusForCommandResult(Interfaces::ICommandDispatcher::CommandResult result)
 	{
-		using CommandResult = Interfaces::ICommandDispatcher::CommandResult;
+		using enum Interfaces::ICommandDispatcher::CommandResult;
+		using enum HTTP::Status;
 		switch (result)
 		{
-		case CommandResult::Success:              return HTTP::Status::ok;
-		case CommandResult::InvalidValue:         return HTTP::Status::bad_request;
-		case CommandResult::DeviceNotFound:
-		case CommandResult::NoSerialAdapter:      return HTTP::Status::service_unavailable;
-		case CommandResult::UnknownEquipmentType: return HTTP::Status::unprocessable_entity;
-		default:                                  return HTTP::Status::internal_server_error;
+		case Success:              return ok;
+		case InvalidValue:         return bad_request;
+		case DeviceNotFound:
+		case NoSerialAdapter:      return service_unavailable;
+		case UnknownEquipmentType: return unprocessable_entity;
+		default:                   return internal_server_error;
 		}
 	}
 

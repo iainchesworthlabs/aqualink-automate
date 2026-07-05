@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "kernel/powercenter.h"
 
 namespace AqualinkAutomate::Kernel
@@ -5,17 +7,17 @@ namespace AqualinkAutomate::Kernel
 
 	void PowerCenters::Assign(PowerCenterIds pc, const std::string& aux_label)
 	{
-		m_Centers[static_cast<uint8_t>(pc)].push_back(aux_label);
+		m_Centers[std::to_underlying(pc)].push_back(aux_label);
 	}
 
 	const std::vector<std::string>& PowerCenters::AuxillariesIn(PowerCenterIds pc) const
 	{
-		return m_Centers[static_cast<uint8_t>(pc)];
+		return m_Centers[std::to_underlying(pc)];
 	}
 
 	bool PowerCenters::IsInstalled(PowerCenterIds pc) const
 	{
-		return !m_Centers[static_cast<uint8_t>(pc)].empty();
+		return !m_Centers[std::to_underlying(pc)].empty();
 	}
 
 	uint8_t PowerCenters::InstalledCount() const

@@ -198,8 +198,8 @@ namespace AqualinkAutomate::Utility
 			}
 
 			const double rank = (percentile / 100.0) * static_cast<double>(m_Scratch.size() - 1);
-			const std::size_t lower_idx = static_cast<std::size_t>(std::floor(rank));
-			const std::size_t upper_idx = static_cast<std::size_t>(std::ceil(rank));
+			const auto lower_idx = static_cast<std::size_t>(std::floor(rank));
+			const auto upper_idx = static_cast<std::size_t>(std::ceil(rank));
 			const double fraction = rank - static_cast<double>(lower_idx);
 
 			const Duration::rep lower_val = m_Scratch[lower_idx].count();

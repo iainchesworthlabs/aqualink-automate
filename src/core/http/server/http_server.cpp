@@ -715,8 +715,8 @@ namespace AqualinkAutomate::HTTP
 		// connection budget. Count live sessions already sharing this peer's IP.
 		if (!peer_ip.empty())
 		{
-			const std::size_t from_this_ip = static_cast<std::size_t>(std::count_if(
-				m_Sessions.begin(), m_Sessions.end(),
+			const auto from_this_ip = static_cast<std::size_t>(std::ranges::count_if(
+				m_Sessions,
 				[&peer_ip](const auto& s) { return s && s->PeerIp() == peer_ip; }));
 
 			if (from_this_ip >= MAX_CONNECTIONS_PER_IP)

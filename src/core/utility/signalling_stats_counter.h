@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <unordered_map>
+#include <utility>
 
 #include <boost/signals2.hpp>
 #include <magic_enum/magic_enum.hpp>
@@ -74,7 +75,7 @@ namespace AqualinkAutomate::Utility
 				requires std::is_enum_v<STAT_TYPE>
 			explicit AnyEnumKey(STAT_TYPE value) noexcept :
 				type_hash(typeid(STAT_TYPE).hash_code()),
-				value_hash(std::hash<std::underlying_type_t<STAT_TYPE>>{}(static_cast<std::underlying_type_t<STAT_TYPE>>(value)))
+				value_hash(std::hash<std::underlying_type_t<STAT_TYPE>>{}(std::to_underlying(value)))
 			{
 			}
 

@@ -1,4 +1,5 @@
 #include <functional>
+#include <utility>
 
 #include <magic_enum/magic_enum.hpp>
 #include <nlohmann/json.hpp>
@@ -669,7 +670,7 @@ namespace AqualinkAutomate::Devices
 		// The OneTouch edits AquaPure % in 5% steps, so the target must be a multiple of 5
 		// for the value-step loop to land exactly. Round to the nearest 5 and clamp to 100.
 		const uint8_t clamped = (percentage > 100) ? 100 : percentage;
-		const uint8_t rounded = static_cast<uint8_t>(((clamped + (ONETOUCH_CHLORINATOR_STEP / 2)) / ONETOUCH_CHLORINATOR_STEP) * ONETOUCH_CHLORINATOR_STEP);
+		const auto rounded = static_cast<uint8_t>(((clamped + (ONETOUCH_CHLORINATOR_STEP / 2)) / ONETOUCH_CHLORINATOR_STEP) * ONETOUCH_CHLORINATOR_STEP);
 		// Drives the POOL chlorination row ("Set Pool to: NN%") to match the IAQ's single-%
 		// behaviour. Verified vs onetouch_chlorinator.cap (Pool % = Set AquaPure line 3).
 		return QueueValueEdit({ Navigation::PageId::SetAquapure, SETAQUAPURE_POOL_LINE, "Set Pool", rounded, "chlorinator %" });
@@ -781,7 +782,7 @@ namespace AqualinkAutomate::Devices
 		const uint8_t row_line = goal.line;
 		const std::string& row_label = goal.label;
 		const std::string& desc = goal.desc;
-		const int target = static_cast<int>(goal.target);
+		const auto target = static_cast<int>(goal.target);
 
 		auto finish = [&](bool ok)
 		{
@@ -936,12 +937,12 @@ namespace AqualinkAutomate::Devices
 
 		// The Boost Pool page shows "Time Remaining" while a boost is running and "Operate ...
 		// at 100%" when idle - used to decide whether an action is actually needed.
-		auto boost_is_running = [this]() -> bool
+		auto boost_is_running = [this]()
 		{
 			const auto& page = DisplayedPage();
 			for (std::size_t i = 0; i < page.Size(); ++i)
 			{
-				if (page[i].Text.find("Time Remaining") != std::string::npos)
+				if (page[i].Text.contains("Time Remaining"))
 				{
 					return true;
 				}
@@ -1165,7 +1166,7 @@ namespace AqualinkAutomate::Devices
 		}
 
 		const auto& page = DisplayedPage();
-		auto line_text = [&](std::size_t i) -> std::string
+		auto line_text = [&](std::size_t i)
 		{
 			return (i < page.Size()) ? SanitiseFunctionText(page[i].Text) : std::string{};
 		};
@@ -1179,7 +1180,7 @@ namespace AqualinkAutomate::Devices
 			return true;
 		};
 		// Queue one cursor key toward target line L; returns true once the cursor is on L.
-		auto move_cursor_to = [&](uint8_t target_line) -> bool
+		auto move_cursor_to = [&](uint8_t target_line)
 		{
 			if (m_HighlightedLine == target_line) { return true; }
 			if (m_HighlightedLine == Navigation::Navigator::CURSOR_LINE_NONE)
@@ -1270,7 +1271,7 @@ namespace AqualinkAutomate::Devices
 		{
 			// The "Button Setup" list (line 1 contains "Button Setup"). Find the "S:B" row, move
 			// the cursor onto it, Select to open that button's function picker.
-			if (line_text(1).find("Button Setup") != std::string::npos)
+			if (line_text(1).contains("Button Setup"))
 			{
 				if (auto line = FindLineStartingWith(goal.row_tag); line.has_value())
 				{
@@ -1300,7 +1301,7 @@ namespace AqualinkAutomate::Devices
 			// The per-button picker (line 1 == "Button <S:B>"). Cycle (LineUp) until the selected
 			// function (line 3) matches the target, then commit. Wrap-detect to bail if the target
 			// is not offered by this controller.
-			if ((line_text(1).find("Button") != std::string::npos) && (line_text(1).find(goal.row_tag) != std::string::npos))
+			if (line_text(1).contains("Button") && line_text(1).contains(goal.row_tag))
 			{
 				auto current = DisplayedFunctionOnRow(PICKER_FUNCTION_LINE);
 				if (!current.has_value())
@@ -1529,7 +1530,7 @@ namespace AqualinkAutomate::Devices
 		}
 
 		const auto& page = DisplayedPage();
-		auto line_text = [&](std::size_t i) -> std::string
+		auto line_text = [&](std::size_t i)
 		{
 			return (i < page.Size()) ? SanitiseFunctionText(page[i].Text) : std::string{};
 		};
@@ -1543,7 +1544,7 @@ namespace AqualinkAutomate::Devices
 			return true;
 		};
 		// Queue one cursor key toward target line L; returns true once the cursor is on L.
-		auto move_cursor_to = [&](uint8_t target_line) -> bool
+		auto move_cursor_to = [&](uint8_t target_line)
 		{
 			if (m_HighlightedLine == target_line) { return true; }
 			if (m_HighlightedLine == Navigation::Navigator::CURSOR_LINE_NONE)
@@ -1557,18 +1558,18 @@ namespace AqualinkAutomate::Devices
 		// True when the current page is the per-equipment Program detail page rather than the Program
 		// equipment LIST. The LIST's line 0 is the "Program" title; the detail page's line 0 is the
 		// equipment name and it carries either "Pgm N of M" (line 2) or "No Programs" (line 4).
-		auto on_detail_page = [&]() -> bool
+		auto on_detail_page = [&]()
 		{
-			if (line_text(0).find("Program") != std::string::npos) { return false; }   // the LIST title
-			return (line_text(2).find("Pgm ") != std::string::npos)
-				|| (line_text(4).find("No Programs") != std::string::npos)
-				|| (line_text(ONETOUCH_SCHEDULE_CHANGE_ROW).find("Change") != std::string::npos);
+			if (line_text(0).contains("Program")) { return false; }   // the LIST title
+			return line_text(2).contains("Pgm ")
+				|| line_text(4).contains("No Programs")
+				|| line_text(ONETOUCH_SCHEDULE_CHANGE_ROW).contains("Change");
 		};
 		// True when the current page is the Add/Change editor (title line 1 + the arrow-keys prompt).
-		auto on_editor_page = [&]() -> bool
+		auto on_editor_page = [&]()
 		{
 			const std::string title = line_text(ONETOUCH_SCHEDULE_TITLE_LINE);
-			return (title.find("New Program") != std::string::npos) || (title.find("Change Program") != std::string::npos);
+			return title.contains("New Program") || title.contains("Change Program");
 		};
 
 		// Step a 12h+meridiem hour wheel (24 positions) toward `target_hour` closed-loop: read the
@@ -1687,7 +1688,7 @@ namespace AqualinkAutomate::Devices
 			if (goal.op == ScheduleWriteOp::Delete)
 			{
 				// "No Programs" already? Nothing to delete -- treat as done.
-				if (line_text(4).find("No Programs") != std::string::npos)
+				if (line_text(4).contains("No Programs"))
 				{
 					finish(true);
 					break;
@@ -1782,7 +1783,7 @@ namespace AqualinkAutomate::Devices
 			// Delete complete once the detail page shows "No Programs" (or no longer parses as a
 			// program-detail with the deleted program). Dwell until the panel re-renders.
 			if (!on_detail_page()) { break; }
-			if (line_text(4).find("No Programs") != std::string::npos)
+			if (line_text(4).contains("No Programs"))
 			{
 				finish(true);
 				break;
@@ -2009,7 +2010,7 @@ namespace AqualinkAutomate::Devices
 		for (const auto page : failed)
 		{
 			const auto* page_info = m_MenuModel.GetPage(page);
-			const std::string name = page_info ? page_info->name : std::format("page {}", static_cast<uint32_t>(page));
+			const std::string name = page_info ? page_info->name : std::format("page {}", std::to_underlying(page));
 
 			if (auto requirement = Navigation::OneTouchPageCapabilityRequirement(page); requirement.has_value())
 			{

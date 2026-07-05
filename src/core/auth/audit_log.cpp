@@ -78,7 +78,7 @@ namespace AqualinkAutomate::Auth
 		// Emit to the audit trail first: even if the JSONL write fails the event
 		// still reaches any installed OS-native audit sink. Denials carry Warning
 		// (syslog `warning`); other outcomes carry Notify (syslog `notice`) — §10.3.
-		const Severity severity = (event.Decision == "deny" || event.Decision == "failure")
+		const Severity severity_level = (event.Decision == "deny" || event.Decision == "failure")
 			? Severity::Warning
 			: Severity::Notify;
 
@@ -94,7 +94,7 @@ namespace AqualinkAutomate::Auth
 			event.Detail.empty() ? "" : " - ",
 			event.Detail);
 
-		BOOST_LOG_SEV(AuditLogger(), severity) << message;
+		BOOST_LOG_SEV(AuditLogger(), severity_level) << message;
 
 		if (!m_Config.JsonlFile.empty())
 		{
@@ -134,7 +134,7 @@ namespace AqualinkAutomate::Auth
 		}
 	}
 
-	void AuditLog::RotateIfNeeded(std::uintmax_t incoming_bytes)
+	void AuditLog::RotateIfNeeded(std::uintmax_t incoming_bytes) const
 	{
 		namespace fs = std::filesystem;
 

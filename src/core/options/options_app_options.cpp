@@ -126,16 +126,18 @@ namespace AqualinkAutomate::Options::App
 			? Application::RegisterLogSource(source_name)
 			: Application::UnregisterLogSource(source_name))
 		{
-		case Application::LogSourceRegistrationResult::Succeeded:
+			using enum Application::LogSourceRegistrationResult;
+
+		case Succeeded:
 			std::cout << (do_register ? "Registered" : "Unregistered") << " Windows Event Log source '" << source_name << "'.\n";
 			break;
 
-		case Application::LogSourceRegistrationResult::Failed:
+		case Failed:
 			std::cout << "Failed to " << (do_register ? "register" : "unregister")
 				<< " Windows Event Log source '" << source_name << "' (administrator privileges are required).\n";
 			break;
 
-		case Application::LogSourceRegistrationResult::Unsupported:
+		case Unsupported:
 			std::cout << "--register-log-source / --unregister-log-source are only supported on Windows.\n";
 			break;
 		}
@@ -167,13 +169,15 @@ namespace AqualinkAutomate::Options::App
 			? Application::InstallService()
 			: Application::UninstallService())
 		{
-		case Application::ServiceActionResult::Succeeded:
-		case Application::ServiceActionResult::Failed:
+			using enum Application::ServiceActionResult;
+
+		case Succeeded:
+		case Failed:
 			// The Install/Uninstall actions print their own detailed result (binary path,
 			// account, Event Log source, error reason) to stdout.
 			break;
 
-		case Application::ServiceActionResult::Unsupported:
+		case Unsupported:
 			std::cout << "--install-service / --uninstall-service are only supported on Windows.\n";
 			break;
 		}

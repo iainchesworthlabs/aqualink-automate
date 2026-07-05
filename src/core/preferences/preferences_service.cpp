@@ -33,7 +33,7 @@ namespace AqualinkAutomate::Preferences
 	{
 	}
 
-	void PreferencesService::Seed(std::uint32_t salt_low_ppm, std::uint32_t comms_timeout_seconds, const std::string& webhook_url, std::uint32_t retention_days)
+	void PreferencesService::Seed(std::uint32_t salt_low_ppm, std::uint32_t comms_timeout_seconds, const std::string& webhook_url, std::uint32_t retention_days) const
 	{
 		if (!m_Hub) { return; }
 		m_Hub->AlertSaltLowPpm = salt_low_ppm;
@@ -321,7 +321,7 @@ namespace AqualinkAutomate::Preferences
 		}
 	}
 
-	void PreferencesService::Save()
+	void PreferencesService::Save() const
 	{
 		if (m_Settings.preferences_file.empty() || !m_Hub)
 		{

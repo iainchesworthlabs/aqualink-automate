@@ -67,7 +67,7 @@ namespace AqualinkAutomate::Pentair::Generators
 
 		// Locate the Pentair preamble.  If it is not present, leave the buffer
 		// untouched and DEFER TO OTHER PROTOCOLS (WaitingForMoreData = try-next).
-		auto preamble_it = std::search(serial_data.begin(), serial_data.end(), PREAMBLE.begin(), PREAMBLE.end());
+		auto preamble_it = std::ranges::search(serial_data, PREAMBLE).begin();
 		if (serial_data.end() == preamble_it)
 		{
 			LogTrace(Channel::Messages, "No Pentair preamble found in serial buffer; deferring to other protocols");
@@ -129,7 +129,7 @@ namespace AqualinkAutomate::Pentair::Generators
 		const std::span<const uint8_t> region_to_checksum = region_view.first(region_view.size() - Messages::CHECKSUM_LENGTH);
 		const uint16_t expected_checksum = Utility::PentairPacket_CalculateChecksum_FromRange(region_to_checksum);
 
-		if (const uint16_t received_checksum = static_cast<uint16_t>(
+		if (const auto received_checksum = static_cast<uint16_t>(
 				(static_cast<uint16_t>(region_view[region_view.size() - Messages::CHECKSUM_LENGTH]) << 8) |
 				static_cast<uint16_t>(region_view[region_view.size() - 1]));
 			expected_checksum != received_checksum)

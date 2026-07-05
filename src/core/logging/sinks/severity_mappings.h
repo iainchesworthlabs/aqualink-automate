@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 
 #include "logging/logging_severity_levels.h"
 
@@ -57,9 +58,9 @@ namespace AqualinkAutomate::Logging::Sinks
 	// value outside the declared enumerators. MSVC does not flag the missing case,
 	// so the exhaustive magic_enum unit test is the cross-platform backstop.
 	//
-	[[nodiscard]] constexpr SyslogLevel ToSyslogLevel(Severity severity) noexcept
+	[[nodiscard]] constexpr SyslogLevel ToSyslogLevel(Severity level) noexcept
 	{
-		switch (severity)
+		switch (level)
 		{
 		case Severity::Trace:   return SyslogLevel::Debug;
 		case Severity::Debug:   return SyslogLevel::Debug;
@@ -77,9 +78,9 @@ namespace AqualinkAutomate::Logging::Sinks
 	// Severity -> Windows Event Log record type (docs/logging-sinks-redesign.md §7).
 	// Same no-default rationale as ToSyslogLevel().
 	//
-	[[nodiscard]] constexpr EventType ToEventType(Severity severity) noexcept
+	[[nodiscard]] constexpr EventType ToEventType(Severity level) noexcept
 	{
-		switch (severity)
+		switch (level)
 		{
 		case Severity::Trace:   return EventType::Information;
 		case Severity::Debug:   return EventType::Information;
@@ -98,9 +99,9 @@ namespace AqualinkAutomate::Logging::Sinks
 	// journald reads from an sd-daemon "<N>" line prefix on a StandardError=journal
 	// stream to recover the real priority.
 	//
-	[[nodiscard]] constexpr int SyslogPriorityValue(Severity severity) noexcept
+	[[nodiscard]] constexpr int SyslogPriorityValue(Severity level) noexcept
 	{
-		return static_cast<int>(ToSyslogLevel(severity));
+		return std::to_underlying(ToSyslogLevel(level));
 	}
 
 	//

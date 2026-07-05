@@ -32,8 +32,8 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
-		HTTP::Response HandleGet(const HTTP::Request& req);
-		HTTP::Response HandlePost(const HTTP::Request& req);
+		HTTP::Response HandleGet(const HTTP::Request& req) const;
+		HTTP::Response HandlePost(const HTTP::Request& req) const;
 
 	private:
 		// Non-owning: the controller is owned by the serial chain (SerialPort) for

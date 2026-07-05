@@ -19,7 +19,7 @@ namespace AqualinkAutomate::Logging::Sinks
 		std::filesystem::path Path;
 
 		// Rotate when the active file would exceed this many bytes.
-		std::uintmax_t MaxFileBytes = 10ull * 1024ull * 1024ull;
+		std::uintmax_t MaxFileBytes = 10ULL * 1024ULL * 1024ULL;
 
 		// Keep at most this many rotated files (the collector deletes the oldest).
 		std::size_t MaxFiles = 5;

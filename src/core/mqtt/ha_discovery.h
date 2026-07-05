@@ -113,13 +113,13 @@ namespace AqualinkAutomate::Mqtt
 
 		/// Add one `binary_sensor` (device_class: problem) per AlertMonitor
 		/// condition, all reading the consolidated AlertStateTopic().
-		void AddAlertComponents(nlohmann::json& cmps);
+		void AddAlertComponents(nlohmann::json& cmps) const;
 
 		void AddDynamicDeviceComponents(nlohmann::json& cmps);
 
 		/// Add the chlorinator's extra entities (generating %, boost, health, setpoint,
 		/// boost switch) that read the device's JSON status blob.
-		void AddChlorinatorComponents(nlohmann::json& cmps, const std::shared_ptr<Kernel::AuxillaryDevice>& dev);
+		void AddChlorinatorComponents(nlohmann::json& cmps, const std::shared_ptr<Kernel::AuxillaryDevice>& dev) const;
 
 		std::string SetpointCommandTopic(const std::string& target) const;
 		std::string DeviceCommandTopic(const std::string& slug) const;

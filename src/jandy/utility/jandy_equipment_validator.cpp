@@ -1,4 +1,5 @@
 #include <format>
+#include <utility>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -36,12 +37,12 @@ namespace AqualinkAutomate::Utility
 
 			// Span check: an aux attributed to a centre beyond the model's capacity is almost
 			// certainly a mis-scrape (e.g. an RS-8 with one centre reporting an "Aux B1").
-			if ((expected_power_centers > 0) && (static_cast<uint8_t>(pc.value()) >= expected_power_centers))
+			if ((expected_power_centers > 0) && (std::to_underlying(pc.value()) >= expected_power_centers))
 			{
 				result.Anomalies.push_back(std::format(
 					"Auxillary '{}' attributed to power center {} but the model has only {} power center(s)",
 					magic_enum::enum_name(id),
-					static_cast<char>('A' + static_cast<uint8_t>(pc.value())),
+					static_cast<char>('A' + std::to_underlying(pc.value())),
 					expected_power_centers));
 			}
 		}

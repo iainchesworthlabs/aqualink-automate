@@ -26,7 +26,7 @@ namespace AqualinkAutomate::Kernel
 		// typeid's operand is a side-effecting expression (operator* is a call);
 		// a named glvalue avoids it while preserving the runtime-type lookup.
 		const auto& equipment_ref = *equipment;
-		const std::type_index equipment_id = std::type_index(typeid(equipment_ref));
+		const auto equipment_id = std::type_index(typeid(equipment_ref));
 		return m_ActiveEquipment.contains(equipment_id);
 	}
 
@@ -49,7 +49,7 @@ namespace AqualinkAutomate::Kernel
 		else
 		{
 			const auto& equipment_ref = *equipment_to_add;
-			const std::type_index equipment_id = std::type_index(typeid(equipment_ref));
+			const auto equipment_id = std::type_index(typeid(equipment_ref));
 			if (!m_ActiveEquipment.emplace(equipment_id, std::move(equipment_to_add)).second)
 			{
 				LogDebug(Channel::Devices, "Failed to add equipment to equipment hub; internal error while adding equipment object");
@@ -68,7 +68,7 @@ namespace AqualinkAutomate::Kernel
 		// Limit the existence scan to devices whose identifier shares the same
 		// runtime type as the one being queried; IDeviceIdentifier exposes only
 		// Equals() so a within-bucket comparison is still required.
-		const std::type_index identifier_type = std::type_index(typeid(device_id));
+		const auto identifier_type = std::type_index(typeid(device_id));
 		const auto [bucket_begin, bucket_end] = m_ActiveDevices.equal_range(identifier_type);
 
 		for (auto it = bucket_begin; it != bucket_end; ++it)
@@ -113,7 +113,7 @@ namespace AqualinkAutomate::Kernel
 			// Bind the identifier to a named reference first to avoid clang's
 			// -Wpotentially-evaluated-expression on a side-effecting typeid operand.
 			const auto& device_id_ref = device_to_add->DeviceId();
-			const std::type_index identifier_type = std::type_index(typeid(device_id_ref));
+			const auto identifier_type = std::type_index(typeid(device_id_ref));
 			m_ActiveDevices.emplace(identifier_type, std::move(device_to_add));
 
 			LogTrace(Channel::Devices, [size = m_ActiveDevices.size()] { return std::format("Registered device with equipment hub (active devices count = {})", size); });

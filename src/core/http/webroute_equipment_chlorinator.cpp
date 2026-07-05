@@ -23,14 +23,16 @@ namespace AqualinkAutomate::HTTP
 
 		HTTP::Status StatusFor(CommandResult result)
 		{
+			using enum CommandResult;
+			using enum HTTP::Status;
 			switch (result)
 			{
-			case CommandResult::Success:             return HTTP::Status::ok;
-			case CommandResult::InvalidValue:        return HTTP::Status::bad_request;
-			case CommandResult::DeviceNotFound:
-			case CommandResult::NoSerialAdapter:     return HTTP::Status::service_unavailable;
-			case CommandResult::UnknownEquipmentType:return HTTP::Status::unprocessable_entity;
-			default:                                 return HTTP::Status::internal_server_error;
+			case Success:             return ok;
+			case InvalidValue:        return bad_request;
+			case DeviceNotFound:
+			case NoSerialAdapter:     return service_unavailable;
+			case UnknownEquipmentType:return unprocessable_entity;
+			default:                  return internal_server_error;
 			}
 		}
 	}
@@ -52,7 +54,7 @@ namespace AqualinkAutomate::HTTP
 		return HTTP::Responses::Response_405(req);
 	}
 
-	HTTP::Response WebRoute_Equipment_Chlorinator::HandlePost(const HTTP::Request& req)
+	HTTP::Response WebRoute_Equipment_Chlorinator::HandlePost(const HTTP::Request& req) const
 	{
 		if (!m_CommandDispatcher)
 		{

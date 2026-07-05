@@ -58,6 +58,11 @@ namespace AqualinkAutomate::ErrorCodes
 		{
 			return boost::system::error_condition(static_cast<int>(e), DERIVED::Instance());
 		}
+
+	protected:
+		// Mirrors the base's protected non-virtual destructor: concrete categories
+		// are Meyers singletons and are never destroyed through a base pointer.
+		~EnumErrorCategory() = default;
 	};
 
 }

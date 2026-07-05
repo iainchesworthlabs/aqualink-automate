@@ -41,12 +41,13 @@ namespace AqualinkAutomate::Mqtt
 		/// JSON "type" field and as the prefix in a per-device state subtopic.
 		[[nodiscard]] constexpr std::string_view CategoryName(DeviceCategory category) noexcept
 		{
+			using enum DeviceCategory;
 			switch (category)
 			{
-			case DeviceCategory::Auxillary:   return "aux";
-			case DeviceCategory::Heater:      return "heater";
-			case DeviceCategory::Pump:        return "pump";
-			case DeviceCategory::Chlorinator: return "chlorinator";
+			case Auxillary:   return "aux";
+			case Heater:      return "heater";
+			case Pump:        return "pump";
+			case Chlorinator: return "chlorinator";
 			}
 
 			return "unknown";

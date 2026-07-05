@@ -99,7 +99,7 @@ namespace AqualinkAutomate::Devices
 			}
 
 			// Lowest ActuationPriority value wins; stable_sort keeps discovery order for ties.
-			std::stable_sort(candidates.begin(), candidates.end(),
+			std::ranges::stable_sort(candidates,
 				[](const auto& lhs, const auto& rhs) { return static_cast<int>(lhs.first) < static_cast<int>(rhs.first); });
 
 			bool any_mapping_failed{ false };
@@ -145,7 +145,7 @@ namespace AqualinkAutomate::Devices
 		// Optimistic write-through of a successfully-queued chlorinator % set into the configured
 		// Pool-setpoint trait that the Set-AquaPure menu scrape also populates, so reads (the
 		// dashboard) reflect the new target immediately. No-op when no chlorinator is discovered.
-		void WriteThroughChlorinatorSetpoint(uint8_t percentage);
+		void WriteThroughChlorinatorSetpoint(uint8_t percentage) const;
 
 	private:
 		std::shared_ptr<Kernel::DataHub> m_DataHub;

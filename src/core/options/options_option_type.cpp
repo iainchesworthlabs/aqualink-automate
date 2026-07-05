@@ -1,3 +1,4 @@
+#include <functional>
 #include <map>
 #include <vector>
 
@@ -7,9 +8,9 @@ namespace AqualinkAutomate::Options
 {
 	namespace
 	{
-		std::map<std::string, OptionMetadata>& MetadataRegistry()
+		std::map<std::string, OptionMetadata, std::less<>>& MetadataRegistry()
 		{
-			static std::map<std::string, OptionMetadata> registry;
+			static std::map<std::string, OptionMetadata, std::less<>> registry;
 			return registry;
 		}
 	}

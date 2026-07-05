@@ -19,38 +19,42 @@ namespace AqualinkAutomate::Scheduling
 
 	std::string_view ControllerDaySelectionToString(ControllerDaySelection selection)
 	{
+		using enum ControllerDaySelection;
 		switch (selection)
 		{
-		case ControllerDaySelection::AllDays:        return "all_days";
-		case ControllerDaySelection::Weekdays:       return "weekdays";
-		case ControllerDaySelection::Weekends:       return "weekends";
-		case ControllerDaySelection::SingleDay:      return "single_day";
-		case ControllerDaySelection::NotExpressible: return "not_expressible";
+		case AllDays:        return "all_days";
+		case Weekdays:       return "weekdays";
+		case Weekends:       return "weekends";
+		case SingleDay:      return "single_day";
+		case NotExpressible: return "not_expressible";
 		}
 		return "not_expressible";
 	}
 
 	ControllerDaySelection ClassifyDaySelection(std::uint8_t days_of_week)
 	{
+		using enum ControllerDaySelection;
+
 		const std::uint8_t days = days_of_week & DAYS_ALL; // ignore any bits above the 7 weekdays
 
-		if (days == 0)             { return ControllerDaySelection::NotExpressible; }
-		if (days == DAYS_ALL)      { return ControllerDaySelection::AllDays; }
-		if (days == DAYS_WEEKDAYS) { return ControllerDaySelection::Weekdays; }
-		if (days == DAYS_WEEKENDS) { return ControllerDaySelection::Weekends; }
-		if (std::popcount(days) == 1) { return ControllerDaySelection::SingleDay; }
+		if (days == 0)             { return NotExpressible; }
+		if (days == DAYS_ALL)      { return AllDays; }
+		if (days == DAYS_WEEKDAYS) { return Weekdays; }
+		if (days == DAYS_WEEKENDS) { return Weekends; }
+		if (std::popcount(days) == 1) { return SingleDay; }
 
-		return ControllerDaySelection::NotExpressible;
+		return NotExpressible;
 	}
 
 	std::string_view PromotionBlockerToString(PromotionBlocker blocker)
 	{
+		using enum PromotionBlocker;
 		switch (blocker)
 		{
-		case PromotionBlocker::TargetMissing:              return "target_missing";
-		case PromotionBlocker::ActionNotOnOff:             return "action_not_on_off";
-		case PromotionBlocker::DaySelectionNotExpressible: return "day_selection_not_expressible";
-		case PromotionBlocker::TimeInvalid:                return "time_invalid";
+		case TargetMissing:              return "target_missing";
+		case ActionNotOnOff:             return "action_not_on_off";
+		case DaySelectionNotExpressible: return "day_selection_not_expressible";
+		case TimeInvalid:                return "time_invalid";
 		}
 		return "target_missing";
 	}

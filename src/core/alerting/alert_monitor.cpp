@@ -59,16 +59,17 @@ namespace AqualinkAutomate::Alerting
 		// can report, not just low salt.
 		std::optional<std::string_view> ChlorinatorWarningLabel(Kernel::ChlorinatorHealth health)
 		{
+			using enum Kernel::ChlorinatorHealth;
 			switch (health)
 			{
-			case Kernel::ChlorinatorHealth::Warning_NoFlow:         return "No flow";
-			case Kernel::ChlorinatorHealth::Warning_LowSalt:        return "Low salt";
-			case Kernel::ChlorinatorHealth::Warning_HighSalt:       return "High salt";
-			case Kernel::ChlorinatorHealth::Warning_HighCurrent:    return "High current";
-			case Kernel::ChlorinatorHealth::Warning_CleanCell:      return "Clean cell";
-			case Kernel::ChlorinatorHealth::Warning_LowVoltage:     return "Low voltage";
-			case Kernel::ChlorinatorHealth::Warning_LowTemperature: return "Low temperature";
-			default:                                                return std::nullopt;
+			case Warning_NoFlow:         return "No flow";
+			case Warning_LowSalt:        return "Low salt";
+			case Warning_HighSalt:       return "High salt";
+			case Warning_HighCurrent:    return "High current";
+			case Warning_CleanCell:      return "Clean cell";
+			case Warning_LowVoltage:     return "Low voltage";
+			case Warning_LowTemperature: return "Low temperature";
+			default:                     return std::nullopt;
 			}
 		}
 
@@ -215,7 +216,7 @@ namespace AqualinkAutomate::Alerting
 			return;
 		}
 
-		const double threshold = static_cast<double>(salt_low_ppm);
+		const auto threshold = static_cast<double>(salt_low_ppm);
 		const bool currently_raised = IsRaised(ConditionKeys::SaltLow);
 
 		// Hysteresis: raise below the threshold, clear only once back above

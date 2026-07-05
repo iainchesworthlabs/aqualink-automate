@@ -38,7 +38,7 @@ namespace AqualinkAutomate::Pentair::Devices
 
 		void Slot_Chlorinator_Status(const Messages::PentairChlorinatorMessage_Status& msg);
 
-		void EnsureChlorinatorDeviceExists();
+		void EnsureChlorinatorDeviceExists() const;
 		void PushStatusToDataHub(const Messages::PentairChlorinatorMessage_Status& msg);
 
 	private:

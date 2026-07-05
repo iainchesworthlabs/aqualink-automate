@@ -45,7 +45,7 @@ namespace AqualinkAutomate::Devices
 		MaybeStartPageSurvey();
 
 		LogDebug(Channel::Devices, [this, &msg]() {
-			auto temp_str = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+			auto temp_str = [](const std::optional<Kernel::Temperature>& temp)
 			{
 				return temp.has_value() ? std::format("{:.0f}F", temp->InFahrenheit().value()) : "n/a";
 			};
@@ -229,7 +229,7 @@ namespace AqualinkAutomate::Devices
 
 		// A missing reading renders as "--" (matches the panel's own display for a
 		// sensor with no flow) rather than a fabricated number.
-		auto temp_line = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+		auto temp_line = [](const std::optional<Kernel::Temperature>& temp)
 		{
 			return temp.has_value() ? std::format("{:.0f}F", temp->InFahrenheit().value()) : "--";
 		};
@@ -273,9 +273,9 @@ namespace AqualinkAutomate::Devices
 		}
 
 		const std::size_t line_count = std::min(static_cast<std::size_t>(IAQ_STATUS_PAGE_LINES), lines.size());
-		for (std::size_t line_id = 0; line_id < line_count; ++line_id)
+		for (std::size_t line_index = 0; line_index < line_count; ++line_index)
 		{
-			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(static_cast<uint8_t>(line_id), lines[line_id]));
+			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(static_cast<uint8_t>(line_index), lines[line_index]));
 		}
 
 		// Mark the page as a KNOWN, fixed status view.  There are no page processors
@@ -314,9 +314,9 @@ namespace AqualinkAutomate::Devices
 		lines.emplace_back("ACK: 0x1f/0x00 (idle)");
 
 		const std::size_t line_count = std::min(static_cast<std::size_t>(IAQ_STATUS_PAGE_LINES), lines.size());
-		for (std::size_t line_id = 0; line_id < line_count; ++line_id)
+		for (std::size_t line_index = 0; line_index < line_count; ++line_index)
 		{
-			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(static_cast<uint8_t>(line_id), lines[line_id]));
+			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(static_cast<uint8_t>(line_index), lines[line_index]));
 		}
 
 		// Mark the page as a KNOWN, fixed Cloud Link view.  As with RenderStatusScreen

@@ -32,7 +32,7 @@ namespace AqualinkAutomate::Logging
 
 		// File sink: only installed when Selection.File is set and a path is present.
 		std::optional<std::filesystem::path> LogFilePath;
-		std::uintmax_t LogFileMaxBytes = 10ull * 1024ull * 1024ull;
+		std::uintmax_t LogFileMaxBytes = 10ULL * 1024ULL * 1024ULL;
 		std::size_t LogFileMaxFiles = 5;
 	};
 

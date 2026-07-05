@@ -73,7 +73,7 @@ namespace AqualinkAutomate::HTTP
 			std::string_view sv{ buf, static_cast<std::size_t>(ptr - buf) };
 			// Trim trailing zeros / dangling decimal point for a tidy "12.5" / "0".
 			std::size_t end = sv.size();
-			if (sv.find('.') != std::string_view::npos)
+			if (sv.contains('.'))
 			{
 				while (end > 0 && sv[end - 1] == '0') { --end; }
 				if (end > 0 && sv[end - 1] == '.') { --end; }

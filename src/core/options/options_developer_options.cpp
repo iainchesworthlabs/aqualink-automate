@@ -44,15 +44,15 @@ namespace AqualinkAutomate::Options::Developer
 		// Logging::Channel enum instead of hand-writing one member per channel.
 		// Each contributes a `--loglevel-<channel>` option (e.g. Channel::Main
 		// -> `--loglevel-main`) taking a Severity value.
-		magic_enum::enum_for_each<Logging::Channel>([this](Logging::Channel channel)
+		magic_enum::enum_for_each<Logging::Channel>([this](Logging::Channel log_channel)
 			{
-				const std::string channel_name{ magic_enum::enum_name(channel) };
+				const std::string channel_name{ magic_enum::enum_name(log_channel) };
 				auto option = make_appoption(
 					std::format("loglevel-{}", ToLowerAscii(channel_name)),
 					std::format("Set the logging level for Channel::{}", channel_name),
 					boost::program_options::value<AqualinkAutomate::Logging::Severity>()->multitoken());
 
-				OPTION_LOGLEVELS.emplace(channel, option);
+				OPTION_LOGLEVELS.emplace(log_channel, option);
 			});
 
 		DeveloperOptionsCollection =
@@ -103,11 +103,11 @@ namespace AqualinkAutomate::Options::Developer
 		if (OPTION_REPLAY_FRAME_PERIOD->IsPresent(vm)) { settings.replay_frame_period_ms = OPTION_REPLAY_FRAME_PERIOD->As<std::uint32_t>(vm); }
 		if (OPTION_REPLAY_SPEED->IsPresent(vm)) { settings.replay_speed = OPTION_REPLAY_SPEED->As<double>(vm); }
 
-		for (const auto& [channel, option] : OPTION_LOGLEVELS)
+		for (const auto& [log_channel, option] : OPTION_LOGLEVELS)
 		{
 			if (option->IsPresent(vm))
 			{
-				SeverityFiltering::SetChannelFilterLevel(channel, option->As<Severity>(vm));
+				SeverityFiltering::SetChannelFilterLevel(log_channel, option->As<Severity>(vm));
 			}
 		}
 

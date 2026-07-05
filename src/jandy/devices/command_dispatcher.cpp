@@ -174,7 +174,7 @@ namespace AqualinkAutomate::Devices
 		return result;
 	}
 
-	void CommandDispatcher::WriteThroughChlorinatorSetpoint(uint8_t percentage)
+	void CommandDispatcher::WriteThroughChlorinatorSetpoint(uint8_t percentage) const
 	{
 		if (!m_DataHub)
 		{

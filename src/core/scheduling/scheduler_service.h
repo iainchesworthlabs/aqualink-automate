@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <boost/asio/io_context.hpp>
@@ -52,9 +53,9 @@ namespace AqualinkAutomate::Scheduling
 
 		// CRUD (used by the routes). Mutations persist to disk.
 		std::vector<Schedule> List() const;
-		std::optional<Schedule> Get(const std::string& uuid) const;
+		std::optional<Schedule> Get(std::string_view uuid) const;
 		Schedule Create(Schedule schedule);              // assigns a uuid
-		bool Replace(const std::string& uuid, Schedule schedule);
+		bool Replace(std::string_view uuid, Schedule schedule);
 		bool Remove(const std::string& uuid);
 
 		// Engine tick (public for tests). Evaluates all schedules for the current
@@ -71,9 +72,9 @@ namespace AqualinkAutomate::Scheduling
 
 	private:
 		void Load();
-		void Save();
+		void Save() const;
 		void ScheduleTick();
-		void Fire(const Schedule& schedule);
+		void Fire(const Schedule& schedule) const;
 
 	private:
 		boost::asio::io_context& m_IoContext;
@@ -82,7 +83,7 @@ namespace AqualinkAutomate::Scheduling
 		std::shared_ptr<Interfaces::ICommandDispatcher> m_Dispatcher;
 
 		std::vector<Schedule> m_Schedules;
-		std::map<std::string, std::int64_t> m_LastFiredMinute;  // uuid -> minute key
+		std::map<std::string, std::int64_t, std::less<>> m_LastFiredMinute;  // uuid -> minute key
 
 		ClockFn m_Clock;
 		bool m_Running{ false };

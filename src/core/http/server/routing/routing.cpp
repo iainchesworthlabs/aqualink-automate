@@ -181,13 +181,15 @@ namespace AqualinkAutomate::HTTP::Routing
 		// the supplied (or expected) token back to the caller.
 		[[nodiscard]] HTTP::Response MakeSecurityResponse(const HTTP::Request& req, HTTP::Status status, std::string_view body)
 		{
+			using enum boost::beast::http::field;
+
 			boost::beast::http::response<boost::beast::http::string_body> res{ status, req.version() };
-			res.set(boost::beast::http::field::server, ServerFields::Server());
-			res.set(boost::beast::http::field::content_type, ContentTypes::TEXT_PLAIN);
+			res.set(server, ServerFields::Server());
+			res.set(content_type, ContentTypes::TEXT_PLAIN);
 			if (status == HTTP::Status::unauthorized)
 			{
 				// RFC 7235: a 401 SHOULD carry a WWW-Authenticate challenge.
-				res.set(boost::beast::http::field::www_authenticate, "Bearer");
+				res.set(www_authenticate, "Bearer");
 			}
 			res.keep_alive(req.keep_alive());
 			res.body() = std::string(body);
@@ -199,12 +201,14 @@ namespace AqualinkAutomate::HTTP::Routing
 		// optional CSRF custom-header requirement.
 		[[nodiscard]] bool IsStateChangingMethod(boost::beast::http::verb method) noexcept
 		{
+			using enum boost::beast::http::verb;
+
 			switch (method)
 			{
-			case boost::beast::http::verb::post:
-			case boost::beast::http::verb::put:
-			case boost::beast::http::verb::patch:
-			case boost::beast::http::verb::delete_:
+			case post:
+			case put:
+			case patch:
+			case delete_:
 				return true;
 			default:
 				return false;
@@ -318,7 +322,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				const std::string_view origin = HeaderValue(req, boost::beast::http::field::origin);
 
 				const bool origin_allowed = !origin.empty() &&
-					std::any_of(cfg.AllowedOrigins.begin(), cfg.AllowedOrigins.end(),
+					std::ranges::any_of(cfg.AllowedOrigins,
 						[origin](const std::string& allowed) { return allowed == origin; });
 
 				if (!origin_allowed)
@@ -475,7 +479,7 @@ namespace AqualinkAutomate::HTTP::Routing
 			return std::string{ peer_ip };
 		}
 
-		if (const bool trusted = std::any_of(cidrs.begin(), cidrs.end(), [&](const auto& cidr) { return AddressInCidr(peer, cidr); }); !trusted)
+		if (const bool trusted = std::ranges::any_of(cidrs, [&](const auto& cidr) { return AddressInCidr(peer, cidr); }); !trusted)
 		{
 			// XFF from an untrusted source is attacker-controlled: ignore it.
 			return std::string{ peer_ip };
@@ -837,7 +841,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				const std::string action{ required.Action };
 				const std::string resource_kind{ required.ResourceKind };
 
-				current_ws_revalidator = [bearer = std::move(bearer), action, resource_kind]() -> bool
+				current_ws_revalidator = [bearer = std::move(bearer), action, resource_kind]()
 				{
 					if (!security_config.AuthModeEnabled || !subject_resolver)
 					{

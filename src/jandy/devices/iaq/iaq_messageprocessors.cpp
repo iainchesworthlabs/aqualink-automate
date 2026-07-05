@@ -153,7 +153,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::PublishSchedulePage()
+	void IAQDevice::PublishSchedulePage() const
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::PublishSchedulePage", std::source_location::current(), UnitColours::Red);
 

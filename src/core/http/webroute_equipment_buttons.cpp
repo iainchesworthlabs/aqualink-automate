@@ -53,7 +53,7 @@ namespace AqualinkAutomate::HTTP
 		const bool show_aux_id = m_PreferencesHub && m_PreferencesHub->ShowAuxIdInLabel;
 
 		const auto all_devices = m_DataHub->Devices.FindByTrait(Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{});
-		std::for_each(all_devices.begin(), all_devices.end(), [&buttons, &label_overrides, show_aux_id](const auto& device)
+		std::ranges::for_each(all_devices, [&buttons, &label_overrides, show_aux_id](const auto& device)
 			{
 				nlohmann::json button;
 

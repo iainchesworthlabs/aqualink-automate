@@ -27,6 +27,11 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::Factory Error Category" };
 		static std::string_view Describe(Factory_ErrorCodes e);
+
+	protected:
+		// Meyers singleton; never destroyed through a base pointer (mirrors the
+		// EnumErrorCategory base's protected non-virtual destructor).
+		~Factory_ErrorCategory() = default;
 	};
 
 }

@@ -220,7 +220,7 @@ namespace AqualinkAutomate::Auth
 
 	HTTP::Routing::SubjectResolver MakeSubjectResolver(SubjectResolverDeps deps)
 	{
-		return [deps = std::move(deps)](const HTTP::Request& req, bool is_websocket_upgrade) -> Subject
+		return [deps = std::move(deps)](const HTTP::Request& req, bool is_websocket_upgrade)
 		{
 			if (const auto token = BearerToken(req, is_websocket_upgrade); !token.empty())
 			{

@@ -146,7 +146,7 @@ namespace AqualinkAutomate::Devices
 			return AssignResult::NotAvailable;
 		}
 
-		std::stable_sort(configurators.begin(), configurators.end(),
+		std::ranges::stable_sort(configurators,
 			[](const auto& a, const auto& b) { return static_cast<int>(a.first) < static_cast<int>(b.first); });
 
 		LogInfo(Channel::Web, std::format("SpasideRemoteController: programming switch {} button {} -> '{}' ({} candidate controller(s))", switch_number, button_number, function, configurators.size()));
@@ -192,14 +192,14 @@ namespace AqualinkAutomate::Devices
 			}
 		});
 
-		std::stable_sort(configurators.begin(), configurators.end(),
+		std::ranges::stable_sort(configurators,
 			[](const auto& a, const auto& b) { return static_cast<int>(a.first) < static_cast<int>(b.first); });
 
 		for (const auto& [priority, configurator] : configurators)
 		{
 			for (auto& fn : configurator->AvailableFunctions())
 			{
-				if (std::find(functions.begin(), functions.end(), fn) == functions.end())
+				if (std::ranges::find(functions, fn) == functions.end())
 				{
 					functions.push_back(std::move(fn));
 				}

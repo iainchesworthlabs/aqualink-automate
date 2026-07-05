@@ -113,7 +113,7 @@ namespace AqualinkAutomate::Messages
 
 	std::string IAQMessage_MainStatus::ToString() const
 	{
-		auto temp_str = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+		auto temp_str = [](const std::optional<Kernel::Temperature>& temp)
 		{
 			return temp.has_value() ? std::format("{:.1f}C", temp->InCelsius().value()) : "n/a";
 		};
@@ -204,14 +204,14 @@ namespace AqualinkAutomate::Messages
 
 		// Read a big-endian uint16 raw value; conversion to Kernel::Temperature is
 		// separate so the current format can sentinel-check the raw value first.
-		auto read_raw_be = [&payload, &pos]() -> uint16_t
+		auto read_raw_be = [&payload, &pos]()
 		{
 			uint16_t raw = (static_cast<uint16_t>(payload[pos]) << 8) | static_cast<uint16_t>(payload[pos + 1]);
 			pos += 2;
 			return raw;
 		};
 
-		auto read_temp_be = [&read_raw_be](double scale) -> Kernel::Temperature
+		auto read_temp_be = [&read_raw_be](double scale)
 		{
 			return Kernel::Temperature::ConvertToTemperatureInCelsius(read_raw_be() * scale);
 		};
@@ -300,7 +300,7 @@ namespace AqualinkAutomate::Messages
 		}
 
 		LogDebug(Channel::Messages, [this]() {
-			auto temp_str = [](const std::optional<Kernel::Temperature>& temp) -> std::string
+			auto temp_str = [](const std::optional<Kernel::Temperature>& temp)
 			{
 				return temp.has_value() ? std::format("{:.1f}C", temp->InCelsius().value()) : "n/a";
 			};

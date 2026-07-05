@@ -18,16 +18,18 @@ namespace AqualinkAutomate::Scheduling
 		// The control-type entitlement a non-button action requires.
 		std::string_view ActionEntitlement(ActionType type)
 		{
+			using enum ActionType;
+
 			switch (type)
 			{
-			case ActionType::PoolSetpoint:
-			case ActionType::SpaSetpoint:
+			case PoolSetpoint:
+			case SpaSetpoint:
 				return Auth::Vocabulary::EQUIPMENT_CONTROL_SETPOINTS;
 
-			case ActionType::ChlorinatorPercent:
+			case ChlorinatorPercent:
 				return Auth::Vocabulary::EQUIPMENT_CONTROL_CHLORINATOR;
 
-			case ActionType::CirculationMode:
+			case CirculationMode:
 				return Auth::Vocabulary::EQUIPMENT_CONTROL_CIRCULATION;
 
 			default:
@@ -37,7 +39,9 @@ namespace AqualinkAutomate::Scheduling
 
 		bool IsButtonAction(ActionType type)
 		{
-			return (ActionType::ButtonOn == type) || (ActionType::ButtonOff == type) || (ActionType::ButtonToggle == type);
+			using enum ActionType;
+
+			return (ButtonOn == type) || (ButtonOff == type) || (ButtonToggle == type);
 		}
 	}
 	// anonymous namespace

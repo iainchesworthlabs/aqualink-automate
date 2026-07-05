@@ -662,18 +662,20 @@ namespace AqualinkAutomate::Navigation
 
 	std::optional<std::string> OneTouchPageCapabilityRequirement(PageId page)
 	{
+		using enum PageId;
+
 		switch (page)
 		{
 		// iAqualink connection-status / signal pages only exist on panels with an iAqualink
 		// (AqualinkTouch) interface fitted. Absent on the common OneTouch-only / RS panels.
-		case PageId::DiagnosticsIAQStatus:
-		case PageId::DiagnosticsIAQRSSI:
+		case DiagnosticsIAQStatus:
+		case DiagnosticsIAQRSSI:
 			return "requires iAqualink";
 
 		// Boost and the Aquapure setpoint page only exist when a salt water chlorinator (SWG)
 		// is installed; a panel without one never shows them.
-		case PageId::Boost:
-		case PageId::SetAquapure:
+		case Boost:
+		case SetAquapure:
 			return "requires a salt chlorinator";
 
 		default:

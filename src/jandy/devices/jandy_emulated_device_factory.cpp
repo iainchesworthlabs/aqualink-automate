@@ -18,27 +18,29 @@ namespace AqualinkAutomate::Devices
 	{
 		auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceType(id));
 
+		using enum JandyEmulatedDeviceTypes;
+
 		switch (type)
 		{
-		case JandyEmulatedDeviceTypes::OneTouch:
+		case OneTouch:
 			return std::make_unique<OneTouchDevice>(device_id, hub_locator, true);
 
-		case JandyEmulatedDeviceTypes::RS_Keypad:
+		case RS_Keypad:
 			return std::make_unique<KeypadDevice>(device_id, hub_locator, true);
 
-		case JandyEmulatedDeviceTypes::IAQ:
+		case IAQ:
 			return std::make_unique<IAQDevice>(device_id, hub_locator, true);
 
-		case JandyEmulatedDeviceTypes::PDA:
+		case PDA:
 			return std::make_unique<PDADevice>(device_id, hub_locator, true);
 
-		case JandyEmulatedDeviceTypes::SerialAdapter:
+		case SerialAdapter:
 			return std::make_unique<SerialAdapterDevice>(device_id, hub_locator, true);
 
-		case JandyEmulatedDeviceTypes::SpasideRemote:
+		case SpasideRemote:
 			return std::make_unique<SpasideRemoteDevice>(device_id, hub_locator, true);
 
-		case JandyEmulatedDeviceTypes::Unknown:
+		case Unknown:
 		default:
 			LogWarning(Channel::Devices, "MakeEmulatedDevice: unknown emulated device type; cannot create device");
 			return nullptr;

@@ -64,16 +64,16 @@ namespace AqualinkAutomate::Jandy::Startup
 		//   published minimum, so it is not gated.) Returns nullopt when there is no minimum.
 		std::optional<char> MinRevisionForEmulatedType(Devices::JandyEmulatedDeviceTypes type)
 		{
-			using DT = Devices::JandyEmulatedDeviceTypes;
+			using enum Devices::JandyEmulatedDeviceTypes;
 			switch (type)
 			{
-			case DT::SerialAdapter: return 'I';
-			case DT::OneTouch:      return 'I';
-			case DT::IAQ:           return 'Q';
-			case DT::SpasideRemote: return 'G';
-			case DT::RS_Keypad:     return 'C';
-			case DT::PDA:           return std::nullopt;
-			default:                return std::nullopt;
+			case SerialAdapter: return 'I';
+			case OneTouch:      return 'I';
+			case IAQ:           return 'Q';
+			case SpasideRemote: return 'G';
+			case RS_Keypad:     return 'C';
+			case PDA:           return std::nullopt;
+			default:            return std::nullopt;
 			}
 		}
 

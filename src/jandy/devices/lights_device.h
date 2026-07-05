@@ -48,7 +48,7 @@ namespace AqualinkAutomate::Devices
 	private:
 		void Slot_Light_Status(const Messages::LightMessage_Status& msg);
 
-		void EnsureLightDeviceExists();
+		void EnsureLightDeviceExists() const;
 		void PushStateToDataHub(const Messages::LightMessage_Status& msg);
 	};
 

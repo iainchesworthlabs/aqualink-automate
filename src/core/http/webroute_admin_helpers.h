@@ -114,19 +114,21 @@ namespace AqualinkAutomate::HTTP
 	// Map a UserStore/GroupStore mutation error to the HTTP status the admin
 	// API answers with: unknown target -> 404, conflicts (duplicate username,
 	// last-admin protection, undeletable built-in) -> 409, anything else 400.
-	inline HTTP::Status StatusForStoreError(const std::string& error)
+	inline HTTP::Status StatusForStoreError(std::string_view error)
 	{
+		using enum HTTP::Status;
+
 		if (("User not found" == error) || ("Group not found" == error))
 		{
-			return HTTP::Status::not_found;
+			return not_found;
 		}
 
 		if (("Username already exists" == error) || ("Built-in groups cannot be removed" == error) || error.starts_with("Refused"))
 		{
-			return HTTP::Status::conflict;
+			return conflict;
 		}
 
-		return HTTP::Status::bad_request;
+		return bad_request;
 	}
 
 	// Assemble the audit record for an admin action: who (the acting subject,

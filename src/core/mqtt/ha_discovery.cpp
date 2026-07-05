@@ -681,7 +681,7 @@ namespace AqualinkAutomate::Mqtt
 		}
 	}
 
-	void HomeAssistantDiscovery::AddChlorinatorComponents(nlohmann::json& cmps, const std::shared_ptr<Kernel::AuxillaryDevice>& dev)
+	void HomeAssistantDiscovery::AddChlorinatorComponents(nlohmann::json& cmps, const std::shared_ptr<Kernel::AuxillaryDevice>& dev) const
 	{
 		auto label = DeviceLabel(dev);
 		if (!label.has_value())
@@ -861,7 +861,7 @@ namespace AqualinkAutomate::Mqtt
 		return m_Client->BuildTopic(std::string{ Alerting::AlertStateSubtopic });
 	}
 
-	void HomeAssistantDiscovery::AddAlertComponents(nlohmann::json& cmps)
+	void HomeAssistantDiscovery::AddAlertComponents(nlohmann::json& cmps) const
 	{
 		// One HA binary_sensor (device_class: problem) per AlertMonitor condition.
 		// All read the same consolidated state document via a per-condition

@@ -41,8 +41,8 @@ namespace AqualinkAutomate::EquipmentCache
 
 		// Exposed for tests (and reused internally).
 		nlohmann::json Snapshot() const;
-		void ApplySnapshot(const nlohmann::json& json);
-		void SaveNow();
+		void ApplySnapshot(const nlohmann::json& json) const;
+		void SaveNow() const;
 
 	private:
 		void ScheduleSave();
