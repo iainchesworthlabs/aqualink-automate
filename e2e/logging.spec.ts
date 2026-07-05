@@ -68,7 +68,10 @@ async function runAndCaptureStderr(
 
   await new Promise<void>((resolve) => setTimeout(resolve, settleMs));
 
-  // SIGTERM so the app runs its clean shutdown (which flushes + removes sinks).
+  // Stop the app. On POSIX this SIGTERM triggers the clean shutdown (final flush +
+  // sink removal). On Windows Node has no catchable SIGTERM, so child.kill() maps to
+  // an unconditional TerminateProcess — but the console and file sinks flush each
+  // record as it is written, so the records emitted before the stop still survive.
   child.kill('SIGTERM');
   await new Promise<void>((resolve) => {
     const t = setTimeout(() => { child.kill('SIGKILL'); resolve(); }, 8000);
@@ -100,13 +103,12 @@ test('console-only sink still delivers records with --log-sinks console', async 
 });
 
 test('every stderr line is valid JSON with --log-format json', async () => {
-  // Windows has no catchable SIGTERM: Node's child.kill('SIGTERM') maps to an
-  // unconditional TerminateProcess, so the app is hard-killed mid-write and the
-  // last stderr line can be truncated to non-JSON. The "every line parses"
-  // guarantee is only meaningful under the clean POSIX shutdown this harness
-  // relies on (mirrors the Linux-only journald test below). See spawn task
-  // "Fix logging e2e tests on Windows (SIGTERM)".
-  test.skip(process.platform === 'win32', 'requires a catchable SIGTERM for a clean, untruncated stderr flush (POSIX-only)');
+  // Cross-platform. Each record is written to stderr as one complete, newline-
+  // terminated line under a lock, so the "every line parses" invariant does not
+  // depend on the stop mechanism: on POSIX the harness's SIGTERM drives a clean
+  // shutdown; on Windows child.kill() hard-terminates, but by settle time the app is
+  // quiescent and only whole records have been emitted, so no torn line reaches
+  // stderr. (Verified stable across repeated Windows runs.)
   const stderr = await runAndCaptureStderr(['--log-format', 'json'], { port: 18104 });
 
   const lines = stderr.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
@@ -126,12 +128,12 @@ test('every stderr line is valid JSON with --log-format json', async () => {
 });
 
 test('writes an operational log file (content survives shutdown)', async () => {
-  // POSIX-only: the file sink's final flush/rotation runs in the app's clean
-  // shutdown, which is driven by a catchable SIGTERM. On Windows child.kill()
-  // hard-terminates the process (no SIGTERM), so that flush never runs and no
-  // "app*" file is produced. See spawn task "Fix logging e2e tests on Windows
-  // (SIGTERM)".
-  test.skip(process.platform === 'win32', 'file-sink shutdown flush requires a catchable SIGTERM (POSIX-only)');
+  // Cross-platform. The file sink flushes each record as it is written, so the
+  // operational records emitted during startup are on disk well before the app is
+  // stopped — the assertion does not depend on the shutdown-time flush/rotation. On
+  // POSIX the harness's SIGTERM additionally rotates the active file on the way out;
+  // on Windows child.kill() hard-terminates, but the already-flushed "app*" content
+  // still proves the file sink wrote. (Verified stable across repeated Windows runs.)
   const dir = mkdtempSync(join(tmpdir(), 'aa-logfile-'));
   const logPath = join(dir, 'app.log');
 
