@@ -258,6 +258,37 @@ BOOST_AUTO_TEST_CASE(Test_Traits_InvalidValueType_Throws)
     BOOST_CHECK(!traits.TryGet(TraitB{}).has_value());
 }
 
+// The MUTABLE (non-const) TraitValueProxy exposes operator* and operator-> onto the
+// stored value in place. Retrieving a complex trait from a non-const Traits store and
+// mutating it through the arrow/dereference operators exercises the non-const proxy
+// success paths (distinct from the const proxy the other tests use).
+// A value-type mismatch surfaced through the MUTABLE proxy's operator* (Reference
+// cast) also raises Traits_InvalidTraitValue — the non-const CastOrThrow catch.
+BOOST_AUTO_TEST_CASE(Test_MutableProxy_DerefMismatch_Throws)
+{
+    using namespace AqualinkAutomate::Exceptions;
+    using namespace AqualinkAutomate::Kernel;
+
+    class TraitA : public MutableTraitType<uint32_t>
+    {
+    public:
+        TraitKey Name() const final { return std::string{"MutableProxy_Mismatch_Shared"}; }
+    };
+    class TraitB : public MutableTraitType<std::vector<uint32_t>>
+    {
+    public:
+        TraitKey Name() const final { return std::string{"MutableProxy_Mismatch_Shared"}; }
+    };
+
+    Traits traits;
+    traits.Set(TraitA{}, 99U);
+
+    // The key exists (so Get() returns a proxy), but dereferencing as the wrong value
+    // type trips the mutable proxy's bad_any_cast -> Traits_InvalidTraitValue.
+    BOOST_CHECK_THROW((void)(*(traits.Get(TraitB{}))).size(), Traits_InvalidTraitValue);
+    BOOST_CHECK_THROW((void)traits.Get(TraitB{})->size(), Traits_InvalidTraitValue);
+}
+
 // The Traits store methods are constrained on IsTraitType: the real trait descriptors model it.
 BOOST_AUTO_TEST_CASE(Test_IsTraitType_Concept)
 {

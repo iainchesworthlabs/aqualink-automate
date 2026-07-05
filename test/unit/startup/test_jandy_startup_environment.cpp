@@ -65,6 +65,21 @@ BOOST_AUTO_TEST_CASE(ObservedProbes_AlsoRecordsActiveControllerPolls)
 	BOOST_CHECK(env.ObservedProbes().contains(0x33));
 }
 
+BOOST_AUTO_TEST_CASE(ObservedProbes_AlsoRecordsAStatusPollToAOneTouch)
+{
+    // The master addresses an already-discovered OneTouch with Status (cmd 0x02), not the
+    // cold-boot probe. That must count as "0x40 is addressed as a controller" so classification
+    // works on a capture taken after discovery. A full-length Status payload (5 bytes) is used
+    // so the frame deserialises and the environment's Status handler fires.
+    Test::MockReplayHarness harness;
+    JandyStartupEnvironment env(harness.HubLocatorRef());
+
+    const auto cmd_status = static_cast<std::uint8_t>(Messages::JandyMessageIds::Status);
+    harness.Replay(Test::MessageBuilder::CreateValidChecksummedMessage(0x40, cmd_status, { 0x00, 0x00, 0x00, 0x00, 0x00 }));
+
+    BOOST_CHECK(env.ObservedProbes().contains(0x40));   // OneTouch range, seen via Status
+}
+
 BOOST_AUTO_TEST_CASE(OccupiedAddresses_ReportsAnAddressThatAckedTheMasterAfterAProbe)
 {
 	// A real device answers the master's probe: the master probes 0x41, then a device->master

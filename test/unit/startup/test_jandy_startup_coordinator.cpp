@@ -157,4 +157,59 @@ BOOST_AUTO_TEST_CASE(RevisionTouchCapable_ClassifiesEarlyWithoutWaitingForProbes
 	BOOST_CHECK_EQUAL(env.Find(DeviceType::IAQ)->id, 0x33);
 }
 
+BOOST_AUTO_TEST_CASE(Advance_BeforeBegin_StaysIdle)
+{
+    // Advancing a freshly-constructed coordinator (Begin() never called) must sit in the Idle
+    // arm and stand nothing up -- there is no detection in progress to react to.
+    MockEnvironment env;
+    StartupCoordinator coord(env);
+
+    BOOST_CHECK(coord.CurrentPhase() == StartupCoordinator::Phase::Idle);
+
+    const auto phase = coord.Advance(/*detection_window_elapsed=*/true);
+
+    BOOST_CHECK(phase == StartupCoordinator::Phase::Idle);
+    BOOST_CHECK(env.emulated.empty());   // Idle does nothing
+}
+
+BOOST_AUTO_TEST_CASE(Advance_AfterRunning_IsIdempotent)
+{
+    // Once Running, a further Advance() takes the Running arm (a no-op) and stands up no
+    // additional emulation beyond what Engaging already placed.
+    MockEnvironment env;
+    env.probes = { 0x40, 0x41, 0x42, 0x43, 0x48 };  // OneTouch panel -> spider
+    StartupCoordinator coord(env);
+
+    coord.Begin();
+    coord.Advance(false);
+    BOOST_REQUIRE(coord.CurrentPhase() == StartupCoordinator::Phase::Running);
+
+    const auto emulated_after_first_run = env.emulated.size();
+    const auto phase = coord.Advance(false);   // Running arm -> no further work
+
+    BOOST_CHECK(phase == StartupCoordinator::Phase::Running);
+    BOOST_CHECK_EQUAL(env.emulated.size(), emulated_after_first_run);
+}
+
+BOOST_AUTO_TEST_CASE(Engaging_UnresolvedController_LogsAndSkips_NoEmulation)
+{
+    // A OneTouch panel where every usable OneTouch instance is occupied by a real device:
+    // units 1-3 (0x40, 0x41, 0x42) are taken and unit 4 (0x43) is the reserved slot the
+    // planner never offers. ResolveAddresses leaves the OneTouch UNRESOLVED, so Engaging takes
+    // the "no free bus address -> warn + skip" arm and never emulates a controller.
+    MockEnvironment env;
+    env.probes = { 0x40, 0x41, 0x42 };
+    env.occupied = { 0x40, 0x41, 0x42 };
+    StartupCoordinator coord(env);
+
+    coord.Begin();
+    const auto phase = coord.Advance(false);
+
+    BOOST_CHECK(phase == StartupCoordinator::Phase::Running);
+    BOOST_CHECK(coord.Plan().method == DataGatheringMethod::MenuSpider);
+    // The controller emulation was skipped (unresolved); only the SerialAdapter from Begin() ran.
+    BOOST_CHECK(env.Find(DeviceType::OneTouch) == nullptr);
+    BOOST_CHECK(env.Find(DeviceType::SerialAdapter) != nullptr);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

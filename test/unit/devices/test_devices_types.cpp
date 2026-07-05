@@ -45,6 +45,16 @@ BOOST_AUTO_TEST_CASE(InstanceAddressesForClass_ReturnsEveryInstanceOfTheClass)
         == std::vector<std::uint8_t>{ 0x20, 0x21, 0x22, 0x23 }));
 }
 
+BOOST_AUTO_TEST_CASE(InstanceAddressesForClass_UnknownClass_ReturnsEmpty)
+{
+    using namespace AqualinkAutomate::Devices;
+
+    // A device class with no entry in the known-ids table (Pentair_Pump is a DeviceClasses
+    // value but is not present in m_KnownDeviceIdsList) drives the no-match fall-through and
+    // must return an empty instance set rather than a partial or garbage list.
+    BOOST_CHECK(JandyDeviceType::InstanceAddressesForClass(DeviceClasses::Pentair_Pump).empty());
+}
+
 BOOST_AUTO_TEST_CASE(SpaRemoteClasses_AreDistinctAndCorrectlyAddressed)
 {
     using namespace AqualinkAutomate::Devices;

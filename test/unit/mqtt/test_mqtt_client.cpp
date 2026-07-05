@@ -774,4 +774,104 @@ BOOST_AUTO_TEST_CASE(Test_HandshakeFailure_SchedulesReconnect)
 	client->Stop();
 }
 
+// MQTT v5: the same connect/publish/subscribe flow but driving DoSendConnect/DoFlush/Subscribe
+// down their protocol_version == v5 arms (the v5::connect_packet / v5::publish_packet /
+// v5::subscribe_packet branches). The mock broker replies with a v5-framed CONNACK/SUBACK.
+BOOST_AUTO_TEST_CASE(Test_Connect_ToBroker_ProtocolV5_ReachesConnectedState)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto settings = MakeBrokerSettings(broker.Port());
+	settings.protocol_version = Options::Mqtt::ProtocolVersion::v5;
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+	BOOST_CHECK(client->IsConnected());
+	BOOST_CHECK(broker.ClientConnected());
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_Publish_ProtocolV5_FlushesToBroker)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto settings = MakeBrokerSettings(broker.Port());
+	settings.protocol_version = Options::Mqtt::ProtocolVersion::v5;
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Publish("pool/status", "on");
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return broker.PublishesReceived() >= 1; }));
+	BOOST_CHECK_EQUAL(broker.LastPublishTopic(), "pool/status");
+	BOOST_CHECK_GE(client->PublishedCount(), 1u);
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_Subscribe_ProtocolV5_ReachesBroker)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto settings = MakeBrokerSettings(broker.Port());
+	settings.protocol_version = Options::Mqtt::ProtocolVersion::v5;
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Start();
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+
+	client->Subscribe("pool/command/#", 0);
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return broker.SubscribesReceived() >= 1; }));
+	BOOST_CHECK(client->IsConnected());   // v5 SUBACK processed, connection healthy
+
+	client->Stop();
+}
+
+// The CONNECT permutations in DoSendConnect: a configured last-will (will.emplace + retain
+// opt) and a username+password pair (the [MQTT-3.1.2-22] user/pass branch). The broker only
+// needs to accept the CONNECT; reaching Connected proves the packet was well-formed.
+BOOST_AUTO_TEST_CASE(Test_Connect_WithWillAndCredentials_ReachesConnectedState)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto settings = MakeBrokerSettings(broker.Port());
+	settings.username = "pooluser";
+	settings.password = "poolpass";
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	// A retained will drives the will.emplace + retain-opts branch of DoSendConnect.
+	client->SetWill("status/availability", "offline", /*retain=*/true);
+
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+	BOOST_CHECK(client->IsConnected());
+	BOOST_CHECK(broker.ClientConnected());
+
+	client->Stop();
+}
+
+// A password configured WITHOUT a username: DoSendConnect logs a warning and omits the
+// password (the else-if arm), still producing a valid CONNECT that connects.
+BOOST_AUTO_TEST_CASE(Test_Connect_PasswordWithoutUsername_StillConnects)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto settings = MakeBrokerSettings(broker.Port());
+	settings.username = "";
+	settings.password = "orphan-password";
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+	BOOST_CHECK(client->IsConnected());
+
+	client->Stop();
+}
+
 BOOST_AUTO_TEST_SUITE_END()

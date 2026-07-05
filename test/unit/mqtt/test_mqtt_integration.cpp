@@ -1,8 +1,10 @@
 #include <boost/test/unit_test.hpp>
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -16,6 +18,7 @@
 #include "kernel/data_hub.h"
 #include "kernel/equipment_hub.h"
 #include "kernel/hub_locator.h"
+#include "kernel/preferences_hub.h"
 #include "kernel/statistics_hub.h"
 #include "kernel/body_of_water_ids.h"
 #include "kernel/auxillary_devices/auxillary_device.h"
@@ -915,6 +918,222 @@ BOOST_AUTO_TEST_CASE(Test_Setpoint_DispatchFailure_TakesFailureBranch)
 
 	BOOST_REQUIRE_EQUAL(dispatcher->pool_setpoints.size(), 1u);
 	BOOST_CHECK_EQUAL(dispatcher->pool_setpoints[0], 30u);
+}
+
+BOOST_AUTO_TEST_CASE(Test_HaSetpoint_FahrenheitPreference_ConvertsToCelsiusBeforeDispatch)
+{
+	// The HA number-entity handler reads the display-units preference at command time: with a
+	// Fahrenheit preference the inbound value is normalised (F -> C) before dispatch_setpoint,
+	// which (system units Celsius here) then rounds it straight onto the wire.
+	data_hub->SystemTemperatureUnits(Kernel::TemperatureUnits::Celsius);
+	auto prefs = std::make_shared<Kernel::PreferencesHub>();
+	prefs->Temperature_DisplayUnits = Kernel::TemperatureUnits::Fahrenheit;
+
+	Kernel::HubLocator locator;
+	locator.Register(data_hub).Register(equip_hub).Register(stats_hub).Register(prefs)
+		.Register(std::static_pointer_cast<Interfaces::ICommandDispatcher>(dispatcher));
+	integration.ConnectHubs(locator);
+	integration.Start();
+	auto hub = integration.GetMqttHub();
+	BOOST_REQUIRE(hub != nullptr);
+	hub->OnDevicesPublished();
+	BOOST_REQUIRE(hub->HasCommand("setpoint/pool"));
+
+	// 86 F -> (86 - 32) * 5/9 = 30 C -> rounded 30 on the wire (Celsius system units).
+	hub->GetMqttClient()->OnMessageReceived(hub->CommandTopic("setpoint/pool"), "86");
+
+	BOOST_REQUIRE_EQUAL(dispatcher->pool_setpoints.size(), 1u);
+	BOOST_CHECK_EQUAL(dispatcher->pool_setpoints[0], 30u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// Default "status"/"refresh" command bodies + the dispatcher-unavailable arms of
+// the generic device and setpoint commands. These fire the registered handlers
+// through the public OnMessageReceived seam and assert the observable effect.
+//=============================================================================
+
+BOOST_FIXTURE_TEST_SUITE(TestSuite_MqttIntegration_DefaultCommandBodies, HeaterCommandFixture)
+
+BOOST_AUTO_TEST_CASE(Test_StatusCommand_RepublishesAllStatus)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("status"));
+
+	// A connected hub is required for PublishAllStatus() to actually enqueue; force it.
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("status"), "");
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	bool saw_system_status = false;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic.find("/system/status") != std::string::npos) { saw_system_status = true; }
+	}
+	BOOST_CHECK_MESSAGE(saw_system_status, "the status command should republish all status");
+}
+
+BOOST_AUTO_TEST_CASE(Test_RefreshCommand_PublishesResponse)
+{
+	auto& hub = ConnectAndPublish();
+	BOOST_REQUIRE(hub.HasCommand("refresh"));
+
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+	hub.GetMqttClient()->OnMessageReceived(hub.CommandTopic("refresh"), "");
+
+	// The refresh handler republishes status AND publishes a response/refresh envelope.
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	bool saw_response = false;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic.find("/response/refresh") != std::string::npos)
+		{
+			saw_response = true;
+			auto body = nlohmann::json::parse(pending.payload);
+			BOOST_CHECK_EQUAL(body.value("command", ""), "refresh");
+			BOOST_CHECK_EQUAL(body.value("status", ""), "completed");
+		}
+	}
+	BOOST_CHECK_MESSAGE(saw_response, "the refresh command should publish a response/refresh envelope");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// Dispatcher-unavailable arms: when the command dispatcher is not resolvable
+// (empty locator), the generic "device" and "setpoint" handlers take their
+// null-dispatcher early-return branch and dispatch nothing.
+//=============================================================================
+
+//=============================================================================
+// Home-Assistant seed wiring: with HA enabled, the client's OnConnected drives
+// the discovery seed (subscribe + arm the grace window + publish online/states),
+// a replayed retained config adopts+republishes, and an elapsed grace deadline in
+// Poll() publishes discovery when no retained config arrived.
+//=============================================================================
+
+BOOST_FIXTURE_TEST_SUITE(TestSuite_MqttIntegration_HaSeed, HeaterCommandFixture)
+
+BOOST_AUTO_TEST_CASE(Test_HaOnConnected_PublishesOnlineAndArmsSeed)
+{
+	auto& hub = ConnectAndPublish();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+
+	// Fire the client's OnConnected exactly as a real broker connect would: the integration's HA
+	// connected lambda publishes availability "online", subscribes to the retained config topic and
+	// publishes the device states.
+	hub.GetMqttClient()->OnConnected();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	bool saw_online = false;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic.find("/status/availability") != std::string::npos && pending.payload == "online")
+		{
+			saw_online = true;
+		}
+	}
+	BOOST_CHECK_MESSAGE(saw_online, "HA OnConnected should publish availability online");
+}
+
+BOOST_AUTO_TEST_CASE(Test_HaSeed_RetainedConfigReplay_AdoptsAndRepublishes)
+{
+	auto& hub = ConnectAndPublish();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+
+	// Arm the seed window (sets m_HaSeedPending + subscribes to the config topic).
+	hub.GetMqttClient()->OnConnected();
+
+	// The broker replays the retained discovery config on the seed topic: the seed lambda adopts the
+	// components and republishes a fresh discovery config to the same topic.
+	const std::string config_topic = "homeassistant/device/aqualink_test/config";
+	nlohmann::json retained;
+	retained["cmps"]["aux_ghost"] = { {"p", "switch"}, {"name", "Ghost"} };
+	hub.GetMqttClient()->OnMessageReceived(config_topic, retained.dump());
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	bool republished = false;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic == config_topic && !pending.payload.empty())
+		{
+			auto body = nlohmann::json::parse(pending.payload);
+			if (body.contains("cmps")) { republished = true; }
+		}
+	}
+	BOOST_CHECK_MESSAGE(republished, "adopting the retained config should trigger a discovery republish");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(TestSuite_MqttIntegration_NoDispatcher)
+
+BOOST_AUTO_TEST_CASE(Test_DeviceCommand_NoDispatcher_TakesUnavailableBranch)
+{
+	boost::asio::io_context ioc;
+	Mqtt::MqttIntegration integration(ioc, MakeHaEnabledSettings());
+
+	Kernel::HubLocator locator;   // nothing registered -> no ICommandDispatcher
+	integration.ConnectHubs(locator);
+	integration.Start();
+
+	auto hub = integration.GetMqttHub();
+	BOOST_REQUIRE(hub != nullptr);
+	BOOST_REQUIRE(hub->HasCommand("device"));
+	Test::MqttClientPacketTest::ForceConnectedState(*hub->GetMqttClient());
+
+	// The handler locks a null dispatcher, logs "not available", publishes an error response, and
+	// returns before any device_id parsing. No throw is the primary observable.
+	BOOST_CHECK_NO_THROW(hub->GetMqttClient()->OnMessageReceived(
+		hub->CommandTopic("device"), R"({"device_id":"Pool Light","action":"toggle"})"));
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub->GetMqttClient());
+	bool saw_error = false;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic.find("/response/device") != std::string::npos)
+		{
+			auto body = nlohmann::json::parse(pending.payload);
+			if (body.value("status", "") == "error") { saw_error = true; }
+		}
+	}
+	BOOST_CHECK_MESSAGE(saw_error, "the null-dispatcher device command should publish an error response");
+
+	integration.Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_SetpointCommand_NoDispatcher_ReturnsErrorStatus)
+{
+	boost::asio::io_context ioc;
+	Mqtt::MqttIntegration integration(ioc, MakeHaEnabledSettings());
+
+	Kernel::HubLocator locator;   // no dispatcher
+	integration.ConnectHubs(locator);
+	integration.Start();
+
+	auto hub = integration.GetMqttHub();
+	BOOST_REQUIRE(hub != nullptr);
+	BOOST_REQUIRE(hub->HasCommand("setpoint"));
+	Test::MqttClientPacketTest::ForceConnectedState(*hub->GetMqttClient());
+
+	// dispatch_setpoint locks a null dispatcher first and returns "error" before target validation.
+	BOOST_CHECK_NO_THROW(hub->GetMqttClient()->OnMessageReceived(
+		hub->CommandTopic("setpoint"), R"({"target":"pool","temperature":28.0})"));
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub->GetMqttClient());
+	bool saw_error = false;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic.find("/response/setpoint") != std::string::npos)
+		{
+			auto body = nlohmann::json::parse(pending.payload);
+			if (body.value("status", "") == "error") { saw_error = true; }
+		}
+	}
+	BOOST_CHECK_MESSAGE(saw_error, "the null-dispatcher setpoint command should report an error status");
+
+	integration.Stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

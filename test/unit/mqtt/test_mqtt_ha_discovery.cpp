@@ -1304,6 +1304,57 @@ BOOST_AUTO_TEST_CASE(Test_PublishDeviceStates_UnlabelledDevice_Skipped)
 BOOST_AUTO_TEST_SUITE_END()
 
 //=============================================================================
+// AddDynamicDeviceComponents no-label skip paths: an unlabelled heater and an
+// unlabelled chlorinator must be silently skipped (no component emitted, no
+// crash) — the heater-specific continue and the AddChlorinatorComponents early
+// return respectively.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_HaDiscovery_UnlabelledDynamicDevices)
+
+BOOST_AUTO_TEST_CASE(Test_DynamicComponents_UnlabelledHeaterAndChlorinator_Skipped)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	ha.ConnectDataHub(data_hub);
+
+	// A heater and a chlorinator with NO LabelTrait: the dynamic-component builder must skip both
+	// (no slug can be formed) without emitting a switch/sensor for them.
+	auto heater = std::make_shared<Kernel::AuxillaryDevice>();
+	heater->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Heater);
+	data_hub->Devices.Add(heater);
+
+	auto chlorinator = std::make_shared<Kernel::AuxillaryDevice>();
+	chlorinator->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Chlorinator);
+	data_hub->Devices.Add(chlorinator);
+
+	// A labelled aux so the discovery build still completes with real components.
+	data_hub->Devices.Add(MakeTypedDevice(Traits::AuxillaryTypes::Auxillary, "Deck Jets"));
+
+	BOOST_CHECK_NO_THROW(ha.PublishDiscoveryConfigs());
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+	BOOST_REQUIRE_EQUAL(queue.size(), 1);
+	auto cmps = nlohmann::json::parse(queue[0].payload)["cmps"];
+
+	// The labelled aux is present; no unlabelled heater/chlorinator components leaked in.
+	BOOST_CHECK(cmps.contains("aux_deck_jets"));
+	for (auto& [key, cmp] : cmps.items())
+	{
+		BOOST_CHECK_MESSAGE(key.rfind("heater_", 0) != 0, "no heater component should exist for an unlabelled heater: " + key);
+		BOOST_CHECK_MESSAGE(key.rfind("chlorinator_", 0) != 0, "no chlorinator component should exist for an unlabelled chlorinator: " + key);
+	}
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
 // AdoptRetainedComponents error/guard branches: an empty payload, a payload
 // with no "cmps" object, and an unparseable payload must all be no-ops that
 // adopt nothing (so the next publish tombstones nothing spuriously).

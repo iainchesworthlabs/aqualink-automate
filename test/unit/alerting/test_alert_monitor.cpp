@@ -446,6 +446,142 @@ BOOST_AUTO_TEST_CASE(TemperatureStale_FollowsActiveBody)
 	BOOST_CHECK_EQUAL("spa", rec.transitions.back().params.at("body").get<std::string>());
 }
 
+// While already raised and still below threshold, re-evaluating produces no new
+// transition (the raise branch is guarded by !currently_raised) — latching holds.
+BOOST_AUTO_TEST_CASE(SaltLow_StaysRaisedWhileStillBelow_NoNewTransition)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+	settings.salt_low_ppm = 2600;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	Find<Kernel::PreferencesHub>()->AlertSaltLowPpm = 2600;
+	auto data_hub = Find<Kernel::DataHub>();
+
+	data_hub->SaltLevel(2000 * Units::ppm);
+	monitor.EvaluateSaltLow();
+	BOOST_REQUIRE_EQUAL(rec.CountFor(ConditionKeys::SaltLow), 1u);
+
+	// A second, still-low reading: already raised, so neither branch fires again.
+	data_hub->SaltLevel(1900 * Units::ppm);
+	monitor.EvaluateSaltLow();
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::SaltLow));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::SaltLow), 1u);   // no new edge
+}
+
+// No chlorinator present clears (and never raises) both the warning and the fault
+// conditions — the empty()-guard clear branch of each evaluator.
+BOOST_AUTO_TEST_CASE(Chlorinator_NoDevicePresent_ClearsWarningAndFault)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	// No chlorinator on the DataHub at all: both evaluators take the "no chlorinator
+	// present" clear path and never latch.
+	monitor.EvaluateChlorinatorWarning();
+	monitor.EvaluateChlorinatorFault();
+
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorFault));
+	// Starting from the cleared baseline, no transition is emitted for either.
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorWarning), 0u);
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorFault), 0u);
+}
+
+// A chlorinator present but carrying NO health trait leaves both conditions clear:
+// warning maps to nullopt (no label) and fault stays false (health absent).
+BOOST_AUTO_TEST_CASE(Chlorinator_NoHealthTrait_StaysClear)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	using namespace Kernel::AuxillaryTraitsTypes;
+	auto chlor = std::make_shared<Kernel::AuxillaryDevice>();
+	chlor->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Chlorinator);
+	chlor->AuxillaryTraits.Set(LabelTrait{}, std::string{ "AquaPure" });
+	// Deliberately NO ChlorinatorHealthTrait -> TryGet returns nullopt.
+	Find<Kernel::DataHub>()->Devices.Add(chlor);
+
+	monitor.EvaluateChlorinatorWarning();
+	monitor.EvaluateChlorinatorFault();
+
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorFault));
+}
+
+// A health value that is neither a warning nor a hard fault (e.g. TurningOff)
+// leaves both conditions clear: ChlorinatorWarningLabel returns nullopt and
+// IsChlorinatorFault is false.
+BOOST_AUTO_TEST_CASE(Chlorinator_NonWarningNonFaultHealth_StaysClear)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	auto data_hub = Find<Kernel::DataHub>();
+	auto chlor = MakeChlorinator(Kernel::ChlorinatorHealth::TurningOff);
+	data_hub->Devices.Add(chlor);
+
+	monitor.EvaluateChlorinatorWarning();
+	monitor.EvaluateChlorinatorFault();
+
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorFault));
+}
+
+// EvaluateAll fans out to every individual evaluator in one call — driving it with
+// a Service-mode DataHub proves the aggregate dispatch reaches service_mode (and
+// the other evaluators run without throwing on the shared hub).
+BOOST_AUTO_TEST_CASE(EvaluateAll_DispatchesToEveryEvaluator)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	Find<Kernel::DataHub>()->Mode = Kernel::EquipmentMode::Service;
+
+	BOOST_CHECK_NO_THROW(monitor.EvaluateAll());
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::ServiceMode));
+}
+
+// serial_comms_loss does nothing before a baseline is established: with the
+// monitor never Started, m_HaveCommsBaseline is false and the evaluator returns.
+BOOST_AUTO_TEST_CASE(SerialCommsLoss_NoBaseline_IsNoOp)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	std::int64_t now = 1000;
+	monitor.SetClock([&now] { return now; });
+
+	// Never Started -> no comms baseline -> the evaluator takes its early return.
+	now = 1'000'000;
+	monitor.EvaluateSerialCommsLoss();
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::SerialCommsLoss));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::SerialCommsLoss), 0u);
+}
+
 // BuildStateJson reports every catalogue condition as a "true"/"false" string
 // matching the latched state (read by the HA binary_sensors).
 BOOST_AUTO_TEST_CASE(BuildStateJson_ReflectsLatchedState)
