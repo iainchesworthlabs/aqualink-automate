@@ -61,14 +61,12 @@ namespace AqualinkAutomate::Developer
 		RecordingSerialPortImpl(RecordingSerialPortImpl&& other) noexcept = delete;
 		RecordingSerialPortImpl& operator=(RecordingSerialPortImpl&& other) noexcept = delete;
 
-	public:
 		// Interfaces::IRecordingController
 		bool StartRecording(const std::string& filename) override;
 		bool StopRecording() override;
 		bool IsRecording() const override;
 		Interfaces::IRecordingController::Status RecordingStatus() const override;
 
-	public:
 		// Interfaces::ISerialPortImpl
 		void open(const std::string& device_name) override;
 		void open(const std::string& device_name, boost::system::error_code& ec) override;

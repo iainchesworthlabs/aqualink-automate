@@ -56,7 +56,7 @@ namespace AqualinkAutomate::Devices::Capabilities
 
 	private:
 		const std::chrono::seconds m_TimeoutDuration;
-		bool m_IsRunning;
+		bool m_IsRunning{ false };
 		std::chrono::steady_clock::time_point m_LastKick;
 
 		static std::vector<Restartable*> s_Instances;

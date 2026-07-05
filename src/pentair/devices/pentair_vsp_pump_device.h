@@ -74,9 +74,9 @@ namespace AqualinkAutomate::Pentair::Devices
 
 	private:
 		uint8_t m_Address;
-		TimestampedRPM m_RPM;
-		TimestampedWatts m_Watts;
-		TimestampedGPM m_GPM;
+		TimestampedRPM m_RPM{ std::make_pair(0, std::chrono::system_clock::now()) };
+		TimestampedWatts m_Watts{ std::make_pair(0, std::chrono::system_clock::now()) };
+		TimestampedGPM m_GPM{ std::make_pair(0, std::chrono::system_clock::now()) };
 		bool m_IsRunning{ false };
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };
 

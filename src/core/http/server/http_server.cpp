@@ -75,7 +75,7 @@ namespace AqualinkAutomate::HTTP
 
 			if (!m_WsRevalidator())
 			{
-				LogInfo(Channel::Web, [&] { return std::format("Closing WebSocket connection {}: credential no longer authorised", m_WsConnectionId); });
+				LogInfo(Channel::Web, [this] { return std::format("Closing WebSocket connection {}: credential no longer authorised", m_WsConnectionId); });
 
 				if (m_WsHandler)
 				{
@@ -153,7 +153,7 @@ namespace AqualinkAutomate::HTTP
 		{
 			// Promote to Warning: a failed TLS handshake at the default log level is an
 			// actionable connectivity/cert problem, not routine traffic.
-			LogWarning(Channel::Web, [&] { return std::format("SSL handshake failed: {}", ec.message()); });
+			LogWarning(Channel::Web, [&ec] { return std::format("SSL handshake failed: {}", ec.message()); });
 			MarkDone();
 			return;
 		}
@@ -213,7 +213,7 @@ namespace AqualinkAutomate::HTTP
 		{
 			if (ec != boost::asio::error::operation_aborted)
 			{
-				LogTrace(Channel::Web, [&] { return std::format("HTTP read failed: {}", ec.message()); });
+				LogTrace(Channel::Web, [&ec] { return std::format("HTTP read failed: {}", ec.message()); });
 			}
 			MarkDone();
 			return;
@@ -328,13 +328,13 @@ namespace AqualinkAutomate::HTTP
 		{
 			if (ec != boost::asio::error::operation_aborted)
 			{
-				LogDebug(Channel::Web, [&] { return std::format("HTTP write failed: {}", ec.message()); });
+				LogDebug(Channel::Web, [&ec] { return std::format("HTTP write failed: {}", ec.message()); });
 			}
 			MarkDone();
 			return;
 		}
 
-		LogTrace(Channel::Web, [&] { return std::format("HTTP response written ({} bytes)", bytes_transferred); });
+		LogTrace(Channel::Web, [&bytes_transferred] { return std::format("HTTP response written ({} bytes)", bytes_transferred); });
 
 		if (!keep_alive)
 		{
@@ -432,7 +432,7 @@ namespace AqualinkAutomate::HTTP
 
 		if (ec)
 		{
-			LogWarning(Channel::Web, [&] { return std::format("WebSocket accept failed: {}", ec.message()); });
+			LogWarning(Channel::Web, [&ec] { return std::format("WebSocket accept failed: {}", ec.message()); });
 			MarkDone();
 			return;
 		}
@@ -484,7 +484,7 @@ namespace AqualinkAutomate::HTTP
 		{
 			if (ec != boost::asio::error::operation_aborted)
 			{
-				LogTrace(Channel::Web, [&] { return std::format("WebSocket read error: {}", ec.message()); });
+				LogTrace(Channel::Web, [&ec] { return std::format("WebSocket read error: {}", ec.message()); });
 				if (m_WsHandler) m_WsHandler->OnError(m_WsConnectionId);
 			}
 			MarkDone();
@@ -546,7 +546,7 @@ namespace AqualinkAutomate::HTTP
 		{
 			if (ec != boost::asio::error::operation_aborted)
 			{
-				LogDebug(Channel::Web, [&] { return std::format("WebSocket write error: {}", ec.message()); });
+				LogDebug(Channel::Web, [&ec] { return std::format("WebSocket write error: {}", ec.message()); });
 				if (m_WsHandler) m_WsHandler->OnError(m_WsConnectionId);
 			}
 			MarkDone();
@@ -628,30 +628,30 @@ namespace AqualinkAutomate::HTTP
 
 		if (m_Acceptor->open(m_Endpoint.protocol(), ec); ec)
 		{
-			LogWarning(Channel::Web, [&] { return std::format("Failed to open HTTP acceptor: {}", ec.message()); });
+			LogWarning(Channel::Web, [&ec] { return std::format("Failed to open HTTP acceptor: {}", ec.message()); });
 			return false;
 		}
 
 		if (m_Acceptor->set_option(boost::asio::socket_base::reuse_address(true), ec); ec)
 		{
-			LogWarning(Channel::Web, [&] { return std::format("Failed to set reuse_address: {}", ec.message()); });
+			LogWarning(Channel::Web, [&ec] { return std::format("Failed to set reuse_address: {}", ec.message()); });
 			return false;
 		}
 
 		if (m_Acceptor->bind(m_Endpoint, ec); ec)
 		{
-			LogWarning(Channel::Web, [&] { return std::format("Failed to bind to endpoint: {}", ec.message()); });
+			LogWarning(Channel::Web, [&ec] { return std::format("Failed to bind to endpoint: {}", ec.message()); });
 			return false;
 		}
 
 		if (m_Acceptor->listen(boost::asio::socket_base::max_listen_connections, ec); ec)
 		{
-			LogWarning(Channel::Web, [&] { return std::format("Failed to listen: {}", ec.message()); });
+			LogWarning(Channel::Web, [&ec] { return std::format("Failed to listen: {}", ec.message()); });
 			return false;
 		}
 
 		m_Running = true;
-		LogInfo(Channel::Web, [&] { return std::format("HTTP server listening on {}:{}", m_Endpoint.address().to_string(), m_Endpoint.port()); });
+		LogInfo(Channel::Web, [this] { return std::format("HTTP server listening on {}:{}", m_Endpoint.address().to_string(), m_Endpoint.port()); });
 
 		DoAccept();
 
@@ -679,7 +679,7 @@ namespace AqualinkAutomate::HTTP
 			{
 				// A listener accept failure is actionable connectivity trouble; surface
 				// it at the default log level rather than hiding it at Debug.
-				LogWarning(Channel::Web, [&] { return std::format("Accept error: {}", ec.message()); });
+				LogWarning(Channel::Web, [&ec] { return std::format("Accept error: {}", ec.message()); });
 			}
 
 			if (m_Running)
@@ -695,7 +695,7 @@ namespace AqualinkAutomate::HTTP
 
 		if (m_Sessions.size() >= MAX_CONCURRENT_CONNECTIONS)
 		{
-			LogWarning(Channel::Web, [&] { return std::format("Connection limit ({}) reached, rejecting new connection", MAX_CONCURRENT_CONNECTIONS); });
+			LogWarning(Channel::Web, [] { return std::format("Connection limit ({}) reached, rejecting new connection", MAX_CONCURRENT_CONNECTIONS); });
 			boost::system::error_code close_ec;
 			socket.close(close_ec);
 			DoAccept();
@@ -721,7 +721,7 @@ namespace AqualinkAutomate::HTTP
 
 			if (from_this_ip >= MAX_CONNECTIONS_PER_IP)
 			{
-				LogWarning(Channel::Web, [&] { return std::format("Per-IP connection limit ({}) reached for '{}', rejecting new connection", MAX_CONNECTIONS_PER_IP, peer_ip); });
+				LogWarning(Channel::Web, [&peer_ip] { return std::format("Per-IP connection limit ({}) reached for '{}', rejecting new connection", MAX_CONNECTIONS_PER_IP, peer_ip); });
 				boost::system::error_code close_ec;
 				socket.close(close_ec);
 				DoAccept();

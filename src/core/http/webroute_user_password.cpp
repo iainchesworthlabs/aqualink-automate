@@ -67,9 +67,8 @@ namespace AqualinkAutomate::HTTP
 		// The admin/self rule (see the class comment): a non-admin subject may
 		// only set their OWN password.
 		const auto& subject = Routing::CurrentSubject();
-		const bool is_admin = subject.Entitlements.Permits(Auth::Vocabulary::SYSTEM_ADMIN);
 
-		if (!is_admin && (subject.Id != *user_id))
+		if (const bool is_admin = subject.Entitlements.Permits(Auth::Vocabulary::SYSTEM_ADMIN); !is_admin && (subject.Id != *user_id))
 		{
 			complete(MakeJsonResponse(version, keep_alive, HTTP::Status::forbidden, { { "error", "You may only change your own password" } }));
 			return;
@@ -120,9 +119,7 @@ namespace AqualinkAutomate::HTTP
 
 				user->PasswordHash = std::move(password_hash);
 
-				std::string error;
-
-				if (!m_Users.Update(*user, m_Groups.Registry(), error))
+				if (std::string error; !m_Users.Update(*user, m_Groups.Registry(), error))
 				{
 					complete(MakeJsonResponse(version, keep_alive, StatusForStoreError(error), { { "error", error } }));
 					return;

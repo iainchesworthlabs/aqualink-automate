@@ -35,10 +35,8 @@ namespace AqualinkAutomate::HTTP
 			std::shared_ptr<Interfaces::ICommandDispatcher> dispatcher = {});
 		~WebRoute_ControllerSchedules() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
 		{
 			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))
@@ -66,10 +64,8 @@ namespace AqualinkAutomate::HTTP
 			std::shared_ptr<Interfaces::ICommandDispatcher> dispatcher = {});
 		~WebRoute_ControllerSchedule() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
 		{
 			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))

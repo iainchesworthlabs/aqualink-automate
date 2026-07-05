@@ -16,7 +16,6 @@ namespace AqualinkAutomate::Pentair::Devices
 		explicit PentairDeviceId(uint8_t address);
 		~PentairDeviceId() override = default;
 
-	public:
 		uint8_t Address() const;
 		uint8_t operator()() const;
 

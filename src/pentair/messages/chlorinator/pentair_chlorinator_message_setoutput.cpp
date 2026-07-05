@@ -46,9 +46,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	bool PentairChlorinatorMessage_SetOutput::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		const uint8_t data_length = message_bytes[Offset_Length];
-
-		if (data_length <= Data_Index_Output)
+		if (const uint8_t data_length = message_bytes[Offset_Length]; data_length <= Data_Index_Output)
 		{
 			LogDebug(Channel::Messages, "PentairChlorinatorMessage_SetOutput DATA too short to decode output");
 			return false;

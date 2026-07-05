@@ -20,13 +20,10 @@ namespace AqualinkAutomate::Pentair::Messages
 		PentairMessage_Unknown() noexcept;
 		~PentairMessage_Unknown() override = default;
 
-	public:
 		const std::vector<uint8_t>& Payload() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

@@ -114,11 +114,11 @@ namespace AqualinkAutomate::Kernel
         {
             if (auto it = m_Traits.find(trait_type.Name()); m_Traits.end() == it)
             {
-                LogTrace(Channel::Devices, [&]() { return std::format("Requested device trait ({}) does not exist", trait_type.Name()); });
+                LogTrace(Channel::Devices, [&trait_type]() { return std::format("Requested device trait ({}) does not exist", trait_type.Name()); });
             }
             else if (!(it->second.has_value()))
             {
-                LogDebug(Channel::Devices, [&]() { return std::format("Requested device trait ({}) does not have an associated value", trait_type.Name()); });
+                LogDebug(Channel::Devices, [&trait_type]() { return std::format("Requested device trait ({}) does not have an associated value", trait_type.Name()); });
             }
             else
             {
@@ -128,7 +128,7 @@ namespace AqualinkAutomate::Kernel
                 }
                 catch (const std::bad_any_cast&)
                 {
-                    LogDebug(Channel::Devices, [&]() { return std::format("Requested device trait ({}) associated value is the incorrect type", trait_type.Name()); });
+                    LogDebug(Channel::Devices, [&trait_type]() { return std::format("Requested device trait ({}) associated value is the incorrect type", trait_type.Name()); });
                 }
             }
 
@@ -139,8 +139,7 @@ namespace AqualinkAutomate::Kernel
         template<IsTraitType TRAIT_TYPE>
         std::expected<std::reference_wrapper<Traits>, boost::system::error_code> TrySet(const TRAIT_TYPE& trait_type, TRAIT_TYPE::TraitValue trait_value)
         {
-            auto it = m_Traits.find(trait_type.Name());
-            if (m_Traits.end() == it)
+            if (auto it = m_Traits.find(trait_type.Name()); m_Traits.end() == it)
             {
                 // PERMITTED -> Adding the trait for the first time
                 auto [_, was_inserted] = m_Traits.emplace(trait_type.Name(), std::make_any<typename TRAIT_TYPE::TraitValue>(trait_value));

@@ -31,9 +31,7 @@ namespace AqualinkAutomate::Auth
 			throw std::runtime_error(std::format("Auth store {} is unreadable ({}); refusing to continue with partial identity data", file.string(), ex.what()));
 		}
 
-		const auto schema_version = document.value("schema_version", std::uint32_t{ 0 });
-
-		if (schema_version != AUTH_STORE_SCHEMA_VERSION)
+		if (const auto schema_version = document.value("schema_version", std::uint32_t{ 0 }); schema_version != AUTH_STORE_SCHEMA_VERSION)
 		{
 			// The migration hook: when the schema evolves, migrate here (and only
 			// here) before returning.  An UNKNOWN (newer) version is fatal — a

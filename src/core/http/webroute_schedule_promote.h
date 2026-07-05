@@ -27,10 +27,8 @@ namespace AqualinkAutomate::HTTP
 			std::shared_ptr<Interfaces::ICommandDispatcher> dispatcher = {});
 		~WebRoute_SchedulePromote() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::SCHEDULES_EDIT };

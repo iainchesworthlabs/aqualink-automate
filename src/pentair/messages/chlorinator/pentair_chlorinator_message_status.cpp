@@ -13,10 +13,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	PentairChlorinatorMessage_Status::PentairChlorinatorMessage_Status() noexcept :
 		PentairMessage(PentairMessageIds::Chlorinator_Status),
-		Interfaces::IMessageSignalRecv<PentairChlorinatorMessage_Status>(),
-		m_SaltPPM(0),
-		m_OutputPercent(0),
-		m_StatusFlags(0)
+		Interfaces::IMessageSignalRecv<PentairChlorinatorMessage_Status>()
 	{
 	}
 

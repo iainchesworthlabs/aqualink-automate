@@ -23,12 +23,8 @@ namespace AqualinkAutomate::Pentair::Devices
 		PentairDevice(device_id),
 		Capabilities::Restartable(PUMP_TIMEOUT_DURATION),
 		m_Address((nullptr != device_id) ? (*device_id)() : static_cast<uint8_t>(0)),
-		m_RPM(std::make_pair(0, std::chrono::system_clock::now())),
-		m_Watts(std::make_pair(0, std::chrono::system_clock::now())),
-		m_GPM(std::make_pair(0, std::chrono::system_clock::now()))
+		m_DataHub(hub_locator.Find<Kernel::DataHub>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-
 		m_SlotManager.RegisterSlot<Messages::PentairPumpMessage_Status>(
 			[this](const Messages::PentairPumpMessage_Status& msg) { Slot_Pump_Status(msg); });
 	}

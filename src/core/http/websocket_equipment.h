@@ -26,7 +26,6 @@ namespace AqualinkAutomate::HTTP
 	public:
 		WebSocket_Equipment(Kernel::HubLocator& hub_locator);
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess() const override
 		{
 			return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };

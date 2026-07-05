@@ -43,7 +43,6 @@ namespace AqualinkAutomate::Auth
 	public:
 		static SessionStore Load(const std::filesystem::path& file);
 
-	public:
 		const std::vector<SessionRecord>& All() const noexcept { return m_Sessions; }
 		std::vector<SessionRecord> ForUser(std::string_view user_id) const;
 

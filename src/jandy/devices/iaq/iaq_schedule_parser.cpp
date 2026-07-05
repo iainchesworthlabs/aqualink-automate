@@ -45,8 +45,7 @@ namespace AqualinkAutomate::Devices::IAQ
 			{
 				if (i == text.size() || text[i] == '\t' || text[i] == '?')
 				{
-					const auto field = Trim(text.substr(start, i - start));
-					if (!field.empty()) { fields.push_back(field); }
+					if (const auto field = Trim(text.substr(start, i - start)); !field.empty()) { fields.push_back(field); }
 					start = i + 1;
 				}
 			}

@@ -69,7 +69,6 @@ namespace AqualinkAutomate::Equipment
 		Kernel::EquipmentHub* m_EquipmentHub{ nullptr };
 		std::shared_ptr<Kernel::StatisticsHub> m_StatsHub{ nullptr };
 
-	private:
 		// --decode-to-master diagnostic: when true, frames addressed to the master (0x00)
 		// are decoded and logged (observe-only). Off in normal operation.
 		bool m_DecodeToMaster{ false };

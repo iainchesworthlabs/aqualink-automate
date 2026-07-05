@@ -47,11 +47,9 @@ namespace AqualinkAutomate::Scheduling
 		SchedulerService(const SchedulerService&) = delete;
 		SchedulerService& operator=(const SchedulerService&) = delete;
 
-	public:
 		void Start();   // load schedules + start the per-minute timer
 		void Stop();
 
-	public:
 		// CRUD (used by the routes). Mutations persist to disk.
 		std::vector<Schedule> List() const;
 		std::optional<Schedule> Get(const std::string& uuid) const;
@@ -59,7 +57,6 @@ namespace AqualinkAutomate::Scheduling
 		bool Replace(const std::string& uuid, Schedule schedule);
 		bool Remove(const std::string& uuid);
 
-	public:
 		// Engine tick (public for tests). Evaluates all schedules for the current
 		// local minute and fires the matching, not-yet-fired ones.
 		void Tick();

@@ -24,7 +24,6 @@ namespace AqualinkAutomate::Auth
 	public:
 		static GroupStore Load(const std::filesystem::path& file);
 
-	public:
 		const GroupRegistry& Registry() const noexcept { return *m_Registry; }
 
 		// The LIVE registry as a shareable handle: the subject resolver holds

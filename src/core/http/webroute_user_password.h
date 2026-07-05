@@ -35,7 +35,6 @@ namespace AqualinkAutomate::HTTP
 	public:
 		WebRoute_UserPassword(Auth::UserStore& users, Auth::GroupStore& groups, Auth::SessionStore& sessions, Auth::AuditLog& audit, Utility::OffloadPool& offload, Auth::PasswordHasher::Params hash_params, boost::asio::any_io_executor executor);
 
-	public:
 		bool IsAsyncRoute() const override { return true; }
 
 		void OnRequestAsync(const HTTP::Request& req, AsyncCompletion complete) override;
@@ -43,7 +42,6 @@ namespace AqualinkAutomate::HTTP
 		// Unreached (IsAsyncRoute); satisfies the pure-virtual.
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::PREFS_SELF };

@@ -25,7 +25,6 @@ namespace AqualinkAutomate::Messages
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
-	public:
 		// Raw payload bytes retained verbatim from the wire (between the 4-byte header
 		// and 3-byte footer). Empty until DeserializeContents runs. Retained so that
 		// undecoded frames -- e.g. unrecognised commands sent TO the master -- can be

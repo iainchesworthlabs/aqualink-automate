@@ -46,7 +46,7 @@ namespace AqualinkAutomate::Navigation
 
 	void MenuModel::RegisterPage(MenuPage page)
 	{
-		LogTrace(Channel::Navigation, [&] { return std::format("MenuModel: Registering page '{}' (id={})",
+		LogTrace(Channel::Navigation, [&page] { return std::format("MenuModel: Registering page '{}' (id={})",
 			page.name, static_cast<uint32_t>(page.id)); });
 		m_Pages[page.id] = std::move(page);
 
@@ -56,7 +56,7 @@ namespace AqualinkAutomate::Navigation
 
 	void MenuModel::RegisterGlobalEdge(MenuEdge edge)
 	{
-		LogTrace(Channel::Navigation, [&] { return std::format("MenuModel: Registering global edge '{}' -> page {}",
+		LogTrace(Channel::Navigation, [&edge] { return std::format("MenuModel: Registering global edge '{}' -> page {}",
 			edge.label, static_cast<uint32_t>(edge.target)); });
 		m_GlobalEdges.push_back(std::move(edge));
 	}
@@ -131,7 +131,7 @@ namespace AqualinkAutomate::Navigation
 					total_pattern_length += d.pattern.length();
 				}
 
-				LogTrace(Channel::Navigation, [&] { return std::format("MenuModel: Page '{}' matched with {} detectors (pattern_len={})",
+				LogTrace(Channel::Navigation, [&page, total_pattern_length] { return std::format("MenuModel: Page '{}' matched with {} detectors (pattern_len={})",
 					page.name, page.detectors.size(), total_pattern_length); });
 
 				// Prefer matches with more detectors, then longer patterns as tiebreaker
@@ -148,7 +148,7 @@ namespace AqualinkAutomate::Navigation
 		if (best_match != PageId::Unknown)
 		{
 			const MenuPage* matched_page = GetPage(best_match);
-			LogTrace(Channel::Navigation, [&] { return std::format("MenuModel: Best match -> '{}' (id={}) with {} detectors",
+			LogTrace(Channel::Navigation, [&matched_page, &best_match, &best_detector_count] { return std::format("MenuModel: Best match -> '{}' (id={}) with {} detectors",
 				matched_page->name, static_cast<uint32_t>(best_match), best_detector_count); });
 
 			// Log the detector patterns that matched
@@ -156,7 +156,7 @@ namespace AqualinkAutomate::Navigation
 			{
 				if (detector.line < content.Size())
 				{
-					LogTrace(Channel::Navigation, [&] { return std::format("  Detector: line {} pattern '{}' matched in '{}'",
+					LogTrace(Channel::Navigation, [&detector, &content] { return std::format("  Detector: line {} pattern '{}' matched in '{}'",
 						detector.line, detector.pattern, content[detector.line].Text); });
 				}
 			}
@@ -168,7 +168,7 @@ namespace AqualinkAutomate::Navigation
 			{
 				if (!content[i].Text.empty())
 				{
-					LogTrace(Channel::Navigation, [&] { return std::format("  Line {}: '{}'", i, content[i].Text); });
+					LogTrace(Channel::Navigation, [&i, &content] { return std::format("  Line {}: '{}'", i, content[i].Text); });
 				}
 			}
 		}
@@ -245,7 +245,7 @@ namespace AqualinkAutomate::Navigation
 					}
 					std::ranges::reverse(path);
 
-					LogDebug(Channel::Navigation, [&] { return std::format("MenuModel: Found path from {} to {} with {} steps",
+					LogDebug(Channel::Navigation, [&from, &to, &path] { return std::format("MenuModel: Found path from {} to {} with {} steps",
 						static_cast<uint32_t>(from), static_cast<uint32_t>(to), path.size()); });
 					return path;
 				}
@@ -254,7 +254,7 @@ namespace AqualinkAutomate::Navigation
 			}
 		}
 
-		LogTrace(Channel::Navigation, [&] { return std::format("MenuModel: No path found from {} to {}",
+		LogTrace(Channel::Navigation, [&from, &to] { return std::format("MenuModel: No path found from {} to {}",
 			static_cast<uint32_t>(from), static_cast<uint32_t>(to)); });
 		return {}; // No path found
 	}

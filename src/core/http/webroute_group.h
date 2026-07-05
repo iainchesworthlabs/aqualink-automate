@@ -22,10 +22,8 @@ namespace AqualinkAutomate::HTTP
 	public:
 		WebRoute_Group(Auth::GroupStore& groups, Auth::UserStore& users, Auth::AuditLog& audit);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::SYSTEM_ADMIN };

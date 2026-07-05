@@ -63,7 +63,6 @@ namespace AqualinkAutomate::Interfaces
 	public:
 		virtual ~ISpasideRemoteController() = default;
 
-	public:
 		/// @brief Snapshot of every spa-side remote currently known on the bus.
 		virtual std::vector<RemoteState> Remotes() const = 0;
 

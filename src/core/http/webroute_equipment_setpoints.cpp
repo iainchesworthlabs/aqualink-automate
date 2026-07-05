@@ -149,12 +149,12 @@ namespace AqualinkAutomate::HTTP
 
 		try
 		{
-			if (auto err = convert_and_dispatch("pool", [&](uint8_t temp) { return m_CommandDispatcher->SetPoolSetpoint(temp); }); err.has_value())
+			if (auto err = convert_and_dispatch("pool", [this](uint8_t temp) { return m_CommandDispatcher->SetPoolSetpoint(temp); }); err.has_value())
 			{
 				return std::move(*err);
 			}
 
-			if (auto err = convert_and_dispatch("spa", [&](uint8_t temp) { return m_CommandDispatcher->SetSpaSetpoint(temp); }); err.has_value())
+			if (auto err = convert_and_dispatch("spa", [this](uint8_t temp) { return m_CommandDispatcher->SetSpaSetpoint(temp); }); err.has_value())
 			{
 				return std::move(*err);
 			}

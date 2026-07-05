@@ -28,9 +28,9 @@ namespace AqualinkAutomate::Preferences
 	// unnamed namespace
 
 	PreferencesService::PreferencesService(Kernel::HubLocator& hub_locator, const Options::Preferences::PreferencesSettings& settings) :
+		m_Hub(hub_locator.Find<Kernel::PreferencesHub>()),
 		m_Settings(settings)
 	{
-		m_Hub = hub_locator.Find<Kernel::PreferencesHub>();
 	}
 
 	void PreferencesService::Seed(std::uint32_t salt_low_ppm, std::uint32_t comms_timeout_seconds, const std::string& webhook_url, std::uint32_t retention_days)
@@ -312,12 +312,12 @@ namespace AqualinkAutomate::Preferences
 			// then accept the harmless re-write of identical content.
 			if (!ApplyJson(json, error))
 			{
-				LogWarning(Channel::Main, [&] { return std::format("Preferences file rejected ({}); using seeded/default values", error); });
+				LogWarning(Channel::Main, [&error] { return std::format("Preferences file rejected ({}); using seeded/default values", error); });
 			}
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Main, [&] { return std::format("Failed to load preferences file: {}", ex.what()); });
+			LogError(Channel::Main, [&ex] { return std::format("Failed to load preferences file: {}", ex.what()); });
 		}
 	}
 
@@ -340,7 +340,7 @@ namespace AqualinkAutomate::Preferences
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Main, [&] { return std::format("Failed to save preferences file: {}", ex.what()); });
+			LogError(Channel::Main, [&ex] { return std::format("Failed to save preferences file: {}", ex.what()); });
 		}
 	}
 

@@ -222,9 +222,7 @@ namespace AqualinkAutomate::Auth
 	{
 		return [deps = std::move(deps)](const HTTP::Request& req, bool is_websocket_upgrade) -> Subject
 		{
-			const auto token = BearerToken(req, is_websocket_upgrade);
-
-			if (!token.empty())
+			if (const auto token = BearerToken(req, is_websocket_upgrade); !token.empty())
 			{
 				if (auto subject = ResolveJwt(deps, token); subject.has_value())
 				{

@@ -27,7 +27,6 @@ namespace AqualinkAutomate::HTTP
 	public:
 		WebRoute_AuthSetup(Auth::UserStore& users, Auth::AuditLog& audit, Utility::OffloadPool& offload, Auth::PasswordHasher::Params hash_params, boost::asio::any_io_executor executor);
 
-	public:
 		bool IsAsyncRoute() const override { return true; }
 
 		void OnRequestAsync(const HTTP::Request& req, AsyncCompletion complete) override;

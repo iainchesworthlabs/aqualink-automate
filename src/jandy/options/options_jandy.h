@@ -35,20 +35,16 @@ namespace AqualinkAutomate::Jandy::Options
 
 		JandySettings() :
 			disable_emulation{ false },
-			disable_presence_gating{ false },
-			auto_startup{ false },
-			emulated_devices{},
-			navigation_password{},
-			chlorinator_setpoint_refresh_interval{ 300 }
+			emulated_devices{}
 		{
 		}
 
 		bool disable_emulation;
-		bool disable_presence_gating;     // disable RSSA presence-gating (auto-suppress emulation on a detected real adapter)
-		bool auto_startup;                // detect the controller from the bus and choose what to emulate
+		bool disable_presence_gating{ false };     // disable RSSA presence-gating (auto-suppress emulation on a detected real adapter)
+		bool auto_startup{ false };                // detect the controller from the bus and choose what to emulate
 		JandyEmulatedDeviceCollection emulated_devices;
-		std::string navigation_password;  // 4-digit password for menu navigation
-		std::uint32_t chlorinator_setpoint_refresh_interval;  // seconds between Set-AquaPure menu re-scrapes of the configured chlorinator % (0 = disabled)
+		std::string navigation_password{};  // 4-digit password for menu navigation
+		std::uint32_t chlorinator_setpoint_refresh_interval{ 300 };  // seconds between Set-AquaPure menu re-scrapes of the configured chlorinator % (0 = disabled)
 	};
 
 	class OptionsProcessor

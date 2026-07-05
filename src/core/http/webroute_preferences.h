@@ -35,10 +35,9 @@ namespace AqualinkAutomate::HTTP
 		WebRoute_Preferences(std::shared_ptr<Preferences::PreferencesService> service, std::shared_ptr<Preferences::UserPreferencesStore> user_prefs = {});
 		~WebRoute_Preferences() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
+
 		// PREFS_SELF: any authenticated subject may read/write their OWN slice.
 		// Writes to system/admin fields are additionally gated on system.admin
 		// inside the handler (a regular user PUTting a system field gets 403).

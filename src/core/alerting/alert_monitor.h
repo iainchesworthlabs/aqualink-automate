@@ -54,7 +54,6 @@ namespace AqualinkAutomate::Alerting
 		AlertMonitor(const AlertMonitor&) = delete;
 		AlertMonitor& operator=(const AlertMonitor&) = delete;
 
-	public:
 		// Register a sink invoked once per condition transition.
 		void AddSink(Sink sink);
 
@@ -64,7 +63,6 @@ namespace AqualinkAutomate::Alerting
 		// Disconnect signals and cancel the timer.
 		void Stop();
 
-	public:
 		// Re-evaluate every condition against current hub state.  Called on hub
 		// events and on each comms-timer tick; also a deterministic test seam.
 		void EvaluateAll();
@@ -77,7 +75,6 @@ namespace AqualinkAutomate::Alerting
 		void EvaluateSerialCommsLoss();
 		void EvaluateTemperatureStale();
 
-	public:
 		// Inject a deterministic clock (unix seconds).  Must be called before
 		// Start() in tests that assert timing-dependent behaviour.
 		void SetClock(ClockFn clock) { m_Clock = std::move(clock); }

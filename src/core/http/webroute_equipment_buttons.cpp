@@ -21,10 +21,10 @@ namespace AqualinkAutomate::HTTP
 {
 
 	WebRoute_Equipment_Buttons::WebRoute_Equipment_Buttons(Kernel::HubLocator& hub_locator) :
-		Interfaces::IWebRoute<EQUIPMENTBUTTONS_ROUTE_URL>()
-	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_PreferencesHub = hub_locator.Find<Kernel::PreferencesHub>();
+		Interfaces::IWebRoute<EQUIPMENTBUTTONS_ROUTE_URL>(),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_PreferencesHub(hub_locator.Find<Kernel::PreferencesHub>())
+    {
     }
 
     HTTP::Response WebRoute_Equipment_Buttons::OnRequest(const HTTP::Request& req)

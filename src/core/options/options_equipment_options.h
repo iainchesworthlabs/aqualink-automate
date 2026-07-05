@@ -24,25 +24,22 @@ namespace AqualinkAutomate::Options::Equipment
 		}
 
 		tagEquipmentSettings() :
-			pool_configuration{ Kernel::PoolConfigurations::Unknown },
-			pool_configuration_is_user_specified{ false },
-			single_body_kind{ Kernel::BodyOfWaterIds::Pool },
-			temperature_staleness_threshold_seconds{ 600 }
+			pool_configuration{ Kernel::PoolConfigurations::Unknown }
 		{
 		}
 
 		Kernel::PoolConfigurations pool_configuration;
-		bool pool_configuration_is_user_specified;
+		bool pool_configuration_is_user_specified{ false };
 
 		/// For a SingleBody (pool-only / spa-only) install, which body the single body is.
 		/// Pool-only and spa-only are indistinguishable on the wire, so spa-only is signalled
 		/// only by --pool-configuration spa-only. Ignored for DualBody configurations.
-		Kernel::BodyOfWaterIds single_body_kind;
+		Kernel::BodyOfWaterIds single_body_kind{ Kernel::BodyOfWaterIds::Pool };
 
 		/// Age (seconds) beyond which a reported temperature is flagged stale. The controller only
 		/// reports temperatures while the filter pump runs (and only for the active body on a combo
 		/// system), so a value can persist after it stops being refreshed. Default 600s (10 min).
-		unsigned int temperature_staleness_threshold_seconds;
+		unsigned int temperature_staleness_threshold_seconds{ 600 };
 
 		/// JSON cache of discovered equipment config (board, pool config, device
 		/// list with stable UUIDs). Loaded at boot for an instant dashboard, then

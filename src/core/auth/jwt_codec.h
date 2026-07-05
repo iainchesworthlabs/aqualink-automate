@@ -74,7 +74,6 @@ namespace AqualinkAutomate::Auth
 	public:
 		JwtCodec(std::shared_ptr<JwtKeyStore> key_store, Config config);
 
-	public:
 		// Mint a signed access token for the claims (IssuedAt/ExpiresAt are
 		// stamped from Config; any values in `claims` are ignored).
 		std::string Sign(const TokenClaims& claims) const;

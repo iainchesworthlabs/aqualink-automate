@@ -35,10 +35,9 @@ namespace AqualinkAutomate::Pentair::Devices
 	PentairChlorinatorDevice::PentairChlorinatorDevice(const std::shared_ptr<PentairDeviceId>& device_id, Kernel::HubLocator& hub_locator) :
 		PentairDevice(device_id),
 		Capabilities::Restartable(CHLORINATOR_TIMEOUT_DURATION),
-		m_Address((nullptr != device_id) ? (*device_id)() : static_cast<uint8_t>(0))
+		m_Address((nullptr != device_id) ? (*device_id)() : static_cast<uint8_t>(0)),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-
 		m_SlotManager.RegisterSlot<Messages::PentairChlorinatorMessage_Status>(
 			[this](const Messages::PentairChlorinatorMessage_Status& msg) { Slot_Chlorinator_Status(msg); });
 	}

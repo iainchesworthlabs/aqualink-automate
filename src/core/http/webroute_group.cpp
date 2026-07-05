@@ -37,9 +37,7 @@ namespace AqualinkAutomate::HTTP
 			return MakeJsonResponse(req, HTTP::Status::not_found, nlohmann::json{ { "error", "Group not found" } }.dump());
 		}
 
-		std::string error;
-
-		if (!m_Groups.Remove(*name, error))
+		if (std::string error; !m_Groups.Remove(*name, error))
 		{
 			// Built-in -> 409; unknown -> 404.
 			return MakeJsonResponse(req, StatusForStoreError(error), nlohmann::json{ { "error", error } }.dump());

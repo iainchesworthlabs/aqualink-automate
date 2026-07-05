@@ -323,7 +323,7 @@ namespace AqualinkAutomate::HTTP::Routing
 
 				if (!origin_allowed)
 				{
-					LogWarning(Channel::Web, [&] { return std::format("Rejected {} request: Origin '{}' is not in the allow-list", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP", origin); });
+					LogWarning(Channel::Web, [&is_websocket_upgrade, &origin] { return std::format("Rejected {} request: Origin '{}' is not in the allow-list", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP", origin); });
 					return MakeSecurityResponse(req, HTTP::Status::forbidden, "Forbidden: origin not allowed.");
 				}
 			}
@@ -338,7 +338,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				// recently is refused with 429 before the token is even examined.
 				if (auth_rate_limiter.IsBanned(peer_ip))
 				{
-					LogWarning(Channel::Web, [&] { return std::format("Rejected {} request from rate-limited source '{}'", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP", peer_ip); });
+					LogWarning(Channel::Web, [&is_websocket_upgrade, &peer_ip] { return std::format("Rejected {} request from rate-limited source '{}'", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP", peer_ip); });
 					auto throttled = MakeSecurityResponse(req, HTTP::Status::too_many_requests, "Too many failed authentication attempts; try again later.");
 					throttled.set(boost::beast::http::field::retry_after, "60");
 					return throttled;
@@ -366,7 +366,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				if (!authorised)
 				{
 					auth_rate_limiter.RecordFailure(peer_ip);
-					LogWarning(Channel::Web, [&] { return std::format("Rejected unauthenticated {} request (missing/invalid bearer token)", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP"); });
+					LogWarning(Channel::Web, [&is_websocket_upgrade] { return std::format("Rejected unauthenticated {} request (missing/invalid bearer token)", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP"); });
 					return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
 				}
 
@@ -381,7 +381,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				const std::string_view csrf = HeaderValue(req, boost::beast::string_view{ "X-Requested-With" });
 				if (csrf.empty())
 				{
-					LogWarning(Channel::Web, [&] { return std::format("Rejected state-changing {} request: missing X-Requested-With header", magic_enum::enum_name(req.method())); });
+					LogWarning(Channel::Web, [&req] { return std::format("Rejected state-changing {} request: missing X-Requested-With header", magic_enum::enum_name(req.method())); });
 					return MakeSecurityResponse(req, HTTP::Status::forbidden, "Forbidden: missing CSRF header.");
 				}
 			}
@@ -422,14 +422,12 @@ namespace AqualinkAutomate::HTTP::Routing
 			}
 
 			const Auth::ResourceRef resource{ .Kind = std::string{ requirement.ResourceKind }, .Id = std::string{ resource_id } };
-			const Auth::Environment environment{ .AuthEnabled = true };
-
-			if (Auth::Decision::Permit == Auth::PolicyEngine::Decide(current_subject, requirement.Action, resource, environment))
+			if (const Auth::Environment environment{ .AuthEnabled = true }; Auth::Decision::Permit == Auth::PolicyEngine::Decide(current_subject, requirement.Action, resource, environment))
 			{
 				return std::nullopt;
 			}
 
-			LogWarning(Channel::Web, [&] { return std::format("Denied {} {} for subject '{}' (missing entitlement '{}')", magic_enum::enum_name(req.method()), std::string_view(req.target()), current_subject.Id, requirement.Action); });
+			LogWarning(Channel::Web, [&req, &requirement] { return std::format("Denied {} {} for subject '{}' (missing entitlement '{}')", magic_enum::enum_name(req.method()), std::string_view(req.target()), current_subject.Id, requirement.Action); });
 
 			if (!current_subject.Authenticated)
 			{
@@ -477,9 +475,7 @@ namespace AqualinkAutomate::HTTP::Routing
 			return std::string{ peer_ip };
 		}
 
-		const bool trusted = std::any_of(cidrs.begin(), cidrs.end(), [&](const auto& cidr) { return AddressInCidr(peer, cidr); });
-
-		if (!trusted)
+		if (const bool trusted = std::any_of(cidrs.begin(), cidrs.end(), [&](const auto& cidr) { return AddressInCidr(peer, cidr); }); !trusted)
 		{
 			// XFF from an untrusted source is attacker-controlled: ignore it.
 			return std::string{ peer_ip };
@@ -522,7 +518,7 @@ namespace AqualinkAutomate::HTTP::Routing
 
 		if (security_config.IsEnabled())
 		{
-			LogInfo(Channel::Web, [&]
+			LogInfo(Channel::Web, []
 				{
 					return std::format("HTTP/WS security policy enabled (auth={}, origin_allowlist={}, csrf_header={})",
 						security_config.AuthToken.has_value(),
@@ -541,7 +537,7 @@ namespace AqualinkAutomate::HTTP::Routing
 	{
 		auto& handler_ref = http_routes_vec.emplace_back(std::move(handler));
 
-		LogTrace(Channel::Web, [&] { return std::format("Adding HTTP handler for route '{}'", handler_ref->Route()); });
+		LogTrace(Channel::Web, [&handler_ref] { return std::format("Adding HTTP handler for route '{}'", handler_ref->Route()); });
 
 		http_routes.insert_impl(handler_ref->Route(), handler_ref.get());
 	}
@@ -550,7 +546,7 @@ namespace AqualinkAutomate::HTTP::Routing
 	{
 		auto& handler_ref = ws_routes_vec.emplace_back(std::move(handler));
 
-		LogTrace(Channel::Web, [&] { return std::format("Adding WebSocket handler for route '{}'", handler_ref->Route()); });
+		LogTrace(Channel::Web, [&handler_ref] { return std::format("Adding WebSocket handler for route '{}'", handler_ref->Route()); });
 
 		ws_routes.insert_impl(handler_ref->Route(), handler_ref.get());
 	}
@@ -584,7 +580,7 @@ namespace AqualinkAutomate::HTTP::Routing
 		const HTTP::Request& req = *request;
 
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("Routing::RouteRequest", std::source_location::current());
-		DeferredZoneText(zone, [&] { return std::format("{} {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
+		DeferredZoneText(zone, [&req] { return std::format("{} {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
 
 		// Trusted-proxy aware client identity: behind a reverse proxy every
 		// client shares the proxy's peer address, which would let one guest's
@@ -619,7 +615,7 @@ namespace AqualinkAutomate::HTTP::Routing
 			if (auto target_url = boost::urls::parse_origin_form(req.target()); target_url.has_error())
 			{
 				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 400 Bad Request");
-				LogDebug(Channel::Web, [&] { return std::format("Supplied http target could not be parsed; error was -> {}", target_url.error().message()); });
+				LogDebug(Channel::Web, [&target_url] { return std::format("Supplied http target could not be parsed; error was -> {}", target_url.error().message()); });
 				respond(HTTP::Responses::Response_400(req));
 				return;
 			}
@@ -657,7 +653,7 @@ namespace AqualinkAutomate::HTTP::Routing
 					return;
 				}
 
-				LogTrace(Channel::Web, [&] { return std::format("Handling HTTP {} request for {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
+				LogTrace(Channel::Web, [&req] { return std::format("Handling HTTP {} request for {}", magic_enum::enum_name(req.method()), std::string_view(req.target())); });
 
 				if (p->IsAsyncRoute())
 				{
@@ -689,7 +685,7 @@ namespace AqualinkAutomate::HTTP::Routing
 			else if (sf_route.has_value() && sf_route->match(req.target(), static_file_result))
 			{
 				// Static asset -> intentionally UNauthenticated (see above).
-				LogTrace(Channel::Web, [&] { return std::format("Attempting to serve static content; file is -> {}", static_file_result.string()); });
+				LogTrace(Channel::Web, [&static_file_result] { return std::format("Attempting to serve static content; file is -> {}", static_file_result.string()); });
 				respond(HTTP::Responses::Response_StaticFile(req, static_file_result));
 				return;
 			}
@@ -718,7 +714,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				}
 
 				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 404 Not Found");
-				LogDebug(Channel::Web, [&] { return std::format("Path '{}' was requested but no HTTP handler was available", std::string_view(req.target())); });
+				LogDebug(Channel::Web, [&req] { return std::format("Path '{}' was requested but no HTTP handler was available", std::string_view(req.target())); });
 				LogDebug(Channel::Web, "Could not handle request -> returning a 404 NOT FOUND");
 				respond(HTTP::Responses::Response_404(req));
 				return;
@@ -730,7 +726,7 @@ namespace AqualinkAutomate::HTTP::Routing
 			// Promote to Warning so an escaping exception is visible at the default log
 			// level (it indicates a route handler fault, not routine traffic).  The
 			// exactly-once guard keeps this silent when the route already responded.
-			LogWarning(Channel::Web, [&] { return std::format("An exception was thrown while processing an HTTP request: exception was -> {}", ex.what()); });
+			LogWarning(Channel::Web, [&ex] { return std::format("An exception was thrown while processing an HTTP request: exception was -> {}", ex.what()); });
 			respond(HTTP::Responses::Response_500(req));
 		}
 	}
@@ -760,7 +756,7 @@ namespace AqualinkAutomate::HTTP::Routing
 	Interfaces::IWebSocketBase* WS_OnAccept(const std::string_view target)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("Routing::RouteWebSocket", std::source_location::current());
-		DeferredZoneText(zone, [&] { return std::string(target); });
+		DeferredZoneText(zone, [&target] { return std::string(target); });
 
 		try
 		{
@@ -775,21 +771,21 @@ namespace AqualinkAutomate::HTTP::Routing
 			// carries a query string still routes on its path (see HTTP_OnRequest above).
 			if (auto target_url = boost::urls::parse_origin_form(target); target_url.has_error())
 			{
-				LogDebug(Channel::Web, [&] { return std::format("Supplied websocket target could not be parsed; error was -> {}", target_url.error().message()); });
+				LogDebug(Channel::Web, [&target_url] { return std::format("Supplied websocket target could not be parsed; error was -> {}", target_url.error().message()); });
 			}
 			else if (auto p = ws_routes.find_impl(target_url->encoded_segments(), matches_it, ids_it, matches_end, ids_end); nullptr == p)
 			{
-				LogDebug(Channel::Web, [&] { return std::format("Path '{}' was requested but no WS handler was available", target); });
+				LogDebug(Channel::Web, [&target] { return std::format("Path '{}' was requested but no WS handler was available", target); });
 			}
 			else
 			{
-				LogTrace(Channel::Web, [&] { return std::format("Handling WS request for {}", target); });
+				LogTrace(Channel::Web, [&target] { return std::format("Handling WS request for {}", target); });
 				return p;
 			}
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Web, [&] { return std::format("An exception was thrown while processing a WS request: exception was -> {}", ex.what()); });
+			LogWarning(Channel::Web, [&ex] { return std::format("An exception was thrown while processing a WS request: exception was -> {}", ex.what()); });
 		}
 
 		LogDebug(Channel::Web, "Could not handle WS request -> returning nullptr");

@@ -61,8 +61,7 @@ namespace AqualinkAutomate::HTTP
 				return std::nullopt;
 			}
 
-			std::string auth_error;
-			if (!Scheduling::AuthorizeScheduleAction(HTTP::Routing::CurrentSubject(), schedule, *data_hub, auth_enabled, auth_error))
+			if (std::string auth_error; !Scheduling::AuthorizeScheduleAction(HTTP::Routing::CurrentSubject(), schedule, *data_hub, auth_enabled, auth_error))
 			{
 				return MakeResponse(req, HTTP::Status::forbidden, ContentTypes::TEXT_PLAIN, auth_error);
 			}

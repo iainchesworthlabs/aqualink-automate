@@ -33,14 +33,12 @@ namespace AqualinkAutomate::Auth
 	public:
 		Entitlement(std::string action, std::optional<std::string> selector = std::nullopt);
 
-	public:
 		// Parse "<domain>.<action>[:<selector>]".  The action path requires at
 		// least two dot-separated segments of [a-z0-9_-]; the selector (after the
 		// first ':') is taken verbatim and must be non-empty when present.
 		// Returns std::nullopt on malformed input.
 		static std::optional<Entitlement> Parse(std::string_view text);
 
-	public:
 		const std::string& Action() const noexcept { return m_Action; }
 		const std::optional<std::string>& Selector() const noexcept { return m_Selector; }
 
@@ -69,13 +67,11 @@ namespace AqualinkAutomate::Auth
 	public:
 		EntitlementSet() = default;
 
-	public:
 		// Parse a list of textual entitlements, skipping malformed entries.  When
 		// `rejected` is provided the malformed inputs are reported through it so
 		// callers (stores, admin APIs) can surface them.
 		static EntitlementSet Parse(const std::vector<std::string>& texts, std::vector<std::string>* rejected = nullptr);
 
-	public:
 		void Add(Entitlement entitlement);
 		void Merge(const EntitlementSet& other);
 

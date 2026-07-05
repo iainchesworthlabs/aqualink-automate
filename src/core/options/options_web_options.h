@@ -37,9 +37,7 @@ namespace AqualinkAutomate::Options::Web
 			https_port{ 443 },
 			http_content_is_disabled{ false },
 			http_server_is_enabled{ true },
-			https_server_is_enabled{ true },
-			ApiRequireCsrfHeader{ false },
-			InsecureNoAuthAck{ false }
+			https_server_is_enabled{ true }
 		{
 		}
 
@@ -71,13 +69,13 @@ namespace AqualinkAutomate::Options::Web
 		// X-Requested-With header. Both were implemented in the routing layer but had
 		// no option to enable them until now.
 		std::vector<std::string> ApiAllowedOrigins;
-		bool ApiRequireCsrfHeader;
+		bool ApiRequireCsrfHeader{ false };
 
 		// Operator acknowledgement that the API is intentionally exposed on a
 		// non-loopback address without authentication (e.g. behind a trusted reverse
 		// proxy). Does NOT change behaviour; it only downgrades the prominent
 		// open-control-plane startup warning to an informational note.
-		bool InsecureNoAuthAck;
+		bool InsecureNoAuthAck{ false };
 	}
 	WebSettings;
 

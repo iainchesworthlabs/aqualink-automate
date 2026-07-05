@@ -108,9 +108,8 @@ namespace AqualinkAutomate::Jandy::Options
 			for (const auto& [type, device] : devices)
 			{
 				const std::uint8_t id = device.Id()();
-				const auto valid_ids = ValidIdsForEmulatedType(type);
 
-				if (!valid_ids.contains(id))
+				if (const auto valid_ids = ValidIdsForEmulatedType(type); !valid_ids.contains(id))
 				{
 					return std::format("device id 0x{:02x} is not valid for emulated type {} (valid ids: {})",
 						id, magic_enum::enum_name(type), FormatIdSet(valid_ids));

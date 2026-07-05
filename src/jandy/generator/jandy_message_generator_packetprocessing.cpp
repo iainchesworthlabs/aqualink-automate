@@ -112,7 +112,7 @@ namespace AqualinkAutomate::Generators
 
 			{
 				auto zone3 = Factory::ProfilingUnitFactory::Instance().CreateZone("JandyMessageGenerator::PacketProcessing -> output_to_console -> logging", std::source_location::current());
-				LogTrace(Channel::Messages, [&] { return std::format("Serial Data: {}", output_message); });
+				LogTrace(Channel::Messages, [] { return std::format("Serial Data: {}", output_message); });
 			}
 		}
 	}

@@ -15,11 +15,11 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::HTTP
 {
 
-	WebRoute_Diagnostics_ActualDevices::WebRoute_Diagnostics_ActualDevices(Kernel::HubLocator& hub_locator)
-	{
+	WebRoute_Diagnostics_ActualDevices::WebRoute_Diagnostics_ActualDevices(Kernel::HubLocator& hub_locator) :
 		// HubLocator::Find throws Hub_NotFound if the hub is not registered,
 		// so a successfully-constructed route always has a valid hub pointer.
-		m_EquipmentHub = hub_locator.Find<Kernel::EquipmentHub>();
+		m_EquipmentHub(hub_locator.Find<Kernel::EquipmentHub>())
+	{
 	}
 
 	nlohmann::json WebRoute_Diagnostics_ActualDevices::CollectActualDiagnostics() const

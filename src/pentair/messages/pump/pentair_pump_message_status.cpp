@@ -14,11 +14,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	PentairPumpMessage_Status::PentairPumpMessage_Status() noexcept :
 		PentairMessage(PentairMessageIds::Pump_Status),
-		Interfaces::IMessageSignalRecv<PentairPumpMessage_Status>(),
-		m_RPM(0),
-		m_Watts(0),
-		m_GPM(0),
-		m_IsRunning(false)
+		Interfaces::IMessageSignalRecv<PentairPumpMessage_Status>()
 	{
 	}
 

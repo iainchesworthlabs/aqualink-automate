@@ -54,9 +54,9 @@ namespace AqualinkAutomate::Pentair::Messages
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint16_t m_SaltPPM;
-		uint8_t m_OutputPercent;
-		uint8_t m_StatusFlags;
+		uint16_t m_SaltPPM{0};
+		uint8_t m_OutputPercent{0};
+		uint8_t m_StatusFlags{0};
 	};
 
 }

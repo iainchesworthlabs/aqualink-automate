@@ -18,7 +18,6 @@ namespace AqualinkAutomate::HTTP
 	public:
 		explicit WebRoute_AuthRefresh(Auth::SessionService& sessions);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
 	private:

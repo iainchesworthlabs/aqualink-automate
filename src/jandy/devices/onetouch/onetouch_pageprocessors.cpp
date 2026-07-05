@@ -553,7 +553,7 @@ namespace AqualinkAutomate::Devices
 		if (JandyController::m_DataHub->PoolConfigurationSource == Kernel::ConfigurationSource::UserSpecified
 			&& pool_config_decoder.Configuration() != JandyController::m_DataHub->PoolConfiguration)
 		{
-			LogWarning(Channel::Equipment, [&]() { return std::format("Autodetected pool configuration '{}' disagrees with user-specified '{}'",
+			LogWarning(Channel::Equipment, [this, &pool_config_decoder]() { return std::format("Autodetected pool configuration '{}' disagrees with user-specified '{}'",
 				magic_enum::enum_name(pool_config_decoder.Configuration()),
 				magic_enum::enum_name(JandyController::m_DataHub->PoolConfiguration)); });
 			// User specification takes precedence; do not override.
@@ -590,7 +590,7 @@ namespace AqualinkAutomate::Devices
 			}
 		}
 
-		LogInfo(Channel::Devices, [&]() { return std::format("Aqualink Power Center - Model: {}, Type: {}, Rev: {}", model_number, panel_type, fw_revision); });
+		LogInfo(Channel::Devices, [&model_number, &panel_type, &fw_revision]() { return std::format("Aqualink Power Center - Model: {}, Type: {}, Rev: {}", model_number, panel_type, fw_revision); });
 	}
 
 	void OneTouchDevice::PageProcessor_DiagnosticsSensors(const Utility::ScreenDataPage& page)
@@ -853,7 +853,7 @@ namespace AqualinkAutomate::Devices
 			schedules.push_back(std::move(snapshot));
 		}
 
-		LogInfo(Channel::Devices, [&]() { return std::format("OneTouch ({}): parsed program '{}' (Pgm {} of {}); publishing {} controller schedule(s) for group '{}'",
+		LogInfo(Channel::Devices, [this, &key, &program_index, &program_count, &schedules]() { return std::format("OneTouch ({}): parsed program '{}' (Pgm {} of {}); publishing {} controller schedule(s) for group '{}'",
 			DeviceId(), key.first, program_index, program_count, schedules.size(), m_ControllerScheduleGroup); });
 
 		m_ControllerScheduleStore->Replace(Scheduling::ControllerScheduleStatus::Available, std::move(schedules), m_ControllerScheduleGroup);

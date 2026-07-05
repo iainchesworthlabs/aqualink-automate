@@ -21,7 +21,6 @@ namespace AqualinkAutomate::Devices
 		explicit SpasideRemoteController(std::shared_ptr<Kernel::EquipmentHub> equipment_hub);
 		~SpasideRemoteController() override = default;
 
-	public:
 		std::vector<RemoteState> Remotes() const override;
 		PressResult PressButton(uint8_t address, uint8_t button_index) override;
 		AssignResult SetButtonAssignment(uint8_t switch_number, uint8_t button_number, const std::string& function) override;

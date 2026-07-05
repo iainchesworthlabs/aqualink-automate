@@ -40,7 +40,6 @@ namespace AqualinkAutomate::Auth
 		// silently regenerating would invalidate every outstanding session.
 		static JwtKeyStore LoadOrCreate(const std::filesystem::path& key_file);
 
-	public:
 		const SigningKey& Active() const;
 		std::optional<SigningKey> Find(std::string_view kid) const;
 

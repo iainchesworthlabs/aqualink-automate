@@ -67,7 +67,7 @@ namespace AqualinkAutomate::HTTP::Routing
 
 		void insert_impl(std::string_view path, HANDLER_TYPE* v)
 		{
-			LogTrace(Channel::Web, [&] { return std::format("Inserting route {} into core routing impl", path); });
+			LogTrace(Channel::Web, [&path] { return std::format("Inserting route {} into core routing impl", path); });
 
 			// Parse dynamic route segments
 			if (path.starts_with("/"))

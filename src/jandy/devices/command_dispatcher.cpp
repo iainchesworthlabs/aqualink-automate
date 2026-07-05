@@ -85,7 +85,7 @@ namespace AqualinkAutomate::Devices
 		const std::string what{ std::format("{} '{}'", ActionVerb(action), DeviceLabel(device)) };
 		return DispatchToCapable<Capabilities::DeviceActuator>(
 			what,
-			[&](Capabilities::DeviceActuator& actuator) { return actuator.ActuateDevice(device, ToActuationAction(action)); },
+			[&device, &action](Capabilities::DeviceActuator& actuator) { return actuator.ActuateDevice(device, ToActuationAction(action)); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -113,7 +113,7 @@ namespace AqualinkAutomate::Devices
 		const std::string what{ std::format("{} '{}'", ActionVerb(action), label) };
 		return DispatchToCapable<Capabilities::DeviceActuator>(
 			what,
-			[&](Capabilities::DeviceActuator& actuator) { return actuator.ActuateDevice(device, ToActuationAction(action)); },
+			[&device, &action](Capabilities::DeviceActuator& actuator) { return actuator.ActuateDevice(device, ToActuationAction(action)); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -128,7 +128,7 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, std::format("CommandDispatcher: Setting pool setpoint to {}", temperature));
 		return DispatchToCapable<Capabilities::SetpointController>(
 			std::format("set the pool setpoint to {}", temperature),
-			[&](Capabilities::SetpointController& controller) { return controller.SetPoolSetpoint(temperature); },
+			[&temperature](Capabilities::SetpointController& controller) { return controller.SetPoolSetpoint(temperature); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -143,7 +143,7 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, std::format("CommandDispatcher: Setting spa setpoint to {}", temperature));
 		return DispatchToCapable<Capabilities::SetpointController>(
 			std::format("set the spa setpoint to {}", temperature),
-			[&](Capabilities::SetpointController& controller) { return controller.SetSpaSetpoint(temperature); },
+			[&temperature](Capabilities::SetpointController& controller) { return controller.SetSpaSetpoint(temperature); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -158,7 +158,7 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, std::format("CommandDispatcher: Setting chlorinator percentage to {}%", percentage));
 		const auto result = DispatchToCapable<Capabilities::ChlorinatorController>(
 			std::format("set the chlorinator to {}%", percentage),
-			[&](Capabilities::ChlorinatorController& controller) { return controller.SetChlorinatorPercentage(percentage); },
+			[&percentage](Capabilities::ChlorinatorController& controller) { return controller.SetChlorinatorPercentage(percentage); },
 			CommandResult::DeviceNotFound);
 
 		// Write-through cache: on a successfully-queued set, optimistically update the SAME
@@ -201,7 +201,7 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, std::format("CommandDispatcher: {} chlorinator boost", enable ? "Enabling" : "Disabling"));
 		return DispatchToCapable<Capabilities::ChlorinatorController>(
 			std::format("{} chlorinator boost", enable ? "enable" : "disable"),
-			[&](Capabilities::ChlorinatorController& controller) { return controller.SetChlorinatorBoost(enable); },
+			[&enable](Capabilities::ChlorinatorController& controller) { return controller.SetChlorinatorBoost(enable); },
 			CommandResult::DeviceNotFound);
 	}
 
@@ -210,7 +210,7 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, std::format("CommandDispatcher: Selecting IAQ page button index {}", static_cast<int>(button_index)));
 		return DispatchToCapable<Capabilities::PageNavigator>(
 			std::format("select page button {}", static_cast<int>(button_index)),
-			[&](Capabilities::PageNavigator& navigator) { return navigator.ActuatePageButton(button_index); },
+			[&button_index](Capabilities::PageNavigator& navigator) { return navigator.ActuatePageButton(button_index); },
 			CommandResult::DeviceNotFound);
 	}
 
@@ -218,7 +218,7 @@ namespace AqualinkAutomate::Devices
 	{
 		return DispatchToCapable<Capabilities::CirculationController>(
 			std::format("set circulation mode to {}", magic_enum::enum_name(mode)),
-			[&](Capabilities::CirculationController& controller) { return controller.SetCirculationMode(mode); },
+			[&mode](Capabilities::CirculationController& controller) { return controller.SetCirculationMode(mode); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -226,7 +226,7 @@ namespace AqualinkAutomate::Devices
 	{
 		return DispatchToCapable<Capabilities::HeaterController>(
 			std::format("{} {} heater", enable ? "enable" : "disable", magic_enum::enum_name(heater_body)),
-			[&](Capabilities::HeaterController& controller) { return controller.SetHeaterMode(heater_body, enable); },
+			[&heater_body, &enable](Capabilities::HeaterController& controller) { return controller.SetHeaterMode(heater_body, enable); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -234,7 +234,7 @@ namespace AqualinkAutomate::Devices
 	{
 		return DispatchToCapable<Capabilities::ControllerScheduleWriter>(
 			std::format("create controller program for '{}'", program.target),
-			[&](Capabilities::ControllerScheduleWriter& writer) { return writer.CreateControllerProgram(program); },
+			[&program](Capabilities::ControllerScheduleWriter& writer) { return writer.CreateControllerProgram(program); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -242,7 +242,7 @@ namespace AqualinkAutomate::Devices
 	{
 		return DispatchToCapable<Capabilities::ControllerScheduleWriter>(
 			std::format("delete controller program for '{}'", program.target),
-			[&](Capabilities::ControllerScheduleWriter& writer) { return writer.DeleteControllerProgram(program); },
+			[&program](Capabilities::ControllerScheduleWriter& writer) { return writer.DeleteControllerProgram(program); },
 			CommandResult::NoSerialAdapter);
 	}
 
@@ -250,7 +250,7 @@ namespace AqualinkAutomate::Devices
 	{
 		return DispatchToCapable<Capabilities::ControllerScheduleWriter>(
 			std::format("edit controller program for '{}'", existing.target),
-			[&](Capabilities::ControllerScheduleWriter& writer) { return writer.EditControllerProgram(existing, desired); },
+			[&existing, &desired](Capabilities::ControllerScheduleWriter& writer) { return writer.EditControllerProgram(existing, desired); },
 			CommandResult::NoSerialAdapter);
 	}
 

@@ -31,7 +31,6 @@ namespace AqualinkAutomate::Factory
         void SetDesired(Types::ProfilerTypes type);
         Types::ProfilerTypePtr Get();
 
-    public:
         // Introspection for the runtime control surface / startup diagnostics:
         // which backends were compiled in & registered, and which (if any) was
         // requested via --profiler. A requested-but-not-registered backend means

@@ -103,7 +103,7 @@ namespace AqualinkAutomate::Pentair::Generators
 		// without discarding rather than falling through to a try-next clear().
 		if (frame_region_size > bytes_from_sof)
 		{
-			LogTrace(Channel::Messages, [&] { return std::format("Pentair frame incomplete: need {} bytes from SOF, have {}; awaiting more data", frame_region_size, bytes_from_sof); });
+			LogTrace(Channel::Messages, [&frame_region_size, &bytes_from_sof] { return std::format("Pentair frame incomplete: need {} bytes from SOF, have {}; awaiting more data", frame_region_size, bytes_from_sof); });
 			return std::unexpected(make_error_code(Protocol_ErrorCodes::DataAvailableToProcess));
 		}
 
@@ -128,13 +128,13 @@ namespace AqualinkAutomate::Pentair::Generators
 		// Validate the checksum before constructing a message.
 		const std::span<const uint8_t> region_to_checksum = region_view.first(region_view.size() - Messages::CHECKSUM_LENGTH);
 		const uint16_t expected_checksum = Utility::PentairPacket_CalculateChecksum_FromRange(region_to_checksum);
-		const uint16_t received_checksum = static_cast<uint16_t>(
-			(static_cast<uint16_t>(region_view[region_view.size() - Messages::CHECKSUM_LENGTH]) << 8) |
-			static_cast<uint16_t>(region_view[region_view.size() - 1]));
 
-		if (expected_checksum != received_checksum)
+		if (const uint16_t received_checksum = static_cast<uint16_t>(
+				(static_cast<uint16_t>(region_view[region_view.size() - Messages::CHECKSUM_LENGTH]) << 8) |
+				static_cast<uint16_t>(region_view[region_view.size() - 1]));
+			expected_checksum != received_checksum)
 		{
-			LogDebug(Channel::Messages, [&] { return std::format("Pentair frame failed checksum check (expected 0x{:04x}, received 0x{:04x}); discarding frame", expected_checksum, received_checksum); });
+			LogDebug(Channel::Messages, [&expected_checksum, &received_checksum] { return std::format("Pentair frame failed checksum check (expected 0x{:04x}, received 0x{:04x}); discarding frame", expected_checksum, received_checksum); });
 
 			// Erase ONLY the 4-byte preamble (0xFF 0x00 0xFF 0xA5), leaving both the
 			// leading region AHEAD of it and the frame's DATA/checksum bytes behind

@@ -36,9 +36,9 @@ namespace AqualinkAutomate::HTTP
 	}
 	// unnamed namespace
 
-	WebRoute_Equipment_Chlorinator::WebRoute_Equipment_Chlorinator(Kernel::HubLocator& hub_locator)
+	WebRoute_Equipment_Chlorinator::WebRoute_Equipment_Chlorinator(Kernel::HubLocator& hub_locator) :
+		m_CommandDispatcher(hub_locator.TryFind<Interfaces::ICommandDispatcher>())
 	{
-		m_CommandDispatcher = hub_locator.TryFind<Interfaces::ICommandDispatcher>();
 	}
 
 	HTTP::Response WebRoute_Equipment_Chlorinator::OnRequest(const HTTP::Request& req)

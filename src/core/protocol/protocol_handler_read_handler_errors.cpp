@@ -61,11 +61,11 @@ namespace AqualinkAutomate::Protocol
 			// healthy bus (a partially-buffered or not-yet-mine frame), so this path
 			// must NOT eagerly format a string when the Trace channel is filtered
 			// out, and must NOT bump any error metric.
-			LogTrace(Channel::Protocol, [&] { return std::format("Protocol processing paused: {}", error_code.message()); });
+			LogTrace(Channel::Protocol, [&error_code] { return std::format("Protocol processing paused: {}", error_code.message()); });
 		}
 		else
 		{
-			LogDebug(Channel::Protocol, [&] { return std::format("Protocol error while processing messages -> unknown error occured: {}, {}", error_code.value(), error_code.message()); });
+			LogDebug(Channel::Protocol, [&error_code] { return std::format("Protocol error while processing messages -> unknown error occured: {}, {}", error_code.value(), error_code.message()); });
 		}
 	}
 

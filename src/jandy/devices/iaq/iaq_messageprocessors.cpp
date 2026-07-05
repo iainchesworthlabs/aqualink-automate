@@ -53,7 +53,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_MainStatus", std::source_location::current(), UnitColours::Red);
 
-		LogTrace(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_MainStatus: {}", DeviceId(), msg.ToString()); });
+		LogTrace(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Received IAQMessage_MainStatus: {}", DeviceId(), msg.ToString()); });
 
 		ProcessMainStatus(msg);
 
@@ -73,7 +73,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_AuxStatus", std::source_location::current(), UnitColours::Red);
 
-		LogTrace(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_AuxStatus: {}", DeviceId(), msg.ToString()); });
+		LogTrace(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Received IAQMessage_AuxStatus: {}", DeviceId(), msg.ToString()); });
 
 		ProcessAuxStatus(msg);
 
@@ -93,7 +93,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_PageStart", std::source_location::current(), UnitColours::Red);
 
-		LogTrace(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_PageStart: page_id=0x{:02x}", DeviceId(), msg.PageId()); });
+		LogTrace(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Received IAQMessage_PageStart: page_id=0x{:02x}", DeviceId(), msg.PageId()); });
 
 		// Remember which page the master is now pushing -- the spa-switch writer page-GATES on this
 		// (0x3b = the 4-Function detail) so it never issues a row-select/commit off that page.
@@ -117,11 +117,11 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_PageMessage", std::source_location::current(), UnitColours::Red);
 
-		LogTrace(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_PageMessage: line_id={}, content='{}'", DeviceId(), msg.LineId(), msg.Line()); });
+		LogTrace(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Received IAQMessage_PageMessage: line_id={}, content='{}'", DeviceId(), msg.LineId(), msg.Line()); });
 
 		if (IAQ_STATUS_PAGE_LINES <= msg.LineId())
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): PageMessage for unsupported line: line_id={} (max={}), content='{}'", DeviceId(), msg.LineId(), IAQ_STATUS_PAGE_LINES - 1, msg.Line()); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): PageMessage for unsupported line: line_id={} (max={}), content='{}'", DeviceId(), msg.LineId(), IAQ_STATUS_PAGE_LINES - 1, msg.Line()); });
 		}
 		else
 		{
@@ -182,7 +182,7 @@ namespace AqualinkAutomate::Devices
 			auto parsed = IAQ::ParseScheduleRow(text);
 			if (!parsed.has_value())
 			{
-				LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): schedule row {} not parseable: '{}'", DeviceId(), ordinal, text); });
+				LogDebug(Channel::Devices, [this, &ordinal, &text]() { return std::format("IAQ ({}): schedule row {} not parseable: '{}'", DeviceId(), ordinal, text); });
 				continue;
 			}
 
@@ -193,7 +193,7 @@ namespace AqualinkAutomate::Devices
 			schedules.push_back(std::move(parsed.value()));
 		}
 
-		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): parsed {} controller schedule(s) from group '{}'", DeviceId(), schedules.size(), group); });
+		LogInfo(Channel::Devices, [this, &schedules, &group]() { return std::format("IAQ ({}): parsed {} controller schedule(s) from group '{}'", DeviceId(), schedules.size(), group); });
 		m_ControllerScheduleStore->Replace(Scheduling::ControllerScheduleStatus::Available, std::move(schedules), group);
 	}
 
@@ -212,7 +212,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_PageButton", std::source_location::current(), UnitColours::Red);
 
-		LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_PageButton: index={}, name='{}', type={}, status={}",
+		LogDebug(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Received IAQMessage_PageButton: index={}, name='{}', type={}, status={}",
 			DeviceId(), msg.ButtonIndex(), msg.ButtonName(), magic_enum::enum_name(msg.ButtonType()), magic_enum::enum_name(msg.ButtonStatus())); });
 
 		// Retain the live button table (index -> name + status) for the CURRENT page so
@@ -237,7 +237,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_TitleMessage", std::source_location::current(), UnitColours::Red);
 
-		LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_TitleMessage: title='{}'", DeviceId(), msg.Title()); });
+		LogDebug(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Received IAQMessage_TitleMessage: title='{}'", DeviceId(), msg.Title()); });
 
 		// The Schedule list page's title carries the program group ("Schedule Group
 		// A"/"B" or a custom label); retain it for PublishSchedulePage() on PageEnd.
@@ -252,11 +252,11 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_TableMessage", std::source_location::current(), UnitColours::Red);
 
-		LogTrace(Channel::Devices, [&]() { return std::format("IAQ ({}): Received IAQMessage_TableMessage: line_id={}, content='{}'", DeviceId(), msg.LineId(), msg.Line()); });
+		LogTrace(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): Received IAQMessage_TableMessage: line_id={}, content='{}'", DeviceId(), msg.LineId(), msg.Line()); });
 
 		if (IAQ_MESSAGE_TABLE_LINES <= msg.LineId())
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): TableMessage for unsupported line: line_id={} (max={}), content='{}'", DeviceId(), msg.LineId(), IAQ_MESSAGE_TABLE_LINES - 1, msg.Line()); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("IAQ ({}): TableMessage for unsupported line: line_id={} (max={}), content='{}'", DeviceId(), msg.LineId(), IAQ_MESSAGE_TABLE_LINES - 1, msg.Line()); });
 		}
 		else
 		{
@@ -288,7 +288,7 @@ namespace AqualinkAutomate::Devices
 			if (const auto assignment = Utility::ParseSpaSwitchAssignmentLine(msg.Line()))
 			{
 				m_DataHub->SetSpaSwitchAssignment(assignment->switch_number, assignment->button_number, assignment->function);
-				LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): spa-switch assignment {}:{} -> '{}'", DeviceId(), assignment->switch_number, assignment->button_number, assignment->function); });
+				LogDebug(Channel::Devices, [this, &assignment]() { return std::format("IAQ ({}): spa-switch assignment {}:{} -> '{}'", DeviceId(), assignment->switch_number, assignment->button_number, assignment->function); });
 			}
 		}
 

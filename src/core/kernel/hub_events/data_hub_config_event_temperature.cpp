@@ -10,8 +10,6 @@ namespace AqualinkAutomate::Kernel
 		m_SpaTemp(std::nullopt),
 		m_AirTemp(std::nullopt),
 		m_PoolSetpoint(std::nullopt),
-		m_PoolSetpoint2(std::nullopt),
-		m_PoolHeater2Enabled(std::nullopt),
 		m_SpaSetpoint(std::nullopt)
 	{
 	}

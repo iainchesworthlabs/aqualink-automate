@@ -24,7 +24,6 @@ namespace AqualinkAutomate::Jandy::Startup
 		JandyStartupService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, std::chrono::seconds chlorinator_setpoint_refresh_interval = std::chrono::seconds{ 300 });
 		~JandyStartupService();
 
-	public:
 		void Start();   // Begin() the coordinator + arm the tick timer
 		void Stop();    // cancel the timer
 

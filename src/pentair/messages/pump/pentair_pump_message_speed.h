@@ -43,7 +43,7 @@ namespace AqualinkAutomate::Pentair::Messages
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint16_t m_RPM;
+		uint16_t m_RPM{ 0 };
 	};
 
 }

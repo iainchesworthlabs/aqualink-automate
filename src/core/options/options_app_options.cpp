@@ -109,9 +109,8 @@ namespace AqualinkAutomate::Options::App
 	void HandleLogSourceRegistration(boost::program_options::variables_map& vm)
 	{
 		const bool do_register = (0 < vm.count("register-log-source"));
-		const bool do_unregister = (0 < vm.count("unregister-log-source"));
 
-		if (!do_register && !do_unregister)
+		if (const bool do_unregister = (0 < vm.count("unregister-log-source")); !do_register && !do_unregister)
 		{
 			return;
 		}
@@ -123,11 +122,9 @@ namespace AqualinkAutomate::Options::App
 		// Event Log source key; every other platform returns Unsupported). Branching on
 		// the result keeps this shared handler free of an OS #ifdef — see
 		// docs/platform-isolation.md.
-		const auto result = do_register
+		switch (const auto result = do_register
 			? Application::RegisterLogSource(source_name)
-			: Application::UnregisterLogSource(source_name);
-
-		switch (result)
+			: Application::UnregisterLogSource(source_name))
 		{
 		case Application::LogSourceRegistrationResult::Succeeded:
 			std::cout << (do_register ? "Registered" : "Unregistered") << " Windows Event Log source '" << source_name << "'.\n";
@@ -166,11 +163,9 @@ namespace AqualinkAutomate::Options::App
 		// Dispatched to the platform layer (Windows talks to the SCM; every other
 		// platform returns Unsupported), so this shared handler needs no OS #ifdef
 		// — see docs/platform-isolation.md.
-		const auto result = do_install
+		switch (const auto result = do_install
 			? Application::InstallService()
-			: Application::UninstallService();
-
-		switch (result)
+			: Application::UninstallService())
 		{
 		case Application::ServiceActionResult::Succeeded:
 		case Application::ServiceActionResult::Failed:

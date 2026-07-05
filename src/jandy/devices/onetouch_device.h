@@ -95,7 +95,6 @@ namespace AqualinkAutomate::Devices
 		OneTouchDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id, Kernel::HubLocator& hub_locator, bool is_emulated);
 		~OneTouchDevice() override;
 
-	public:
 		nlohmann::json DescribeDiagnostics() const override;
 
 		// True when the DataHub already carries one or more aux devices with a
@@ -110,7 +109,6 @@ namespace AqualinkAutomate::Devices
 		// actively-emulating device ever navigates. See ChlorinatorSetpointRefresh.
 		void EnableChlorinatorSetpointRefresh(std::chrono::seconds interval);
 
-	public:
 		// DeviceActuator: actuate (toggle/on/off) a pool device by driving the emulated
 		// keypad to the Equipment ON/OFF page and Selecting the row whose label matches
 		// the device. Ranks Low so a Serial Adapter (direct command) is preferred when
@@ -391,7 +389,6 @@ namespace AqualinkAutomate::Devices
 		bool m_ActuationInProgress{ false };
 		uint32_t m_ActuationStepCount{ 0 };
 
-	private:
 		// On-demand on-screen value-edit goal (a single edit at a time). Set by the
 		// SetpointController / ChlorinatorController-% methods, serviced by
 		// ValueEdit_ProcessStep in NormalOperation. The phase machine is identical for heater
@@ -431,7 +428,6 @@ namespace AqualinkAutomate::Devices
 		// reject if another goal is mid-flight, then enqueue the goal.
 		Capabilities::ActuationResult QueueValueEdit(ValueEditGoal goal);
 
-	private:
 		// On-demand chlorinator-boost goal (start/stop, one at a time). Set by
 		// SetChlorinatorBoost, serviced by Boost_ProcessStep in NormalOperation.
 		enum class BoostPhase
@@ -445,7 +441,6 @@ namespace AqualinkAutomate::Devices
 		bool m_BoostInProgress{ false };
 		uint32_t m_BoostStepCount{ 0 };
 
-	private:
 		// On-demand SPA-SWITCH assignment edit goal (one at a time). Set by SetSpaSwitchAssignment,
 		// serviced by SpaSwitchEdit_ProcessStep. Screen-driven: each phase reads the current page and
 		// emits one key. Distinct from the value-edit because it crosses several pages (System Setup
@@ -476,7 +471,6 @@ namespace AqualinkAutomate::Devices
 		std::optional<std::string> m_PickerFirstSeenFunction;  // wrap detection while cycling the picker
 		uint32_t m_SpaSwitchCursorStuck{ 0 };
 
-	private:
 		// On-demand controller-schedule WRITE goal (one at a time). Set by the ControllerScheduleWriter
 		// methods, serviced by ControllerScheduleWrite_ProcessStep in NormalOperation. Screen-driven:
 		// each phase reads the current page and emits one key. Distinct from the value-edit because it
@@ -540,7 +534,6 @@ namespace AqualinkAutomate::Devices
 		// unparseable). Reuses the read-path ParseDaysRow.
 		std::optional<uint8_t> DisplayedDays(uint8_t line_id) const;
 
-	private:
 		// Proactive chlorinator-setpoint refresh (read-only Set AquaPure re-scrape). m_RefreshState
 		// holds the "when to scrape" policy; m_RefreshInProgress tracks an in-flight visit (counts
 		// as a goal, so it blocks user commands on the shared Navigator) and is driven step-by-step
@@ -549,7 +542,6 @@ namespace AqualinkAutomate::Devices
 		bool m_RefreshInProgress{ false };
 		uint32_t m_RefreshStepCount{ 0 };
 
-	private:
 		// AqualinkD always uses 0x80 (V2_Normal) for ACKs. The controller may ignore
 	// 0x00 responses and fail to register the device, so start with V2_Normal.
 	Messages::AckTypes m_AckType_ToSend{ Messages::AckTypes::V2_Normal };
@@ -578,7 +570,6 @@ namespace AqualinkAutomate::Devices
 		// republish the accumulated snapshot to m_ControllerScheduleStore (status Available).
 		void PublishControllerSchedules(const Utility::ScreenDataPage& page);
 
-	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;
 	};
 

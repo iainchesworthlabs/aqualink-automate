@@ -25,7 +25,6 @@ namespace AqualinkAutomate::Utility
 	public:
 		using SlotConnectionManager::SlotConnectionManager;
 
-	public:
 		template<typename MESSAGE_TYPE>
 		bool RegisterSlot_FilterByDeviceId(std::function<void(const MESSAGE_TYPE& msg)> handler, Devices::JandyDeviceId device_id)
 		{

@@ -50,13 +50,11 @@ namespace AqualinkAutomate::Devices
 	public:
 		nlohmann::json DescribeDiagnostics() const override;
 
-	public:
 		void QueueCommand(uint8_t ack_type, uint8_t ack_data_value);
 		void QueuePumpCommand(Messages::SerialAdapter_SystemPumpCommands pump, Messages::SerialAdapter_CommandTypes action);
 		void QueueAuxCommand(Auxillaries::JandyAuxillaryIds aux_id, Messages::SerialAdapter_CommandTypes action);
 		void QueueSetpointCommand(Messages::SerialAdapter_SystemTemperatureCommands setpoint, uint8_t temperature);
 
-	public:
 		// ----------------------------------------------------------------------
 		// Capability implementations: DeviceActuator / SetpointController /
 		// CirculationController. These let the capability-routed CommandDispatcher
@@ -71,7 +69,6 @@ namespace AqualinkAutomate::Devices
 		Capabilities::ActuationResult SetHeaterMode(Kernel::BodyOfWaterIds heater_body, bool enable) override;
 		Capabilities::ActuationPriority ControllerPriority() const override { return Capabilities::ActuationPriority::High; }
 
-	public:
 		// CAPTURE-GATED WRITE PATH (AqualinkD-derived, NOT yet validated on this
 		// project's live bus). These construct the exact RSSA control frames that
 		// AqualinkD (source/serialadapter.c) emits for writes:
@@ -161,7 +158,7 @@ namespace AqualinkAutomate::Devices
 		// FIFO of pending control ACKs. A single command queues one entry; the
 		// capture-gated two-step setpoint write queues two (readySP then setSP) so
 		// they are emitted on consecutive master polls in the correct order.
-		std::deque<PendingCommand> m_PendingCommands;
+		std::deque<PendingCommand> m_PendingCommands{};
 
 	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;

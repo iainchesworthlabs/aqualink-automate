@@ -101,11 +101,9 @@ namespace AqualinkAutomate::Kernel
 			spa->get().IsActive(spa_active);
 		}
 
-		const bool changed = (prev_mode != CirculationMode)
+		if (const bool changed = (prev_mode != CirculationMode)
 			|| (pool && prev_pool_active != pool->get().IsActive())
-			|| (spa && prev_spa_active != spa->get().IsActive());
-
-		if (!changed)
+			|| (spa && prev_spa_active != spa->get().IsActive()); !changed)
 		{
 			return;
 		}

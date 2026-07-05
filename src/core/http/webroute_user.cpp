@@ -151,9 +151,7 @@ namespace AqualinkAutomate::HTTP
 
 		const bool entitlement_change = (updated.Groups != current->Groups) || (updated.DirectEntitlements != current->DirectEntitlements);
 
-		std::string error;
-
-		if (!m_Users.Update(updated, m_Groups.Registry(), error))
+		if (std::string error; !m_Users.Update(updated, m_Groups.Registry(), error))
 		{
 			// Duplicate username / last-admin protection -> 409.
 			return MakeJsonResponse(req, StatusForStoreError(error), nlohmann::json{ { "error", error } }.dump());
@@ -187,9 +185,7 @@ namespace AqualinkAutomate::HTTP
 
 	HTTP::Response WebRoute_User::User_DeleteHandler(const HTTP::Request& req, const std::string& user_id)
 	{
-		std::string error;
-
-		if (!m_Users.Remove(user_id, m_Groups.Registry(), error))
+		if (std::string error; !m_Users.Remove(user_id, m_Groups.Registry(), error))
 		{
 			// Unknown id -> 404; last-admin protection -> 409.
 			return MakeJsonResponse(req, StatusForStoreError(error), nlohmann::json{ { "error", error } }.dump());

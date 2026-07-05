@@ -45,11 +45,9 @@ namespace AqualinkAutomate::HTTP
 		const bool is_admin = subject.Entitlements.Permits(Auth::Vocabulary::SYSTEM_ADMIN);
 
 		const auto& all = m_Sessions.All();
-		const auto it = std::ranges::find_if(all, [&](const auto& session) { return session.Id == *session_id; });
-
 		// Unknown id and someone ELSE's id answer identically (404): a
 		// non-admin cannot probe which session ids exist.
-		if ((all.end() == it) || (!is_admin && (it->UserId != subject.Id)))
+		if (const auto it = std::ranges::find_if(all, [&](const auto& session) { return session.Id == *session_id; }); (all.end() == it) || (!is_admin && (it->UserId != subject.Id)))
 		{
 			return not_found();
 		}

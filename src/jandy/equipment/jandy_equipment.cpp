@@ -206,7 +206,7 @@ namespace AqualinkAutomate::Equipment
 				// presses by correlating the master's poll (a cmd-0x02 Status to our id) with the
 				// generic Ack the remote sends back to the master (see spaside_remote_device.h).
 				// Created non-emulated: passively observe a real remote on the bus.
-				LogInfo(Channel::Equipment, [&] { return std::format("Adding new {} (spaside remote) device with id: {}", magic_enum::enum_name(message.Destination().Class()), message.Destination().Id()); });
+				LogInfo(Channel::Equipment, [&message] { return std::format("Adding new {} (spaside remote) device with id: {}", magic_enum::enum_name(message.Destination().Class()), message.Destination().Id()); });
 				m_EquipmentHub->AddDevice(std::make_unique<Devices::SpasideRemoteDevice>(std::move(device_id), m_HubLocator, false));
 				break;
 
@@ -220,7 +220,7 @@ namespace AqualinkAutomate::Equipment
 			case Devices::DeviceClasses::HeatPump:
 				// All three heater classes map to the same HeaterDevice; the wire
 				// class is preserved in the device id so they remain distinguishable.
-				LogInfo(Channel::Equipment, [&] { return std::format("Adding new {} device with id: {}", magic_enum::enum_name(message.Destination().Class()), message.Destination().Id()); });
+				LogInfo(Channel::Equipment, [&message] { return std::format("Adding new {} device with id: {}", magic_enum::enum_name(message.Destination().Class()), message.Destination().Id()); });
 				m_EquipmentHub->AddDevice(std::make_unique<Devices::HeaterDevice>(std::move(device_id)));
 				break;
 
@@ -250,7 +250,7 @@ namespace AqualinkAutomate::Equipment
 				{
 					// --decode-to-master: observe-only decode of frames addressed TO the master (0x00).
 					// Never transmits / emulates / replays -- it only surfaces the decode for analysis.
-					LogInfo(Channel::Messages, [&] { return FormatToMasterTraffic(message); });
+					LogInfo(Channel::Messages, [this, &message] { return FormatToMasterTraffic(message); });
 				}
 				else if (const auto device_class = message.Destination().Class(); m_ReportedUnsupportedClasses.insert(device_class).second)
 				{
@@ -258,7 +258,7 @@ namespace AqualinkAutomate::Equipment
 					// Notify so an operator sees the gap, then stay silent for every
 					// subsequent message addressed to the same class (rate limiting --
 					// previously this logged a Debug line on every such message).
-					LogNotify(Channel::Equipment, [&] { return std::format("Device class ({}, {}) not supported.", magic_enum::enum_name(device_class), message.Destination().Id()); });
+					LogNotify(Channel::Equipment, [&device_class, &message] { return std::format("Device class ({}, {}) not supported.", magic_enum::enum_name(device_class), message.Destination().Id()); });
 				}
 				break;
 			}
@@ -271,7 +271,7 @@ namespace AqualinkAutomate::Equipment
 		auto& message_counter = m_StatsHub->MessageCounts[message_id];
 		++message_counter;
 
-		LogTrace(Channel::Equipment, [&] { return std::format("Stats: {} messages of type {} received", message_counter, magic_enum::enum_name(message_id)); });
+		LogTrace(Channel::Equipment, [&message_counter, &message_id] { return std::format("Stats: {} messages of type {} received", message_counter, magic_enum::enum_name(message_id)); });
 	}
 
 	void JandyEquipment::DisplayUnknownMessages(const Messages::JandyMessage& message)

@@ -59,7 +59,6 @@ namespace AqualinkAutomate::Auth
 	public:
 		explicit AuditLog(Config config);
 
-	public:
 		void Record(const AuditEvent& event);
 
 	private:

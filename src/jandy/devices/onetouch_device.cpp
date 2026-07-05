@@ -37,6 +37,9 @@ namespace AqualinkAutomate::Devices
 		m_MenuModel(Navigation::CreateOneTouchMenuModel()),
 		m_Navigator(std::make_unique<Navigation::Navigator>(m_MenuModel)),
 		m_SpiderEngine(std::make_unique<Navigation::SpiderEngine>(m_MenuModel, *m_Navigator)),
+		// Read-only sink for the controller's internal schedules parsed off the per-equipment
+		// Program detail pages. Absent on a passive/test rig that registers no store.
+		m_ControllerScheduleStore(hub_locator.TryFind<Scheduling::ControllerScheduleStore>()),
 		m_ProfilingDomain(std::move(Factory::ProfilingUnitFactory::Instance().CreateDomain("OneTouchDevice")))
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::OneTouchDevice", std::source_location::current());
@@ -44,10 +47,6 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, std::format("Creating OneTouchDevice: device_id={}, emulated={}, timeout={}s", *device_id, is_emulated, ONETOUCH_TIMEOUT_DURATION.count()));
 
 		m_ProfilingDomain->Start();
-
-		// Read-only sink for the controller's internal schedules parsed off the per-equipment
-		// Program detail pages. Absent on a passive/test rig that registers no store.
-		m_ControllerScheduleStore = hub_locator.TryFind<Scheduling::ControllerScheduleStore>();
 
 		PageProcessors(
 			{
@@ -611,9 +610,7 @@ namespace AqualinkAutomate::Devices
 			}
 
 			const auto nav_cmd = m_SpiderEngine->ProcessStep(DisplayedPage(), m_HighlightedLine);
-			const auto state = m_SpiderEngine->GetState();
-
-			if (state == Navigation::SpiderEngine::State::Complete || state == Navigation::SpiderEngine::State::Failed)
+			if (const auto state = m_SpiderEngine->GetState(); state == Navigation::SpiderEngine::State::Complete || state == Navigation::SpiderEngine::State::Failed)
 			{
 				LogDebug(Channel::Scraping, std::format("OneTouch ({}): setpoint refresh crawl {} ({} pages visited)",
 					DeviceId(),
@@ -1703,8 +1700,7 @@ namespace AqualinkAutomate::Devices
 				break;
 			}
 
-			const uint8_t action_row = (goal.op == ScheduleWriteOp::Edit) ? ONETOUCH_SCHEDULE_CHANGE_ROW : ONETOUCH_SCHEDULE_ADD_ROW;
-			if (move_cursor_to(action_row))
+			if (const uint8_t action_row = (goal.op == ScheduleWriteOp::Edit) ? ONETOUCH_SCHEDULE_CHANGE_ROW : ONETOUCH_SCHEDULE_ADD_ROW; move_cursor_to(action_row))
 			{
 				m_KeyCommand_ToSend = KeyCommands::Select;   // -> the editor
 				m_ScheduleWriteFieldStep = 0;

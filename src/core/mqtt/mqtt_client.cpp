@@ -241,8 +241,8 @@ namespace AqualinkAutomate::Mqtt
 					if (pv)
 					{
 						pv->visit(am::overload{
-							[&](am::v3_1_1::connack_packet const& p) { accepted = (p.code() == am::connect_return_code::accepted); },
-							[&](am::v5::connack_packet const& p) { accepted = (p.code() == am::connect_reason_code::success); },
+							[&accepted](am::v3_1_1::connack_packet const& p) { accepted = (p.code() == am::connect_return_code::accepted); },
+							[&accepted](am::v5::connack_packet const& p) { accepted = (p.code() == am::connect_reason_code::success); },
 							[](auto const&) {}
 						});
 					}
@@ -288,8 +288,8 @@ namespace AqualinkAutomate::Mqtt
 					if (pv)
 					{
 						pv->visit(am::overload{
-							[&](am::v3_1_1::publish_packet const& p) { DeliverPublish(p.topic(), p.payload()); },
-							[&](am::v5::publish_packet const& p) { DeliverPublish(p.topic(), p.payload()); },
+							[this](am::v3_1_1::publish_packet const& p) { DeliverPublish(p.topic(), p.payload()); },
+							[this](am::v5::publish_packet const& p) { DeliverPublish(p.topic(), p.payload()); },
 							[](auto const&) {}
 						});
 					}
@@ -300,7 +300,7 @@ namespace AqualinkAutomate::Mqtt
 
 		void DeliverPublish(const std::string& topic, const std::string& payload)
 		{
-			LogDebug(Channel::Mqtt, [&] { return std::format("Received PUBLISH: topic='{}', payload_size={}", Logging::SanitizeForLog(topic), payload.size()); });
+			LogDebug(Channel::Mqtt, [&topic, &payload] { return std::format("Received PUBLISH: topic='{}', payload_size={}", Logging::SanitizeForLog(topic), payload.size()); });
 			m_Owner.OnMessageReceived(topic, payload);
 		}
 
@@ -368,12 +368,12 @@ namespace AqualinkAutomate::Mqtt
 
 		void Subscribe(const std::string& filter, std::uint8_t /*qos*/)
 		{
-			WithEndpoint([&](auto& ep)
+			WithEndpoint([this, &filter](auto& ep)
 			{
 				auto pid = ep->acquire_unique_packet_id();
 				if (!pid)
 				{
-					LogWarning(Channel::Mqtt, [&] { return std::format("Cannot subscribe to '{}': no packet id available", filter); });
+					LogWarning(Channel::Mqtt, [&filter] { return std::format("Cannot subscribe to '{}': no packet id available", filter); });
 					return;
 				}
 
@@ -382,7 +382,7 @@ namespace AqualinkAutomate::Mqtt
 				{
 					if (ec)
 					{
-						LogWarning(Channel::Mqtt, [&, msg = ec.message()] { return std::format("Failed to send SUBSCRIBE for '{}': {}", filter, msg); });
+						LogWarning(Channel::Mqtt, [&filter, msg = ec.message()] { return std::format("Failed to send SUBSCRIBE for '{}': {}", filter, msg); });
 					}
 				};
 
@@ -396,7 +396,7 @@ namespace AqualinkAutomate::Mqtt
 				{
 					ep->async_send(am::v3_1_1::subscribe_packet{ *pid, { { filter, am::qos::at_most_once } } }, std::move(cb));
 				}
-				LogDebug(Channel::Mqtt, [&] { return std::format("Sent SUBSCRIBE for '{}'", filter); });
+				LogDebug(Channel::Mqtt, [&filter] { return std::format("Sent SUBSCRIBE for '{}'", filter); });
 			});
 		}
 
@@ -406,7 +406,7 @@ namespace AqualinkAutomate::Mqtt
 
 		void ScheduleReconnect(const std::string& reason, bool emit_disconnect = false)
 		{
-			LogWarning(Channel::Mqtt, [&] { return std::format("MQTT reconnecting (attempt {}): {}", m_Owner.m_ReconnectAttempts + 1, reason); });
+			LogWarning(Channel::Mqtt, [this, &reason] { return std::format("MQTT reconnecting (attempt {}): {}", m_Owner.m_ReconnectAttempts + 1, reason); });
 
 			m_Owner.m_LastError = reason;
 			CloseActive();
@@ -487,7 +487,7 @@ namespace AqualinkAutomate::Mqtt
 				}
 				else
 				{
-					LogError(Channel::Mqtt, [&] { return std::format("CA certificate file not found: {}", m_Owner.m_Settings.tls_ca_cert); });
+					LogError(Channel::Mqtt, [this] { return std::format("CA certificate file not found: {}", m_Owner.m_Settings.tls_ca_cert); });
 				}
 			}
 
@@ -534,7 +534,7 @@ namespace AqualinkAutomate::Mqtt
 		, m_Impl(std::make_unique<Impl>(*this, io_context))
 	{
 		m_ClientId = settings.client_id.empty() ? GenerateClientId() : settings.client_id;
-		LogDebug(Channel::Mqtt, [&] { return std::format("MQTT client created with client ID: {} (MQTT {})", m_ClientId, Options::Mqtt::ToString(settings.protocol_version)); });
+		LogDebug(Channel::Mqtt, [this, &settings] { return std::format("MQTT client created with client ID: {} (MQTT {})", m_ClientId, Options::Mqtt::ToString(settings.protocol_version)); });
 
 		if (!m_Settings.password.empty() && !m_Settings.use_tls)
 		{
@@ -550,7 +550,7 @@ namespace AqualinkAutomate::Mqtt
 	void MqttClient::SetWill(const std::string& topic, const std::string& payload, bool retain)
 	{
 		m_WillConfig = WillConfig{ topic, payload, retain };
-		LogDebug(Channel::Mqtt, [&] { return std::format("LWT configured: topic='{}', retain={}", topic, retain); });
+		LogDebug(Channel::Mqtt, [&topic, &retain] { return std::format("LWT configured: topic='{}', retain={}", topic, retain); });
 	}
 
 	void MqttClient::Start()
@@ -570,7 +570,7 @@ namespace AqualinkAutomate::Mqtt
 			? am::protocol_version::v5
 			: am::protocol_version::v3_1_1;
 
-		LogInfo(Channel::Mqtt, [&] { return std::format("Starting MQTT client, connecting to {}:{} (MQTT {})",
+		LogInfo(Channel::Mqtt, [this] { return std::format("Starting MQTT client, connecting to {}:{} (MQTT {})",
 			m_Settings.broker_host, m_Settings.broker_port, Options::Mqtt::ToString(m_Settings.protocol_version)); });
 
 		m_Impl->BeginConnect();
@@ -641,7 +641,7 @@ namespace AqualinkAutomate::Mqtt
 	{
 		if (m_State != State::Connected)
 		{
-			LogWarning(Channel::Mqtt, [&] { return std::format("Cannot subscribe to '{}': not connected", topic_filter); });
+			LogWarning(Channel::Mqtt, [&topic_filter] { return std::format("Cannot subscribe to '{}': not connected", topic_filter); });
 			return;
 		}
 		m_Impl->Subscribe(topic_filter, qos);

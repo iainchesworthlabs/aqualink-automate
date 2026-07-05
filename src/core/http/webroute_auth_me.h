@@ -34,7 +34,6 @@ namespace AqualinkAutomate::HTTP
 
 		~WebRoute_AuthMe() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
 	private:

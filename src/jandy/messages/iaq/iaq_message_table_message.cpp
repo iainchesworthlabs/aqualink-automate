@@ -15,7 +15,6 @@ namespace AqualinkAutomate::Messages
 		IAQMessage(JandyMessageIds::IAQ_TableMessage),
 		Interfaces::IMessageSignalRecv<IAQMessage_TableMessage>(),
 		m_LineId(0),
-		m_Attribute(0),
 		m_Line()
 	{
 	}
@@ -48,7 +47,7 @@ namespace AqualinkAutomate::Messages
 
 	bool IAQMessage_TableMessage::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into IAQMessage_TableMessage type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into IAQMessage_TableMessage type", message_bytes.size()); });
 
 		if (!Text::RequireIndex(message_bytes, Index_LineId, "IAQMessage_TableMessage", "LineId"))
 		{
@@ -69,7 +68,7 @@ namespace AqualinkAutomate::Messages
 		// Display line: NUL pad -> space / trailing pad stripped, leading spaces kept.
 		m_Line = Text::ExtractTrailingDisplayLine(message_bytes, Index_LineText);
 
-		LogDebug(Channel::Messages, [&]() { return std::format("Deserialised IAQMessage_TableMessage: LineId -> {}, Attribute -> {}, LineText -> '{}' ({} chars)", m_LineId, m_Attribute, m_Line, m_Line.length()); });
+		LogDebug(Channel::Messages, [this]() { return std::format("Deserialised IAQMessage_TableMessage: LineId -> {}, Attribute -> {}, LineText -> '{}' ({} chars)", m_LineId, m_Attribute, m_Line, m_Line.length()); });
 
 		return true;
 	}

@@ -14,15 +14,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	PentairControllerMessage_Status::PentairControllerMessage_Status() noexcept :
 		PentairMessage(PentairMessageIds::Controller_Status),
-		Interfaces::IMessageSignalRecv<PentairControllerMessage_Status>(),
-		m_Hour(0),
-		m_Minute(0),
-		m_CircuitMask(0),
-		m_WaterTempF(0),
-		m_AirTempF(0),
-		m_HeaterMask(0),
-		m_HasWaterTemp(false),
-		m_HasAirTemp(false)
+		Interfaces::IMessageSignalRecv<PentairControllerMessage_Status>()
 	{
 	}
 

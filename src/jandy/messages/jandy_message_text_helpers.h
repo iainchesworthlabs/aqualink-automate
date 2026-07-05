@@ -41,9 +41,8 @@ namespace AqualinkAutomate::Messages::Text
 	[[nodiscard]] constexpr char SanitisePrintableAsciiByte(uint8_t byte) noexcept
 	{
 		constexpr uint8_t FIRST_PRINTABLE_ASCII{ 0x20 }; // space
-		constexpr uint8_t LAST_PRINTABLE_ASCII{ 0x7E };  // tilde
 
-		if (byte >= FIRST_PRINTABLE_ASCII && byte <= LAST_PRINTABLE_ASCII)
+		if (constexpr uint8_t LAST_PRINTABLE_ASCII{ 0x7E }; byte >= FIRST_PRINTABLE_ASCII && byte <= LAST_PRINTABLE_ASCII)  // tilde
 		{
 			return static_cast<char>(byte);
 		}

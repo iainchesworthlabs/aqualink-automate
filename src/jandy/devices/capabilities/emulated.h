@@ -65,7 +65,6 @@ namespace AqualinkAutomate::Devices::Capabilities
 	public:
 		bool IsEmulated() const;
 
-	public:
 		// Presence gating (bus safety): an emulated device that detects a REAL
 		// device answering the master at the same bus address must permanently
 		// stop transmitting so the bus never has two transmitters on one address.
@@ -79,7 +78,6 @@ namespace AqualinkAutomate::Devices::Capabilities
 		bool IsEmulationSuppressed() const;
 		bool IsEmulationActive() const;
 
-	public:
 		// A collision handler is the address manager's hook for preferring RELOCATION over
 		// suppression. When this instance detects a real device at its address, the handler is
 		// invoked to stand up the emulation at a FREE instance of the same class (returning true

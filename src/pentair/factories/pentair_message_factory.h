@@ -32,10 +32,8 @@ namespace AqualinkAutomate::Pentair::Factory
 	public:
 		PentairMessageFactory() = delete;
 
-	public:
 		[[nodiscard]] static Types::PentairMessageTypePtr CreateMessageFromCommand(Messages::PentairMessageIds id) noexcept;
 
-	public:
 		template <Messages::PentairRawMessageRange MESSAGE_BYTES_RANGE>
 		[[nodiscard]] static Types::PentairExpectedMessageType CreateFromSerialData(const MESSAGE_BYTES_RANGE& message_bytes)
 		{
@@ -55,7 +53,7 @@ namespace AqualinkAutomate::Pentair::Factory
 					magic_enum::enum_cast<Messages::PentairMessageIds>(raw_command)
 						.value_or(Messages::PentairMessageIds::Unknown));
 
-				LogTrace(Channel::Messages, [&]() { return std::format("Generating: Pentair message --> {} (0x{:02x})", magic_enum::enum_name(command_id), raw_command); });
+				LogTrace(Channel::Messages, [&command_id, &raw_command]() { return std::format("Generating: Pentair message --> {} (0x{:02x})", magic_enum::enum_name(command_id), raw_command); });
 
 				if (Types::PentairMessageTypePtr message = CreateMessageFromCommand(command_id); !message)
 				{
@@ -69,7 +67,7 @@ namespace AqualinkAutomate::Pentair::Factory
 				}
 				else
 				{
-					LogTrace(Channel::Messages, [&]() { return std::format("Pentair Message Contents -> {{{}}}", message->ToString()); });
+					LogTrace(Channel::Messages, [&message]() { return std::format("Pentair Message Contents -> {{{}}}", message->ToString()); });
 					return message;
 				}
 			}

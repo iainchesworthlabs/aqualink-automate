@@ -27,15 +27,15 @@ namespace AqualinkAutomate::HTTP
 	{
 	}
 
+	// TryFind (not Find): a spa-side controller is only present when the Jandy stack is running.
+	// In dev-mode/replay there is none, and the route should still construct and report an empty
+	// list rather than throw.
 	WebRoute_Equipment_SpasideRemotes::WebRoute_Equipment_SpasideRemotes(Kernel::HubLocator& hub_locator, std::shared_ptr<Preferences::PreferencesService> preferences_service) :
+		m_Controller(hub_locator.TryFind<Interfaces::ISpasideRemoteController>()),
+		m_DataHub(hub_locator.TryFind<Kernel::DataHub>()),
+		m_PreferencesHub(hub_locator.TryFind<Kernel::PreferencesHub>()),
 		m_PreferencesService(std::move(preferences_service))
 	{
-		// TryFind (not Find): a spa-side controller is only present when the Jandy stack is running.
-		// In dev-mode/replay there is none, and the route should still construct and report an empty
-		// list rather than throw.
-		m_Controller = hub_locator.TryFind<Interfaces::ISpasideRemoteController>();
-		m_DataHub = hub_locator.TryFind<Kernel::DataHub>();
-		m_PreferencesHub = hub_locator.TryFind<Kernel::PreferencesHub>();
 	}
 
 	HTTP::Response WebRoute_Equipment_SpasideRemotes::OnRequest(const HTTP::Request& req)

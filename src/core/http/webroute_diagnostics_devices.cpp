@@ -27,8 +27,7 @@ namespace AqualinkAutomate::HTTP
 				// *state* rather than on the describable type alone. A device
 				// that is not an IEmulatedDevice is treated as non-emulated.
 				auto emulated = dynamic_cast<const Interfaces::IEmulatedDevice*>(&device);
-				const bool is_emulated = (nullptr != emulated) && emulated->IsEmulated();
-				if (is_emulated != want_emulated)
+				if (const bool is_emulated = (nullptr != emulated) && emulated->IsEmulated(); is_emulated != want_emulated)
 				{
 					return;
 				}
@@ -45,11 +44,11 @@ namespace AqualinkAutomate::HTTP
 		return result;
 	}
 
-	WebRoute_Diagnostics_Devices::WebRoute_Diagnostics_Devices(Kernel::HubLocator& hub_locator)
-	{
+	WebRoute_Diagnostics_Devices::WebRoute_Diagnostics_Devices(Kernel::HubLocator& hub_locator) :
 		// HubLocator::Find throws Hub_NotFound if the hub is not registered,
 		// so a successfully-constructed route always has a valid hub pointer.
-		m_EquipmentHub = hub_locator.Find<Kernel::EquipmentHub>();
+		m_EquipmentHub(hub_locator.Find<Kernel::EquipmentHub>())
+	{
 	}
 
 	nlohmann::json WebRoute_Diagnostics_Devices::CollectEmulatedDiagnostics() const

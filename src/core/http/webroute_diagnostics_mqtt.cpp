@@ -43,8 +43,7 @@ namespace AqualinkAutomate::HTTP
 		json["running"] = integration->IsRunning();
 
 		auto hub = integration->GetMqttHub();
-		auto client = hub ? hub->GetMqttClient() : nullptr;
-		if (client)
+		if (auto client = hub ? hub->GetMqttClient() : nullptr; client)
 		{
 			const auto& s = client->Settings();
 			json["connected"] = client->IsConnected();

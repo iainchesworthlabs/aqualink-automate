@@ -258,10 +258,9 @@ namespace AqualinkAutomate::Certificates
 		// pointed --cert/--cert-key at a file that does not exist, that is a
 		// misconfiguration that must fail loudly (the caller throws), not be silently
 		// papered over with a generated cert.
-		const bool using_defaults =
+		if (const bool using_defaults =
 			(configured.certificate == fs::path(Application::DEFAULT_CERTIFICATE)) &&
-			(configured.private_key == fs::path(Application::DEFAULT_PRIVATE_KEY));
-		if (!using_defaults)
+			(configured.private_key == fs::path(Application::DEFAULT_PRIVATE_KEY)); !using_defaults)
 		{
 			return std::nullopt;
 		}

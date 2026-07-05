@@ -59,7 +59,7 @@ namespace AqualinkAutomate::Messages
 
 	bool JandyMessage_MessageLong::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into JandyMessage_MessageLong type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into JandyMessage_MessageLong type", message_bytes.size()); });
 
 		if (!Text::RequireIndex(message_bytes, Index_LineId, "JandyMessage_MessageLong", "LineId"))
 		{
@@ -86,7 +86,7 @@ namespace AqualinkAutomate::Messages
 			m_Line.resize(DISPLAY_LINE_LENGTH);
 		}
 
-		LogDebug(Channel::Messages, [&]() { return std::format("Deserialised JandyMessage_MessageLong: LineId -> {}, LineText -> '{}' ({} chars)", m_LineId, m_Line, m_Line.length()); });
+		LogDebug(Channel::Messages, [this]() { return std::format("Deserialised JandyMessage_MessageLong: LineId -> {}, LineText -> '{}' ({} chars)", m_LineId, m_Line, m_Line.length()); });
 
 		return true;
 	}

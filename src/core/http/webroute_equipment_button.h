@@ -33,7 +33,6 @@ namespace AqualinkAutomate::HTTP
 			return { .Action = Auth::Vocabulary::EQUIPMENT_CONTROL_AUX, .ResourceKind = "aux" };
 		}
 
-	public:
 		HTTP::Response ButtonIndividual_GetHandler(const HTTP::Request& req);
 		HTTP::Response ButtonIndividual_PostHandler(const HTTP::Request& req);
 

@@ -36,7 +36,6 @@ namespace AqualinkAutomate::Interfaces
 	public:
 		virtual ~IProfilingController() = default;
 
-	public:
 		/// @brief Current profiler status (enabled, running, active + available backends).
 		virtual Status ProfilingStatus() const = 0;
 

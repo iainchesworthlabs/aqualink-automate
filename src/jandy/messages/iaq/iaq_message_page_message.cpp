@@ -42,7 +42,7 @@ namespace AqualinkAutomate::Messages
 
 	bool IAQMessage_PageMessage::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into IAQMessage_PageMessage type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into IAQMessage_PageMessage type", message_bytes.size()); });
 
 		if (!Text::RequireIndex(message_bytes, Index_LineId, "IAQMessage_PageMessage", "LineId"))
 		{
@@ -62,7 +62,7 @@ namespace AqualinkAutomate::Messages
 		// Display line: NUL pad -> space / trailing pad stripped, leading spaces kept.
 		m_Line = Text::ExtractTrailingDisplayLine(message_bytes, Index_LineText);
 
-		LogDebug(Channel::Messages, [&]() { return std::format("Deserialised IAQMessage_PageMessage: LineId -> {}, LineText -> '{}' ({} chars)", m_LineId, m_Line, m_Line.length()); });
+		LogDebug(Channel::Messages, [this]() { return std::format("Deserialised IAQMessage_PageMessage: LineId -> {}, LineText -> '{}' ({} chars)", m_LineId, m_Line, m_Line.length()); });
 
 		return true;
 	}

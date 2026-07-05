@@ -44,21 +44,18 @@ namespace AqualinkAutomate::Messages
 		LightMessage_Status() noexcept;
 		~LightMessage_Status() override = default;
 
-	public:
 		LightStates State() const;
 		bool IsOn() const;
 		uint8_t LightMode() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		LightStates m_State;
-		uint8_t m_LightMode;
+		LightStates m_State{ LightStates::Unknown };
+		uint8_t m_LightMode{ 0 };
 	};
 
 }

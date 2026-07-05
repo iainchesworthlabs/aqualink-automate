@@ -42,7 +42,6 @@ namespace AqualinkAutomate::Utility
 		OffloadPool(const OffloadPool&) = delete;
 		OffloadPool& operator=(const OffloadPool&) = delete;
 
-	public:
 		// Execute work() on a pool thread, then completion(result) on
 		// completion_executor.  Both callables are moved; captured state must
 		// stay alive until the completion runs (capture shared_ptr/by value).

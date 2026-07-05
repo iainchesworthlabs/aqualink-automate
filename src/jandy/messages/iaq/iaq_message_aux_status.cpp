@@ -54,7 +54,7 @@ namespace AqualinkAutomate::Messages
 
 	bool IAQMessage_AuxStatus::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into IAQMessage_AuxStatus type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into IAQMessage_AuxStatus type", message_bytes.size()); });
 
 		if (message_bytes.size() <= JandyMessage::PACKET_HEADER_LENGTH + JandyMessage::PACKET_FOOTER_LENGTH)
 		{

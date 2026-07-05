@@ -84,7 +84,6 @@ namespace AqualinkAutomate::Devices
 	public:
 		nlohmann::json DescribeDiagnostics() const override;
 
-	public:
 		void QueueCommand(uint8_t command);
 		void QueueChlorinatorPercentage(uint8_t percentage);
 		void QueueChlorinatorBoost(bool enable);
@@ -163,7 +162,6 @@ namespace AqualinkAutomate::Devices
 		// NotSupported when passive / busy; InvalidValue if `desired` is not controller-representable.
 		Capabilities::ActuationResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override;
 
-	public:
 		// Operating-state queries (also exercised by the device tests).
 		bool IsInNormalOperation() const { return m_OpState == OperatingStates::NormalOperation; }
 		bool IsFaulted() const { return m_OpState == OperatingStates::FaultHasOccurred; }
@@ -173,7 +171,6 @@ namespace AqualinkAutomate::Devices
 		void ProcessControllerUpdates() override;
 		void ProcessControllerUpdates(bool is_poll_message);
 
-	protected:
 		void WatchdogTimeoutOccurred() override;
 
 	private:
@@ -269,7 +266,7 @@ namespace AqualinkAutomate::Devices
 		// Resolved from the HubLocator: the read-only snapshot of the controller's own
 		// internal schedules that the /api/controller/schedules route serves. Null-safe
 		// (a passive/test rig may not register one). Populated by PublishSchedulePage().
-		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore;
+		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore{ nullptr };
 
 		// Parse the just-completed Schedule list page (m_ScheduleRows + m_CurrentPageTitle)
 		// into ControllerSchedule spans and swap them into the store, tagged with the
@@ -281,7 +278,6 @@ namespace AqualinkAutomate::Devices
 		// this until the target function appears, then commits at (slot + IAQ_SPASWITCH_COMMIT_BASE).
 		std::map<uint8_t, std::string> m_SpaSwitchPickerRows;
 
-	private:
 		// On-demand spa-switch button-assignment WRITE goal (one at a time). Set by
 		// SetSpaSwitchAssignment, serviced by SpaSwitchWrite_ProcessStep on each poll. Drives the
 		// AqualinkTouch (0x33) UI: navigate Home -> menu -> Setup -> Spa Remotes -> open the
@@ -379,7 +375,6 @@ namespace AqualinkAutomate::Devices
 		// at most one command (into m_PendingCommand) per poll, page-gated on m_CurrentPageId.
 		void ControllerScheduleWrite_ProcessStep();
 
-	private:
 		OperatingStates m_OpState{ OperatingStates::StartUp };
 		bool m_HasReceivedData{ false };       // has any traffic ever been addressed to this id? (distinguishes "not present" from "went silent")
 		bool m_HasReceivedMainStatus{ false }; // has a MainStatus ever decoded? (a 0x33 renders System Status; a heartbeat-only 0xA3 renders Cloud Link)

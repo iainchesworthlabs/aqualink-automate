@@ -12,8 +12,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	PentairMessage_Unknown::PentairMessage_Unknown() noexcept :
 		PentairMessage(PentairMessageIds::Unknown),
-		Interfaces::IMessageSignalRecv<PentairMessage_Unknown>(),
-		m_Payload()
+		Interfaces::IMessageSignalRecv<PentairMessage_Unknown>()
 	{
 	}
 

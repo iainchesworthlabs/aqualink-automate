@@ -39,7 +39,6 @@ namespace AqualinkAutomate::Pentair::Equipment
 		void IdentifyAndAddChlorinator(const Messages::PentairChlorinatorMessage_Status& message);
 		void IdentifyAndAddController(const Messages::PentairControllerMessage_Status& message);
 
-	private:
 		// Shared device-discovery helper.  Validates the wire FROM address against
 		// the supplied predicate (so only addresses inside the device's documented
 		// range can ever create a device — an out-of-range / spoofed FROM is
@@ -59,8 +58,7 @@ namespace AqualinkAutomate::Pentair::Equipment
 				return;
 			}
 
-			Devices::PentairDeviceId candidate_id(address);
-			if (m_EquipmentHub->DeviceExists(candidate_id))
+			if (Devices::PentairDeviceId candidate_id(address); m_EquipmentHub->DeviceExists(candidate_id))
 			{
 				return;
 			}
@@ -74,7 +72,6 @@ namespace AqualinkAutomate::Pentair::Equipment
 	private:
 		std::vector<boost::signals2::connection> m_MessageConnections;
 
-	private:
 		Kernel::HubLocator& m_HubLocator;
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };
 		// Raw (non-owning) pointer, NOT a shared_ptr: the EquipmentHub OWNS this

@@ -28,7 +28,6 @@ namespace AqualinkAutomate::Preferences
 	public:
 		PreferencesService(Kernel::HubLocator& hub_locator, const Options::Preferences::PreferencesSettings& settings);
 
-	public:
 		// Seed the runtime-editable fields from the effective CLI/config values so
 		// existing deployments behave identically until a preference is changed.
 		void Seed(std::uint32_t salt_low_ppm, std::uint32_t comms_timeout_seconds, const std::string& webhook_url, std::uint32_t retention_days);

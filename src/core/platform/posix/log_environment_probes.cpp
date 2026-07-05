@@ -15,8 +15,7 @@ namespace AqualinkAutomate::Logging::Sinks
 
 	std::optional<DevIno> PlatformStatStderr() noexcept
 	{
-		struct stat st{};
-		if (0 == ::fstat(STDERR_FILENO, &st))
+		if (struct stat st{}; 0 == ::fstat(STDERR_FILENO, &st))
 		{
 			return DevIno{ static_cast<std::uint64_t>(st.st_dev), static_cast<std::uint64_t>(st.st_ino) };
 		}

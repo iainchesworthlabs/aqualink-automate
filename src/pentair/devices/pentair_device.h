@@ -21,7 +21,6 @@ namespace AqualinkAutomate::Pentair::Devices
 		PentairDevice(const std::shared_ptr<PentairDeviceId>& device_id);
 		~PentairDevice() override = default;
 
-	public:
 		const PentairDeviceId& DeviceId() const;
 
 	protected:

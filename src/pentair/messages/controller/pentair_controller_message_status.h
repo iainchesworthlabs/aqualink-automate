@@ -47,7 +47,6 @@ namespace AqualinkAutomate::Pentair::Messages
 		PentairControllerMessage_Status() noexcept;
 		~PentairControllerMessage_Status() override = default;
 
-	public:
 		uint8_t Hour() const;
 		uint8_t Minute() const;
 
@@ -63,22 +62,20 @@ namespace AqualinkAutomate::Pentair::Messages
 		bool PoolHeaterOn() const;
 		bool SpaHeaterOn() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint8_t m_Hour;
-		uint8_t m_Minute;
-		uint8_t m_CircuitMask;
-		uint8_t m_WaterTempF;
-		uint8_t m_AirTempF;
-		uint8_t m_HeaterMask;
-		bool m_HasWaterTemp;
-		bool m_HasAirTemp;
+		uint8_t m_Hour{0};
+		uint8_t m_Minute{0};
+		uint8_t m_CircuitMask{0};
+		uint8_t m_WaterTempF{0};
+		uint8_t m_AirTempF{0};
+		uint8_t m_HeaterMask{0};
+		bool m_HasWaterTemp{false};
+		bool m_HasAirTemp{false};
 	};
 
 }

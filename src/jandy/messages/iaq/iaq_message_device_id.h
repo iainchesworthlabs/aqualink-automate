@@ -26,14 +26,11 @@ namespace AqualinkAutomate::Messages
 		IAQMessage_DeviceId() noexcept;
 		~IAQMessage_DeviceId() override = default;
 
-	public:
 		// The decoded NUL-terminated ASCII device id (empty until deserialised).
 		const std::string& DeviceId() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

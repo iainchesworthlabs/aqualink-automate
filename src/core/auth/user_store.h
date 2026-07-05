@@ -49,7 +49,6 @@ namespace AqualinkAutomate::Auth
 		// throws (identity data must never be silently dropped).
 		static UserStore Load(const std::filesystem::path& file);
 
-	public:
 		bool Empty() const noexcept { return m_Users.empty(); }
 		std::size_t Size() const noexcept { return m_Users.size(); }
 		const std::vector<UserRecord>& All() const noexcept { return m_Users; }

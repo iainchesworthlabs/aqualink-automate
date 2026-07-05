@@ -18,7 +18,6 @@ namespace AqualinkAutomate::HTTP
 		WebRoute_AuthCheck() = default;
 		~WebRoute_AuthCheck() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 	};
 

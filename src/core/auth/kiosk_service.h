@@ -87,7 +87,6 @@ namespace AqualinkAutomate::Auth
 			AuditLog& audit,
 			Config config);
 
-	public:
 		bool Enabled() const;
 		std::string TargetGroup() const;
 

@@ -28,10 +28,8 @@ namespace AqualinkAutomate::HTTP
 		WebRoute_Schedules(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub = {});
 		~WebRoute_Schedules() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
 		{
 			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))
@@ -56,10 +54,8 @@ namespace AqualinkAutomate::HTTP
 		WebRoute_Schedule(std::shared_ptr<Scheduling::SchedulerService> service, std::shared_ptr<Kernel::DataHub> data_hub = {});
 		~WebRoute_Schedule() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
 		{
 			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))

@@ -31,11 +31,11 @@ namespace AqualinkAutomate::HTTP
 
 	}
 
-	WebRoute_Diagnostics_Profiling::WebRoute_Diagnostics_Profiling(Kernel::HubLocator& hub_locator)
+	// TryFind (not Find): keep the route resilient even if the controller was
+	// not registered — it then reports enabled=false and rejects toggles.
+	WebRoute_Diagnostics_Profiling::WebRoute_Diagnostics_Profiling(Kernel::HubLocator& hub_locator) :
+		m_ProfilingController(hub_locator.TryFind<Interfaces::IProfilingController>())
 	{
-		// TryFind (not Find): keep the route resilient even if the controller was
-		// not registered — it then reports enabled=false and rejects toggles.
-		m_ProfilingController = hub_locator.TryFind<Interfaces::IProfilingController>();
 	}
 
 	HTTP::Response WebRoute_Diagnostics_Profiling::OnRequest(const HTTP::Request& req)
@@ -85,9 +85,7 @@ namespace AqualinkAutomate::HTTP
 				return MakeErrorResponse(req, HTTP::Status::bad_request, "profiling_action_required", "Request must contain a string 'action' of 'start', 'stop' or 'select'");
 			}
 
-			const auto action = body["action"].get<std::string>();
-
-			if ("start" == action)
+			if (const auto action = body["action"].get<std::string>(); "start" == action)
 			{
 				if (!m_ProfilingController->Start())
 				{

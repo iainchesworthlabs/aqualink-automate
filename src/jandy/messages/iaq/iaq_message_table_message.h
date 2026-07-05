@@ -43,7 +43,7 @@ namespace AqualinkAutomate::Messages
 
 	private:
 		uint8_t m_LineId;
-		uint8_t m_Attribute;
+		uint8_t m_Attribute{ 0 };
 		std::string m_Line;
 	};
 

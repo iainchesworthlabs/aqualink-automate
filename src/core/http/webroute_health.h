@@ -25,7 +25,6 @@ namespace AqualinkAutomate::HTTP
 		WebRoute_Health() = default;
 		~WebRoute_Health() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 		bool RequiresAuthentication() const final { return false; }
 	};

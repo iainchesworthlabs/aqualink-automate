@@ -64,7 +64,7 @@ namespace AqualinkAutomate::Protocol
 					{
 						break;  // Try again next iteration
 					}
-					LogWarning(Channel::Serial, [&] { return std::format("Serial write error: {}", ec.message()); });
+					LogWarning(Channel::Serial, [&ec] { return std::format("Serial write error: {}", ec.message()); });
 					if (m_StatisticsHub) { ++m_StatisticsHub->Serial.TransmissionFailures; }
 					break;
 				}
@@ -78,13 +78,13 @@ namespace AqualinkAutomate::Protocol
 
 			if (m_WriteOffset >= buffer.size())
 			{
-				LogTrace(Channel::Serial, [&] { return std::format("Successfully wrote all {} bytes to serial port", buffer.size()); });
+				LogTrace(Channel::Serial, [&buffer] { return std::format("Successfully wrote all {} bytes to serial port", buffer.size()); });
 				m_WriteQueue.pop_front();
 				m_WriteOffset = 0;
 			}
 			else if (bytes_written_this_call > 0)
 			{
-				LogDebug(Channel::Serial, [&] { return std::format("Write incomplete: wrote {} of {} bytes", m_WriteOffset, buffer.size()); });
+				LogDebug(Channel::Serial, [this, &buffer] { return std::format("Write incomplete: wrote {} of {} bytes", m_WriteOffset, buffer.size()); });
 				break;  // Partial write; retry remainder next iteration
 			}
 			else
@@ -123,7 +123,7 @@ namespace AqualinkAutomate::Protocol
 				}
 				else
 				{
-					LogTrace(Channel::Serial, [&] { return std::format("Serial read returned: {}", ec.message()); });
+					LogTrace(Channel::Serial, [&ec] { return std::format("Serial read returned: {}", ec.message()); });
 				}
 				break;
 			}
@@ -279,7 +279,7 @@ namespace AqualinkAutomate::Protocol
 				catch (const std::exception& ex)
 				{
 					if (m_StatisticsHub) { ++m_StatisticsHub->MessageErrors.HandlerExceptions; }
-					LogWarning(Channel::Protocol, [&] { return std::format(
+					LogWarning(Channel::Protocol, [&ex] { return std::format(
 						"Exception while dispatching a decoded message to its handlers; dropping the message and continuing: {}", ex.what()); });
 				}
 
@@ -310,12 +310,11 @@ namespace AqualinkAutomate::Protocol
 				// (and there may be another packet behind it) or signalled that an
 				// identified-but-incomplete frame is awaiting more bytes.  Either way
 				// we may continue ONLY IF the buffer actually shrank.
-				const bool keep_processing =
+				if (const bool keep_processing =
 					(error == make_error_code(ErrorCodes::Protocol_ErrorCodes::DataAvailableToProcess))
 					|| (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::ChecksumFailure))
 					|| (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::OverlappingPackets));
-
-				if (keep_processing)
+					keep_processing)
 				{
 					if (circular_buffer.size() < size_before)
 					{

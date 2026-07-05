@@ -35,12 +35,10 @@ namespace AqualinkAutomate::EquipmentCache
 	public:
 		EquipmentCacheService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::Equipment::EquipmentSettings& settings);
 
-	public:
 		void Load();   // boot: pre-populate the DataHub from the cache file
 		void Start();  // begin the change-detected periodic save
 		void Stop();   // cancel the timer and write a final snapshot
 
-	public:
 		// Exposed for tests (and reused internally).
 		nlohmann::json Snapshot() const;
 		void ApplySnapshot(const nlohmann::json& json);

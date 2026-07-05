@@ -48,7 +48,6 @@ namespace AqualinkAutomate::Auth
 		// SHA-256 hex digest of a presented secret (exposed for tests).
 		static std::string DigestOf(std::string_view secret);
 
-	public:
 		const std::vector<ApiKeyRecord>& All() const noexcept { return m_Keys; }
 		std::optional<ApiKeyRecord> FindById(std::string_view id) const;
 

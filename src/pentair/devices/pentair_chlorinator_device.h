@@ -27,21 +27,17 @@ namespace AqualinkAutomate::Pentair::Devices
 		PentairChlorinatorDevice(const std::shared_ptr<PentairDeviceId>& device_id, Kernel::HubLocator& hub_locator);
 		~PentairChlorinatorDevice() override = default;
 
-	public:
 		uint16_t ReportedSaltPPM() const;
 		uint8_t ReportedOutputPercent() const;
 
-	public:
 		// Emit a set-output command (controller -> this chlorinator).
 		void SetOutput(uint8_t output_percent) const;
 
 	private:
 		void WatchdogTimeoutOccurred() override;
 
-	private:
 		void Slot_Chlorinator_Status(const Messages::PentairChlorinatorMessage_Status& msg);
 
-	private:
 		void EnsureChlorinatorDeviceExists();
 		void PushStatusToDataHub(const Messages::PentairChlorinatorMessage_Status& msg);
 

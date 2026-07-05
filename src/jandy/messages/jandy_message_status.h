@@ -53,7 +53,6 @@ namespace AqualinkAutomate::Messages
 		// cmd-0x02 LED-indicator image, whose indicator byte is payload[0] -- can read it.
 		const std::vector<uint8_t>& RawPayload() const;
 
-	public:
 		std::string ToString() const override;
 
 	public:

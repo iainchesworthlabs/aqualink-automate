@@ -56,7 +56,6 @@ namespace AqualinkAutomate::Jandy::Startup
 	public:
 		explicit StartupCoordinator(IStartupEnvironment& env);
 
-	public:
 		// Stand up the detector (SerialAdapter) and enter Detecting.
 		void Begin();
 
@@ -65,7 +64,6 @@ namespace AqualinkAutomate::Jandy::Startup
 		// plans from whatever it has (possibly ObserveOnly). Returns the current phase.
 		Phase Advance(bool detection_window_elapsed);
 
-	public:
 		Phase CurrentPhase() const { return m_Phase; }
 		const StartupPlan& Plan() const { return m_Plan; }
 

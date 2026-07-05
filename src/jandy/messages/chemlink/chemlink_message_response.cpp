@@ -43,7 +43,7 @@ namespace AqualinkAutomate::Messages
 
 	bool ChemlinkMessage_Response::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into ChemlinkMessage_Response type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into ChemlinkMessage_Response type", message_bytes.size()); });
 
 		if (!Text::RequireIndex(message_bytes, Index_DataTag, "ChemlinkMessage_Response", "DataTag"))
 		{

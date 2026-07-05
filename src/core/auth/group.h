@@ -51,7 +51,6 @@ namespace AqualinkAutomate::Auth
 		// start EMPTY — deny-by-default; Administrators holds system.admin).
 		static GroupRegistry WithBuiltIns();
 
-	public:
 		void Upsert(Group group);
 		std::optional<Group> Find(std::string_view name) const;
 		const std::vector<Group>& All() const noexcept { return m_Groups; }

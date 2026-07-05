@@ -87,14 +87,13 @@ namespace AqualinkAutomate::Alerting
 	AlertMonitor::AlertMonitor(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::Alerting::AlertingSettings& settings) :
 		m_IoContext(io_context),
 		m_Settings(settings),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_EquipmentHub(hub_locator.Find<Kernel::EquipmentHub>()),
+		m_StatisticsHub(hub_locator.Find<Kernel::StatisticsHub>()),
+		m_PreferencesHub(hub_locator.Find<Kernel::PreferencesHub>()),
 		m_Clock(SystemClockSeconds),
 		m_CommsTimer(io_context)
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_EquipmentHub = hub_locator.Find<Kernel::EquipmentHub>();
-		m_StatisticsHub = hub_locator.Find<Kernel::StatisticsHub>();
-		m_PreferencesHub = hub_locator.Find<Kernel::PreferencesHub>();
-
 		// Seed the latch for every catalogue condition so transitions are detected
 		// from a known (cleared) baseline.
 		for (const auto& condition : AlertConditions)
@@ -393,7 +392,7 @@ namespace AqualinkAutomate::Alerting
 
 		AlertTransition transition{ std::string{ key }, raised, m_Clock(), std::move(detail), std::move(params) };
 
-		LogInfo(Channel::Equipment, [&] { return std::format("Alert {} {}: {}", transition.condition, raised ? "RAISED" : "cleared", transition.detail); });
+		LogInfo(Channel::Equipment, [&transition, &raised] { return std::format("Alert {} {}: {}", transition.condition, raised ? "RAISED" : "cleared", transition.detail); });
 
 		for (const auto& sink : m_Sinks)
 		{

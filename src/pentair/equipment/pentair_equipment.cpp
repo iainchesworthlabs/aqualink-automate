@@ -18,7 +18,6 @@ namespace AqualinkAutomate::Pentair::Equipment
 	PentairEquipment::PentairEquipment(Kernel::HubLocator& hub_locator) :
 		IEquipment(),
 		IStatusPublisher(AqualinkAutomate::Equipment::EquipmentStatus_Unknown{}),
-		m_MessageConnections(),
 		m_HubLocator(hub_locator)
 	{
 		m_DataHub = m_HubLocator.Find<Kernel::DataHub>();

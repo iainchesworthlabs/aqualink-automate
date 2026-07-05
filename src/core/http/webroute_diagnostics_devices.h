@@ -34,10 +34,8 @@ namespace AqualinkAutomate::HTTP
 		WebRoute_Diagnostics_Devices(Kernel::HubLocator& hub_locator);
 		~WebRoute_Diagnostics_Devices() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
 		{
 			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))
@@ -48,7 +46,6 @@ namespace AqualinkAutomate::HTTP
 			return { .Action = Auth::Vocabulary::SYSTEM_ADMIN };
 		}
 
-	public:
 		// Collect diagnostic JSON for every *emulated* device in the hub.
 		nlohmann::json CollectEmulatedDiagnostics() const;
 

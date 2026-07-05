@@ -27,7 +27,6 @@ namespace AqualinkAutomate::Auth
 	public:
 		static KioskStore Load(const std::filesystem::path& file);
 
-	public:
 		bool Enabled() const noexcept { return m_Enabled; }
 		const std::string& TargetGroup() const noexcept { return m_TargetGroup; }
 		const std::string& PinHash() const noexcept { return m_PinHash; }

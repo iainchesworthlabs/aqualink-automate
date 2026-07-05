@@ -88,12 +88,12 @@ namespace AqualinkAutomate::HTTP
 	}
 	// namespace
 
-	WebRoute_Equipment::WebRoute_Equipment(Kernel::HubLocator& hub_locator) : 
-		Interfaces::IWebRoute<EQUIPMENT_ROUTE_URL>()
+	WebRoute_Equipment::WebRoute_Equipment(Kernel::HubLocator& hub_locator) :
+		Interfaces::IWebRoute<EQUIPMENT_ROUTE_URL>(),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_StatisticsHub(hub_locator.Find<Kernel::StatisticsHub>()),
+		m_PreferencesHub(hub_locator.Find<Kernel::PreferencesHub>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_StatisticsHub = hub_locator.Find<Kernel::StatisticsHub>();
-		m_PreferencesHub = hub_locator.Find<Kernel::PreferencesHub>();
 	}
 
 	HTTP::Response WebRoute_Equipment::OnRequest(const HTTP::Request& req)

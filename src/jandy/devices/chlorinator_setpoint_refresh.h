@@ -91,8 +91,7 @@ namespace AqualinkAutomate::Devices
 				return Action::None;
 			}
 
-			const bool interval_elapsed = (now - m_LastScrape) >= m_Interval;
-			if (m_RecoveryPending || interval_elapsed)
+			if (const bool interval_elapsed = (now - m_LastScrape) >= m_Interval; m_RecoveryPending || interval_elapsed)
 			{
 				return Action::Scrape;
 			}

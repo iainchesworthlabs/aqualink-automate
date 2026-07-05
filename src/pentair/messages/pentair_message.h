@@ -42,18 +42,15 @@ namespace AqualinkAutomate::Pentair::Messages
 		PentairMessage(const PentairMessageIds msg_id);
 		~PentairMessage() override = default;
 
-	public:
 		uint8_t From() const;
 		uint8_t Destination() const;
 		uint8_t RawCommand() const;
 		uint8_t DataLength() const;
 
-	public:
 		uint8_t MaxPermittedPacketLength() const override;
 		uint8_t MinPermittedPacketLength() const override;
 		std::string ToString() const override;
 
-	public:
 		// ISerializable interface.  Serialize() produces a fully-framed frame
 		// (preamble + checksummed region + checksum).  Deserialize() takes the
 		// checksummed region (0xA5 .. CHK_LO).
@@ -62,7 +59,6 @@ namespace AqualinkAutomate::Pentair::Messages
 		bool Deserialize(const std::span<const std::byte>& message_bytes) final;
 		virtual bool DeserializeContents(std::span<const uint8_t> message_bytes) = 0;
 
-	public:
 		// Hot-path deserialise directly from a contiguous uint8_t range (the
 		// generator hands a linearised circular-buffer subrange).  The frame has
 		// ALREADY been checksum-validated by the generator before reaching here, so
@@ -84,10 +80,10 @@ namespace AqualinkAutomate::Pentair::Messages
 		bool FrameChecksumIsValid(std::span<const uint8_t> message_bytes) const;
 
 	protected:
-		uint8_t m_From;
-		uint8_t m_Destination;
-		uint8_t m_RawCommand;
-		uint8_t m_DataLength;
+		uint8_t m_From{0};
+		uint8_t m_Destination{0};
+		uint8_t m_RawCommand{0};
+		uint8_t m_DataLength{0};
 	};
 
 }

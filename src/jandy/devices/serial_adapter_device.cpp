@@ -27,7 +27,6 @@ namespace AqualinkAutomate::Devices
 		m_StatusTypesCollection(),
 		m_StatusTypesCollectionIter(),
 		m_StatusMessageReceived(false),
-		m_PendingCommands(),
 		m_ProfilingDomain(std::move(Factory::ProfilingUnitFactory::Instance().CreateDomain("SerialAdapterDevice")))
 	{
 		m_ProfilingDomain->Start();

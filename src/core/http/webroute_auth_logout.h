@@ -19,7 +19,6 @@ namespace AqualinkAutomate::HTTP
 	public:
 		explicit WebRoute_AuthLogout(Auth::SessionService& sessions);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
 	private:

@@ -35,9 +35,9 @@ namespace AqualinkAutomate::EquipmentCache
 	EquipmentCacheService::EquipmentCacheService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::Equipment::EquipmentSettings& settings) :
 		m_IoContext(io_context),
 		m_Settings(settings),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
 		m_Timer(io_context)
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
 	}
 
 	nlohmann::json EquipmentCacheService::Snapshot() const
@@ -198,7 +198,7 @@ namespace AqualinkAutomate::EquipmentCache
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Main, [&] { return std::format("Failed to load equipment cache: {}", ex.what()); });
+			LogError(Channel::Main, [&ex] { return std::format("Failed to load equipment cache: {}", ex.what()); });
 		}
 	}
 
@@ -218,7 +218,7 @@ namespace AqualinkAutomate::EquipmentCache
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Main, [&] { return std::format("Failed to save equipment cache: {}", ex.what()); });
+			LogError(Channel::Main, [&ex] { return std::format("Failed to save equipment cache: {}", ex.what()); });
 		}
 	}
 

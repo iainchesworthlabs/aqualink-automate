@@ -16,9 +16,7 @@ namespace AqualinkAutomate::Auxillaries
 	// is what makes it correct for dual-equipment models and DIP-repurposed relays.
 	inline std::optional<Kernel::PowerCenterIds> PowerCenterForAuxId(JandyAuxillaryIds id)
 	{
-		const auto value = static_cast<uint8_t>(id);
-
-		if (value == static_cast<uint8_t>(JandyAuxillaryIds::ExtraAux))
+		if (const auto value = static_cast<uint8_t>(id); value == static_cast<uint8_t>(JandyAuxillaryIds::ExtraAux))
 		{
 			return std::nullopt;
 		}

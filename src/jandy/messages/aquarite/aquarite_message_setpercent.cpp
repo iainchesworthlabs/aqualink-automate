@@ -10,8 +10,7 @@ namespace AqualinkAutomate::Messages
 
 	AquariteMessage_SetPercent::AquariteMessage_SetPercent() noexcept :
 		AquariteMessage(JandyMessageIds::AQUARITE_SetPercent),
-		Interfaces::IMessageSignalRecv<AquariteMessage_SetPercent>(),
-		m_Percent(0)
+		Interfaces::IMessageSignalRecv<AquariteMessage_SetPercent>()
 	{
 	}
 

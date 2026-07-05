@@ -33,7 +33,6 @@ namespace AqualinkAutomate::Serial::RFC2217
 		void set_stop_bits(Serial::StopBits stop_bits) override;
 		void set_flow_control(Serial::FlowControl flow_control) override;
 
-	public:
 		// Strip RFC2217/telnet IAC control sequences from a raw inbound socket
 		// buffer, compacting the surviving data bytes to the front of the same
 		// buffer (in place). Returns the number of data bytes written.  IAC

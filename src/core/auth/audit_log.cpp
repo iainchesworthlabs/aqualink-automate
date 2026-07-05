@@ -139,9 +139,8 @@ namespace AqualinkAutomate::Auth
 		namespace fs = std::filesystem;
 
 		std::error_code ec;
-		const auto current_size = fs::file_size(m_Config.JsonlFile, ec);
 
-		if (ec || ((current_size + incoming_bytes) <= m_Config.MaxFileBytes))
+		if (const auto current_size = fs::file_size(m_Config.JsonlFile, ec); ec || ((current_size + incoming_bytes) <= m_Config.MaxFileBytes))
 		{
 			return;
 		}

@@ -52,7 +52,7 @@ namespace AqualinkAutomate::Messages
 
 	bool JandyMessage_Message::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into JandyMessage_Message type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into JandyMessage_Message type", message_bytes.size()); });
 
 		// At least one LineText character must be present: the payload runs from
 		// Index_LineText up to the 3-byte footer, so the packet must be longer than
@@ -72,7 +72,7 @@ namespace AqualinkAutomate::Messages
 			m_Line.resize(DISPLAY_LINE_LENGTH);
 		}
 
-		LogDebug(Channel::Messages, [&]() { return std::format("Deserialised JandyMessage_Message: LineText -> '{}' ({} chars)", m_Line, m_Line.length()); });
+		LogDebug(Channel::Messages, [this]() { return std::format("Deserialised JandyMessage_Message: LineText -> '{}' ({} chars)", m_Line, m_Line.length()); });
 
 		return true;
 	}

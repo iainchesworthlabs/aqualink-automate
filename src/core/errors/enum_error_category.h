@@ -46,7 +46,6 @@ namespace AqualinkAutomate::ErrorCodes
 			return std::format("{} - unknown error code ({})", DERIVED::CategoryName, ev);
 		}
 
-	public:
 		// Centralised factory helpers - each concrete category's free-function
 		// make_error_code / make_error_condition overloads forward to these so
 		// the construction logic lives in exactly one place.

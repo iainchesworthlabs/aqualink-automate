@@ -12,9 +12,7 @@ namespace AqualinkAutomate::Messages
 
 	LightMessage_Status::LightMessage_Status() noexcept :
 		LightMessage(JandyMessageIds::Light_Status),
-		Interfaces::IMessageSignalRecv<LightMessage_Status>(),
-		m_State(LightStates::Unknown),
-		m_LightMode(0)
+		Interfaces::IMessageSignalRecv<LightMessage_Status>()
 	{
 	}
 

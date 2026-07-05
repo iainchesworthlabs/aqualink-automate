@@ -156,7 +156,7 @@ namespace AqualinkAutomate::Auth
 	{
 		const auto digest = Sha256Hex(presented_secret);
 
-		const auto removed = std::erase_if(m_Sessions, [&](const auto& session) { return session.RefreshDigest == digest; });
+		const auto removed = std::erase_if(m_Sessions, [&digest](const auto& session) { return session.RefreshDigest == digest; });
 
 		if (removed > 0)
 		{
@@ -168,7 +168,7 @@ namespace AqualinkAutomate::Auth
 
 	bool SessionStore::RevokeById(std::string_view session_id)
 	{
-		const auto removed = std::erase_if(m_Sessions, [&](const auto& session) { return session.Id == session_id; });
+		const auto removed = std::erase_if(m_Sessions, [&session_id](const auto& session) { return session.Id == session_id; });
 
 		if (removed > 0)
 		{
@@ -180,7 +180,7 @@ namespace AqualinkAutomate::Auth
 
 	std::size_t SessionStore::RevokeAllForUser(std::string_view user_id)
 	{
-		const auto removed = std::erase_if(m_Sessions, [&](const auto& session) { return session.UserId == user_id; });
+		const auto removed = std::erase_if(m_Sessions, [&user_id](const auto& session) { return session.UserId == user_id; });
 
 		if (removed > 0)
 		{
@@ -192,7 +192,7 @@ namespace AqualinkAutomate::Auth
 
 	void SessionStore::PruneExpired(std::int64_t now_unix)
 	{
-		const auto removed = std::erase_if(m_Sessions, [&](const auto& session) { return now_unix >= session.ExpiryUnix; });
+		const auto removed = std::erase_if(m_Sessions, [now_unix](const auto& session) { return now_unix >= session.ExpiryUnix; });
 
 		if (removed > 0)
 		{

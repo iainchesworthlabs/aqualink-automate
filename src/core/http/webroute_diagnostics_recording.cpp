@@ -130,8 +130,8 @@ namespace AqualinkAutomate::HTTP
 			}
 
 			// The resolved path must be lexically a descendant of the capture root.
-			const auto relative = canonical_target.lexically_relative(canonical_root);
-			if (relative.empty() || *relative.begin() == "..")
+			if (const auto relative = canonical_target.lexically_relative(canonical_root);
+				relative.empty() || *relative.begin() == "..")
 			{
 				LogWarning(Channel::Web, std::format("Rejected recording filename (escapes capture directory): '{}'", filename));
 				return std::nullopt;
@@ -141,12 +141,12 @@ namespace AqualinkAutomate::HTTP
 		}
 	}
 
+	// TryFind (not Find): the recording controller is only present in the
+	// production serial chain. In dev-mode/replay there is none, and the route
+	// should still construct and report recording=false rather than throw.
 	WebRoute_Diagnostics_Recording::WebRoute_Diagnostics_Recording(Kernel::HubLocator& hub_locator)
+		: m_RecordingController(hub_locator.TryFind<Interfaces::IRecordingController>())
 	{
-		// TryFind (not Find): the recording controller is only present in the
-		// production serial chain. In dev-mode/replay there is none, and the route
-		// should still construct and report recording=false rather than throw.
-		m_RecordingController = hub_locator.TryFind<Interfaces::IRecordingController>();
 	}
 
 	HTTP::Response WebRoute_Diagnostics_Recording::OnRequest(const HTTP::Request& req)
@@ -196,9 +196,7 @@ namespace AqualinkAutomate::HTTP
 				return MakeErrorResponse(req, HTTP::Status::bad_request, "recording_action_required", "Request must contain a string 'action' of 'start' or 'stop'");
 			}
 
-			const auto action = body["action"].get<std::string>();
-
-			if ("start" == action)
+			if (const auto action = body["action"].get<std::string>(); "start" == action)
 			{
 				if (!body.contains("filename") || !body["filename"].is_string())
 				{

@@ -336,7 +336,7 @@ namespace AqualinkAutomate::Devices
 		auto button_index = FindPageButtonByLabel(target_label);
 		if (!button_index.has_value())
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): No on-screen button matches '{}' (current page not showing it)", DeviceId(), target_label); });
+			LogWarning(Channel::Devices, [this, &target_label]() { return std::format("IAQ ({}): No on-screen button matches '{}' (current page not showing it)", DeviceId(), target_label); });
 			return Capabilities::ActuationResult::MappingFailed;
 		}
 
@@ -354,12 +354,12 @@ namespace AqualinkAutomate::Devices
 			const bool is_on = (status == Messages::ButtonStatuses::On) || (status == Messages::ButtonStatuses::Enabled) || (status == Messages::ButtonStatuses::EnabledStandby);
 			if (status != Messages::ButtonStatuses::Unknown && is_on == want_on)
 			{
-				LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): '{}' already {} - no actuation required", DeviceId(), target_label, want_on ? "ON" : "OFF"); });
+				LogInfo(Channel::Devices, [this, &target_label, want_on]() { return std::format("IAQ ({}): '{}' already {} - no actuation required", DeviceId(), target_label, want_on ? "ON" : "OFF"); });
 				return Capabilities::ActuationResult::Accepted;
 			}
 		}
 
-		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): Toggling '{}' via page button index {}", DeviceId(), target_label, button_index.value()); });
+		LogInfo(Channel::Devices, [this, &target_label, &button_index]() { return std::format("IAQ ({}): Toggling '{}' via page button index {}", DeviceId(), target_label, button_index.value()); });
 		SelectPageButton(button_index.value());
 		return Capabilities::ActuationResult::Accepted;
 	}
@@ -420,8 +420,7 @@ namespace AqualinkAutomate::Devices
 		// and any switch >2 need an assignment-list scroll whose protocol is not yet decoded -- and
 		// row 8's page-button index would collide with the picker commit range -- so reject those
 		// rather than risk writing the wrong cell. The OneTouch writer still covers them.
-		const uint32_t ordinal = static_cast<uint32_t>(switch_number - 1) * 4u + button_number;
-		if (ordinal > IAQ_SPASWITCH_MAX_VISIBLE_ROW)
+		if (const uint32_t ordinal = static_cast<uint32_t>(switch_number - 1) * 4u + button_number; ordinal > IAQ_SPASWITCH_MAX_VISIBLE_ROW)
 		{
 			LogWarning(Channel::Devices, [this, switch_number, button_number]() { return std::format("IAQ ({}): spa-switch row {}:{} is not directly selectable on the iAQ detail (needs an undecoded assignment-list scroll) - deferring", DeviceId(), switch_number, button_number); });
 			return Capabilities::ActuationResult::NotSupported;
@@ -482,8 +481,8 @@ namespace AqualinkAutomate::Devices
 		// Tear down the goal (reads goal.desc BEFORE resetting -- callers return immediately after).
 		auto finish = [&](bool ok)
 		{
-			if (ok) { LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): {} completed", DeviceId(), goal.desc); }); }
-			else    { LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} abandoned", DeviceId(), goal.desc); }); }
+			if (ok) { LogInfo(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): {} completed", DeviceId(), goal.desc); }); }
+			else    { LogWarning(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): {} abandoned", DeviceId(), goal.desc); }); }
 			m_PendingCommand = 0x00;
 			m_PendingSpaSwitchWrite.reset();
 			m_SpaSwitchWritePhase = SpaSwitchWritePhase::Navigate;
@@ -600,14 +599,14 @@ namespace AqualinkAutomate::Devices
 			}
 			else if (!signature.empty() && (m_SpaSwitchScrollCount > 0) && eq_ci(signature, m_SpaSwitchFirstPickerSeen.value()))
 			{
-				LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): function '{}' not offered by the picker for {}", DeviceId(), goal.function, goal.row_tag); });
+				LogWarning(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): function '{}' not offered by the picker for {}", DeviceId(), goal.function, goal.row_tag); });
 				finish(false);
 				return;
 			}
 
 			if (++m_SpaSwitchScrollCount > IAQ_SPASWITCH_MAX_SCROLLS)
 			{
-				LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): exhausted picker scroll for {}", DeviceId(), goal.row_tag); });
+				LogWarning(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): exhausted picker scroll for {}", DeviceId(), goal.row_tag); });
 				finish(false);
 				return;
 			}
@@ -660,10 +659,9 @@ namespace AqualinkAutomate::Devices
 		}
 
 		// The controller can only represent a constrained subset -- reject anything it can't.
-		const auto feasibility = Scheduling::CheckControllerCandidate(program);
-		if (!feasibility.promotable)
+		if (const auto feasibility = Scheduling::CheckControllerCandidate(program); !feasibility.promotable)
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): CreateControllerProgram rejected -- program is not controller-representable (target='{}')", DeviceId(), program.target); });
+			LogWarning(Channel::Devices, [this, &program]() { return std::format("IAQ ({}): CreateControllerProgram rejected -- program is not controller-representable (target='{}')", DeviceId(), program.target); });
 			return Capabilities::ActuationResult::InvalidValue;
 		}
 
@@ -723,10 +721,9 @@ namespace AqualinkAutomate::Devices
 		}
 
 		// The desired program must be one the controller can represent -- same feasibility gate as create.
-		const auto feasibility = Scheduling::CheckControllerCandidate(desired);
-		if (!feasibility.promotable)
+		if (const auto feasibility = Scheduling::CheckControllerCandidate(desired); !feasibility.promotable)
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): EditControllerProgram rejected -- desired program is not controller-representable (target='{}')", DeviceId(), desired.target); });
+			LogWarning(Channel::Devices, [this, &desired]() { return std::format("IAQ ({}): EditControllerProgram rejected -- desired program is not controller-representable (target='{}')", DeviceId(), desired.target); });
 			return Capabilities::ActuationResult::InvalidValue;
 		}
 
@@ -750,7 +747,7 @@ namespace AqualinkAutomate::Devices
 		m_ScheduleDeviceClicked = false;
 		m_ScheduleTimeFieldOpened = false;
 
-		LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): queued {}", DeviceId(), m_PendingScheduleWrite->desc); });
+		LogInfo(Channel::Devices, [this]() { return std::format("IAQ ({}): queued {}", DeviceId(), m_PendingScheduleWrite->desc); });
 	}
 
 	void IAQDevice::ControllerScheduleWrite_ProcessStep()
@@ -765,8 +762,8 @@ namespace AqualinkAutomate::Devices
 
 		auto finish = [&](bool ok)
 		{
-			if (ok) { LogInfo(Channel::Devices, [&]() { return std::format("IAQ ({}): {} completed", DeviceId(), goal.desc); }); }
-			else    { LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} abandoned", DeviceId(), goal.desc); }); }
+			if (ok) { LogInfo(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): {} completed", DeviceId(), goal.desc); }); }
+			else    { LogWarning(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): {} abandoned", DeviceId(), goal.desc); }); }
 			m_PendingCommand = 0x00;
 			m_PendingScheduleWrite.reset();
 			m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;
@@ -834,8 +831,7 @@ namespace AqualinkAutomate::Devices
 				m_PendingCommand = 0x00;   // picker not fully rendered yet; wait for the meridiem line
 				return;
 			}
-			const bool want_pm = hour >= 12;
-			if (is_pm != want_pm)
+			if (const bool want_pm = hour >= 12; is_pm != want_pm)
 			{
 				issue(IAQ_CMD_AMPM_TOGGLE);   // flip AM<->PM, then re-read next poll
 				return;
@@ -932,7 +928,7 @@ namespace AqualinkAutomate::Devices
 			// Not visible: scroll down one page, bounded by IAQ_SCHEDULE_MAX_SCROLLS.
 			if (++m_ScheduleWriteScrollCount > IAQ_SCHEDULE_MAX_SCROLLS)
 			{
-				LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- target device '{}' not found after scrolling the picker", DeviceId(), goal.desc, goal.program.target); });
+				LogWarning(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): {} -- target device '{}' not found after scrolling the picker", DeviceId(), goal.desc, goal.program.target); });
 				finish(false);
 				return;
 			}
@@ -1007,7 +1003,7 @@ namespace AqualinkAutomate::Devices
 					return;
 				}
 			}
-			LogWarning(Channel::Devices, [&]() { return std::format("IAQ ({}): {} -- no matching program row to {} (target='{}')", DeviceId(), goal.desc, (goal.op == ScheduleWriteOp::Edit) ? "edit" : "delete", goal.match.target); });
+			LogWarning(Channel::Devices, [this, &goal]() { return std::format("IAQ ({}): {} -- no matching program row to {} (target='{}')", DeviceId(), goal.desc, (goal.op == ScheduleWriteOp::Edit) ? "edit" : "delete", goal.match.target); });
 			finish(false);
 			return;
 		}
@@ -1076,7 +1072,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::ProcessControllerUpdates", std::source_location::current());
 
-		LogTrace(Channel::Devices, [&]() { return std::format("IAQ ({}): ProcessControllerUpdates called: state={}, is_poll={}, pending_cmd=0x{:02x}",
+		LogTrace(Channel::Devices, [this, is_poll_message]() { return std::format("IAQ ({}): ProcessControllerUpdates called: state={}, is_poll={}, pending_cmd=0x{:02x}",
 			DeviceId(), magic_enum::enum_name(m_OpState), is_poll_message, m_PendingCommand); });
 
 		// This id has been addressed on the bus (poll/status), so any later watchdog
@@ -1141,7 +1137,7 @@ namespace AqualinkAutomate::Devices
 		{
 			auto cmd = m_CommandQueue.front();
 			m_CommandQueue.pop_front();
-			LogDebug(Channel::Devices, [&]() { return std::format("IAQ ({}): Sending queued command in Poll ACK: 0x{:02x} ({} remaining)",
+			LogDebug(Channel::Devices, [this, cmd]() { return std::format("IAQ ({}): Sending queued command in Poll ACK: 0x{:02x} ({} remaining)",
 				DeviceId(), cmd, m_CommandQueue.size()); });
 			Signal_AckMessage(static_cast<uint8_t>(0x00), cmd);
 		}

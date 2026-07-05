@@ -37,9 +37,7 @@ namespace AqualinkAutomate::Devices
 
 	LightsDevice::LightsDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id, Kernel::HubLocator& hub_locator) :
 		JandyDevice(device_id),
-		Capabilities::Restartable(LIGHTS_TIMEOUT_DURATION),
-		m_LightState(std::make_pair(Messages::LightStates::Unknown, std::chrono::system_clock::now())),
-		m_LightMode(std::make_pair(static_cast<uint8_t>(0), std::chrono::system_clock::now()))
+		Capabilities::Restartable(LIGHTS_TIMEOUT_DURATION)
 	{
 		m_DataHub = hub_locator.Find<Kernel::DataHub>();
 

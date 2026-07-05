@@ -142,7 +142,6 @@ namespace AqualinkAutomate::Devices
 			}
 		}
 
-	private:
 		// Optimistic write-through of a successfully-queued chlorinator % set into the configured
 		// Pool-setpoint trait that the Set-AquaPure menu scrape also populates, so reads (the
 		// dashboard) reflect the new target immediately. No-op when no chlorinator is discovered.

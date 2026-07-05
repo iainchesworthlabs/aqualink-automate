@@ -29,7 +29,6 @@ namespace AqualinkAutomate::Interfaces
 	public:
 		virtual ~IRecordingController() = default;
 
-	public:
 		/// @brief Begin recording wire traffic to @p filename.
 		/// @returns true if recording started; false if a capture is already in
 		///          progress or the file could not be opened.

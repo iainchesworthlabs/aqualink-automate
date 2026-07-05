@@ -45,13 +45,13 @@ namespace AqualinkAutomate::History
 	HistoryService::HistoryService(boost::asio::io_context& io_context, Kernel::HubLocator& hub_locator, const Options::History::HistorySettings& settings) :
 		m_IoContext(io_context),
 		m_Settings(settings),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_PreferencesHub(hub_locator.Find<Kernel::PreferencesHub>()),
 		m_Clock(SystemClockSeconds),
 		m_FlushTimer(io_context),
 		m_HeartbeatTimer(io_context),
 		m_PurgeTimer(io_context)
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_PreferencesHub = hub_locator.Find<Kernel::PreferencesHub>();
 	}
 
 	HistoryService::~HistoryService()
@@ -116,7 +116,7 @@ namespace AqualinkAutomate::History
 		m_PurgeTimer.cancel();
 
 		// Flush whatever is buffered so a clean shutdown loses nothing.
-		try { Flush(); } catch (const std::exception& ex) { LogWarning(Channel::Main, [&] { return std::format("History flush on shutdown failed: {}", ex.what()); }); }
+		try { Flush(); } catch (const std::exception& ex) { LogWarning(Channel::Main, [&ex] { return std::format("History flush on shutdown failed: {}", ex.what()); }); }
 
 		m_Db.reset();
 	}
@@ -153,7 +153,7 @@ namespace AqualinkAutomate::History
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("History record from config event failed: {}", ex.what()); });
+			LogWarning(Channel::Main, [&ex] { return std::format("History record from config event failed: {}", ex.what()); });
 		}
 	}
 
@@ -185,8 +185,7 @@ namespace AqualinkAutomate::History
 
 	std::int64_t HistoryService::EnsureSeries(const std::string& key, const std::string& unit, const std::string& label)
 	{
-		const auto cached = m_SeriesIds.find(key);
-		if (cached != m_SeriesIds.end())
+		if (const auto cached = m_SeriesIds.find(key); cached != m_SeriesIds.end())
 		{
 			// Known series — update the friendly label in place if it changed
 			// (a device discovered after boot, e.g. "Aux5" -> "Pool Light").
@@ -251,7 +250,7 @@ namespace AqualinkAutomate::History
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("History schema migration failed: {}", ex.what()); });
+			LogWarning(Channel::Main, [&ex] { return std::format("History schema migration failed: {}", ex.what()); });
 		}
 	}
 
@@ -295,7 +294,7 @@ namespace AqualinkAutomate::History
 		m_SeriesLabels.erase(legacy_key);
 		m_LastSampleTs.erase(legacy_key);
 
-		LogInfo(Channel::Main, [&] { return std::format("History merged legacy device series '{}' into the UUID-keyed series", legacy_key); });
+		LogInfo(Channel::Main, [&legacy_key] { return std::format("History merged legacy device series '{}' into the UUID-keyed series", legacy_key); });
 	}
 
 	void HistoryService::RecordNumeric(const std::string& key, const std::string& unit, double value, bool is_heartbeat)
@@ -325,7 +324,7 @@ namespace AqualinkAutomate::History
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("History RecordNumeric('{}') failed: {}", key, ex.what()); });
+			LogWarning(Channel::Main, [&key, &ex] { return std::format("History RecordNumeric('{}') failed: {}", key, ex.what()); });
 		}
 	}
 
@@ -344,7 +343,7 @@ namespace AqualinkAutomate::History
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("History RecordState('{}') failed: {}", key, ex.what()); });
+			LogWarning(Channel::Main, [&key, &ex] { return std::format("History RecordState('{}') failed: {}", key, ex.what()); });
 		}
 	}
 
@@ -376,7 +375,7 @@ namespace AqualinkAutomate::History
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("History RecordDeviceState('{}') failed: {}", key, ex.what()); });
+			LogWarning(Channel::Main, [&key, &ex] { return std::format("History RecordDeviceState('{}') failed: {}", key, ex.what()); });
 		}
 	}
 
@@ -404,7 +403,7 @@ namespace AqualinkAutomate::History
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("History flush failed (retaining buffer): {}", ex.what()); });
+			LogWarning(Channel::Main, [&ex] { return std::format("History flush failed (retaining buffer): {}", ex.what()); });
 		}
 	}
 
@@ -427,7 +426,7 @@ namespace AqualinkAutomate::History
 		}
 		catch (const std::exception& ex)
 		{
-			LogWarning(Channel::Main, [&] { return std::format("History retention purge failed: {}", ex.what()); });
+			LogWarning(Channel::Main, [&ex] { return std::format("History retention purge failed: {}", ex.what()); });
 		}
 	}
 

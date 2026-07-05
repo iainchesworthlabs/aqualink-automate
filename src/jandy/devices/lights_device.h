@@ -41,14 +41,13 @@ namespace AqualinkAutomate::Devices
 		bool IsOn() const;
 
 	private:
-		TimestampedState m_LightState;
-		TimestampedMode m_LightMode;
+		TimestampedState m_LightState{ Messages::LightStates::Unknown, std::chrono::system_clock::now() };
+		TimestampedMode m_LightMode{ static_cast<uint8_t>(0), std::chrono::system_clock::now() };
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };
 
 	private:
 		void Slot_Light_Status(const Messages::LightMessage_Status& msg);
 
-	private:
 		void EnsureLightDeviceExists();
 		void PushStateToDataHub(const Messages::LightMessage_Status& msg);
 	};

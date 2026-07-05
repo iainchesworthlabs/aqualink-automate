@@ -101,9 +101,7 @@ namespace AqualinkAutomate::Options::LogSinks
 				while (start <= spec.size())
 				{
 					const auto comma = spec.find(',', start);
-					const auto piece = NormaliseToken(std::string_view{ spec }.substr(start, (comma == std::string::npos ? spec.size() : comma) - start));
-
-					if (piece == "console")
+					if (const auto piece = NormaliseToken(std::string_view{ spec }.substr(start, (comma == std::string::npos ? spec.size() : comma) - start)); piece == "console")
 					{
 						settings.Console = true;
 					}

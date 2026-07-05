@@ -8,9 +8,7 @@ namespace AqualinkAutomate::Kernel
 {
 
 	DataHub_ConfigEvent_Circulation::DataHub_ConfigEvent_Circulation() :
-		DataHub_ConfigEvent(Hub_EventTypes::Circulation),
-		m_Mode(CirculationModes::Pool),
-		m_Bodies()
+		DataHub_ConfigEvent(Hub_EventTypes::Circulation)
 	{
 	}
 

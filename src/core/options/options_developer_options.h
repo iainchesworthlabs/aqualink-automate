@@ -28,16 +28,10 @@ namespace AqualinkAutomate::Options::Developer
 			return AREA_NAME;
 		}
 
-		tagDeveloperSettings() :
-			dev_mode_enabled{ false },
-			decode_to_master_enabled{ false },
-			replay_frame_period_ms{ 15 },
-			replay_speed{ 1.0 }
-		{
-		}
+		tagDeveloperSettings() = default;
 
-		bool dev_mode_enabled;
-		bool decode_to_master_enabled;
+		bool dev_mode_enabled{ false };
+		bool decode_to_master_enabled{ false };
 		std::string replay_file;
 		std::string recording_file;
 
@@ -47,8 +41,8 @@ namespace AqualinkAutomate::Options::Developer
 		// roughly the bus's natural inter-frame rate instead of as fast as the
 		// parser will accept them (0 = unpaced / as fast as possible).
 		// replay_speed scales that period (>1 faster, <1 slower).
-		std::uint32_t replay_frame_period_ms;
-		double replay_speed;
+		std::uint32_t replay_frame_period_ms{ 15 };
+		double replay_speed{ 1.0 };
 	}
 	DeveloperSettings;
 

@@ -22,18 +22,16 @@ namespace AqualinkAutomate::Kernel
 		DataHub_ConfigEvent_Circulation();
 		~DataHub_ConfigEvent_Circulation() override = default;
 
-	public:
 		CirculationModes Mode() const;
 		void Mode(CirculationModes mode);
 
 		// Append a body's current active state (id + is_active) to the snapshot.
 		void AddBody(BodyOfWaterIds id, bool is_active);
 
-	public:
 		nlohmann::json ToJSON() const override;
 
 	private:
-		CirculationModes m_Mode;
+		CirculationModes m_Mode{ CirculationModes::Pool };
 		std::vector<std::pair<BodyOfWaterIds, bool>> m_Bodies;
 	};
 

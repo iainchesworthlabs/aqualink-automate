@@ -14,9 +14,7 @@ namespace AqualinkAutomate::Devices::Capabilities
 	std::vector<Restartable*> Restartable::s_Instances;
 
 	Restartable::Restartable(std::chrono::seconds timeout_in_seconds, bool delayed_start) :
-		m_TimeoutDuration(timeout_in_seconds),
-		m_IsRunning(false),
-		m_LastKick()
+		m_TimeoutDuration(timeout_in_seconds)
 	{
 		s_Instances.push_back(this);
 

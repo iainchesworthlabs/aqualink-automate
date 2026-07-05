@@ -24,10 +24,8 @@ namespace AqualinkAutomate::HTTP
 	public:
 		WebRoute_Session(Auth::SessionStore& sessions, Auth::AuditLog& audit);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::PREFS_SELF };

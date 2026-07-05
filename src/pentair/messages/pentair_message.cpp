@@ -18,11 +18,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	PentairMessage::PentairMessage(const PentairMessageIds msg_id) :
 		Interfaces::IMessage<PentairMessageIds>(msg_id),
-		Interfaces::ISerializable(),
-		m_From(0),
-		m_Destination(0),
-		m_RawCommand(0),
-		m_DataLength(0)
+		Interfaces::ISerializable()
 	{
 	}
 
@@ -100,7 +96,7 @@ namespace AqualinkAutomate::Pentair::Messages
 		const uint16_t checksum = Pentair::Utility::PentairPacket_CalculateChecksum_FromRange(checksum_region);
 		Pentair::Utility::AppendBigEndianChecksum(message_bytes, checksum);
 
-		LogTrace(Channel::Messages, [&] { return std::format("{} Pentair Message (Raw): {} bytes", magic_enum::enum_name(IMessage::Id()), message_bytes.size()); });
+		LogTrace(Channel::Messages, [this, &message_bytes] { return std::format("{} Pentair Message (Raw): {} bytes", magic_enum::enum_name(IMessage::Id()), message_bytes.size()); });
 
 		return true;
 	}

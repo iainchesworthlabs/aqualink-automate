@@ -19,7 +19,7 @@ namespace AqualinkAutomate::Generators
 		// Erase all bytes to the end of this packet.
 		auto packet_one_end_index = std::distance(serial_data.begin(), position);
 		LogTrace(Channel::Messages, "Packet processing complete; removing packet data from serial buffer.");
-		LogTrace(Channel::Messages, [&] { return std::format("Clearing {} elements from the serial data.", packet_one_end_index); });
+		LogTrace(Channel::Messages, [&packet_one_end_index] { return std::format("Clearing {} elements from the serial data.", packet_one_end_index); });
 		serial_data.erase(serial_data.begin(), serial_data.begin() + packet_one_end_index);
 	}
 

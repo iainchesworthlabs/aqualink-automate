@@ -154,9 +154,7 @@ namespace AqualinkAutomate::HTTP
 				user.Groups = std::move(groups);
 				user.DirectEntitlements = std::move(direct_entitlements);
 
-				std::string error;
-
-				if (!m_Users.Create(user, error))
+				if (std::string error; !m_Users.Create(user, error))
 				{
 					complete(MakeJsonResponse(version, keep_alive, StatusForStoreError(error), { { "error", error } }));
 					return;

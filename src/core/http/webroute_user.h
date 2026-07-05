@@ -34,10 +34,8 @@ namespace AqualinkAutomate::HTTP
 		// preference overrides are forgotten too (auth-mode on).
 		WebRoute_User(Auth::UserStore& users, Auth::GroupStore& groups, Auth::SessionService& session_service, Auth::SessionStore& sessions, Auth::AuditLog& audit, Preferences::UserPreferencesStore* user_prefs = nullptr);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::SYSTEM_ADMIN };

@@ -34,7 +34,6 @@ namespace AqualinkAutomate::Devices
 		KeypadDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id, Kernel::HubLocator& hub_locator, bool is_emulated);
 		~KeypadDevice() override = default;
 
-	public:
 		nlohmann::json DescribeDiagnostics() const override;
 
 	private:

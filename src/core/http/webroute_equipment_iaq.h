@@ -23,10 +23,8 @@ namespace AqualinkAutomate::HTTP
 	public:
 		explicit WebRoute_Equipment_IAQ(Kernel::HubLocator& hub_locator);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
 		{
 			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))

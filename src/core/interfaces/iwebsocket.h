@@ -24,7 +24,6 @@ namespace AqualinkAutomate::Interfaces
     public:
         virtual const std::string_view Route() const = 0;
 
-    public:
         // The entitlement required to complete the upgrade handshake (evaluated
         // by AuthorizeWebSocketUpgrade when --auth-mode is enabled).  Live-data
         // sockets declare equipment.view; binary in v1 (D13) so there is no

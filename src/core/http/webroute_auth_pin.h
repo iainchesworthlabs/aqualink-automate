@@ -26,7 +26,6 @@ namespace AqualinkAutomate::HTTP
 	public:
 		WebRoute_AuthPin(Auth::KioskService& kiosk, boost::asio::any_io_executor executor);
 
-	public:
 		bool IsAsyncRoute() const override { return true; }
 
 		void OnRequestAsync(const HTTP::Request& req, AsyncCompletion complete) override;

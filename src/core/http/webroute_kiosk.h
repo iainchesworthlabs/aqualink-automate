@@ -26,7 +26,6 @@ namespace AqualinkAutomate::HTTP
 	public:
 		WebRoute_Kiosk(Auth::KioskService& kiosk, boost::asio::any_io_executor executor);
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::SYSTEM_ADMIN };

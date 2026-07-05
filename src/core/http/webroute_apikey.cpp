@@ -35,9 +35,7 @@ namespace AqualinkAutomate::HTTP
 			return MakeJsonResponse(req, HTTP::Status::not_found, nlohmann::json{ { "error", "API key not found" } }.dump());
 		}
 
-		std::string error;
-
-		if (!m_Keys.Revoke(*key_id, error))
+		if (std::string error; !m_Keys.Revoke(*key_id, error))
 		{
 			return MakeJsonResponse(req, HTTP::Status::not_found, nlohmann::json{ { "error", error } }.dump());
 		}

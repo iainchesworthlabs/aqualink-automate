@@ -28,7 +28,6 @@ namespace AqualinkAutomate::HTTP
 			return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };
 		}
 
-	public:
         HTTP::Response ButtonCollection_GetHandler(const HTTP::Request& req);
         HTTP::Response ButtonCollection_PostHandler(const HTTP::Request& req);
 

@@ -75,7 +75,6 @@ namespace AqualinkAutomate::Devices
 		SpasideRemoteDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id, Kernel::HubLocator& hub_locator, bool is_emulated);
 		~SpasideRemoteDevice() override = default;
 
-	public:
 		nlohmann::json DescribeDiagnostics() const override;
 
 		// Last decoded pressed-button index (1..N); 0 means none seen since startup.

@@ -23,7 +23,7 @@ namespace AqualinkAutomate::Generators
 		// subtraction below cannot wrap around and produce an out-of-bounds iterator.
 		if (3 > length)
 		{
-			LogTrace(Channel::Messages, [&] { return std::format("Packet of length {} is too short to contain a checksum byte; rejecting.", length); });
+			LogTrace(Channel::Messages, [&length] { return std::format("Packet of length {} is too short to contain a checksum byte; rejecting.", length); });
 			return false;
 		}
 
@@ -32,7 +32,7 @@ namespace AqualinkAutomate::Generators
 		const auto calculated_checksum = Utility::JandyPacket_CalculateChecksum(start_it, checksum_it);
 		const auto checksum_is_valid = (original_checksum == calculated_checksum);
 
-		LogTrace(Channel::Messages, [&] { return std::format("Validating packet checksum: calculated=0x{:02x}, original=0x{:02x} -> {}!", calculated_checksum, original_checksum, checksum_is_valid ? "Success" : "Failure"); });
+		LogTrace(Channel::Messages, [&calculated_checksum, &original_checksum, &checksum_is_valid] { return std::format("Validating packet checksum: calculated=0x{:02x}, original=0x{:02x} -> {}!", calculated_checksum, original_checksum, checksum_is_valid ? "Success" : "Failure"); });
 
 		return checksum_is_valid;
 	}

@@ -28,10 +28,8 @@ namespace AqualinkAutomate::HTTP
 		explicit WebRoute_History(std::shared_ptr<History::HistoryService> service);
 		~WebRoute_History() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };

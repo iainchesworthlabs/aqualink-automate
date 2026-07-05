@@ -100,8 +100,7 @@ namespace AqualinkAutomate::HTTP
             // jail.  lexically_relative() yields the route from the root to the
             // resolved path in component terms; the result must stay inside the
             // root, i.e. it must not be empty and must not begin with a "..".
-            const auto relative = canonical_result.lexically_relative(m_DocRoot);
-            if (relative.empty() || relative.begin()->native() == std::filesystem::path("..").native())
+            if (const auto relative = canonical_result.lexically_relative(m_DocRoot); relative.empty() || relative.begin()->native() == std::filesystem::path("..").native())
             {
                 LogWarning(Channel::Web, std::format("Path traversal attempt blocked: {} escapes {}", canonical_result.string(), m_DocRoot.string()));
                 return false;

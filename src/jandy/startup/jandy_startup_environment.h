@@ -37,14 +37,12 @@ namespace AqualinkAutomate::Jandy::Startup
 	public:
 		explicit JandyStartupEnvironment(Kernel::HubLocator& hub_locator, std::chrono::seconds chlorinator_setpoint_refresh_interval = std::chrono::seconds{ 300 });
 
-	public:
 		void EmulateDevice(Devices::JandyEmulatedDeviceTypes type, std::uint8_t id, std::string_view role) override;
 		std::set<std::uint8_t> ObservedProbes() const override;
 		std::set<std::uint8_t> OccupiedAddresses() const override;
 		std::string PanelModel() const override;
 		std::string PanelRevision() const override;
 
-	public:
 		// Relocate an emulated device to a free instance of its class after a bus collision at
 		// `colliding_id` (a real device answered there). Stands up a fresh emulation at the first
 		// free instance -> true, or gives up -> false (the colliding instance stays passive). This

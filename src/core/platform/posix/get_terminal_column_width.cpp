@@ -18,9 +18,8 @@ namespace AqualinkAutomate::Utility
 	uint32_t get_terminal_column_width()
 	{
 		uint32_t column_width = 0;
-		struct winsize w {};
 
-		if (-1 == ioctl(STDOUT_FILENO, TIOCGWINSZ, &w))
+		if (struct winsize w {}; -1 == ioctl(STDOUT_FILENO, TIOCGWINSZ, &w))
 		{
 			LogDebug(Channel::Platform, std::format("{} Failed to get terminal column width, using default", PLATFORM_LOG_PREFIX));
 			column_width = DEFAULT_TERMINAL_COLUMN_WIDTH;

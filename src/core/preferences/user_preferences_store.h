@@ -33,7 +33,6 @@ namespace AqualinkAutomate::Preferences
 	public:
 		static UserPreferencesStore Load(const std::filesystem::path& file);
 
-	public:
 		// The global fallback for every per-user field (from the system prefs /
 		// built-in defaults).  Only the recognised PER_USER_KEYS are retained.
 		void SetDefaults(nlohmann::json defaults);

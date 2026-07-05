@@ -84,7 +84,6 @@ namespace AqualinkAutomate::Auth
 			AuditLog& audit,
 			Config config);
 
-	public:
 		// Asynchronous: argon2 runs on the offload pool; `completion` is posted
 		// to `executor` (the kernel io_context in production).
 		void Login(std::string username, std::string password, std::string peer_ip, std::string user_agent, boost::asio::any_io_executor executor, LoginCompletion completion);

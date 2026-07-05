@@ -36,7 +36,7 @@ namespace AqualinkAutomate::Messages
 
 	bool IAQMessage_TitleMessage::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into IAQMessage_TitleMessage type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into IAQMessage_TitleMessage type", message_bytes.size()); });
 
 		// The title is a centred LCD display line: ExtractTrailingDisplayLine keeps the
 		// leading spaces that centre it, strips the panel's trailing NUL pad (instead of
@@ -49,7 +49,7 @@ namespace AqualinkAutomate::Messages
 
 		m_Title = Text::ExtractTrailingDisplayLine(message_bytes, Index_TitleText);
 
-		LogDebug(Channel::Messages, [&]() { return std::format("Deserialised IAQMessage_TitleMessage: Title -> '{}' ({} chars)", m_Title, m_Title.length()); });
+		LogDebug(Channel::Messages, [this]() { return std::format("Deserialised IAQMessage_TitleMessage: Title -> '{}' ({} chars)", m_Title, m_Title.length()); });
 
 		return true;
 	}

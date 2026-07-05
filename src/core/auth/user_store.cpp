@@ -117,9 +117,7 @@ namespace AqualinkAutomate::Auth
 			return false;
 		}
 
-		const auto duplicate = FindByUsername(user.Username);
-
-		if (duplicate.has_value() && (duplicate->Id != user.Id))
+		if (const auto duplicate = FindByUsername(user.Username); duplicate.has_value() && (duplicate->Id != user.Id))
 		{
 			error = "Username already exists";
 			return false;

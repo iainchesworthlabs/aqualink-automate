@@ -23,10 +23,8 @@ namespace AqualinkAutomate::HTTP
 		explicit WebRoute_Metrics(Kernel::HubLocator& hub_locator);
 		~WebRoute_Metrics() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::DIAGNOSTICS_VIEW };

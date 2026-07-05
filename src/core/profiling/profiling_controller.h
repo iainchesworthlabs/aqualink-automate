@@ -19,7 +19,6 @@ namespace AqualinkAutomate::Profiling
 		ProfilingController();
 		~ProfilingController() override = default;
 
-	public:
 		Status ProfilingStatus() const override;
 		bool Start() override;
 		bool Stop() override;

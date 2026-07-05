@@ -27,13 +27,10 @@ namespace AqualinkAutomate::Pentair::Messages
 		PentairChlorinatorMessage_SetOutput(uint8_t from, uint8_t destination, uint8_t output_percent) noexcept;
 		~PentairChlorinatorMessage_SetOutput() override = default;
 
-	public:
 		uint8_t OutputPercent() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

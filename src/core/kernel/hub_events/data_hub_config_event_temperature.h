@@ -42,8 +42,8 @@ namespace AqualinkAutomate::Kernel
 		std::optional<Kernel::Temperature> m_SpaTemp;
 		std::optional<Kernel::Temperature> m_AirTemp;
 		std::optional<Kernel::Temperature> m_PoolSetpoint;
-		std::optional<Kernel::Temperature> m_PoolSetpoint2;
-		std::optional<bool> m_PoolHeater2Enabled;
+		std::optional<Kernel::Temperature> m_PoolSetpoint2{ std::nullopt };
+		std::optional<bool> m_PoolHeater2Enabled{ std::nullopt };
 		std::optional<Kernel::Temperature> m_SpaSetpoint;
 	};
 

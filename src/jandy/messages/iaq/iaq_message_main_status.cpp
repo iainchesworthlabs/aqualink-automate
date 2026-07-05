@@ -146,7 +146,7 @@ namespace AqualinkAutomate::Messages
 
 	bool IAQMessage_MainStatus::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into IAQMessage_MainStatus type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into IAQMessage_MainStatus type", message_bytes.size()); });
 
 		if (message_bytes.size() <= JandyMessage::PACKET_HEADER_LENGTH + JandyMessage::PACKET_FOOTER_LENGTH)
 		{
@@ -283,8 +283,7 @@ namespace AqualinkAutomate::Messages
 			// the pump runs; with the pump off the controller reports the sentinel
 			// (see WATER_TEMP_NO_READING_MAX). The targets above must never be
 			// reported as measured temperatures.
-			const uint16_t water_current_raw = read_raw_be();
-			if (m_PumpOn && (WATER_TEMP_NO_READING_MAX < water_current_raw))
+			if (const uint16_t water_current_raw = read_raw_be(); m_PumpOn && (WATER_TEMP_NO_READING_MAX < water_current_raw))
 			{
 				auto water_current = Kernel::Temperature::ConvertToTemperatureInCelsius(static_cast<double>(water_current_raw));
 				if (m_SpaMode)

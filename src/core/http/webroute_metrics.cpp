@@ -115,9 +115,9 @@ namespace AqualinkAutomate::HTTP
 	// unnamed namespace
 
 	WebRoute_Metrics::WebRoute_Metrics(Kernel::HubLocator& hub_locator) :
-		Interfaces::IWebRoute<METRICS_ROUTE_URL>()
+		Interfaces::IWebRoute<METRICS_ROUTE_URL>(),
+		m_StatisticsHub(hub_locator.Find<Kernel::StatisticsHub>())
 	{
-		m_StatisticsHub = hub_locator.Find<Kernel::StatisticsHub>();
 	}
 
 	HTTP::Response WebRoute_Metrics::OnRequest(const HTTP::Request& req)

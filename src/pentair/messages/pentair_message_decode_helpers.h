@@ -21,8 +21,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	// back as zero rather than over-running the span.
 	[[nodiscard]] inline uint8_t DataByteAt(std::span<const uint8_t> message_bytes, uint8_t data_index)
 	{
-		const uint8_t data_length = message_bytes[Offset_Length];
-		if (data_index >= data_length)
+		if (const uint8_t data_length = message_bytes[Offset_Length]; data_index >= data_length)
 		{
 			return static_cast<uint8_t>(0);
 		}

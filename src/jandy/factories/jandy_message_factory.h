@@ -144,8 +144,7 @@ namespace AqualinkAutomate::Factory
 				// inserted 0x00 -- i.e. mis-typed as a Probe -- so the device is never recognised
 				// and its commands never decoded.
 				auto type_offset = static_cast<std::ptrdiff_t>(Messages::JandyMessage::Index_MessageType);
-				const uint8_t dest_byte = *(first_it + static_cast<std::ptrdiff_t>(Messages::JandyMessage::Index_DestinationId));
-				if ((Messages::HEADER_BYTE_DLE == dest_byte) && (0x00 == *(first_it + type_offset)))
+				if (const uint8_t dest_byte = *(first_it + static_cast<std::ptrdiff_t>(Messages::JandyMessage::Index_DestinationId)); (Messages::HEADER_BYTE_DLE == dest_byte) && (0x00 == *(first_it + type_offset)))
 				{
 					++type_offset;
 				}

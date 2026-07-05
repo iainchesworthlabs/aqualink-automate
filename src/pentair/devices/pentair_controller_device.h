@@ -28,20 +28,17 @@ namespace AqualinkAutomate::Pentair::Devices
 		PentairControllerDevice(const std::shared_ptr<PentairDeviceId>& device_id, Kernel::HubLocator& hub_locator);
 		~PentairControllerDevice() override = default;
 
-	public:
 		bool PoolHeaterOn() const;
 		bool SpaHeaterOn() const;
 
 	private:
 		void WatchdogTimeoutOccurred() override;
 
-	private:
 		void Slot_Controller_Status(const Messages::PentairControllerMessage_Status& msg);
 
-	private:
 		void PushStatusToDataHub(const Messages::PentairControllerMessage_Status& msg);
 
-	private:
+
 		uint8_t m_Address;
 		bool m_PoolHeaterOn{ false };
 		bool m_SpaHeaterOn{ false };

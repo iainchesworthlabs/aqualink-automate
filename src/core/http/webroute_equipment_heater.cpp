@@ -36,15 +36,15 @@ namespace AqualinkAutomate::HTTP
 	// unnamed namespace
 
 	WebRoute_Equipment_Heater::WebRoute_Equipment_Heater(Kernel::HubLocator& hub_locator)
+		: m_CommandDispatcher(hub_locator.TryFind<Interfaces::ICommandDispatcher>())
 	{
-		m_CommandDispatcher = hub_locator.TryFind<Interfaces::ICommandDispatcher>();
 	}
 
 	HTTP::Response WebRoute_Equipment_Heater::OnRequest(const HTTP::Request& req)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("WebRoute_Equipment_Heater::OnRequest", std::source_location::current());
 
-		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&](const nlohmann::json& payload) -> HTTP::Response
+		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&req, this](const nlohmann::json& payload) -> HTTP::Response
 		{
 			try
 			{

@@ -13,8 +13,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	PentairPumpMessage_Power::PentairPumpMessage_Power() noexcept :
 		PentairMessage(PentairMessageIds::Pump_Power),
 		Interfaces::IMessageSignalRecv<PentairPumpMessage_Power>(),
-		Interfaces::IMessageSignalSend<PentairPumpMessage_Power>(),
-		m_PowerOn(false)
+		Interfaces::IMessageSignalSend<PentairPumpMessage_Power>()
 	{
 	}
 
@@ -45,9 +44,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	bool PentairPumpMessage_Power::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		const uint8_t data_length = message_bytes[Offset_Length];
-
-		if (data_length <= Data_Index_Power)
+		if (const uint8_t data_length = message_bytes[Offset_Length]; data_length <= Data_Index_Power)
 		{
 			LogDebug(Channel::Messages, "PentairPumpMessage_Power DATA too short to decode power state");
 			return false;

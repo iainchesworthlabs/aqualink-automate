@@ -59,9 +59,7 @@ namespace AqualinkAutomate::Auth
 		// the token as the fast path, but a large per-aux grant list must not
 		// push the cookie past its ceiling — elide and mark `entof` instead;
 		// resolution then falls back to the server-side stores via `grp`.
-		const nlohmann::json ent_json(claims.Entitlements);
-
-		if (ent_json.dump().size() <= m_Config.EntClaimBudgetBytes)
+		if (const nlohmann::json ent_json(claims.Entitlements); ent_json.dump().size() <= m_Config.EntClaimBudgetBytes)
 		{
 			builder.set_payload_claim("ent", jwt::basic_claim<JwtTraits>(ent_json));
 		}

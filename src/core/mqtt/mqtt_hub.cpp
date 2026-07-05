@@ -442,7 +442,7 @@ namespace AqualinkAutomate::Mqtt
 					auto label = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{});
 					if (!label.has_value())
 					{
-						LogDebug(Channel::Mqtt, [&] { return std::format("Skipping {} device with no label trait", type); });
+						LogDebug(Channel::Mqtt, [&type] { return std::format("Skipping {} device with no label trait", type); });
 						return;
 					}
 
@@ -470,7 +470,7 @@ namespace AqualinkAutomate::Mqtt
 				auto pumps = data_hub->Pumps();
 				auto chlorinators = data_hub->Chlorinators();
 
-				LogDebug(Channel::Mqtt, [&] { return std::format("Publishing device status: {} auxillaries, {} heaters, {} pumps, {} chlorinators",
+				LogDebug(Channel::Mqtt, [&auxillaries, &heaters, &pumps, &chlorinators] { return std::format("Publishing device status: {} auxillaries, {} heaters, {} pumps, {} chlorinators",
 					auxillaries.size(), heaters.size(), pumps.size(), chlorinators.size()); });
 
 				for (const auto& device : auxillaries)
@@ -501,7 +501,7 @@ namespace AqualinkAutomate::Mqtt
 				if (!current_topics.contains(stale_topic))
 				{
 					m_Client->Publish(stale_topic, "", /*retain=*/true);
-					LogDebug(Channel::Mqtt, [&] { return std::format("Cleared retained device topic '{}'", stale_topic); });
+					LogDebug(Channel::Mqtt, [&stale_topic] { return std::format("Cleared retained device topic '{}'", stale_topic); });
 				}
 			}
 			m_PublishedDeviceTopics = std::move(current_topics);
@@ -566,7 +566,7 @@ namespace AqualinkAutomate::Mqtt
 			if (!owned.contains(seen_topic))
 			{
 				m_Client->Publish(seen_topic, "", /*retain=*/true);
-				LogDebug(Channel::Mqtt, [&] { return std::format("Broker reconciliation cleared stale retained topic '{}'", seen_topic); });
+				LogDebug(Channel::Mqtt, [&seen_topic] { return std::format("Broker reconciliation cleared stale retained topic '{}'", seen_topic); });
 				++cleared;
 			}
 		}

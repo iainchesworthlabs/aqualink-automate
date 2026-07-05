@@ -514,10 +514,9 @@ namespace AqualinkAutomate::Developer
 		while (token_start <= sv.size())
 		{
 			const auto pipe = sv.find('|', token_start);
-			const std::string_view token = sv.substr(token_start, (std::string_view::npos == pipe) ? std::string_view::npos : (pipe - token_start));
 
 			// Expected token format is exactly 0x## (4 chars).
-			if ((4 == token.size()) && ('0' == token[0]) && (('x' == token[1]) || ('X' == token[1])))
+			if (const std::string_view token = sv.substr(token_start, (std::string_view::npos == pipe) ? std::string_view::npos : (pipe - token_start)); (4 == token.size()) && ('0' == token[0]) && (('x' == token[1]) || ('X' == token[1])))
 			{
 				uint8_t converted_value = 0;
 				auto [p, conv_ec] = std::from_chars(token.data() + 2, token.data() + 4, converted_value, 16);

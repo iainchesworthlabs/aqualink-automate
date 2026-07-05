@@ -42,9 +42,8 @@ namespace AqualinkAutomate::Jandy::Startup
 		}
 
 		++m_TicksElapsed;
-		const bool window_elapsed = (m_TicksElapsed >= DETECTION_WINDOW_TICKS);
 
-		if (m_Coordinator->Advance(window_elapsed) == StartupCoordinator::Phase::Running)
+		if (const bool window_elapsed = (m_TicksElapsed >= DETECTION_WINDOW_TICKS); m_Coordinator->Advance(window_elapsed) == StartupCoordinator::Phase::Running)
 		{
 			LogInfo(Channel::Main, std::format("Jandy auto-startup complete: {}", m_Coordinator->Plan().rationale));
 			return;  // reached steady state -- stop ticking

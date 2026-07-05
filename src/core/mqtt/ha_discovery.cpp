@@ -92,7 +92,7 @@ namespace AqualinkAutomate::Mqtt
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Mqtt, [&] { return std::format("Failed to publish HA discovery configs: {}", ex.what()); });
+			LogError(Channel::Mqtt, [&ex] { return std::format("Failed to publish HA discovery configs: {}", ex.what()); });
 		}
 	}
 
@@ -129,7 +129,7 @@ namespace AqualinkAutomate::Mqtt
 				auto label = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{});
 				if (!label.has_value())
 				{
-					LogDebug(Channel::Mqtt, [&] { return std::format("Skipping HA state for {} device with no label trait", TopicScheme::CategoryName(category)); });
+					LogDebug(Channel::Mqtt, [&category] { return std::format("Skipping HA state for {} device with no label trait", TopicScheme::CategoryName(category)); });
 					return;
 				}
 
@@ -169,16 +169,16 @@ namespace AqualinkAutomate::Mqtt
 				if (!current_state_topics.contains(stale_topic))
 				{
 					m_Client->Publish(stale_topic, "", /*retain=*/true);
-					LogDebug(Channel::Mqtt, [&] { return std::format("Cleared retained HA state topic '{}'", stale_topic); });
+					LogDebug(Channel::Mqtt, [&stale_topic] { return std::format("Cleared retained HA state topic '{}'", stale_topic); });
 				}
 			}
 			m_PublishedStateTopics = std::move(current_state_topics);
 
-			LogTrace(Channel::Mqtt, [&] { return std::format("Published HA device states ({} devices)", device_count); });
+			LogTrace(Channel::Mqtt, [&device_count] { return std::format("Published HA device states ({} devices)", device_count); });
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Mqtt, [&] { return std::format("Failed to publish HA device states: {}", ex.what()); });
+			LogError(Channel::Mqtt, [&ex] { return std::format("Failed to publish HA device states: {}", ex.what()); });
 		}
 	}
 
@@ -207,11 +207,11 @@ namespace AqualinkAutomate::Mqtt
 				}
 			}
 
-			LogDebug(Channel::Mqtt, [&] { return std::format("Adopted {} component(s) from the retained HA discovery config", adopted); });
+			LogDebug(Channel::Mqtt, [&adopted] { return std::format("Adopted {} component(s) from the retained HA discovery config", adopted); });
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Mqtt, [&] { return std::format("Failed to adopt retained HA discovery config: {}", ex.what()); });
+			LogError(Channel::Mqtt, [&ex] { return std::format("Failed to adopt retained HA discovery config: {}", ex.what()); });
 		}
 	}
 

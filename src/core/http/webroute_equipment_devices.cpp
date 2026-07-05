@@ -6,10 +6,10 @@
 namespace AqualinkAutomate::HTTP
 {
 
-	WebRoute_Equipment_Devices::WebRoute_Equipment_Devices(Kernel::HubLocator& hub_locator)
+	WebRoute_Equipment_Devices::WebRoute_Equipment_Devices(Kernel::HubLocator& hub_locator) :
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_PreferencesHub(hub_locator.Find<Kernel::PreferencesHub>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_PreferencesHub = hub_locator.Find<Kernel::PreferencesHub>();
 	}
 	
     HTTP::Response WebRoute_Equipment_Devices::OnRequest(const HTTP::Request& req)

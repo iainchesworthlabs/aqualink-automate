@@ -46,7 +46,7 @@ namespace AqualinkAutomate::Messages
 
 	bool HeaterMessage_Status::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		LogTrace(Channel::Messages, [&]() { return std::format("Deserialising {} bytes from span into HeaterMessage_Status type", message_bytes.size()); });
+		LogTrace(Channel::Messages, [&message_bytes]() { return std::format("Deserialising {} bytes from span into HeaterMessage_Status type", message_bytes.size()); });
 
 		if (!Text::RequireIndex(message_bytes, Index_HeaterState, "HeaterMessage_Status", "HeaterState"))
 		{

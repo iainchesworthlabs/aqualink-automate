@@ -27,7 +27,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_Ack", std::source_location::current(), Profiling::UnitColours::Red);
 
-		LogTrace(Channel::Devices, [&]() { return std::format("OneTouch ({}): Received JandyMessage_Ack: raw_command=0x{:02x}", DeviceId(), msg.Command()); });
+		LogTrace(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Received JandyMessage_Ack: raw_command=0x{:02x}", DeviceId(), msg.Command()); });
 
 		KeyCommands key_press = msg.Command<KeyCommands>([](uint8_t command_id)
 			{
@@ -37,11 +37,11 @@ namespace AqualinkAutomate::Devices
 
 		if (key_press == KeyCommands::Unknown)
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): Unknown key command received in ACK: 0x{:02x}", DeviceId(), msg.Command()); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Unknown key command received in ACK: 0x{:02x}", DeviceId(), msg.Command()); });
 		}
 		else
 		{
-			LogDebug(Channel::Devices, [&]() { return std::format("OneTouch ({}): Decoded ACK key press: {} (0x{:02x})", DeviceId(), magic_enum::enum_name(key_press), msg.Command()); });
+			LogDebug(Channel::Devices, [this, &key_press, &msg]() { return std::format("OneTouch ({}): Decoded ACK key press: {} (0x{:02x})", DeviceId(), magic_enum::enum_name(key_press), msg.Command()); });
 		}
 
 		// Kick the watchdog to indicate that this device is alive.
@@ -53,15 +53,15 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_MessageLong", std::source_location::current(), Profiling::UnitColours::Red);
 
-		LogTrace(Channel::Devices, [&]() { return std::format("OneTouch ({}): Received JandyMessage_MessageLong: line_id={}, content_length={}", DeviceId(), msg.LineId(), msg.Line().length()); });
+		LogTrace(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Received JandyMessage_MessageLong: line_id={}, content_length={}", DeviceId(), msg.LineId(), msg.Line().length()); });
 
 		if (ONETOUCH_PAGE_LINES <= msg.LineId())
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): MessageLong for unsupported line: line_id={} (max={}), content='{}'", DeviceId(), msg.LineId(), ONETOUCH_PAGE_LINES - 1, msg.Line()); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): MessageLong for unsupported line: line_id={} (max={}), content='{}'", DeviceId(), msg.LineId(), ONETOUCH_PAGE_LINES - 1, msg.Line()); });
 		}
 		else
 		{
-			LogDebug(Channel::Devices, [&]() { return std::format("OneTouch ({}): Processing MessageLong: line_id={}, content='{}'", DeviceId(), msg.LineId(), msg.Line()); });
+			LogDebug(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Processing MessageLong: line_id={}, content='{}'", DeviceId(), msg.LineId(), msg.Line()); });
 
 			ScreenMode(Capabilities::ScreenModes::Updating);
 			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(msg.LineId(), msg.Line()));
@@ -155,7 +155,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_Highlight", std::source_location::current(), Profiling::UnitColours::Red);
 
-		LogDebug(Channel::Devices, [&]() { return std::format("OneTouch ({}): Received PDAMessage_Highlight: line_id={}", DeviceId(), msg.LineId()); });
+		LogDebug(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Received PDAMessage_Highlight: line_id={}", DeviceId(), msg.LineId()); });
 
 		if (HIGHLIGHT_CLEAR_ALL == msg.LineId())
 		{
@@ -167,7 +167,7 @@ namespace AqualinkAutomate::Devices
 		}
 		else if (msg.LineId() >= ONETOUCH_PAGE_LINES)
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): Highlight for invalid line: line_id={} (max={})", DeviceId(), msg.LineId(), ONETOUCH_PAGE_LINES - 1); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Highlight for invalid line: line_id={} (max={})", DeviceId(), msg.LineId(), ONETOUCH_PAGE_LINES - 1); });
 		}
 		else
 		{
@@ -189,16 +189,16 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_HighlightChars", std::source_location::current(), Profiling::UnitColours::Red);
 
-		LogDebug(Channel::Devices, [&]() { return std::format("OneTouch ({}): Received PDAMessage_HighlightChars: line_id={}, start={}, stop={}", DeviceId(), msg.LineId(), msg.StartIndex(), msg.StopIndex()); });
+		LogDebug(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Received PDAMessage_HighlightChars: line_id={}, start={}, stop={}", DeviceId(), msg.LineId(), msg.StartIndex(), msg.StopIndex()); });
 
 		if (msg.LineId() >= ONETOUCH_PAGE_LINES)
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): HighlightChars for invalid line: line_id={} (max={})", DeviceId(), msg.LineId(), ONETOUCH_PAGE_LINES - 1); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): HighlightChars for invalid line: line_id={} (max={})", DeviceId(), msg.LineId(), ONETOUCH_PAGE_LINES - 1); });
 		}
 
 		if (msg.StartIndex() > msg.StopIndex())
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): HighlightChars invalid range: start={} > stop={}", DeviceId(), msg.StartIndex(), msg.StopIndex()); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): HighlightChars invalid range: start={} > stop={}", DeviceId(), msg.StartIndex(), msg.StopIndex()); });
 		}
 
 		ScreenMode(Capabilities::ScreenModes::Updating);
@@ -218,16 +218,16 @@ namespace AqualinkAutomate::Devices
 		auto direction = (0 > msg.LineShift()) ? Utility::ScreenDataPage::ShiftDirections::Up : Utility::ScreenDataPage::ShiftDirections::Down;
 		auto lines_to_shift = std::abs(msg.LineShift());
 
-		LogDebug(Channel::Devices, [&]() { return std::format("OneTouch ({}): Received PDAMessage_ShiftLines: first_line={}, last_line={}, shift={}, direction={}", DeviceId(), msg.FirstLineId(), msg.LastLineId(), lines_to_shift, magic_enum::enum_name(direction)); });
+		LogDebug(Channel::Devices, [this, &msg, &lines_to_shift, &direction]() { return std::format("OneTouch ({}): Received PDAMessage_ShiftLines: first_line={}, last_line={}, shift={}, direction={}", DeviceId(), msg.FirstLineId(), msg.LastLineId(), lines_to_shift, magic_enum::enum_name(direction)); });
 
 		if (msg.FirstLineId() >= ONETOUCH_PAGE_LINES || msg.LastLineId() >= ONETOUCH_PAGE_LINES)
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): ShiftLines with invalid line range: first={}, last={} (max={})", DeviceId(), msg.FirstLineId(), msg.LastLineId(), ONETOUCH_PAGE_LINES - 1); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): ShiftLines with invalid line range: first={}, last={} (max={})", DeviceId(), msg.FirstLineId(), msg.LastLineId(), ONETOUCH_PAGE_LINES - 1); });
 		}
 
 		if (msg.FirstLineId() > msg.LastLineId())
 		{
-			LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): ShiftLines with invalid range: first={} > last={}", DeviceId(), msg.FirstLineId(), msg.LastLineId()); });
+			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): ShiftLines with invalid range: first={} > last={}", DeviceId(), msg.FirstLineId(), msg.LastLineId()); });
 		}
 
 		ScreenMode(Capabilities::ScreenModes::Updating);
@@ -258,7 +258,7 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_Unknown", std::source_location::current(), Profiling::UnitColours::Red);
 
-		LogWarning(Channel::Devices, [&]() { return std::format("OneTouch ({}): Received unknown message type: 0x{:02x}", DeviceId(), msg.RawId()); });
+		LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Received unknown message type: 0x{:02x}", DeviceId(), msg.RawId()); });
 
 		ProcessControllerUpdates();
 

@@ -82,7 +82,6 @@ namespace AqualinkAutomate::Devices
 		SaltConcentration_InPPM m_SaltPPM;
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };
 
-	private:
 		// --- Output smoothing (publish-to-DataHub path ONLY) -----------------
 		// A borderline AquaRite cell flaps both its salt reading and its low-salt
 		// status flag around the cell's own internal threshold.  Observed live

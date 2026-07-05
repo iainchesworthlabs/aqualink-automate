@@ -52,13 +52,11 @@ namespace AqualinkAutomate::History
 		HistoryService(const HistoryService&) = delete;
 		HistoryService& operator=(const HistoryService&) = delete;
 
-	public:
 		// Open the database, create the schema, subscribe to hub events and start
 		// the flush / heartbeat / retention timers. Throws on a fatal DB error.
 		void Start();
 		void Stop();
 
-	public:
 		struct SeriesInfo
 		{
 			std::string key;
@@ -81,7 +79,6 @@ namespace AqualinkAutomate::History
 		// Bucket-averaged downsample of [from, to] into at most max_points buckets.
 		std::vector<Point> QuerySeries(const std::string& key, std::int64_t from, std::int64_t to, int max_points);
 
-	public:
 		// Exposed for tests / timers.
 		void Flush();
 		void PurgeOld();

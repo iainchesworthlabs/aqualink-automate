@@ -40,7 +40,6 @@ namespace AqualinkAutomate::Auth
 		// Minimum-cost parameters for unit tests ONLY (fast, insecure).
 		static Params TestParams();
 
-	public:
 		// Throws std::runtime_error when sodium fails (init/allocation).
 		//
 		// No default for `params`: every call site passes one explicitly
@@ -52,7 +51,6 @@ namespace AqualinkAutomate::Auth
 		// Constant-time verification against a stored crypto_pwhash_str value.
 		static bool Verify(std::string_view password, std::string_view stored_hash);
 
-	public:
 		template<typename Completion>  // void(std::string hash)
 		static void HashAsync(Utility::OffloadPool& pool, boost::asio::any_io_executor executor, std::string password, Params params, Completion&& completion)
 		{

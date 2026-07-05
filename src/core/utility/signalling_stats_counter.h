@@ -194,7 +194,7 @@ namespace AqualinkAutomate::Utility
 			auto [it, was_inserted] = m_StatsMap.try_emplace(AnyEnum{ stat_type }, m_StatsSignal);
 			if (was_inserted)
 			{
-				LogTrace(Logging::Channel::Equipment, [&] { return std::format("Inserted new stats counter for element (type: {})", typeid(STAT_TYPE).name()); });
+				LogTrace(Logging::Channel::Equipment, [] { return std::format("Inserted new stats counter for element (type: {})", typeid(STAT_TYPE).name()); });
 			}
 
 			return it->second;

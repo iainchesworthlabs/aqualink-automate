@@ -13,8 +13,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	PentairPumpMessage_Speed::PentairPumpMessage_Speed() noexcept :
 		PentairMessage(PentairMessageIds::Pump_Speed),
 		Interfaces::IMessageSignalRecv<PentairPumpMessage_Speed>(),
-		Interfaces::IMessageSignalSend<PentairPumpMessage_Speed>(),
-		m_RPM(0)
+		Interfaces::IMessageSignalSend<PentairPumpMessage_Speed>()
 	{
 	}
 
@@ -46,9 +45,7 @@ namespace AqualinkAutomate::Pentair::Messages
 
 	bool PentairPumpMessage_Speed::DeserializeContents(std::span<const uint8_t> message_bytes)
 	{
-		const uint8_t data_length = message_bytes[Offset_Length];
-
-		if (data_length <= Data_Index_RPM_Low)
+		if (const uint8_t data_length = message_bytes[Offset_Length]; data_length <= Data_Index_RPM_Low)
 		{
 			LogDebug(Channel::Messages, "PentairPumpMessage_Speed DATA too short to decode RPM");
 			return false;

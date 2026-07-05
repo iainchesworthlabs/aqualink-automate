@@ -43,7 +43,6 @@ namespace AqualinkAutomate::Utility
 		SlotConnectionManager();
 		virtual ~SlotConnectionManager();
 
-	public:
 		// Connect handler to MESSAGE_TYPE's static receive-signal.  Every message
 		// of that type (regardless of source/destination) is delivered.
 		template<typename MESSAGE_TYPE>

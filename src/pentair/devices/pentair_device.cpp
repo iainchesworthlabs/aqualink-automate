@@ -6,8 +6,7 @@ namespace AqualinkAutomate::Pentair::Devices
 
 	PentairDevice::PentairDevice(const std::shared_ptr<PentairDeviceId>& device_id) :
 		IDevice(device_id),
-		IStatusPublisher(AqualinkAutomate::Devices::DeviceStatus_Unknown{}),
-		m_SlotManager()
+		IStatusPublisher(AqualinkAutomate::Devices::DeviceStatus_Unknown{})
 	{
 	}
 

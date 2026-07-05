@@ -16,10 +16,9 @@ namespace AqualinkAutomate::Pentair::Devices
 	PentairControllerDevice::PentairControllerDevice(const std::shared_ptr<PentairDeviceId>& device_id, Kernel::HubLocator& hub_locator) :
 		PentairDevice(device_id),
 		Capabilities::Restartable(CONTROLLER_TIMEOUT_DURATION),
-		m_Address((nullptr != device_id) ? (*device_id)() : static_cast<uint8_t>(0))
+		m_Address((nullptr != device_id) ? (*device_id)() : static_cast<uint8_t>(0)),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-
 		m_SlotManager.RegisterSlot<Messages::PentairControllerMessage_Status>(
 			[this](const Messages::PentairControllerMessage_Status& msg) { Slot_Controller_Status(msg); });
 	}

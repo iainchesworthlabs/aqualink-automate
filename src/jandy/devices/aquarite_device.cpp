@@ -305,9 +305,7 @@ namespace AqualinkAutomate::Devices
 		// Clearing a warning/fault back to a benign state is deliberately slow
 		// (sticky); raising or switching between concerning states is fast.
 		const bool is_clearing = IsConcerningHealth(m_DisplayedHealth) && !IsConcerningHealth(raw_health);
-		const uint32_t threshold = is_clearing ? HEALTH_CLEAR_FRAMES : HEALTH_RAISE_FRAMES;
-
-		if (m_HealthCandidateCount >= threshold)
+		if (const uint32_t threshold = is_clearing ? HEALTH_CLEAR_FRAMES : HEALTH_RAISE_FRAMES; m_HealthCandidateCount >= threshold)
 		{
 			m_DisplayedHealth = raw_health;
 			m_HealthCandidateCount = 0;
