@@ -7,6 +7,7 @@
 #include "mqtt/mqtt_client.h"
 #include "options/options_mqtt_options.h"
 #include "support/unit_test_mqtt_support.h"
+#include "support/unit_test_mqtt_broker.h"
 
 using namespace AqualinkAutomate;
 
@@ -568,6 +569,209 @@ BOOST_AUTO_TEST_CASE(Test_Diagnostics_PublishQueueDepthTracksPublishes)
 	client->Publish("topic/a", "a");
 	client->Publish("topic/b", "b");
 	BOOST_CHECK_EQUAL(client->PublishQueueDepth(), 2u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// MqttClient broker-connected tests.
+//
+// These drive the REAL async connection flow — TCP handshake, CONNECT/CONNACK,
+// the receive loop, the publish flush, subscribe, a broker-pushed PUBLISH and a
+// broker-initiated disconnect -> reconnect — against an in-process loopback
+// MQTT 3.1.1 broker (Test::MockMqttBroker) on the SAME io_context. None of that
+// code path is reachable by a broker-less client.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_MqttClient_BrokerConnected)
+
+namespace
+{
+	// Pump the cooperative io_context in short slices until `pred` holds or the
+	// (generous) iteration budget is exhausted. The client + broker keep a recv
+	// pending at all times, so the context never runs out of work; each slice
+	// blocks briefly, then we re-check the predicate.
+	template <class Pred>
+	bool RunUntil(boost::asio::io_context& ioc, Pred pred)
+	{
+		for (int i = 0; i < 400; ++i)   // ~400 * 5ms = up to ~2s
+		{
+			if (pred()) { return true; }
+			ioc.run_for(std::chrono::milliseconds(5));
+		}
+		return pred();
+	}
+
+	Options::Mqtt::MqttSettings MakeBrokerSettings(std::uint16_t port)
+	{
+		auto settings = Test::MakeMqttSettings();
+		settings.broker_host = "127.0.0.1";
+		settings.broker_port = port;
+		return settings;
+	}
+}
+
+BOOST_AUTO_TEST_CASE(Test_Connect_ToBroker_ReachesConnectedState)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, MakeBrokerSettings(broker.Port()));
+
+	bool connected_signal = false;
+	client->OnConnected.connect([&] { connected_signal = true; });
+
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+	BOOST_CHECK(client->IsConnected());
+	BOOST_CHECK(connected_signal);
+	BOOST_CHECK(broker.ClientConnected());
+	BOOST_CHECK_EQUAL(static_cast<int>(client->GetState()),
+		static_cast<int>(Mqtt::MqttClient::State::Connected));
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_Publish_QueuedBeforeConnect_FlushesOnConnect)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, MakeBrokerSettings(broker.Port()));
+
+	// Queue a publish before the connection completes; the CONNACK-time flush must
+	// deliver it to the broker.
+	client->Publish("pool/status", "on");
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return broker.PublishesReceived() >= 1; }));
+	BOOST_CHECK_EQUAL(broker.LastPublishTopic(), "pool/status");
+	BOOST_CHECK_GE(client->PublishedCount(), 1u);
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_Publish_AfterConnect_FlushesOnPoll)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, MakeBrokerSettings(broker.Port()));
+
+	client->Start();
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+
+	client->Publish("pool/temp", "28.5");
+	client->Poll();   // FlushIfConnected -> DoFlush the newly-queued item
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return broker.PublishesReceived() >= 1; }));
+	BOOST_CHECK_EQUAL(broker.LastPublishTopic(), "pool/temp");
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_Subscribe_WhenConnected_ReachesBroker)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, MakeBrokerSettings(broker.Port()));
+
+	client->Start();
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+
+	client->Subscribe("pool/command/#", 0);
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return broker.SubscribesReceived() >= 1; }));
+	BOOST_CHECK(client->IsConnected());   // SUBACK processed, connection healthy
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_BrokerPublish_EmitsMessageReceivedSignal)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, MakeBrokerSettings(broker.Port()));
+
+	std::string got_topic, got_payload;
+	client->OnMessageReceived.connect([&](const std::string& t, const std::string& p) { got_topic = t; got_payload = p; });
+
+	client->Start();
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+
+	broker.PublishToClient("pool/command/pump", "ON");
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return !got_topic.empty(); }));
+	BOOST_CHECK_EQUAL(got_topic, "pool/command/pump");
+	BOOST_CHECK_EQUAL(got_payload, "ON");
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_ConnectionDrop_EmitsDisconnectAndSchedulesReconnect)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, MakeBrokerSettings(broker.Port()));
+
+	bool disconnected_signal = false;
+	client->OnDisconnected.connect([&](const std::string&) { disconnected_signal = true; });
+
+	client->Start();
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->IsConnected(); }));
+
+	// The broker drops the socket: the client's recv loop observes the read error
+	// and drives its disconnect + reconnect-scheduling path.
+	broker.DropConnection();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return disconnected_signal; }));
+	BOOST_CHECK(!client->IsConnected());
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_ConnackRejected_DoesNotConnectAndReconnects)
+{
+	boost::asio::io_context ioc;
+	Test::MockMqttBroker broker(ioc);
+	broker.SetRejectConnect(true);   // answer CONNECT with a non-accepted CONNACK
+
+	auto settings = MakeBrokerSettings(broker.Port());
+	settings.reconnect_delay_initial = std::chrono::seconds(1);   // don't wait long before the retry
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Start();
+
+	// The broker sends CONNACK(refused); the client must reject it and schedule a
+	// reconnect rather than reaching Connected.
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->GetState() == Mqtt::MqttClient::State::Reconnecting; }));
+	BOOST_CHECK(!client->IsConnected());
+	BOOST_CHECK(broker.ClientConnected());   // it did receive our CONNECT
+
+	client->Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_HandshakeFailure_SchedulesReconnect)
+{
+	boost::asio::io_context ioc;
+
+	// A port that nothing is listening on: bind then immediately release it, so the
+	// client's underlying (TCP) handshake is refused and its failure branch runs.
+	std::uint16_t dead_port = 0;
+	{
+		boost::asio::ip::tcp::acceptor probe(ioc, boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 0));
+		dead_port = probe.local_endpoint().port();
+	}
+
+	auto settings = MakeBrokerSettings(dead_port);
+	settings.reconnect_delay_initial = std::chrono::seconds(1);
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+
+	client->Start();
+
+	BOOST_REQUIRE(RunUntil(ioc, [&] { return client->GetState() == Mqtt::MqttClient::State::Reconnecting; }));
+	BOOST_CHECK(!client->IsConnected());
+	BOOST_CHECK(!client->LastError().empty());   // the handshake error was recorded
+
+	client->Stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

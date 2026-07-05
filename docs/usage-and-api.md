@@ -80,6 +80,26 @@ Right-to-left languages (Arabic, Hebrew, Yiddish) mirror the layout automaticall
 
 Translations live in plain-text catalogs and are easy to contribute — see [Contributing translations](CONTRIBUTING.md#contributing-translations) for the workflow and [docs/i18n.md](i18n.md) for the mechanics.
 
+### Responsive layout
+
+The UI is a single responsive web app — there is no separate mobile build or native app. The same page reflows across three viewport bands, and the navigation adapts to match:
+
+| Width | Band | Navigation |
+|---|---|---|
+| `< 640px` | Phone | A fixed **bottom tab bar** (Dashboard · Trends · Schedules · More); secondary destinations live behind **More**, which opens a bottom sheet — a grouped menu with per-row icons, drill-in chevrons, and toggle switches for dark mode and monitor-only mode. |
+| `640–1023px` | Tablet | The inline links collapse behind a **hamburger** button that opens a nav drawer. |
+| `≥ 1024px` | Desktop | The full **inline navigation** in the top bar. |
+
+On phones the dashboard reorders and consolidates itself around what you act on most: a condensed Pool/Spa/Air temperature header; equipment as two-up **tap-tiles** (tap to toggle; a tile fills with the accent colour when its device is on); the heater rows with the temperature-setpoint steppers folded in beneath them; and the water chemistry collapsed into a single card — pH, ORP and salt as an accent-striped row with the salt-water generator output and controls below. The top bar condenses to one row (brand, live/ready status, alerts), with the theme and other toggles moving into the **More** sheet. Tablet portrait keeps the richer multi-column card grid — circular chemistry dials, a standalone setpoints card — under the hamburger; tablet landscape and desktop use the full inline layout. Modals become full-width bottom sheets on phones and centred dialogs on wider screens. On compact layouts the dense **Diagnostics** page also collapses to the essentials (System Health, serial-port utilisation, bandwidth, message errors, communication latency); the heavier power-user sections — device list, message statistics, MQTT broker, log levels and serial recording — fold behind a **Show advanced diagnostics** disclosure, while desktop keeps the full page.
+
+<p align="center">
+  <img src="assets/aqualink-automate-mobile-dashboard.png" alt="The dashboard on a phone — condensed temperature header, equipment tap-tiles, and a bottom tab bar" width="300">
+  &nbsp;&nbsp;
+  <img src="assets/aqualink-automate-tablet-dashboard.png" alt="The dashboard on a tablet in portrait — multi-column card grid behind a hamburger menu" width="440">
+</p>
+
+The layout is regression-tested at every band by `e2e/responsive.spec.ts`, which asserts the correct navigation pattern, no horizontal overflow, RTL mirroring, and dark-mode heading contrast across the phone/tablet/desktop viewports.
+
 ## Security model
 
 Authentication is **opt-in** and **off by default**. With no token configured the server behaves exactly as an open, unauthenticated service — every route is reachable without credentials.
@@ -196,13 +216,26 @@ Non-`GET` requests to the read-only diagnostics routes return `405` with a JSON 
 | GET | `/api/schedules/{uuid}` | `200` JSON | `404` unknown; `503`; `400` missing uuid. |
 | PUT | `/api/schedules/{uuid}` | `200` JSON | `400`, `404`, `503`. |
 | DELETE | `/api/schedules/{uuid}` | `204` | `404`, `503`. |
-| GET | `/api/controller/schedules` | `200` `{status, schedules[]}` | `503` when the store is unavailable. |
+| POST | `/api/schedules/{uuid}/promote` | `200` `{status:"queued", schedule}` | `404` unknown; `422` no on/off complement or non-button action; `400` not representable (`blockers[]`); `503`. |
+| GET | `/api/controller/schedules` | `200` `{status, active_group, schedules[]}` | `503` when the store is unavailable. |
+| POST | `/api/controller/schedules` | `200` `{status:"queued", schedule}` | `400` bad body / not representable (with `blockers[]`); `503` no writer. |
+| PUT | `/api/controller/schedules/{id}` | `200` `{status:"queued", schedule}` | `404` unknown id; `400` bad body / not representable (with `blockers[]`); `503` no writer. |
+| DELETE | `/api/controller/schedules/{id}` | `200` `{status:"queued"}` | `404` unknown id; `503` no writer. |
 
 App-side schedules (`/api/schedules`) are point actions the app fires; controller
 schedules (`/api/controller/schedules`) are the controller's own built-in
-on→off programs, read-only and reported as spans. `status` is `available`,
-`pending_capture` (parser not yet wired), or `unsupported`. The web UI merges
-both into one timeline. Writing controller schedules is not yet supported.
+on→off programs, reported as spans. `status` is `available`,
+`pending_capture` (parser not yet wired), or `unsupported`. The controller keeps
+two program groups (A/B) with only one active; `active_group` names it and each
+entry carries its `group`. Only the active group's schedules are observable on
+the wire. **Writing** a controller program (POST create / DELETE) drives a capable
+panel's Program menu over RS-485 and is **asynchronous** — a `200` means the write
+was *queued*, so poll GET to observe the result. Only a controller-representable
+span is accepted; an infeasible one is rejected `400` with stable `blockers` codes
+(the same `Scheduling::CheckControllerCandidate` predicate used for promotion). The
+web UI merges both sources into one timeline. See
+[schedules-design.md](schedules-design.md) for the two-tier model and
+[iaq_schedule_protocol.md](iaq_schedule_protocol.md) for the wire decode.
 
 ### Preferences
 

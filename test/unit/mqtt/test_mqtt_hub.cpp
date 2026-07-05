@@ -14,6 +14,8 @@
 #include "kernel/equipment_hub.h"
 #include "kernel/statistics_hub.h"
 #include "kernel/temperature.h"
+#include "kernel/auxillary_devices/auxillary_device.h"
+#include "kernel/auxillary_traits/auxillary_traits_types.h"
 #include "options/options_mqtt_options.h"
 #include "support/unit_test_mqtt_support.h"
 
@@ -719,6 +721,256 @@ BOOST_AUTO_TEST_CASE(Test_StartupReconcile_ClearsUnownedRetainedTopics)
 	BOOST_CHECK(gs->second);
 	BOOST_CHECK_MESSAGE(!clear_of(owned_json).has_value(), "owned device topic must not be cleared");
 	BOOST_CHECK_MESSAGE(!clear_of(owned_state).has_value(), "owned HA state topic must not be cleared");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// OnConnected wiring: firing the client's OnConnected signal (as the real
+// broker connect would) must republish the static topics and arm the startup
+// retained-topic reconciliation window.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_MqttHub_OnConnected)
+
+BOOST_AUTO_TEST_CASE(Test_OnConnected_RepublishesStaticTopicsAndArmsReconcile)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	hub.ConnectDataHub(data_hub);
+
+	hub.Start();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+
+	// Fire the client's OnConnected signal exactly as a real broker connect would. This runs the
+	// hub's connect lambda: it subscribes to the command + device/HA wildcards, arms the retained
+	// reconciliation window, and calls PublishAllStatus() (which publishes the static topics).
+	hub.GetMqttClient()->OnConnected();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	auto version = FindPayloadContaining(queue, "/system/version");
+	auto equipment = FindPayloadContaining(queue, "/system/equipment");
+	BOOST_CHECK_MESSAGE(version.has_value(), "system/version should be (re)published on connect");
+	BOOST_CHECK_MESSAGE(equipment.has_value(), "system/equipment should be (re)published on connect");
+
+	hub.Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_HandleMessage_DuringReconcileWindow_CollectsRetainedTopics)
+{
+	// While the startup reconciliation window is open (armed by OnConnected), a retained device or
+	// HA-state topic replayed by the broker is recorded in m_SeenRetainedTopics. A subsequent
+	// ReconcileRetainedTopics() then clears any collected topic the current device set does not own.
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	hub.ConnectDataHub(data_hub);   // no devices -> nothing is "owned"
+
+	hub.Start();
+	Test::MqttClientPacketTest::ForceConnectedState(*hub.GetMqttClient());
+	hub.GetMqttClient()->OnConnected();   // arms the reconcile window + records the device/ha prefixes
+
+	// Broker replays a retained device topic with a non-empty payload while the window is open.
+	hub.GetMqttClient()->OnMessageReceived("test/device/ghost", R"({"stale":true})");
+
+	// The reconcile pass (driven directly via the test seam) must clear that collected topic, since
+	// the empty device set owns nothing.
+	Test::MqttHubReconcileTest::CallReconcileRetainedTopics(hub);
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*hub.GetMqttClient());
+	auto cleared = LastEntryForTopicEnding(queue, "/device/ghost");
+	BOOST_REQUIRE_MESSAGE(cleared.has_value(), "collected retained topic should have been cleared");
+	BOOST_CHECK_MESSAGE(cleared->first.empty(), "the clearing publish should carry an empty payload");
+	BOOST_CHECK(cleared->second);
+
+	hub.Stop();
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// Device-status publishing across every device category (auxillary / heater /
+// pump / chlorinator), the no-label skip path, and owned-topic computation.
+//=============================================================================
+
+namespace
+{
+	std::shared_ptr<Kernel::AuxillaryDevice> MakeDeviceOfType(Kernel::AuxillaryTraitsTypes::AuxillaryTypes type, const std::string& label)
+	{
+		namespace Traits = Kernel::AuxillaryTraitsTypes;
+		auto dev = std::make_shared<Kernel::AuxillaryDevice>();
+		dev->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, type);
+		dev->AuxillaryTraits.Set(Traits::LabelTrait{}, label);
+		return dev;
+	}
+}
+
+BOOST_AUTO_TEST_SUITE(TestSuite_MqttHub_DeviceStatusCategories)
+
+BOOST_AUTO_TEST_CASE(Test_PublishDeviceStatus_AllCategoriesPublished)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	data_hub->Devices.Add(MakeDeviceOfType(Traits::AuxillaryTypes::Auxillary, "Pool Light"));
+	data_hub->Devices.Add(MakeDeviceOfType(Traits::AuxillaryTypes::Heater, "Pool Heater"));
+	data_hub->Devices.Add(MakeDeviceOfType(Traits::AuxillaryTypes::Pump, "Filter Pump"));
+	data_hub->Devices.Add(MakeDeviceOfType(Traits::AuxillaryTypes::Chlorinator, "AquaPure"));
+	hub.ConnectDataHub(data_hub);
+
+	auto& queue = PublishAllAndGetQueue(hub);
+
+	// Each category is published to its own device/{slug} JSON topic carrying its category type.
+	struct Expected { const char* topic; const char* type; };
+	for (const auto& e : { Expected{ "/device/pool_light", "aux" },
+	                       Expected{ "/device/pool_heater", "heater" },
+	                       Expected{ "/device/filter_pump", "pump" },
+	                       Expected{ "/device/aquapure", "chlorinator" } })
+	{
+		auto payload = FindPayloadContaining(queue, e.topic);
+		BOOST_REQUIRE_MESSAGE(payload.has_value(), std::string("missing device topic: ") + e.topic);
+		BOOST_CHECK_EQUAL((*payload)["type"].get<std::string>(), e.type);
+	}
+
+	hub.Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_PublishDeviceStatus_DeviceWithoutLabel_Skipped)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	// An auxillary with NO label trait: the publish lambda skips it (no slug can be formed).
+	auto unlabelled = std::make_shared<Kernel::AuxillaryDevice>();
+	unlabelled->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Auxillary);
+	data_hub->Devices.Add(unlabelled);
+	// A labelled one so the sweep still runs to completion.
+	data_hub->Devices.Add(MakeDeviceOfType(Traits::AuxillaryTypes::Auxillary, "Deck Jets"));
+	hub.ConnectDataHub(data_hub);
+
+	auto& queue = PublishAllAndGetQueue(hub);
+
+	// The labelled device is published; the unlabelled one produced no device topic.
+	BOOST_CHECK(FindPayloadContaining(queue, "/device/deck_jets").has_value());
+
+	std::size_t device_topic_count = 0;
+	for (const auto& pending : queue)
+	{
+		if (pending.topic.find("/device/") != std::string::npos && !pending.payload.empty())
+		{
+			++device_topic_count;
+		}
+	}
+	BOOST_CHECK_EQUAL(device_topic_count, 1u);
+
+	hub.Stop();
+}
+
+BOOST_AUTO_TEST_CASE(Test_ComputeOwnedDeviceTopics_NoDataHub_ReturnsEmpty)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	// No DataHub connected: the weak_ptr does not lock, so nothing is owned.
+	auto owned = Test::MqttHubReconcileTest::CallComputeOwnedDeviceTopics(hub);
+	BOOST_CHECK(owned.empty());
+}
+
+BOOST_AUTO_TEST_CASE(Test_ComputeOwnedDeviceTopics_HaEnabled_IncludesStateTopics)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	settings.home_assistant_enabled = true;   // owned set also contains the HA short-state topic
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	data_hub->Devices.Add(MakeDeviceOfType(Traits::AuxillaryTypes::Auxillary, "Pool Light"));
+	// A device with no label is skipped by the owned-set builder.
+	auto unlabelled = std::make_shared<Kernel::AuxillaryDevice>();
+	unlabelled->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Auxillary);
+	data_hub->Devices.Add(unlabelled);
+	hub.ConnectDataHub(data_hub);
+
+	auto owned = Test::MqttHubReconcileTest::CallComputeOwnedDeviceTopics(hub);
+
+	BOOST_CHECK_MESSAGE(owned.contains("test/device/pool_light"), "owned set should contain the device JSON topic");
+	BOOST_CHECK_MESSAGE(owned.contains("test/ha/aux_pool_light"), "owned set should contain the HA state topic when HA is enabled");
+	// Only the labelled device contributes (JSON + HA state).
+	BOOST_CHECK_EQUAL(owned.size(), 2u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// Statistics serialization: connecting a StatisticsHub populates the four
+// statistics topics from real hub metrics.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_MqttHub_Statistics)
+
+BOOST_AUTO_TEST_CASE(Test_Statistics_PublishedFromHubMetrics)
+{
+	enum class TestMsgId { Alpha, Beta };
+
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	auto stats_hub = std::make_shared<Kernel::StatisticsHub>();
+
+	// Populate two message counters (drives the SerializeStatisticsMessages loop) and a couple of
+	// serial metrics so the statistics payloads carry real values.
+	++stats_hub->MessageCounts[TestMsgId::Alpha];
+	++stats_hub->MessageCounts[TestMsgId::Beta];
+	++stats_hub->MessageCounts[TestMsgId::Beta];
+	stats_hub->Serial.SerialOverflowCount = 3;
+	stats_hub->Serial.TransmissionFailures = 1;
+
+	hub.ConnectDataHub(data_hub);
+	hub.ConnectStatisticsHub(stats_hub);
+
+	auto& queue = PublishAllAndGetQueue(hub);
+
+	auto messages = FindPayloadContaining(queue, "/statistics/messages");
+	BOOST_REQUIRE(messages.has_value());
+	BOOST_REQUIRE(messages->is_array());
+	BOOST_CHECK_EQUAL(messages->size(), 2u);   // one array entry per distinct message id
+
+	auto bandwidth = FindPayloadContaining(queue, "/statistics/bandwidth");
+	BOOST_REQUIRE(bandwidth.has_value());
+	BOOST_CHECK(bandwidth->contains("read"));
+	BOOST_CHECK(bandwidth->contains("write"));
+	BOOST_CHECK((*bandwidth)["read"].contains("utilisation_1sec"));
+
+	auto latency = FindPayloadContaining(queue, "/statistics/latency");
+	BOOST_REQUIRE(latency.has_value());
+	BOOST_CHECK(latency->contains("serial_read"));
+	BOOST_CHECK(latency->contains("serial_write"));
+	BOOST_CHECK(latency->contains("message_processing"));
+
+	auto serial = FindPayloadContaining(queue, "/statistics/serial");
+	BOOST_REQUIRE(serial.has_value());
+	BOOST_CHECK_EQUAL((*serial)["overflow_count"].get<std::uint64_t>(), 3u);
+	BOOST_CHECK_EQUAL((*serial)["transmission_failures"].get<std::uint64_t>(), 1u);
+
+	hub.Stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

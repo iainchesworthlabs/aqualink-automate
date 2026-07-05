@@ -21,7 +21,7 @@ Aqualink Automate is a C++ service that talks to your pool equipment over an RS-
 
 - Local control of your pool system over RS-485, with no cloud service required.
 - Two RS-485 protocols supported: Jandy/Zodiac (Fluidra) Aqualink RS and Pentair. The active protocol is auto-detected from the wire traffic.
-- A built-in web user interface for control and monitoring.
+- A built-in web user interface for control and monitoring, responsive from phone to desktop (bottom tab bar on phones, hamburger drawer on tablets, full inline navigation on desktop) with a light and dark theme.
 - The web UI speaks nine languages (English, German, Spanish, French, Arabic, Hebrew, Japanese, Simplified Chinese, Yiddish) with full right-to-left support and locale-aware formatting — and [community translations are easy to add](docs/CONTRIBUTING.md#contributing-translations).
 - HTTP and WebSocket API for custom integrations.
 - Opt-in authentication and authorization: local user accounts and groups with fine-grained entitlements, scoped API keys, anonymous guest browsing, and kiosk PIN elevation for shared terminals — see [SECURITY.md](docs/SECURITY.md).

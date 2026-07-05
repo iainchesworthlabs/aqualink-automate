@@ -54,10 +54,13 @@ target_sources(
 	unit/http/test_display_label.cpp
 	unit/http/test_http_chlorinator.cpp
 	unit/http/test_http_circulation.cpp
+	unit/http/test_http_controller_schedules.cpp
 	unit/http/test_http_heater.cpp
+	unit/http/test_http_schedule_promote.cpp
 	unit/http/test_http_diagnostics_devices.cpp
 	unit/http/test_http_diagnostics_profiling.cpp
 	unit/http/test_http_diagnostics_recording.cpp
+	unit/http/test_html_escape.cpp
 	unit/http/test_http_error_responses.cpp
 	unit/http/test_http_health_detailed.cpp
 	unit/http/test_http_security.cpp
@@ -103,6 +106,7 @@ target_sources(
 	unit/preferences/test_preferences_service.cpp
 	unit/preferences/test_user_preferences_store.cpp
 	unit/scheduling/test_controller_schedule.cpp
+	unit/scheduling/test_promotion_constraints.cpp
 	unit/scheduling/test_schedule_authorization.cpp
 	unit/scheduling/test_schedule.cpp
 	unit/scheduling/test_scheduler_service.cpp
@@ -110,6 +114,7 @@ target_sources(
 	unit/startup/test_jandy_startup_planner.cpp
 	unit/startup/test_jandy_startup_coordinator.cpp
 	unit/startup/test_jandy_startup_environment.cpp
+	unit/startup/test_jandy_startup_service.cpp
 	unit/options/test_options_web.cpp
 	unit/options/test_options_matter.cpp
 	unit/messages/test_aquarite_message_getid.cpp
@@ -185,11 +190,21 @@ target_sources(
 	unit/devices/test_chlorinator_setpoint_refresh.cpp
 	unit/devices/test_devices_capabilities_command_history.cpp
 	unit/devices/test_devices_capabilities_restartable.cpp
+	unit/devices/test_devices_chemlink.cpp
 	unit/devices/test_devices_command_dispatcher.cpp
+	unit/devices/test_devices_emulated_factory.cpp
+	unit/devices/test_devices_epump.cpp
+	unit/devices/test_devices_heater.cpp
 	unit/devices/test_devices_iaq.cpp
 	unit/devices/test_devices_iaq_spaswitch_config.cpp
 	unit/devices/test_devices_onetouch_spaswitch_config.cpp
 	unit/devices/test_jandy_iaq_page_registry.cpp
+	unit/devices/test_jandy_iaq_schedule_parser.cpp
+	unit/devices/test_jandy_iaq_schedule_read.cpp
+	unit/devices/test_jandy_iaq_schedule_write.cpp
+	unit/devices/test_jandy_onetouch_schedule_parser.cpp
+	unit/devices/test_jandy_onetouch_schedule_read.cpp
+	unit/devices/test_jandy_onetouch_schedule_write.cpp
 	unit/devices/test_pentair_vsp_pump.cpp
 	unit/devices/test_pentair_chlorinator.cpp
 	unit/devices/test_pentair_controller.cpp

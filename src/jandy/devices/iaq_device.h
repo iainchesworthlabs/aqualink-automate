@@ -11,6 +11,7 @@
 #include "devices/jandy_device_types.h"
 #include "devices/capabilities/chlorinator_controller.h"
 #include "devices/capabilities/command_history.h"
+#include "devices/capabilities/controller_schedule_writer.h"
 #include "devices/capabilities/describable.h"
 #include "devices/capabilities/device_actuator.h"
 #include "devices/capabilities/emulated.h"
@@ -20,6 +21,8 @@
 #include "devices/capabilities/setpoint_controller.h"
 #include "devices/capabilities/spa_switch_configurator.h"
 #include "devices/iaq/iaq_page_registry.h"
+#include "devices/iaq/iaq_schedule_parser.h"
+#include "scheduling/controller_schedule.h"
 #include "messages/jandy_message_probe.h"
 #include "messages/iaq/iaq_message_aux_status.h"
 #include "messages/iaq/iaq_message_command_ready.h"
@@ -45,11 +48,26 @@
 namespace AqualinkAutomate::Devices
 {
 
-	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory
+	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
 	{
 		inline static const uint8_t IAQ_STATUS_PAGE_LINES = 18;
 		inline static const uint8_t IAQ_MESSAGE_TABLE_LINES = 18;
 		inline static const std::chrono::seconds IAQ_TIMEOUT_DURATION{ std::chrono::seconds(30) };
+
+		// PageStart id of the controller's Schedule list ("Schedule Group A/B"): its
+		// TableMessage (0x26) rows are the controller's internal program entries. RE'd
+		// from a live capture (docs/iaq_schedule_protocol.md); the row parser rejects
+		// non-schedule text, so a same-id page on another model cannot yield garbage.
+		inline static const uint8_t IAQ_SCHEDULE_PAGE_ID = 0x28;
+
+		// PageStart id of the schedule editor's device picker (the scrolling list of equipment a new
+		// program can drive). Its group-0 TableMessage rows are accumulated during a write.
+		inline static const uint8_t IAQ_DEVICE_PICKER_PAGE_ID = 0x38;
+
+		// PageStart id of the time picker (opened from a program's ON/OFF field). PageMessage line 1
+		// is "HH:MM", line 2 is "AM"/"PM"; the schedule writer reads line 2 to decide the AM/PM toggle.
+		inline static const uint8_t IAQ_TIME_PICKER_PAGE_ID = 0x29;
+		inline static const uint8_t IAQ_TIME_PICKER_AMPM_LINE = 2;
 
 		enum class OperatingStates
 		{
@@ -123,6 +141,27 @@ namespace AqualinkAutomate::Devices
 		// renders+decodes, then back -- to source data the pushed home page does not carry
 		// (setpoints, etc.). Targeted navigation instead of menu spidering. Runs once.
 		void EnablePageSurvey(const IAQ::PageRegistry& registry);
+
+		// WRITE a new program into the controller's active schedule group by driving the
+		// AqualinkTouch Program pages (see docs/iaq_schedule_protocol.md, write path). Queues a
+		// goal serviced per-poll by ControllerScheduleWrite_ProcessStep: navigate to the Schedule
+		// list (0x28) -> Add Program (0x11) -> select the target device on the picker (0x38) ->
+		// set the ON/OFF times (0x21/0x22 -> time picker -> submit) and day (0x17-0x20).
+		// Rejects (InvalidValue) any program the controller cannot represent -- the feasibility is
+		// the shared Scheduling::CheckControllerCandidate predicate. NotSupported when passive
+		// (a non-emulated iAQ never transmits); Busy if a write is already in flight.
+		Capabilities::ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) override;
+
+		// DELETE an existing controller program: navigate to the Schedule list, click the row whose
+		// parsed contents match `program` (target + day + on/off times), press Delete, and confirm.
+		// NotSupported when passive / busy; InvalidValue if no matching row is present to remove.
+		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) override;
+
+		// EDIT an existing controller program: navigate to the Schedule list, click the row matching
+		// `existing`, press Edit (0x12) to enter row-edit mode, then re-set the ON/OFF times and day
+		// from `desired` (same field keys as create) and verify the list now shows `desired`.
+		// NotSupported when passive / busy; InvalidValue if `desired` is not controller-representable.
+		Capabilities::ActuationResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override;
 
 	public:
 		// Operating-state queries (also exercised by the device tests).
@@ -217,6 +256,26 @@ namespace AqualinkAutomate::Devices
 		// off the detail page.
 		uint8_t m_CurrentPageId{ 0x00 };
 
+		// Accumulators for reading the controller's internal schedules off the Schedule
+		// list page (IAQ_SCHEDULE_PAGE_ID). The page title carries the program group
+		// ("Schedule Group A"/"B" or a custom label); each schedule row arrives as a
+		// TableMessage (0x26) keyed by its Attribute byte (the 1-based entry ordinal;
+		// LineId is a constant 0 across rows so cannot distinguish them). Both are reset
+		// on PageStart and, when the completed page is the Schedule list, parsed into the
+		// ControllerScheduleStore on PageEnd.
+		std::string m_CurrentPageTitle;
+		std::map<uint8_t, std::string> m_ScheduleRows;
+
+		// Resolved from the HubLocator: the read-only snapshot of the controller's own
+		// internal schedules that the /api/controller/schedules route serves. Null-safe
+		// (a passive/test rig may not register one). Populated by PublishSchedulePage().
+		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore;
+
+		// Parse the just-completed Schedule list page (m_ScheduleRows + m_CurrentPageTitle)
+		// into ControllerSchedule spans and swap them into the store, tagged with the
+		// active program group. A no-op when the store is absent.
+		void PublishSchedulePage();
+
 		// The 4-Function detail page's device/function PICKER (group-0x01 TableMessages): the live
 		// slot(attr) -> function rows, rebuilt each time the picker page renders. The writer scrolls
 		// this until the target function appears, then commits at (slot + IAQ_SPASWITCH_COMMIT_BASE).
@@ -258,6 +317,67 @@ namespace AqualinkAutomate::Devices
 		// and emit at most one command (into m_PendingCommand) per poll. Gated on m_CurrentPageId so
 		// a navigation miss can never issue a row-select/commit on the wrong page.
 		void SpaSwitchWrite_ProcessStep();
+
+	private:
+		// On-demand controller-schedule WRITE goal (one at a time), serviced per-poll by
+		// ControllerScheduleWrite_ProcessStep. Drives the AqualinkTouch Program pages to create a
+		// program in the active schedule group. RE'd from captures/iaq_schedule_{session,clean}.cap;
+		// see docs/iaq_schedule_protocol.md (write path).
+		// Full CREATE flow (RE'd from captures/iaq_schedule_{session,clean,picker}.cap; see
+		// docs/iaq_schedule_protocol.md). The device picker is a scrolling touchscreen list: click a
+		// visible row R with command (IAQ_SCHEDULE_PICK_ROW_BASE + R), scroll with 0x12, confirm with
+		// 0x13. Times (SetOnTime/SetOffTime via 0x21/0x22 + the value-submit handshake) are decoded
+		// and land as the final increment; this build completes device selection + the day.
+		enum class ScheduleWriteOp
+		{
+			Create,   // add a new program (device -> times -> day)
+			Delete,   // remove an existing program (click its row -> Delete -> Ok)
+			Edit,     // change an existing program (click its row -> Edit -> times -> day)
+		};
+		enum class ScheduleWritePhase
+		{
+			NavigateToList,  // page-gated walk to the Schedule list (0x28)
+			AddProgram,      // press Add Program (0x11) -> device picker (0x38)
+			SelectDevice,    // scroll the picker until the target device is visible, click its row, confirm
+			SetOnTime,       // open the ON field (0x21) -> time picker -> AM/PM toggle + submit "1"+HH:MM
+			SetOffTime,      // open the OFF field (0x22) -> time picker -> AM/PM toggle + submit
+			SetDay,          // on the list, press the day key (0x17-0x20) for the desired selection
+			Verify,          // confirm the new program is present in the parsed list
+			SelectRow,       // (delete/edit) click the target program's row (0x22 + ordinal) to highlight it
+			PressDelete,     // (delete) press Delete (0x13) -> the confirm dialog
+			ConfirmDelete,   // (delete) press Ok (0x01) on the confirm dialog
+			VerifyGone,      // (delete) confirm the program is no longer in the parsed list
+			PressEdit,       // (edit) press Edit (0x12) -> enter the highlighted row's edit mode
+			Done,
+			Failed,
+		};
+		struct ScheduleWriteGoal
+		{
+			ScheduleWriteOp op{ ScheduleWriteOp::Create };
+			Scheduling::ControllerSchedule program;  // desired device + on/off + day mask to write (create/edit)
+			Scheduling::ControllerSchedule match;    // the existing program to locate (delete/edit): its row is clicked
+			std::string desc;
+		};
+		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;
+		ScheduleWritePhase m_ScheduleWritePhase{ ScheduleWritePhase::NavigateToList };
+		uint32_t m_ScheduleWritePollCount{ 0 };   // overall backstop
+		uint32_t m_ScheduleWriteSettleCount{ 0 }; // polls to let the master render after a command
+		uint32_t m_ScheduleWriteScrollCount{ 0 }; // bound the device-picker scroll search
+		bool m_ScheduleProgramAdded{ false };     // the Add-Program press has been issued
+		bool m_ScheduleDeviceClicked{ false };    // the target device row has been clicked (awaiting the OK confirm)
+		bool m_ScheduleTimeFieldOpened{ false };  // the current time field's open press (0x21/0x22) has been issued
+
+		// The device/target rows on the schedule editor's device picker (page 0x38), rebuilt each
+		// render from its group-0x00 TableMessages (attribute -> device label). Used to decide
+		// whether the target device is visible (else scroll).
+		std::map<uint8_t, std::string> m_DevicePickerRows;
+
+		// Arm a schedule-write goal (create or delete) and reset the per-goal state.
+		void QueueScheduleWrite(ScheduleWriteGoal goal);
+
+		// Service the pending schedule-write goal: examine the current page + decoded state and emit
+		// at most one command (into m_PendingCommand) per poll, page-gated on m_CurrentPageId.
+		void ControllerScheduleWrite_ProcessStep();
 
 	private:
 		OperatingStates m_OpState{ OperatingStates::StartUp };

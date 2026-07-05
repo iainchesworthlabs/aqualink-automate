@@ -3,10 +3,12 @@
 #include <array>
 #include <chrono>
 #include <list>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "devices/jandy_controller.h"
@@ -14,6 +16,7 @@
 #include "devices/chlorinator_setpoint_refresh.h"
 #include "devices/capabilities/chlorinator_controller.h"
 #include "devices/capabilities/command_history.h"
+#include "devices/capabilities/controller_schedule_writer.h"
 #include "devices/capabilities/describable.h"
 #include "devices/capabilities/device_actuator.h"
 #include "devices/capabilities/emulated.h"
@@ -37,11 +40,12 @@
 #include "navigation/spider_engine.h"
 #include "kernel/hub_locator.h"
 #include "profiling/profiling.h"
+#include "scheduling/controller_schedule.h"
 
 namespace AqualinkAutomate::Devices
 {
 
-	class OneTouchDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::ChlorinatorController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory
+	class OneTouchDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::ChlorinatorController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
 	{
 		inline static const uint8_t ONETOUCH_PAGE_LINES = 12;
 		inline static const std::chrono::seconds ONETOUCH_TIMEOUT_DURATION{ std::chrono::seconds(30) };
@@ -143,6 +147,20 @@ namespace AqualinkAutomate::Devices
 		// SpaSwitchConfigurator: the function set the OneTouch picker cycles (the canonical list).
 		std::vector<std::string> AvailableFunctions() const override;
 
+		// ControllerScheduleWriter: create / delete / edit one of the controller's own internal
+		// Program timers by driving the emulated keypad through the Program menu (Menu/Help ->
+		// Program -> the equipment list -> that equipment's Program detail page -> Add/Change/Delete).
+		// The editor has no field cursor highlight, so the active field is tracked by counting Selects
+		// since editor entry (0=ON-hour .. 4=days) and each field is stepped CLOSED-LOOP against the
+		// echoed on-screen value. Screen-driven (not menu-model pathfinding) for the sub-pages, exactly
+		// like the spa-switch writer. RE'd from captures/onetouch_program.cap; see
+		// docs/onetouch_schedule_protocol.md (write path). Only an emulated panel transmits, so a
+		// passive OneTouch reports NotSupported and the dispatcher falls back. Ranks Low so the IAQ's
+		// direct value-submit writer (Medium) is preferred on a combined rig.
+		Capabilities::ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) override;
+		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) override;
+		Capabilities::ActuationResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override;
+
 		// Sanitise a screen row's text for function/label comparison: trim surrounding whitespace
 		// and non-printable bytes, yielding the clean displayed text (the controller's inverse-video
 		// highlight is a separate Highlight message, never appended to the row Text). Public+static
@@ -176,6 +194,17 @@ namespace AqualinkAutomate::Devices
 		// device id (render the page with RenderScreenLineForTest first). Exercises the real
 		// fault-recovery decision in ProcessControllerUpdates without a wire frame. Not used in production.
 		void DeliverStatusFrameForTest() { ProcessControllerUpdates(true); }
+
+		// Test seam: set the cursor line exactly as an incoming PDAMessage_Highlight would (0xFF is the
+		// clear-all/no-cursor sentinel), so a test can position the panel cursor without a wire frame.
+		// The screen-driven write/spa-switch machines read m_HighlightedLine to decide cursor moves.
+		// Not used in production.
+		void SetHighlightedLineForTest(uint8_t line_id) { m_HighlightedLine = line_id; }
+
+		// Test seam: read the key command the current service step queued (before it is cleared by the
+		// Status-ACK send), so a test can assert the emitted KeyCommands stream frame by frame. Not
+		// used in production.
+		KeyCommands PendingKeyCommandForTest() const { return m_KeyCommand_ToSend; }
 
 	private:
 		void ProcessControllerUpdates() override;
@@ -305,6 +334,13 @@ namespace AqualinkAutomate::Devices
 		// and submits NO value (read-only). m_RefreshInProgress makes it count as a goal so a
 		// user command cannot interleave on the single shared Navigator.
 		void SetpointRefresh_ProcessStep();
+
+		// On-demand controller-schedule WRITE (ControllerScheduleWriter): service a single pending
+		// create/delete/edit goal in NormalOperation. Screen-driven phase machine that walks the
+		// Program menu to the target equipment's detail page, then either drives the Add/Change editor
+		// (closed-loop field stepping, field tracked by Select-count) or Selects the Delete row, and
+		// finally re-parses the returned detail page to Verify.
+		void ControllerScheduleWrite_ProcessStep();
 
 		// True when the DataHub chlorinator is reporting (ChlorinatorStatusTrait not Off/Unknown);
 		// the offline->online edge of this drives a one-shot recovery re-scrape.
@@ -441,6 +477,70 @@ namespace AqualinkAutomate::Devices
 		uint32_t m_SpaSwitchCursorStuck{ 0 };
 
 	private:
+		// On-demand controller-schedule WRITE goal (one at a time). Set by the ControllerScheduleWriter
+		// methods, serviced by ControllerScheduleWrite_ProcessStep in NormalOperation. Screen-driven:
+		// each phase reads the current page and emits one key. Distinct from the value-edit because it
+		// crosses several pages (Menu/Help -> Program -> equipment list -> detail -> editor) and the
+		// editor has NO field-cursor highlight, so the active field is tracked by counting Selects.
+		// RE'd from captures/onetouch_program.cap; see docs/onetouch_schedule_protocol.md (write path).
+		enum class ScheduleWriteOp
+		{
+			Create,   // add a new program on an equipment (Add Program -> editor)
+			Delete,   // remove an equipment's program (Delete Program row -> immediate, no confirm)
+			Edit,     // change an equipment's program (Change Program -> editor, pre-filled)
+		};
+		enum class ScheduleWritePhase
+		{
+			ToProgramMenu,   // Navigator drives to the Program equipment-list page
+			SelectEquipment, // scroll the list until the target equipment is visible, cursor onto it, Select
+			ChooseAction,    // on the detail page, cursor onto Add/Change (create/edit) and Select, or Delete row
+			EnterEditor,     // waiting for the editor (New/Change Program) to render, then begin field entry
+			SetOnHour,       // closed-loop step the ON hour (12h+meridiem wheel), Select to advance
+			SetOnMinute,     // closed-loop step the ON minute (0-59 wrap), Select to advance
+			SetOffHour,      // closed-loop step the OFF hour, Select to advance
+			SetOffMinute,    // closed-loop step the OFF minute, Select to advance
+			SetDays,         // step the days wheel to the target selection, Select -> SAVES + returns to detail
+			Verify,          // re-parse the returned detail page; confirm the program is present (create/edit)
+			VerifyGone,      // (delete) confirm the detail page now shows "No Programs"
+		};
+		struct ScheduleWriteGoal
+		{
+			ScheduleWriteOp op{ ScheduleWriteOp::Create };
+			Scheduling::ControllerSchedule program;  // desired on/off + days to write (create/edit)
+			Scheduling::ControllerSchedule match;    // existing program to locate (delete/edit)
+			std::string desc;
+		};
+		inline static const uint32_t ONETOUCH_SCHEDULE_STEP_LIMIT{ 900 };  // menu walk + list scroll + full field entry
+		inline static const uint32_t ONETOUCH_SCHEDULE_MAX_STEP{ 40 };     // per-field wheel-step / list-scroll bound
+		// Editor line layout (verified vs captures/onetouch_program.cap): title on line 1
+		// ("New Program"/"Change Program"), ON on 3, OFF on 4, days on 5. Detail-page action rows:
+		// Add on 9, Delete on 10, Change on 11.
+		inline static const uint8_t ONETOUCH_SCHEDULE_TITLE_LINE{ 1 };
+		inline static const uint8_t ONETOUCH_SCHEDULE_ON_LINE{ 3 };
+		inline static const uint8_t ONETOUCH_SCHEDULE_OFF_LINE{ 4 };
+		inline static const uint8_t ONETOUCH_SCHEDULE_DAYS_LINE{ 5 };
+		inline static const uint8_t ONETOUCH_SCHEDULE_ADD_ROW{ 9 };
+		inline static const uint8_t ONETOUCH_SCHEDULE_DELETE_ROW{ 10 };
+		inline static const uint8_t ONETOUCH_SCHEDULE_CHANGE_ROW{ 11 };
+		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;
+		ScheduleWritePhase m_ScheduleWritePhase{ ScheduleWritePhase::ToProgramMenu };
+		bool m_ScheduleWriteInProgress{ false };
+		uint32_t m_ScheduleWriteStepCount{ 0 };   // overall frame backstop
+		uint32_t m_ScheduleWriteFieldStep{ 0 };   // per-field wheel-step / list-scroll bound
+
+		// Arm a schedule-write goal and reset the per-goal state. Shared body of the three
+		// ControllerScheduleWriter methods (validate emulation, feasibility, one-at-a-time gate).
+		Capabilities::ActuationResult QueueScheduleWrite(ScheduleWriteGoal goal);
+
+		// Read the on-screen ON/OFF time row ("ON  11:00 AM") into a 24-hour (hour, minute). Returns
+		// nullopt when the row is not a parseable time (page mid-render). Reuses the read-path parser.
+		std::optional<std::pair<int, int>> DisplayedTime(uint8_t line_id) const;
+
+		// Read the on-screen days row ("All Days"/"Weekdays"/...) into a DayMask value (nullopt when
+		// unparseable). Reuses the read-path ParseDaysRow.
+		std::optional<uint8_t> DisplayedDays(uint8_t line_id) const;
+
+	private:
 		// Proactive chlorinator-setpoint refresh (read-only Set AquaPure re-scrape). m_RefreshState
 		// holds the "when to scrape" policy; m_RefreshInProgress tracks an in-flight visit (counts
 		// as a goal, so it blocks user commands on the shared Navigator) and is driven step-by-step
@@ -454,6 +554,29 @@ namespace AqualinkAutomate::Devices
 	// 0x00 responses and fail to register the device, so start with V2_Normal.
 	Messages::AckTypes m_AckType_ToSend{ Messages::AckTypes::V2_Normal };
 		KeyCommands m_KeyCommand_ToSend{ KeyCommands::NoKeyCommand };
+
+	private:
+		// Read-only sink for the controller's internal schedules parsed off the per-equipment
+		// Program detail pages (the /api/controller/schedules source). Resolved from the
+		// HubLocator in the constructor; null on a passive/test rig that registers no store.
+		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore;
+
+		// Accumulator for the controller schedules scraped across the per-equipment Program
+		// detail pages. The OneTouch, unlike the IAQ's single list page, shows ONE program at a
+		// time (one equipment, one "Pgm N of M"), so each detail-page visit adds/updates its
+		// entry here and the whole snapshot is republished to the store. Keyed by
+		// (target, program-index) so revisiting a page updates in place rather than duplicating,
+		// and the map iteration order gives a stable, sorted snapshot.
+		std::map<std::pair<std::string, int>, Scheduling::ControllerSchedule> m_ControllerSchedules;
+
+		// The active Program Group, if it has been read off the Program Group page during this
+		// crawl (empty otherwise). Stamped onto each schedule and passed to the store so the UI
+		// can show which group the snapshot belongs to.
+		std::string m_ControllerScheduleGroup;
+
+		// Parse a just-completed Program detail page, fold it into m_ControllerSchedules, and
+		// republish the accumulated snapshot to m_ControllerScheduleStore (status Available).
+		void PublishControllerSchedules(const Utility::ScreenDataPage& page);
 
 	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;

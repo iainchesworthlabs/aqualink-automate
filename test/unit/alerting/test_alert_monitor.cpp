@@ -209,6 +209,87 @@ BOOST_AUTO_TEST_CASE(ChlorinatorWarning_NotRaisedByHardFault)
 	BOOST_CHECK(rec.transitions.back().detail.find("Check PCB") != std::string::npos);
 }
 
+// Every catalogued cell WARNING (not just No-Flow / low salt) is surfaced and
+// named in the detail — this exercises the full ChlorinatorWarningLabel map.
+BOOST_AUTO_TEST_CASE(ChlorinatorWarning_NamesEveryCatalogWarning)
+{
+	struct Case { Kernel::ChlorinatorHealth health; const char* text; };
+	const Case cases[] = {
+		{ Kernel::ChlorinatorHealth::Warning_LowSalt,        "Low salt" },
+		{ Kernel::ChlorinatorHealth::Warning_HighSalt,       "High salt" },
+		{ Kernel::ChlorinatorHealth::Warning_HighCurrent,    "High current" },
+		{ Kernel::ChlorinatorHealth::Warning_CleanCell,      "Clean cell" },
+		{ Kernel::ChlorinatorHealth::Warning_LowVoltage,     "Low voltage" },
+		{ Kernel::ChlorinatorHealth::Warning_LowTemperature, "Low temperature" },
+	};
+
+	for (const auto& c : cases)
+	{
+		boost::asio::io_context io;
+		Options::Alerting::AlertingSettings settings;
+
+		AlertMonitor monitor(io, *this, settings);
+		SinkRecorder rec;
+		monitor.AddSink(rec.AsSink());
+
+		auto data_hub = Find<Kernel::DataHub>();
+		auto chlor = MakeChlorinator(c.health);
+		data_hub->Devices.Add(chlor);
+
+		monitor.EvaluateChlorinatorWarning();
+		BOOST_CHECK(monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
+		BOOST_REQUIRE_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorWarning), 1u);
+		BOOST_CHECK_MESSAGE(rec.transitions.back().detail.find(c.text) != std::string::npos,
+			std::string{ "warning detail should name: " } + c.text);
+
+		// The DataHub is shared across this fixture instance: drop the device so the
+		// next case evaluates ITS chlorinator alone rather than the first-added one.
+		data_hub->Devices.Remove(chlor);
+	}
+}
+
+// Start() is idempotent: a second call while already running is a no-op (does not
+// re-subscribe or re-baseline).
+BOOST_AUTO_TEST_CASE(Start_IsIdempotent)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+
+	std::int64_t now = 2000;
+	monitor.SetClock([&now] { return now; });
+
+	monitor.Start();
+	BOOST_CHECK_NO_THROW(monitor.Start());   // second Start takes the already-running early return
+	monitor.Stop();
+
+	// Stop() is likewise a no-op once already stopped.
+	BOOST_CHECK_NO_THROW(monitor.Stop());
+}
+
+// salt_low never raises on absent data: a salt reading of exactly 0 means "no
+// sample yet", so the check returns before evaluating the threshold.
+BOOST_AUTO_TEST_CASE(SaltLow_ZeroReading_NeverRaises)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+	settings.salt_low_ppm = 2600;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	Find<Kernel::PreferencesHub>()->AlertSaltLowPpm = 2600;
+
+	// No salt sample yet (0 ppm) -> absent-data guard fires; no alert despite the
+	// threshold being 2600.
+	Find<Kernel::DataHub>()->SaltLevel(0.0 * Units::ppm);
+	monitor.EvaluateSaltLow();
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::SaltLow));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::SaltLow), 0u);
+}
+
 // service_mode tracks the DataHub equipment mode.
 BOOST_AUTO_TEST_CASE(ServiceMode_TracksEquipmentMode)
 {

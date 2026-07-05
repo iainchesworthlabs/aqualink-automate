@@ -131,6 +131,22 @@ BOOST_FIXTURE_TEST_CASE(Test_AuditLog_EmptyPathDisablesJsonlSink, TempDirFixture
 	BOOST_CHECK(fs::is_empty(Dir));
 }
 
+BOOST_FIXTURE_TEST_CASE(Test_AuditLog_UnwritableFileIsNonFatal, TempDirFixture)
+{
+	// Point the JSONL trail at a path that is actually a DIRECTORY: the append
+	// stream can never open, so Record must degrade gracefully (an operational
+	// warning) rather than throwing out of the auth hot path.
+	const auto blocked = Dir / "audit-is-a-dir.jsonl";
+	fs::create_directories(blocked);
+
+	Auth::AuditLog audit({ .JsonlFile = blocked });
+
+	BOOST_CHECK_NO_THROW(audit.Record(MakeEvent()));
+
+	// The directory is untouched (nothing was appended into it).
+	BOOST_CHECK(fs::is_directory(blocked));
+}
+
 // RegisterAuditOsSink adds a sink to the process-global logging core. A fixture
 // that removes whatever it returns keeps that global state from leaking into
 // every subsequent suite on hosts where registration succeeds (admin / CI).

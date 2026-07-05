@@ -246,6 +246,31 @@ BOOST_FIXTURE_TEST_CASE(Test_ApiKeyStore_ExpiryEnforced, TempDirFixture)
 	BOOST_CHECK(!store.Authenticate(secret, 5000).has_value());
 }
 
+BOOST_FIXTURE_TEST_CASE(Test_ApiKeyStore_EmptySecretRejected, TempDirFixture)
+{
+	auto store = Auth::ApiKeyStore::Load(Dir / "api-keys.json");
+	std::string key_id;
+	store.Create("some-key", Auth::EntitlementSet::Parse({ "equipment.view" }), 0, key_id);
+
+	// An empty presented secret must be rejected outright (before any digest work),
+	// never matching a stored key.
+	BOOST_CHECK(!store.Authenticate("", 1000).has_value());
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_AuthStore_UnknownSchemaVersionThrows, TempDirFixture)
+{
+	const auto file = Dir / "api-keys.json";
+
+	{
+		// A newer/unknown schema version must be fatal rather than silently
+		// dropping fields the current build does not understand.
+		std::ofstream stream(file);
+		stream << R"({"schema_version":999999,"keys":[]})";
+	}
+
+	BOOST_CHECK_THROW(Auth::ApiKeyStore::Load(file), std::runtime_error);
+}
+
 BOOST_FIXTURE_TEST_CASE(Test_ApiKeyStore_BootstrapLegacyTokenFoldIn, TempDirFixture)
 {
 	const auto file = Dir / "api-keys.json";

@@ -117,6 +117,77 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_MalformedFileThrowsRatherThanRegenerati
 	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
 }
 
+BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_OddLengthHexSecretThrows, TempDirFixture)
+{
+	const auto key_file = Dir / "jwt-signing.key";
+
+	{
+		// secret_hex has an odd number of characters -> FromHex rejects it and the
+		// entry is treated as malformed rather than silently accepted.
+		std::ofstream file(key_file);
+		file << R"({"schema_version":1,"active":"deadbeef","keys":[{"kid":"deadbeef","secret_hex":"abc","created":1}]})";
+	}
+
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_NonHexSecretThrows, TempDirFixture)
+{
+	const auto key_file = Dir / "jwt-signing.key";
+
+	{
+		// Even length but a non-hex digit -> FromHex's nibble decode fails.
+		std::ofstream file(key_file);
+		file << R"({"schema_version":1,"active":"deadbeef","keys":[{"kid":"deadbeef","secret_hex":"zz","created":1}]})";
+	}
+
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_EmptyKidThrows, TempDirFixture)
+{
+	const auto key_file = Dir / "jwt-signing.key";
+
+	{
+		// Well-formed hex but an empty kid is still a malformed entry.
+		std::ofstream file(key_file);
+		file << R"({"schema_version":1,"active":"","keys":[{"kid":"","secret_hex":"aabb","created":1}]})";
+	}
+
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_EmptyKeysArrayThrows, TempDirFixture)
+{
+	const auto key_file = Dir / "jwt-signing.key";
+
+	{
+		// Parseable JSON, no keys -> refuse rather than silently regenerate.
+		std::ofstream file(key_file);
+		file << R"({"schema_version":1,"active":"","keys":[]})";
+	}
+
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_UppercaseHexSecretLoads, TempDirFixture)
+{
+	const auto key_file = Dir / "jwt-signing.key";
+
+	{
+		// FromHex accepts upper-case hex digits: a hand-written key file with an
+		// upper-case secret must load cleanly (32 bytes = 64 hex chars).
+		std::ofstream file(key_file);
+		file << R"({"schema_version":1,"active":"ABCDEF0123456789","keys":[{"kid":"ABCDEF0123456789","secret_hex":"AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899","created":123}]})";
+	}
+
+	const auto store = Auth::JwtKeyStore::LoadOrCreate(key_file);
+
+	BOOST_CHECK_EQUAL(store.KeyCount(), 1u);
+	BOOST_CHECK_EQUAL(store.Active().Kid, "ABCDEF0123456789");
+	BOOST_CHECK_EQUAL(store.Active().Secret.size(), 32u);
+}
+
 //-----------------------------------------------------------------------------
 // CODEC — ROUND TRIP + CLAIMS
 //-----------------------------------------------------------------------------
@@ -246,6 +317,26 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtCodec_EntitlementOverflowElidesClaim, TempDirFix
 	BOOST_CHECK(verified->Entitlements.empty());       // ...nothing smuggled...
 	BOOST_REQUIRE_EQUAL(verified->Groups.size(), 1u);  // ...groups still there
 	BOOST_CHECK_EQUAL(verified->Groups[0], "Household"); //    for re-resolution.
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_JwtCodec_VerifyFailurePopulatesErrorString, TempDirFixture)
+{
+	auto store = std::make_shared<Auth::JwtKeyStore>(Auth::JwtKeyStore::LoadOrCreate(Dir / "jwt-signing.key"));
+
+	const Auth::JwtCodec codec(store, {});
+
+	auto token = codec.Sign(MakeClaims());
+
+	// Tamper with the signature segment so verification fails, and pass a non-null
+	// error pointer: the failure reason must be written back to the caller.
+	const auto signature_start = token.rfind('.') + 1;
+	token[signature_start] = ('A' == token[signature_start]) ? 'B' : 'A';
+
+	std::string error;
+	const auto verified = codec.Verify(token, &error);
+
+	BOOST_CHECK(!verified.has_value());
+	BOOST_CHECK(!error.empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

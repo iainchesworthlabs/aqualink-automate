@@ -57,3 +57,27 @@ test('Schedule CRUD works when the scheduler is on', async ({ page, request }) =
   const delResp = await request.delete(`/api/schedules/${created.uuid}`);
   expect(delResp.status()).toBe(204);
 });
+
+test('Controller-schedule write route is wired with the command dispatcher', async ({ request }) => {
+  // Regression (app wiring, aqualink-automate.cpp): RunApplication must hand the
+  // /api/controller/schedules write handler the app's live ICommandDispatcher. A wiring
+  // regression that leaves the route with a null dispatcher makes RequireCommandDispatcher
+  // answer 503 with the plain-text sentinel "Command dispatcher not available" for EVERY
+  // write, before any body/feasibility check. With the dispatcher wired the request instead
+  // reaches the real handler (a JSON queued/rejected result, or a 400 not-representable), so
+  // the sentinel is an exact discriminator for the wiring — independent of whether an emulated
+  // controller is present (this run boots --jandy-disable-emulation, so no device accepts the
+  // write; that is fine, we assert only that the dispatcher gate was passed).
+  //
+  // Not gated on the app scheduler: the controller store and dispatcher are always registered.
+
+  // The read store is always registered, so the collection route is reachable.
+  const getResp = await request.get('/api/controller/schedules');
+  expect(getResp.status()).toBe(200);
+
+  // A write must get PAST the null-dispatcher gate into the real handler.
+  const postResp = await request.post('/api/controller/schedules', {
+    data: { target: 'Pool Pump', days_of_week: 127, on_local: '08:00', off_local: '10:00' },
+  });
+  expect(await postResp.text()).not.toContain('Command dispatcher not available');
+});

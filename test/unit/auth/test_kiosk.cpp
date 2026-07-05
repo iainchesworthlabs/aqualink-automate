@@ -254,6 +254,24 @@ BOOST_FIXTURE_TEST_CASE(Test_KioskService_LockoutAfterMaxFailures, KioskFixture)
 	BOOST_CHECK(ok.Success);
 }
 
+BOOST_FIXTURE_TEST_CASE(Test_KioskService_ClearPinDisablesAndRevokesSessions, KioskFixture)
+{
+	BOOST_REQUIRE(SetPin("2468", "Household").Success);
+	BOOST_REQUIRE(Kiosk->Enabled());
+
+	// A live kiosk login creates a refresh session under the kiosk subject id.
+	BOOST_REQUIRE(LoginWithPin("2468").Success);
+	BOOST_REQUIRE_EQUAL(Sessions->ForUser(std::string{ Auth::KioskService::SubjectId }).size(), 1u);
+
+	// ClearPin disables the kiosk AND drops every kiosk refresh session (the tokver
+	// bump already invalidated the access tokens).
+	Service->ClearPin("admin-id", "10.0.0.1");
+
+	BOOST_CHECK(!Kiosk->Enabled());
+	BOOST_CHECK(!Service->Enabled());
+	BOOST_CHECK_EQUAL(Sessions->ForUser(std::string{ Auth::KioskService::SubjectId }).size(), 0u);
+}
+
 //-----------------------------------------------------------------------------
 // SUBJECT RESOLVER (kiosk-token validation + revocation)
 //-----------------------------------------------------------------------------

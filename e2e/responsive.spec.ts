@@ -1,0 +1,377 @@
+import { test, expect, type Page } from '@playwright/test';
+
+/**
+ * Responsive layout matrix (Phase 7 of the responsive UI work).
+ *
+ * Asserts the reflow the app promises at each breakpoint:
+ *   - the navigation PATTERN per width — bottom tab bar (< 640), hamburger
+ *     drawer (640–1023), inline nav (>= 1024);
+ *   - NO horizontal overflow on any view at any width;
+ *   - RTL mirroring (dir=rtl) under an Arabic locale, still overflow-free;
+ *   - a CONTRAST guard in dark mode (a heading's text colour must differ from
+ *     its background — this would have caught the dark-mode black-on-black
+ *     regression that shipped before this work).
+ *
+ * These structural assertions are OS-independent and always run. Full-page
+ * VISUAL snapshots are opt-in (RESPONSIVE_SNAPSHOTS=1) because Playwright's
+ * pixel baselines are per-platform: seed them on the target OS with
+ *   RESPONSIVE_SNAPSHOTS=1 npx playwright test e2e/responsive.spec.ts --update-snapshots
+ *
+ * Runs against the default (unauthenticated) webServer + sample_session fixture;
+ * the equipment-rich dashboard visuals live in the standalone
+ * scripts/capture-responsive-screenshots.js harness (which can boot the OneTouch
+ * fixture and inject history/schedules). Here the concern is structural
+ * correctness + regression protection.
+ */
+
+const SNAPSHOTS = !!process.env.RESPONSIVE_SNAPSHOTS;
+
+type NavPattern = 'tabbar' | 'hamburger' | 'inline';
+const VIEWPORTS: { name: string; width: number; height: number; nav: NavPattern }[] = [
+  { name: 'phone-se', width: 375, height: 667, nav: 'tabbar' },
+  { name: 'phone', width: 390, height: 780, nav: 'tabbar' },
+  { name: 'tablet-portrait', width: 820, height: 1180, nav: 'hamburger' },
+  { name: 'tablet-landscape', width: 1180, height: 820, nav: 'inline' },
+  { name: 'desktop', width: 1280, height: 900, nav: 'inline' },
+];
+const VIEWS = ['dashboard', 'detailed', 'trends', 'schedules', 'settings', 'diagnostics', 'about'];
+
+async function horizontalOverflow(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const el = document.scrollingElement || document.documentElement;
+    return el.scrollWidth - el.clientWidth;
+  });
+}
+
+async function expectNavPattern(page: Page, pattern: NavPattern): Promise<void> {
+  const tabbar = page.locator('.mobile-tab-bar');
+  const hamburger = page.locator('nav.app-nav .nav-hamburger');
+  const links = page.locator('nav.app-nav .nav-links');
+  if (pattern === 'tabbar') {
+    await expect(tabbar, 'phone: bottom tab bar visible').toBeVisible();
+    await expect(links, 'phone: inline nav-links hidden').toBeHidden();
+  } else if (pattern === 'hamburger') {
+    await expect(hamburger, 'tablet: hamburger visible').toBeVisible();
+    await expect(links, 'tablet: inline nav-links hidden').toBeHidden();
+    await expect(tabbar, 'tablet: no bottom tab bar').toBeHidden();
+  } else {
+    await expect(links, 'desktop: inline nav-links visible').toBeVisible();
+    await expect(hamburger, 'desktop: no hamburger').toBeHidden();
+    await expect(tabbar, 'desktop: no bottom tab bar').toBeHidden();
+  }
+}
+
+const mask = (page: Page) => ({ mask: [page.locator('.freshness-wrap')] });
+
+for (const vp of VIEWPORTS) {
+  test.describe(`${vp.name} (${vp.width}x${vp.height})`, () => {
+    test.use({ viewport: { width: vp.width, height: vp.height } });
+
+    for (const view of VIEWS) {
+      test(`${view}: no horizontal overflow`, async ({ page }) => {
+        await page.goto(`/#${view}`);
+        await page.waitForTimeout(500);
+        const overflow = await horizontalOverflow(page);
+        expect(overflow, `${view} overflows horizontally by ${overflow}px at ${vp.width}px`).toBeLessThanOrEqual(1);
+      });
+    }
+
+    test('navigation pattern matches the width', async ({ page }) => {
+      await page.goto('/#dashboard');
+      await page.waitForTimeout(400);
+      await expectNavPattern(page, vp.nav);
+    });
+
+    test('dashboard visual snapshot', async ({ page }) => {
+      test.skip(!SNAPSHOTS, 'set RESPONSIVE_SNAPSHOTS=1 (+ --update-snapshots to seed platform baselines)');
+      await page.goto('/#dashboard');
+      await page.waitForTimeout(800);
+      await expect(page).toHaveScreenshot(`dashboard-${vp.name}.png`, { fullPage: true, maxDiffPixelRatio: 0.02, ...mask(page) });
+    });
+  });
+}
+
+test.describe('dark theme (phone)', () => {
+  // colorScheme drives the theme store (it reads prefers-color-scheme when no
+  // explicit choice is stored), which is more reliable than seeding localStorage.
+  test.use({ viewport: { width: 390, height: 780 }, colorScheme: 'dark' });
+
+  test('dashboard renders with legible headings (no black-on-black)', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(700);
+    // Contrast guard, format-agnostic: paint each colour onto a 1x1 canvas to
+    // resolve oklch()/any format to RGB, then compute the WCAG contrast ratio of
+    // a visible heading against the nearest opaque background. Black-on-black is
+    // ~1.0; a legitimate dim label on a surface is well above the 1.6 floor.
+    const ratio = await page.evaluate(() => {
+      const toRgb = (c: string): number[] => {
+        const cv = document.createElement('canvas'); cv.width = cv.height = 1;
+        const ctx = cv.getContext('2d')!; ctx.fillStyle = '#000'; ctx.fillStyle = c;
+        ctx.fillRect(0, 0, 1, 1); const d = ctx.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2]];
+      };
+      const rl = (rgb: number[]) => {
+        const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * f(rgb[0]) + 0.7152 * f(rgb[1]) + 0.0722 * f(rgb[2]);
+      };
+      const el = [...document.querySelectorAll('.section-title, .summary-label')]
+        .find((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+      if (!el) return 99;
+      let node: Element | null = el, bg = 'rgb(255,255,255)';
+      while (node) {
+        const b = getComputedStyle(node).backgroundColor;
+        if (b && b !== 'rgba(0, 0, 0, 0)' && b !== 'transparent') { bg = b; break; }
+        node = node.parentElement;
+      }
+      const L1 = rl(toRgb(getComputedStyle(el).color)), L2 = rl(toRgb(bg));
+      const [hi, lo] = L1 > L2 ? [L1, L2] : [L2, L1];
+      return (hi + 0.05) / (lo + 0.05);
+    });
+    expect(ratio, 'heading contrast ratio too low (black-on-black?)').toBeGreaterThan(1.6);
+  });
+
+  test('dashboard dark visual snapshot', async ({ page }) => {
+    test.skip(!SNAPSHOTS, 'set RESPONSIVE_SNAPSHOTS=1 to seed baselines');
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(800);
+    await expect(page).toHaveScreenshot('dashboard-phone-dark.png', { fullPage: true, maxDiffPixelRatio: 0.02, ...mask(page) });
+  });
+});
+
+test.describe('RTL / Arabic (phone)', () => {
+  test.use({ viewport: { width: 390, height: 780 } });
+
+  // Switch via the app's own store, NOT a seeded localStorage 'locale'. A seeded
+  // value loses to _syncFromServer(), which adopts the server's ui.locale on
+  // boot — so if an earlier spec left an explicit server locale, the seed is
+  // silently overridden (dir stays ltr). setLocale() marks _explicitChoice,
+  // which outranks that sync, making the switch deterministic in a full run.
+  async function switchToArabic(page: Page): Promise<void> {
+    await page.goto('/#dashboard');
+    await page.waitForFunction(() => !!(window as any).Alpine?.store('i18n'));
+    await page.evaluate(async () => { await (window as any).Alpine.store('i18n').setLocale('ar'); });
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  }
+
+  // setLocale() mirrors the choice to the server (ui.locale), which would make
+  // later specs boot in Arabic and fail their English assertions. Restore
+  // English after each test so the shared server is left clean.
+  test.afterEach(async ({ page }) => {
+    await page.evaluate(async () => { await (window as any).Alpine?.store('i18n')?.setLocale('en'); }).catch(() => {});
+  });
+
+  test('dashboard mirrors to RTL and stays overflow-free', async ({ page }) => {
+    await switchToArabic(page);
+    const overflow = await horizontalOverflow(page);
+    expect(overflow, `RTL dashboard overflows by ${overflow}px`).toBeLessThanOrEqual(1);
+  });
+
+  test('dashboard RTL visual snapshot', async ({ page }) => {
+    test.skip(!SNAPSHOTS, 'set RESPONSIVE_SNAPSHOTS=1 to seed baselines');
+    await switchToArabic(page);
+    await page.waitForTimeout(900);
+    await expect(page).toHaveScreenshot('dashboard-phone-rtl.png', { fullPage: true, maxDiffPixelRatio: 0.02, ...mask(page) });
+  });
+});
+
+// Phone dashboard structural reflow (the mockup-matching Phase 2 pieces). The
+// e2e webServer runs the chemistry-only AquaRite fixture, so these cover the
+// chemistry consolidation + header condensation; the heater-setpoints fold-in
+// needs the equipment-rich OneTouch fixture and is exercised by
+// scripts/capture-responsive-screenshots.js + verify.
+test.describe('phone dashboard structure (390)', () => {
+  test.use({ viewport: { width: 390, height: 800 } });
+
+  test('chemistry collapses to one consolidated card (no circular dials)', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    await expect(page.locator('.chem-compact'), 'phone: one consolidated chemistry card').toBeVisible();
+    await expect(page.locator('.gauge-card'), 'phone: circular gauge dials replaced').toHaveCount(0);
+  });
+
+  test('top bar stays a single row with the settings toggles in the More sheet', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(400);
+    await expect(page.locator('nav.app-nav .nav-controls'), 'phone: header toggles hidden (live in More)').toBeHidden();
+    // Brand and the live/ready status cluster share one row — no wrap onto a second line.
+    const brand = await page.locator('nav.app-nav .nav-brand').boundingBox();
+    const status = await page.locator('nav.app-nav .nav-status').boundingBox();
+    expect(brand && status, 'brand + status both present').toBeTruthy();
+    expect(Math.abs(brand!.y - status!.y), 'brand and status on the same row').toBeLessThan(brand!.height);
+  });
+});
+
+// iPad portrait (820) uses the SAME compact layout as the phone (consolidated
+// chemistry, folded setpoints, promoted equipment) — the reflow spans the whole
+// < 1024 band — but with wider grids: equipment goes 3-up. This is the fix for
+// the "iPad portrait renders the desktop layout" bug.
+test.describe('tablet-portrait dashboard structure (820)', () => {
+  test.use({ viewport: { width: 820, height: 1180 } });
+
+  // The e2e webServer runs the chemistry-only fixture, so this covers the
+  // consolidated-chemistry half of the compact layout; the folded heater/setpoints
+  // and 3-up equipment (which need the OneTouch fixture) are checked by
+  // scripts/capture-responsive-screenshots.js + verify against the mockup.
+  test('uses the compact layout (consolidated chemistry, no dials) at tablet width', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    await expect(page.locator('.chem-compact'), 'tablet: consolidated chemistry card').toBeVisible();
+    await expect(page.locator('.gauge-card'), 'tablet: circular dials replaced').toHaveCount(0);
+  });
+});
+
+test.describe('desktop dashboard structure (1280)', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('keeps the circular chemistry dials and the header control toggles', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    await expect(page.locator('.chem-compact'), 'desktop: no phone consolidated card').toHaveCount(0);
+    await expect(page.locator('.gauge-card').first(), 'desktop: circular dials present').toBeVisible();
+    await expect(page.locator('nav.app-nav .nav-controls'), 'desktop: header toggles visible').toBeVisible();
+  });
+
+  // A desktop-width WINDOW in landscape (mouse, pointer: fine) must NOT get the
+  // iPad-landscape treatment — it keeps the rich desktop layout. This is the
+  // other half of the touch-gating guarantee.
+  test('a non-touch 1180 landscape window keeps the desktop layout', async ({ page }) => {
+    await page.setViewportSize({ width: 1180, height: 820 });
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    const display = await page.evaluate(() => getComputedStyle(document.querySelector('.dash-view')!).display);
+    expect(display, 'non-touch: dash-view is not the landscape grid').not.toBe('grid');
+    await expect(page.locator('.gauge-card').first(), 'non-touch: circular dials present').toBeVisible();
+  });
+});
+
+// iPad landscape (>= 1024, landscape, TOUCH primary input) gets the dedicated
+// grid: compact summary + consolidated chemistry paired on top, equipment as a
+// full-width band, heater & setpoints + circulation paired below. Emulate a
+// touch tablet so pointer: coarse matches (a desktop window at the same size,
+// covered above, does not).
+test.describe('iPad landscape dashboard structure (1194, touch)', () => {
+  test.use({ viewport: { width: 1194, height: 834 }, hasTouch: true, isMobile: true });
+
+  test('uses the dedicated landscape grid with consolidated cards', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(700);
+    const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+    expect(coarse, 'touch context reports pointer: coarse').toBe(true);
+    const display = await page.evaluate(() => getComputedStyle(document.querySelector('.dash-view')!).display);
+    expect(display, 'landscape: dash-view is a grid').toBe('grid');
+    await expect(page.locator('.chem-compact'), 'landscape: consolidated chemistry').toBeVisible();
+    await expect(page.locator('.gauge-card'), 'landscape: no circular dials').toHaveCount(0);
+    const overflow = await horizontalOverflow(page);
+    expect(overflow, `landscape overflows by ${overflow}px`).toBeLessThanOrEqual(1);
+  });
+});
+
+// ===========================================================================
+// Diagnostics collapse — on compact layouts the page shows only the mockup's
+// essential subset; Serial Health folds away, the power-user tail folds behind
+// a toggle, and the latency cards trim their percentile matrix. Desktop keeps
+// the full page. (Section STRUCTURE is fixture-independent, so this is robust
+// against the sample_session fixture's data.)
+// ===========================================================================
+async function gotoDiagnostics(page: Page): Promise<void> {
+  await page.goto('/#diagnostics');
+  await page.waitForTimeout(700);
+}
+
+test.describe('diagnostics collapse (phone 390)', () => {
+  test.use({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+
+  test('folds Serial Health + the power-user tail; toggle reveals the tail', async ({ page }) => {
+    await gotoDiagnostics(page);
+    // Serial Health (mid-page) is hidden entirely on compact.
+    await expect(page.locator('.diag-adv-serial .section-title'), 'Serial Health hidden').toBeHidden();
+    // The disclosure toggle is offered.
+    await expect(page.locator('.diag-adv-toggle'), 'advanced toggle visible').toBeVisible();
+    // The tail (device list, message stats, log levels, recording) starts folded.
+    await expect(page.locator('.recording-card'), 'tail folded by default').toBeHidden();
+    // Latency trims: the since-restart footer folds away on compact.
+    await expect(page.locator('.latency-card-foot').first(), 'latency footer trimmed').toBeHidden();
+    // Tapping the toggle reveals the tail.
+    await page.locator('.diag-adv-toggle').click();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.recording-card'), 'tail revealed after toggle').toBeVisible();
+    expect(await horizontalOverflow(page), 'no overflow when expanded').toBeLessThanOrEqual(1);
+  });
+});
+
+test.describe('diagnostics collapse (tablet-portrait 820)', () => {
+  test.use({ viewport: { width: 820, height: 1180 } });
+
+  test('collapses to the essential subset at iPad-portrait width too', async ({ page }) => {
+    await gotoDiagnostics(page);
+    await expect(page.locator('.diag-adv-serial .section-title'), 'Serial Health hidden').toBeHidden();
+    await expect(page.locator('.diag-adv-toggle'), 'advanced toggle visible').toBeVisible();
+    await expect(page.locator('.recording-card'), 'tail folded by default').toBeHidden();
+  });
+});
+
+test.describe('diagnostics on desktop (1280) is unchanged', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('shows Serial Health and every section, with no compact toggle', async ({ page }) => {
+    await gotoDiagnostics(page);
+    await expect(page.locator('.diag-adv-serial .section-title'), 'Serial Health visible').toBeVisible();
+    await expect(page.locator('.diag-adv-toggle'), 'no compact toggle on desktop').toBeHidden();
+    await expect(page.locator('.recording-card'), 'tail visible on desktop').toBeVisible();
+  });
+});
+
+// ===========================================================================
+// Phone tab-bar clearance — the fixed bottom tab bar (~66px) must not sit over
+// the last card. The clearance is main.app-container padding-bottom; a bare
+// `main` selector loses to `.app-container { padding: 0 ... }` and silently
+// zeroes it (the bug this guards against).
+// ===========================================================================
+test.describe('phone bottom tab-bar clearance (390)', () => {
+  test.use({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+
+  test('main reserves space below the last card for the fixed tab bar', async ({ page }) => {
+    await page.goto('/#about');
+    await page.waitForTimeout(500);
+    const padB = await page.evaluate(() =>
+      parseFloat(getComputedStyle(document.querySelector('main.app-container')!).paddingBottom));
+    expect(padB, 'main padding-bottom clears the 66px tab bar').toBeGreaterThanOrEqual(66);
+  });
+});
+
+// ===========================================================================
+// Phone More sheet — grouped surface-2 cards with per-row icons + real toggle
+// switches (Dark mode / Monitor-only), matching the mockup's menu.
+// ===========================================================================
+test.describe('phone More sheet structure (390)', () => {
+  test.use({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+
+  test('is grouped cards with icons and toggle switches', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(500);
+    await page.locator('.mobile-tab-bar .tab-item').last().click();
+    await page.waitForTimeout(400);
+    await expect(page.locator('.sheet-group'), 'two grouped cards').toHaveCount(2);
+    await expect(page.locator('.sheet-row .sheet-ic').first(), 'rows carry icons').toBeVisible();
+    await expect(page.locator('.sheet-switch').first(), 'dark-mode toggle switch present').toBeVisible();
+    expect(await page.locator('.sheet-switch').count(), 'dark-mode + monitor-only switches').toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ===========================================================================
+// About branding hero — shown on compact, hidden on the frozen desktop view.
+// ===========================================================================
+test.describe('About branding hero', () => {
+  test('is shown on phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 780 });
+    await page.goto('/#about');
+    await page.waitForTimeout(500);
+    await expect(page.locator('.about-hero'), 'phone: hero visible').toBeVisible();
+  });
+
+  test('is hidden on desktop (frozen layout)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/#about');
+    await page.waitForTimeout(500);
+    await expect(page.locator('.about-hero'), 'desktop: hero hidden').toBeHidden();
+  });
+});

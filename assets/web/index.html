@@ -832,6 +832,12 @@
     <!-- ====== NAV ====== -->
     <nav class="app-nav" x-data :aria-label="$t('nav.main_aria')">
         <div class="nav-inner">
+            <!-- Tablet hamburger (640–1023px): toggles the nav drawer of routes -->
+            <button class="nav-hamburger" type="button"
+                    @click="$store.layout.toggleMobileNav()"
+                    :aria-expanded="$store.layout.mobileNavOpen" :aria-label="$t('nav.menu')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
             <a class="nav-brand" href="#dashboard">
                 <span class="nav-brand-mark" aria-hidden="true">
                     <svg viewBox="0 0 32 32" fill="none"><path d="M16 3C16 3 6 15 6 21a10 10 0 0020 0C26 15 16 3 16 3z" fill="currentColor"/></svg>
@@ -931,7 +937,119 @@
                 </button>
             </div>
         </div>
+        <!-- Tablet nav drawer (640–1023px): the routes, behind the hamburger -->
+        <div class="nav-drawer" x-show="$store.layout.mobileNavOpen" x-cloak
+             @click.outside="$store.layout.closeMobileNav()"
+             @keydown.escape.window="$store.layout.closeMobileNav()"
+             role="menu" :aria-label="$t('nav.menu')">
+            <template x-for="r in ['dashboard','detailed','trends','schedules','settings','about','diagnostics']" :key="r">
+                <button class="drawer-link" type="button" role="menuitem" :class="{ active: isRoute(r) }"
+                        @click="navigate(r); $store.layout.closeMobileNav()" x-text="$t('nav.' + r)"></button>
+            </template>
+        </div>
     </nav>
+
+    <!-- ====== MOBILE NAV SHELL (Phase 1) ====== -->
+    <!-- Phone bottom tab bar (<640px, CSS-shown): primary routes + a More sheet -->
+    <nav class="mobile-tab-bar" :aria-label="$t('nav.main_aria')">
+        <button class="tab-item" type="button" :class="{ active: isRoute('dashboard') }" @click="navigate('dashboard')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+            <span x-text="$t('nav.dashboard')"></span>
+        </button>
+        <button class="tab-item" type="button" :class="{ active: isRoute('trends') }" @click="navigate('trends')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>
+            <span x-text="$t('nav.trends')"></span>
+        </button>
+        <button class="tab-item" type="button" :class="{ active: isRoute('schedules') }" @click="navigate('schedules')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            <span x-text="$t('nav.schedules')"></span>
+        </button>
+        <button class="tab-item" type="button"
+                :class="{ active: $store.layout.activeSheet === 'more' || ['detailed','settings','about','diagnostics'].includes(route) }"
+                @click="$store.layout.openSheet('more')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+            <span x-text="$t('nav.more')"></span>
+        </button>
+    </nav>
+
+    <!-- More sheet (phone): the routes that don't fit the tab bar + quick controls -->
+    <div class="sheet-backdrop" x-show="$store.layout.activeSheet === 'more'" x-cloak
+         @click.self="$store.layout.closeSheet()"
+         @keydown.escape.window="$store.layout.closeSheet()">
+        <div class="sheet sheet-bottom" role="dialog" aria-modal="true" :aria-label="$t('nav.more')">
+            <div class="sheet-head">
+                <span class="sheet-title" x-text="$t('nav.more')"></span>
+                <button class="sheet-close" type="button" @click="$store.layout.closeSheet()" :aria-label="$t('nav.close')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="sheet-body">
+                <!-- Navigation group: the routes that don't fit the tab bar. Each row
+                     is icon + label + a drill-in chevron, inside a grouped card. -->
+                <div class="sheet-group">
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('detailed') }"
+                            @click="navigate('detailed'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.detailed')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('settings') }"
+                            @click="navigate('settings'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.settings')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('about') }"
+                            @click="navigate('about'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.about')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" :class="{ active: isRoute('diagnostics') }"
+                            @click="navigate('diagnostics'); $store.layout.closeSheet()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.diagnostics')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
+                <!-- Actions group: quick toggles + account controls. Dark mode and
+                     monitor-only carry a real switch; account/admin/sign-in are the
+                     auth-gated real extras (kept, styled to match). -->
+                <div class="sheet-group">
+                    <button class="sheet-row sheet-row-switch" type="button" role="switch"
+                            :aria-checked="$store.theme.isDark ? 'true' : 'false'" @click="$store.theme.toggle()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.dark_mode')"></span>
+                        <span class="sheet-switch" :class="{ on: $store.theme.isDark }" aria-hidden="true"><span class="sheet-switch-knob"></span></span>
+                    </button>
+                    <button class="sheet-row sheet-row-switch" type="button" role="switch"
+                            :aria-checked="$store.system.monitorOnly ? 'true' : 'false'" @click="$store.system.toggleMonitorOnly()">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('nav.monitor_only')"></span>
+                        <span class="sheet-switch" :class="{ on: $store.system.monitorOnly }" aria-hidden="true"><span class="sheet-switch-knob"></span></span>
+                    </button>
+                    <button class="sheet-row" type="button" x-show="$store.auth.authenticated" x-cloak
+                            @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('account:open'))">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('account.title')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row" type="button" x-show="$store.auth.can && $store.auth.can('system.admin')" x-cloak
+                            @click="$store.layout.closeSheet(); window.dispatchEvent(new CustomEvent('admin:open'))">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('admin.title')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <button class="sheet-row sheet-row-danger" type="button" x-show="$store.auth.isEnabled && !$store.auth.authenticated" x-cloak
+                            @click="$store.layout.closeSheet(); $store.auth.showLogin = true">
+                        <span class="sheet-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></span>
+                        <span class="sheet-lbl" x-text="$t('auth.sign_in')"></span>
+                        <svg class="sheet-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ====== STARTUP BANNER ====== -->
     <div class="startup-banner" x-show="$store.system.state === 'Starting'" x-cloak x-transition.opacity>
@@ -967,10 +1085,57 @@
           :data-disable-reason="$store.system.disableReason">
 
         <!-- ====== DASHBOARD VIEW ====== -->
-        <div x-show="route === 'dashboard'" x-cloak x-data="dashboardView()">
+        <div class="dash-view" x-show="route === 'dashboard'" x-cloak x-data="dashboardView()">
 
-            <!-- Summary Strip -->
-            <div class="summary-strip card mt-2 mb-2" x-data="poolGraphic()" role="region" :aria-label="$t('dash.summary_aria')">
+            <!-- Compact status summary (phone / iPad portrait / landscape) — the
+                 divided Pool·Spa·Air temps, an OPERATIONAL pill with pump / heater
+                 / chlorinator status icons (accent-filled when on), and a single
+                 status caption. Replaces the big summary strip below on compact. -->
+            <div class="compact-summary card mt-2 mb-2" x-data="poolGraphic()"
+                 x-show="$store.layout.isCompact" x-cloak role="region" :aria-label="$t('dash.summary_aria')">
+                <div class="csum-temps">
+                    <div class="csum-cell csum-cell--pool">
+                        <span class="csum-accent" aria-hidden="true"></span>
+                        <span class="csum-label" x-text="$t('common.pool')"></span>
+                        <span class="csum-value" :class="$store.pool.tempStateClass('poolTemp')" x-text="poolTempDisplay"></span>
+                    </div>
+                    <div class="csum-cell csum-cell--spa" x-show="$store.pool.hasDualBody" x-cloak>
+                        <span class="csum-accent" aria-hidden="true"></span>
+                        <span class="csum-label" x-text="$t('common.spa')"></span>
+                        <span class="csum-value" :class="$store.pool.tempStateClass('spaTemp')" x-text="spaTempDisplay"></span>
+                    </div>
+                    <div class="csum-cell csum-cell--air">
+                        <span class="csum-accent" aria-hidden="true"></span>
+                        <span class="csum-label" x-text="$t('common.air')"></span>
+                        <span class="csum-value" :class="$store.pool.tempStateClass('airTemp')" x-text="airTempDisplay"></span>
+                    </div>
+                </div>
+                <div class="csum-divider" aria-hidden="true"></div>
+                <div class="csum-statusrow">
+                    <span class="hero-status-pill"
+                          :class="$store.pool.systemStatus === 'Operational' ? 'is-ok' : 'is-warn'"
+                          x-text="($store.pool.systemStatus ? $store.pool.systemStatusLabel : $t('common.unknown')).toUpperCase()"></span>
+                    <div class="csum-icons">
+                        <span class="csum-icon" :class="{ 'is-on': pumpActive }"
+                              :title="$t('dash.pump_state', { state: pumpActive ? $t('common.on') : $t('common.off') })">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+                        </span>
+                        <span class="csum-icon" :class="{ 'is-on': heaterActive }"
+                              :title="$t('dash.heater_state', { state: heaterActive ? $t('common.on') : $t('common.off') })">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c.8 2.6 3.6 3.8 3.6 7.4A3.6 3.6 0 0 1 12 14a3 3 0 0 1-3-3c0-1 .6-1.9 1-2.3C9 10.2 8 11.6 8 11.6 6.8 10.2 6.6 7.8 8.4 5.2 8.8 7 10 7.3 10 7.3 10 5.2 11 4 12 3z"/></svg>
+                        </span>
+                        <span class="csum-icon" x-show="hasChlorinator" x-cloak :class="{ 'is-on': chlorinatorActive }"
+                              :title="$t('dash.chlorinator_state', { state: chlorinatorActive ? $t('common.on') : $t('common.off') })">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+                        </span>
+                    </div>
+                </div>
+                <div class="csum-caption" x-show="$store.pool.tempReason('poolTemp')" x-cloak
+                     x-text="$store.pool.tempReason('poolTemp')"></div>
+            </div>
+
+            <!-- Summary Strip (desktop) -->
+            <div class="summary-strip card mt-2 mb-2" x-data="poolGraphic()" x-show="!$store.layout.isCompact" x-cloak role="region" :aria-label="$t('dash.summary_aria')">
                 <!-- Pool -->
                 <div class="summary-section">
                     <span class="summary-accent summary-accent--pool" aria-hidden="true"></span>
@@ -1084,8 +1249,11 @@
                 </div>
             </template>
 
-            <!-- Temperature Setpoints \u2014 always-visible per-body steppers -->
-            <div class="card" x-show="$store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--'">
+            <!-- Temperature Setpoints \u2014 always-visible per-body steppers.
+                 On phone these fold into the Heater card (see .heater-setpoints
+                 below), so hide this standalone card there UNLESS there is no
+                 heater section to host them (setpoints without a heater button). -->
+            <div class="card" x-show="($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--') && !($store.layout.isCompact && heaterButtons().length > 0)">
                 <div class="card-header" x-text="$t('dash.temperature_setpoints')"></div>
                 <div class="card-body">
                     <!-- Pool setpoint -->
@@ -1119,7 +1287,10 @@
             </div><!-- /.dash-cols -->
 
             <!-- Chemistry Gauges -->
+            <section class="dsec sec-chem">
             <div class="section-title" x-text="$t('dash.water_chemistry')"></div>
+            <!-- Desktop only (>= 1024): circular gauge dials + a separate SWG card. -->
+            <template x-if="!$store.layout.isCompact">
             <div class="gauge-grid mb-2">
                 <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
                     <div class="gauge-card" x-data="chemistryGauge(type)"
@@ -1182,11 +1353,67 @@
                     </div>
                 </div>
             </div>
+            </template>
+
+            <!-- Phone: one consolidated card — pH·ORP·Salt as a divided row
+                 (mirrors the temperature header), then SWG output + Set/Boost
+                 below a divider. Same chemistryGauge()/chlorinatorControl()
+                 components as the desktop dials, so no data path is duplicated. -->
+            <template x-if="$store.layout.isCompact">
+            <div class="chem-compact card mb-2">
+                <div class="chem-compact-row">
+                    <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
+                        <div class="chem-cell" x-data="chemistryGauge(type)" :class="'chem-cell--' + type">
+                            <span class="chem-cell-accent" aria-hidden="true"></span>
+                            <span class="chem-cell-label">
+                                <span x-text="cfg.label"></span>
+                                <span class="chem-cell-band" x-show="band" x-cloak :class="'gauge-band-' + (band || '')" x-text="statusLabel"></span>
+                            </span>
+                            <span class="chem-cell-value" :style="`color:${statusColor}`"><span x-text="numericValue === null ? '--' : $nf(numericValue, cfg.decimals)"></span><small class="chem-cell-unit" x-show="unitLabel" x-cloak x-text="unitLabel"></small></span>
+                        </div>
+                    </template>
+                </div>
+                <div class="chem-compact-swg" x-data="chlorinatorControl()" x-show="present" x-cloak
+                     role="region" :aria-label="$t('dash.swg_aria')">
+                    <div class="chem-compact-divider" aria-hidden="true"></div>
+                    <!-- SWG output + current value on the left, Set/Boost on the
+                         right (mock); the target slider sits on its own row below. -->
+                    <div class="chem-swg-top">
+                        <div class="chem-swg-meter">
+                            <span class="chem-swg-label" x-text="$t('dash.swg_output')"></span>
+                            <span class="chem-swg-value" :style="`color:${healthColor}`" x-text="actualLabel"></span>
+                            <span class="gauge-band-indicator" x-show="healthBand" x-cloak :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
+                        </div>
+                        <div class="swg-actions">
+                            <template x-if="$store.auth.can('equipment.control.chlorinator')">
+                                <div class="swg-actions-inner">
+                                    <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
+                                    <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
+                                            :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
+                                    <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
+                                    <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
+                                </div>
+                            </template>
+                            <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
+                        </div>
+                    </div>
+                    <div class="swg-target" x-show="$store.auth.can('equipment.control.chlorinator')" x-cloak>
+                        <span class="swg-target-label" x-text="$t('dash.target')"></span>
+                        <input type="range" min="0" max="100" step="5" class="swg-slider"
+                               x-model.number="target" @input="touched = true"
+                               :disabled="busy"
+                               :aria-label="$t('dash.target_aria')">
+                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
+                    </div>
+                </div>
+            </div>
+            </template>
+            </section>
 
             <!-- Heater Controls -->
             <template x-if="heaterButtons().length > 0">
-                <div>
-                    <div class="section-title" x-text="$t('dash.heater')"></div>
+                <div class="dsec sec-heater">
+                    <div class="section-title" x-text="$store.layout.isCompact ? $t('dash.heater_setpoints') : $t('dash.heater')"></div>
                     <div class="heater-rows mb-2">
                         <template x-for="button in heaterButtons()" :key="button.id">
                             <div class="heater-row card" x-data="equipmentButton()">
@@ -1221,9 +1448,42 @@
                             </div>
                         </template>
                     </div>
+                    <!-- Setpoints folded into the Heater card on phone (mockup:
+                         "Heater & Setpoints"). Same store-backed steppers as the
+                         standalone card, which is hidden here at phone width. -->
+                    <template x-if="$store.layout.isCompact && ($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--')">
+                        <div class="heater-setpoints">
+                            <div class="heater-setpoints-title" x-text="$t('dash.target_setpoints')"></div>
+                            <div class="setpoint-row" x-show="$store.pool.poolSetpoint !== '--'">
+                                <span class="setpoint-row-label" x-text="$t('common.pool')"></span>
+                                <span class="setpoint-feedback">
+                                    <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:pool') === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                                    <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:pool') === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
+                                </span>
+                                <div class="setpoint-stepper">
+                                    <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', -0.5)">&minus;</button>
+                                    <span class="setpoint-row-value" x-text="$store.pool.poolSetpointDisplay"></span>
+                                    <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.pool') })" @click="$store.pool.adjustSetpoint('pool', 0.5)">+</button>
+                                </div>
+                            </div>
+                            <div class="setpoint-row" x-show="$store.pool.spaSetpoint !== '--'">
+                                <span class="setpoint-row-label" x-text="$t('common.spa')"></span>
+                                <span class="setpoint-feedback">
+                                    <span class="cmd-badge cmd-applied" x-show="$store.pool.getCommandState('setpoint:spa') === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
+                                    <span class="cmd-badge cmd-rejected" x-show="$store.pool.getCommandState('setpoint:spa') === 'rejected'" x-transition.opacity x-text="$t('cmd.rejected')"></span>
+                                </span>
+                                <div class="setpoint-stepper">
+                                    <button class="setpoint-btn" :aria-label="$t('dash.decrease_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', -0.5)">&minus;</button>
+                                    <span class="setpoint-row-value" x-text="$store.pool.spaSetpointDisplay"></span>
+                                    <button class="setpoint-btn" :aria-label="$t('dash.increase_setpoint', { body: $t('common.spa') })" @click="$store.pool.adjustSetpoint('spa', 0.5)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </template>
 
+            <section class="dsec sec-equip">
             <!-- Equipment Controls — controllable (toggleable) devices only -->
             <div class="section-title" x-text="$t('dash.equipment_controls')"></div>
             <div x-show="$store.pool.buttonsLoading" class="text-center">
@@ -1243,17 +1503,15 @@
                             :aria-label="(button.display_label || button.label) + ' — ' + statusLabel(button) + (!$store.auth.can('equipment.control.aux', button.id) ? ' ' + $t('auth.locked_control_suffix') : '')"
                             @click="toggle(button)">
                         <svg class="eq-control-icon" aria-hidden="true" viewBox="0 0 24 24"><use :href="'#icon-' + iconKey(button)"></use></svg>
+                        <!-- Tap-tile (Phase 2): icon + name; colour fills when active, so
+                             no separate switch or on/off text (state is carried by the fill). -->
                         <span class="eq-control-body">
                             <span class="eq-control-label" x-text="button.display_label || button.label"></span>
-                            <span class="eq-control-status" x-text="statusLabel(button)"></span>
                         </span>
                         <!-- Locked affordance for guests / unentitled subjects. -->
                         <span class="eq-lock" x-show="!$store.auth.can('equipment.control.aux', button.id)" x-cloak
                               :title="$t('auth.locked_device')" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        </span>
-                        <span class="eq-switch" x-show="$store.auth.can('equipment.control.aux', button.id)" :class="{ on: isActive(button) }" aria-hidden="true">
-                            <span class="eq-switch-knob"></span>
                         </span>
                         <!-- Command feedback -->
                         <span class="cmd-badge cmd-applied" x-show="cmdState(button) === 'applied'" x-transition.opacity x-text="$t('cmd.applied')"></span>
@@ -1266,10 +1524,11 @@
                     </button>
                 </template>
             </div>
+            </section>
 
             <!-- Other Equipment — configurable / informational, read-only. Hidden when empty. -->
             <template x-if="otherButtons().length > 0">
-                <div>
+                <div class="dsec sec-other">
                     <div class="section-title" x-text="$t('dash.other_equipment')"></div>
                     <div class="other-equip card mb-2">
                         <template x-for="button in otherButtons()" :key="button.id">
@@ -1483,7 +1742,10 @@
                 </div>
             </div>
 
-            <!-- Serial health metrics (FIX 3: moved to after Bandwidth) -->
+            <!-- Serial health metrics (FIX 3: moved to after Bandwidth).
+                 Hidden on compact layouts — its error stats are already covered by
+                 Message Errors + System Health per the responsive mockup. -->
+            <div class="diag-adv-serial">
             <div class="section-title" x-text="$t('diag.serial_health')"></div>
             <div x-show="$store.stats.serial" class="stat-cards mb-2">
                 <div class="stat-card">
@@ -1508,6 +1770,7 @@
                 </div>
             </div>
             <div x-show="!$store.stats.serial" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_serial')"></div>
+            </div><!-- /.diag-adv-serial -->
 
             <!-- Message error metrics (FIX 4: after Serial Health, before Latency) -->
             <div class="section-title" x-text="$t('diag.message_errors')"></div>
@@ -1603,6 +1866,17 @@
             </div>
             <div x-show="!$store.stats.latency" class="text-center text-muted mb-2 p-2" x-text="$t('diag.waiting_latency')"></div>
 
+            <!-- Compact-only disclosure: on phone / iPad the diagnostics page matches
+                 the mockup's essential subset above; the heavier power-user sections
+                 below fold behind this toggle (closed by default). -->
+            <button type="button" class="diag-adv-toggle" x-show="$store.layout.isCompact"
+                    :aria-expanded="showAdvanced ? 'true' : 'false'"
+                    @click="showAdvanced = !showAdvanced">
+                <span x-text="showAdvanced ? $t('diag.advanced_hide') : $t('diag.advanced_show')"></span>
+                <svg class="diag-adv-caret" :class="{ open: showAdvanced }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+
+            <div class="diag-adv-tail" x-show="!$store.layout.isCompact || showAdvanced">
             <!-- Device sections (FIX 6/7: compact clickable cards; rich detail moved to modal.
                  Both Emulated + Actual render the same compact card via ONE shared
                  deviceCard() definition; the outer deviceGroups() loop differs only by the
@@ -1785,6 +2059,7 @@
                     <span x-html="$t('diag.rec_hint_html')"></span>
                 </div>
             </div>
+            </div><!-- /.diag-adv-tail -->
 
             <!-- Matter Status -->
             <!-- Stats connection indicator -->
@@ -2188,6 +2463,7 @@
                                 <div class="sched-name">
                                     <span x-text="e.name"></span>
                                     <span class="sched-owner-tag" :class="e.owner === 'controller' ? 'tag-controller' : 'tag-app'" x-text="e.owner === 'controller' ? $t('sched.owner_controller') : $t('sched.owner_app')"></span>
+                                    <span class="sched-group-tag" x-show="e.owner === 'controller' && e.group" x-cloak x-text="$t('sched.group_label', { group: e.group })"></span>
                                     <span class="sched-conflict-flag" x-show="e.conflict" :title="e.conflictMsg" x-text="$t('sched.conflict')"></span>
                                 </div>
                                 <div class="sched-meta">
@@ -2198,6 +2474,9 @@
                             <div class="sched-actions" x-show="e.owner === 'app'">
                                 <button type="button" class="sched-switch" :class="{ on: e.enabled }" @click="toggleEnabled(e.raw)" :disabled="monitorOnly" :title="e.enabled ? $t('sched.enabled') : $t('sched.disabled')" role="switch" :aria-checked="e.enabled">
                                     <span class="sched-switch-knob"></span>
+                                </button>
+                                <button type="button" class="sched-icon-btn sched-icon-btn-promote" x-show="promotableApp(e.raw)" x-cloak @click="promote(e.raw)" :disabled="monitorOnly" :title="$t('sched.promote')" :aria-label="$t('sched.promote')">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                                 </button>
                                 <button type="button" class="sched-icon-btn" @click="editSchedule(e.raw)" :disabled="monitorOnly" :title="$t('common.edit')" :aria-label="$t('common.edit')">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
@@ -2223,6 +2502,10 @@
                     </div>
 
                     <!-- controller status note -->
+                    <div class="sched-note sched-note-muted" x-show="hasControllerSchedules && controllerActiveGroup" x-cloak>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                        <span x-text="$t('sched.active_group_note', { group: controllerActiveGroup })"></span>
+                    </div>
                     <div class="sched-note" x-show="controllerPending" x-cloak>
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
                         <span x-text="$t('sched.controller_pending')"></span>
@@ -2593,6 +2876,16 @@
         <!-- ====== ABOUT VIEW ====== -->
         <div x-show="route === 'about'" x-cloak x-data="aboutView()">
 
+            <!-- Branding hero (compact only — the mockup leads About with an identity
+                 block; desktop keeps its dense info-first layout, unchanged). -->
+            <div class="about-hero" x-show="$store.layout.isCompact" x-cloak>
+                <span class="about-hero-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 3C16 3 6 15 6 21a10 10 0 0020 0C26 15 16 3 16 3z" fill="currentColor"/></svg></span>
+                <div class="about-hero-text">
+                    <div class="about-hero-name" data-i18n-exempt x-text="$store.pool.projectName || 'Aqualink Automate'"></div>
+                    <div class="about-hero-tagline" x-text="$t('about.tagline')"></div>
+                </div>
+            </div>
+
             <div class="section-title mt-2" x-text="$t('about.software_info')"></div>
             <div class="card mb-2">
                 <div class="card-body">
@@ -2685,6 +2978,7 @@
     <script src="/scripts/auth.js"></script>
     <script src="/scripts/prefs-sync.js"></script>
     <script src="/scripts/stores/theme-store.js"></script>
+    <script src="/scripts/stores/layout-store.js"></script>
     <script src="/scripts/stores/accent-store.js"></script>
     <script src="/scripts/stores/toast-store.js"></script>
     <script src="/scripts/stores/alerts-store.js"></script>

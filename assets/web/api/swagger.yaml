@@ -1194,6 +1194,41 @@ paths:
         '503': { description: Scheduler is disabled }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /api/schedules/{uuid}/promote:
+    post:
+      tags: [Schedules]
+      summary: Promote an app schedule to the controller
+      description: >
+        Pair this app schedule (a button_on or button_off point) with its
+        complement — the matching button_off/on on the same target and days — into
+        an on→off SPAN, check it against the controller's constraints, and, if
+        representable, create it on the controller (async, via the same POST
+        /api/controller/schedules write path). This is the "promote to controller"
+        action of the two-tier schedules model. Requires `schedules.edit`.
+      operationId: promoteSchedule
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Promotion queued
+          content:
+            application/json:
+              example:
+                status: "queued"
+                schedule: { target: "Filter Pump", days_of_week: 127, on_local: "09:00", off_local: "17:00" }
+        '400':
+          description: The paired span is not representable on the controller
+          content:
+            application/json:
+              example: { error: "the paired span is not representable on the controller", blockers: ["day_selection_not_expressible"] }
+        '404': { description: Unknown schedule }
+        '422': { description: Non-button action, or no complementary on/off schedule to form a span }
+        '503': { description: Scheduler disabled / no capable writer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /api/controller/schedules:
     get:
       tags:
@@ -1208,25 +1243,149 @@ paths:
         capable device is present but the page parser is not yet wired) or
         `unsupported` (no device exposes a schedule menu). Each entry is a SPAN
         (on_local..off_local) rather than a point action, distinguishing it from
-        the app-side /api/schedules entries in a unified view. Writing controller
-        schedules is not yet supported.
+        the app-side /api/schedules entries in a unified view. The controller
+        stores two program groups (A/B); only the currently-active group's
+        schedules are observable, so `active_group` names the group the listed
+        entries belong to and each entry carries its `group`.
       operationId: listControllerSchedules
       responses:
         '200':
-          description: Source status plus the array of controller schedules
+          description: Source status, active program group, plus the array of controller schedules
           content:
             application/json:
               example:
-                status: "pending_capture"
+                status: "available"
+                active_group: "A"
                 schedules:
-                  - id: "program-1"
-                    name: "Filter pump"
+                  - id: "iaq-A-1"
+                    name: "Filter Pump"
                     target: "Filter Pump"
+                    group: "A"
                     enabled: true
                     days_of_week: 127
-                    on_local: "08:00"
-                    off_local: "12:00"
+                    on_local: "11:00"
+                    off_local: "14:00"
         '503': { description: Controller schedule store is unavailable }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Schedules
+      summary: Create a controller program (async)
+      description: >
+        Creates a new program inside the controller by driving a capable panel's
+        (AqualinkTouch/IAQ) Program menu over RS-485. The write is ASYNCHRONOUS: a
+        `200` means the write was accepted and queued, not that it is applied —
+        poll `GET` to observe the new program appear. The body is one span; only a
+        controller-representable program is accepted (single equipment on/off, an
+        expressible day selection — all/weekdays/weekends/one day). A body that the
+        controller cannot represent is rejected `400` with a `blockers` array of
+        stable codes (e.g. `day_selection_not_expressible`). Requires `schedules.edit`.
+      operationId: createControllerSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              target: "Filter Pump"
+              days_of_week: 127
+              on_local: "09:00"
+              off_local: "17:00"
+              name: "Morning filtration"
+              group: "A"
+      responses:
+        '200':
+          description: Write queued
+          content:
+            application/json:
+              example:
+                status: "queued"
+                schedule: { target: "Filter Pump", days_of_week: 127, on_local: "09:00", off_local: "17:00" }
+        '400':
+          description: Invalid body, or not representable on the controller
+          content:
+            application/json:
+              example:
+                error: "program is not representable on the controller"
+                blockers: ["day_selection_not_expressible"]
+        '503': { description: No controller schedule store / no capable writer present }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/controller/schedules/{id}:
+    put:
+      tags:
+        - Schedules
+      summary: Edit a controller program (async)
+      description: >
+        Edits the controller program whose `id` matches a currently-listed
+        controller schedule (resolved from the latest read snapshot), by driving
+        the panel's Program menu over RS-485. The body is one span carrying the
+        DESIRED field values (same shape as the create body); only a
+        controller-representable program is accepted (single equipment on/off, an
+        expressible day selection — all/weekdays/weekends/one day). The write is
+        ASYNCHRONOUS: a `200` means the edit was queued, not applied — poll `GET`
+        to observe the change. A body the controller cannot represent is rejected
+        `400` with a `blockers` array. Requires `schedules.edit`.
+      operationId: editControllerSchedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              target: "Filter Pump"
+              days_of_week: 127
+              on_local: "09:00"
+              off_local: "18:00"
+              name: "Morning filtration"
+              group: "A"
+      responses:
+        '200':
+          description: Edit queued
+          content:
+            application/json:
+              example:
+                status: "queued"
+                schedule: { target: "Filter Pump", days_of_week: 127, on_local: "09:00", off_local: "18:00" }
+        '400':
+          description: Invalid body, or not representable on the controller
+          content:
+            application/json:
+              example:
+                error: "program is not representable on the controller"
+                blockers: ["day_selection_not_expressible"]
+        '404': { description: Unknown program id }
+        '503': { description: No controller schedule store / no capable writer present }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+        - Schedules
+      summary: Delete a controller program (async)
+      description: >
+        Removes the controller program whose `id` matches a currently-listed
+        controller schedule (resolved from the latest read snapshot), by driving
+        the panel's Program menu. Asynchronous — a `200` means the delete was
+        queued; poll `GET` to confirm the program is gone. Requires `schedules.edit`.
+      operationId: deleteControllerSchedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Delete queued
+          content:
+            application/json:
+              example: { status: "queued" }
+        '404': { description: Unknown program id }
+        '503': { description: No controller schedule store / no capable writer present }
         '401':
           $ref: '#/components/responses/Unauthorized'
 

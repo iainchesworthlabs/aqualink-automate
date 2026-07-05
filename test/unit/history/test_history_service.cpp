@@ -5,11 +5,20 @@
 #include <boost/test/unit_test.hpp>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/uuid/string_generator.hpp>
+#include <boost/uuid/uuid.hpp>
 
 #include "history/history_service.h"
 #include "history/sqlite_db.h"
+#include "kernel/auxillary_devices/auxillary_device.h"
+#include "kernel/auxillary_traits/auxillary_traits_types.h"
+#include "kernel/data_hub.h"
+#include "kernel/orp.h"
+#include "kernel/ph.h"
 #include "kernel/preferences_hub.h"
+#include "kernel/temperature.h"
 #include "options/options_history_options.h"
+#include "types/units_dimensionless.h"
 
 #include "support/unit_test_hublocatorinjector.h"
 
@@ -356,6 +365,145 @@ BOOST_AUTO_TEST_CASE(Start_EmptyDbPath_StaysDisabled)
 	// A disabled service silently drops samples and reports no series.
 	BOOST_CHECK_NO_THROW(service.RecordNumeric("temp/pool", "C", 20.0, /*is_heartbeat=*/true));
 	BOOST_CHECK(service.ListSeries().empty());
+}
+
+//=============================================================================
+// OnConfigEvent: after Start() the service subscribes to the DataHub's
+// ConfigUpdateSignal and records temperature / chemistry / device-state events.
+// Driving the real DataHub setters exercises the event-dispatch branches and the
+// StateToValue helper without touching the private OnConfigEvent directly.
+//=============================================================================
+
+BOOST_AUTO_TEST_CASE(OnConfigEvent_TemperatureEvent_RecordsPoolSpaAir)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 5'000;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	auto data_hub = Find<Kernel::DataHub>();
+
+	// Each distinct reading fans out a Temperature config event; OnConfigEvent
+	// records the corresponding temp/<body> series (in Celsius).
+	data_hub->PoolTemp(Kernel::Temperature::ConvertToTemperatureInCelsius(28.0));
+	now += 100;
+	data_hub->SpaTemp(Kernel::Temperature::ConvertToTemperatureInCelsius(36.0));
+	now += 100;
+	data_hub->AirTemp(Kernel::Temperature::ConvertToTemperatureInCelsius(19.0));
+
+	auto series = service.ListSeries();
+	bool saw_pool = false, saw_spa = false, saw_air = false;
+	for (const auto& s : series)
+	{
+		if (s.key == "temp/pool") { saw_pool = true; }
+		if (s.key == "temp/spa") { saw_spa = true; }
+		if (s.key == "temp/air") { saw_air = true; }
+	}
+	BOOST_CHECK(saw_pool);
+	BOOST_CHECK(saw_spa);
+	BOOST_CHECK(saw_air);
+}
+
+BOOST_AUTO_TEST_CASE(OnConfigEvent_ChemistryEvent_RecordsPositiveValuesOnly)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 6'000;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	auto data_hub = Find<Kernel::DataHub>();
+
+	// A positive salt reading fans out a Chemistry event and is recorded; each
+	// chemistry setter emits its own single-field event.
+	data_hub->SaltLevel(3200.0 * Units::ppm);
+	now += 100;
+	data_hub->pH(Kernel::pH(7.4f));
+	now += 100;
+	data_hub->ORP(Kernel::ORP(720.0));
+
+	auto series = service.ListSeries();
+	bool saw_salt = false, saw_ph = false, saw_orp = false;
+	for (const auto& s : series)
+	{
+		if (s.key == "chem/salt_ppm") { saw_salt = true; }
+		if (s.key == "chem/ph") { saw_ph = true; }
+		if (s.key == "chem/orp") { saw_orp = true; }
+	}
+	BOOST_CHECK(saw_salt);
+	BOOST_CHECK(saw_ph);
+	BOOST_CHECK(saw_orp);
+}
+
+BOOST_AUTO_TEST_CASE(OnConfigEvent_ButtonStateChange_RecordsDeviceStateWithStateValue)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 7'000;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	auto data_hub = Find<Kernel::DataHub>();
+
+	boost::uuids::string_generator gen;
+	const auto button = gen("01234567-89ab-cdef-0123-456789abcdef");
+
+	// "Running" maps (via StateToValue) to 1.0; a subsequent "Off" maps to 0.0.
+	// The series is keyed on the button UUID and carries the friendly label.
+	data_hub->EmitButtonStateChange(button, "Running", "Filter Pump");
+	now += 100;
+	data_hub->EmitButtonStateChange(button, "Off", "Filter Pump");
+
+	auto series = service.ListSeries();
+	BOOST_REQUIRE_EQUAL(series.size(), 1u);
+	BOOST_CHECK_EQUAL(series.front().unit, "state");
+	BOOST_CHECK_EQUAL(series.front().label, "Filter Pump");
+	BOOST_CHECK_EQUAL(series.front().count, 2);
+
+	// The recorded values are the StateToValue mapping (1.0 for Running, 0.0 for Off).
+	auto points = service.QuerySeries(series.front().key, 0, now + 1, 100);
+	BOOST_REQUIRE_EQUAL(points.size(), 2u);
+	BOOST_CHECK_EQUAL(points.front().value, 1.0);
+	BOOST_CHECK_EQUAL(points.back().value, 0.0);
+}
+
+//=============================================================================
+// Heartbeat -> SampleCurrentState reads current DataHub state; a chlorinator
+// carrying a DutyCycleTrait records the swg/percent series.
+//=============================================================================
+
+BOOST_AUTO_TEST_CASE(Heartbeat_SamplesChlorinatorDutyCycle)
+{
+	boost::asio::io_context io;
+	History::HistoryService service(io, *this, MemorySettings());
+	std::int64_t now = 8'000;
+	service.SetClock([&now] { return now; });
+	service.Start();
+
+	using namespace Kernel::AuxillaryTraitsTypes;
+	auto data_hub = Find<Kernel::DataHub>();
+
+	auto chlor = std::make_shared<Kernel::AuxillaryDevice>();
+	chlor->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Chlorinator);
+	chlor->AuxillaryTraits.Set(LabelTrait{}, std::string{ "AquaPure" });
+	chlor->AuxillaryTraits.Set(DutyCycleTrait{}, static_cast<std::uint8_t>(55));
+	data_hub->Devices.Add(chlor);
+
+	// The heartbeat bypasses the throttle and records the SWG duty cycle.
+	service.Heartbeat();
+
+	auto series = service.ListSeries();
+	bool saw_swg = false;
+	for (const auto& s : series)
+	{
+		if (s.key == "swg/percent")
+		{
+			saw_swg = true;
+			BOOST_CHECK_EQUAL(s.unit, "%");
+		}
+	}
+	BOOST_CHECK(saw_swg);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

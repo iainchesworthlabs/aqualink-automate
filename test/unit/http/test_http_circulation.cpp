@@ -44,6 +44,9 @@ namespace
 		CommandResult SetCirculationMode(Kernel::CirculationModes mode) override { modes.push_back(mode); return result_to_return; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds, bool) override { return CommandResult::Success; }
 		CommandResult SelectIAQPageButton(std::uint8_t) override { return CommandResult::Success; }
+		CommandResult CreateControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult DeleteControllerProgram(const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
+		CommandResult EditControllerProgram(const Scheduling::ControllerSchedule&, const Scheduling::ControllerSchedule&) override { return CommandResult::Success; }
 	};
 
 	struct CirculationFixture : public AqualinkAutomate::Test::HubLocatorInjector

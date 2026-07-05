@@ -71,5 +71,53 @@ namespace AqualinkAutomate::Test
 		return bytes;
 	}
 
+	std::vector<std::vector<uint8_t>> LoadFixtureFrames(const std::string& fixture_path)
+	{
+		constexpr uint8_t DLE = 0x10, STX = 0x02, ETX = 0x03;
+
+		const auto bytes = LoadFixture(fixture_path);
+		std::vector<std::vector<uint8_t>> frames;
+
+		std::size_t i = 0;
+		while (i + 1 < bytes.size())
+		{
+			if (!(bytes[i] == DLE && bytes[i + 1] == STX))
+			{
+				++i;
+				continue;
+			}
+
+			// Scan for the closing DLE/ETX, skipping DLE/00 stuffed data bytes so a
+			// literal 0x10 in the payload is not mistaken for the frame terminator.
+			std::size_t j = i + 2;
+			while (j + 1 < bytes.size())
+			{
+				if (bytes[j] == DLE && bytes[j + 1] == ETX) { break; }
+				if (bytes[j] == DLE && bytes[j + 1] == 0x00) { j += 2; continue; }
+				++j;
+			}
+
+			if (j + 1 < bytes.size() && bytes[j] == DLE && bytes[j + 1] == ETX)
+			{
+				frames.emplace_back(bytes.begin() + static_cast<std::ptrdiff_t>(i),
+					bytes.begin() + static_cast<std::ptrdiff_t>(j + 2));
+				i = j + 2;
+			}
+			else
+			{
+				break; // no terminator -> trailing partial data, stop
+			}
+		}
+
+		return frames;
+	}
+
+	std::vector<std::vector<uint8_t>> ReplayFixtureFramed(MockReplayHarness& harness, const std::string& fixture_path)
+	{
+		auto frames = LoadFixtureFrames(fixture_path);
+		harness.Replay(frames);
+		return frames;
+	}
+
 }
 // namespace AqualinkAutomate::Test

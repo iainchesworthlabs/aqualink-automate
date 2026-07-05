@@ -504,4 +504,71 @@ BOOST_AUTO_TEST_CASE(TestToggleByLabel_RecordsCommandHistoryOnHandlingController
 	BOOST_CHECK(diag["recent_commands"][0]["description"].get<std::string>().find("Pool Light") != std::string::npos);
 }
 
+// =============================================================================
+// CommandByUuid with a device PRESENT (On/Off actions).
+//
+// The device-not-found cases above return before ActionVerb()/DeviceLabel() are
+// reached. With a device found (but no serial adapter) the On/Off action arms,
+// the "turn on"/"turn off" verb, and the DeviceLabel() helper are all exercised
+// on the way to the honest NoSerialAdapter result.
+// =============================================================================
+
+BOOST_AUTO_TEST_CASE(TestCommandByUuid_DevicePresentOn_UsesLabel_NoSerialAdapter)
+{
+	auto device = std::make_shared<AuxillaryDevice>();
+	device->AuxillaryTraits.Set(LabelTrait{}, std::string{"Pool Light"});
+	device->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Auxillary);
+	data_hub->Devices.Add(device);
+
+	auto result = dispatcher.CommandByUuid(device->Id(), ICommandDispatcher::DeviceAction::On);
+	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::NoSerialAdapter));
+}
+
+BOOST_AUTO_TEST_CASE(TestCommandByUuid_DevicePresentOff_NoSerialAdapter)
+{
+	auto device = std::make_shared<AuxillaryDevice>();
+	device->AuxillaryTraits.Set(LabelTrait{}, std::string{"Spa Blower"});
+	device->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Auxillary);
+	data_hub->Devices.Add(device);
+
+	auto result = dispatcher.CommandByUuid(device->Id(), ICommandDispatcher::DeviceAction::Off);
+	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::NoSerialAdapter));
+}
+
+BOOST_AUTO_TEST_CASE(TestCommandByUuid_DevicePresentNoLabel_FallsBackToEquipment)
+{
+	// A device with no LabelTrait exercises the DeviceLabel() "equipment" fallback.
+	auto device = std::make_shared<AuxillaryDevice>();
+	device->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Auxillary);
+	data_hub->Devices.Add(device);
+
+	auto result = dispatcher.CommandByUuid(device->Id(), ICommandDispatcher::DeviceAction::On);
+	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::NoSerialAdapter));
+}
+
+// =============================================================================
+// CommandByLabel aux-id resolution.
+//
+// When no device matches the friendly label but the label parses as an aux-id
+// form ("Aux5"), the dispatcher resolves it by the stable aux id. With no such
+// device present this still exercises the aux-id resolution branch on the way to
+// DeviceNotFound.
+// =============================================================================
+
+BOOST_AUTO_TEST_CASE(TestCommandByLabel_AuxIdForm_ResolvesByStableId)
+{
+	auto result = dispatcher.CommandByLabel("Aux5", ICommandDispatcher::DeviceAction::On);
+	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
+}
+
+// =============================================================================
+// SelectIAQPageButton - routes to a PageNavigator-capable device.
+// =============================================================================
+
+BOOST_AUTO_TEST_CASE(TestSelectIAQPageButton_NoNavigator_DeviceNotFound)
+{
+	auto result = dispatcher.SelectIAQPageButton(3);
+	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

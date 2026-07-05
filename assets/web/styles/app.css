@@ -1,5 +1,25 @@
 /* === Variables, Layout, Typography, Dark Mode === */
 
+/*
+ * === Responsive breakpoint system ===
+ * Canonical viewport breakpoints for the responsive UI. Kept in lock-step with
+ * scripts/stores/layout-store.js (the JS side reads the same thresholds via
+ * matchMedia). Use VIEWPORT media queries (not container queries) so the
+ * orientation query below works.
+ *
+ *   phone    @media (max-width: 639px)
+ *   tablet   @media (min-width: 640px) and (max-width: 1023px)
+ *   desktop  @media (min-width: 1024px)                       <- base / desktop-first styles
+ *   iPad landscape dashboard:
+ *            @media (min-width: 768px) and (orientation: landscape)
+ *
+ * Rules: new components use logical properties (inset-inline, margin-inline-*,
+ * text-align: start) and design tokens only — never hardcoded colours — so RTL
+ * mirrors and both themes resolve correctly. (NOTE: the two legacy
+ * max-width:820px / max-width:640px queries further down predate this system
+ * and are migrated view-by-view across the responsive phases.)
+ */
+
 :root {
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
@@ -1322,6 +1342,11 @@ a:hover {
 .info-grid dd {
     margin: 0;
     color: var(--text-primary);
+    /* Let the value column actually shrink to its track and break long
+       unbroken strings (e.g. the homepage URL), instead of forcing the grid
+       wider than its container (horizontal overflow on narrow screens). */
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 /* === Device Status (diagnostics) === */
@@ -1980,4 +2005,151 @@ nav .nav-inner { position: relative; }
 @media (max-width: 640px) {
     .admin-row { grid-template-columns: 1fr; }
     .admin-row-actions { justify-content: flex-start; }
+}
+
+/* ============================================================
+   Responsive navigation shell (Phase 1)
+   desktop (>=1024): inline .nav-links (unchanged)
+   tablet  (640–1023): routes collapse behind .nav-hamburger -> .nav-drawer
+   phone   (<640): routes -> fixed .mobile-tab-bar + a More sheet
+   Themed with the reskin tokens so both themes + RTL resolve.
+   ============================================================ */
+nav.app-nav .nav-hamburger {
+    display: none; /* revealed at tablet width below */
+    align-items: center; justify-content: center;
+    width: 40px; height: 40px; flex: none;
+    border-radius: 10px; border: 1px solid transparent;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+nav.app-nav .nav-hamburger svg { width: 22px; height: 22px; }
+nav.app-nav .nav-hamburger:hover { color: var(--text); background: var(--surface-3); }
+
+.nav-drawer {
+    position: absolute; top: 100%; inset-inline: 0; z-index: 99;
+    background: var(--surface-1); color: var(--text);
+    border-top: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    padding: 8px; display: flex; flex-direction: column; gap: 2px;
+}
+.drawer-link {
+    text-align: start; font: inherit; font-weight: 600; font-size: 0.95rem;
+    color: var(--text); background: transparent; border: 0;
+    padding: 12px 14px; border-radius: 10px; cursor: pointer;
+}
+.drawer-link:hover { background: var(--surface-2); }
+.drawer-link.active { background: var(--accent-soft); color: var(--accent); }
+
+.mobile-tab-bar {
+    display: none; /* revealed at phone width below */
+    position: fixed; inset-inline: 0; bottom: 0; z-index: 200;
+    background: var(--surface-1); color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 24px -18px rgba(0, 0, 0, 0.6);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+}
+.tab-item {
+    flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font: inherit; font-size: 0.68rem; font-weight: 600;
+    color: var(--text-dim); background: transparent; border: 0;
+    padding: 6px 4px; border-radius: 10px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.tab-item svg { width: 22px; height: 22px; }
+.tab-item.active { color: var(--accent); }
+
+.sheet-backdrop {
+    position: fixed; inset: 0; z-index: 300;
+    background: oklch(0.1 0.02 250 / 0.55);
+    display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet-bottom {
+    width: 100%; max-height: 82vh;
+    background: var(--surface-1); color: var(--text);
+    border-radius: 18px 18px 0 0;
+    box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.sheet-title { font-weight: 700; font-size: 1.05rem; }
+.sheet-close {
+    width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+    border-radius: 9px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer;
+}
+.sheet-close svg { width: 18px; height: 18px; }
+.sheet-body { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+/* Rows grouped into rounded surface-2 cards (nav group + actions group), matching
+   the mockup's menu. Hairline separators between rows within a group. */
+.sheet-group {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    display: flex; flex-direction: column;
+}
+.sheet-row {
+    display: flex; align-items: center; gap: 12px;
+    text-align: start; font: inherit; font-weight: 600; font-size: 0.98rem;
+    color: var(--text); background: transparent; border: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px; cursor: pointer; width: 100%;
+}
+.sheet-row:last-child { border-bottom: 0; }
+.sheet-row:hover { background: var(--surface-1); }
+.sheet-row.active { color: var(--accent); }
+.sheet-row.active .sheet-ic { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.sheet-ic {
+    flex: none; width: 38px; height: 38px; display: grid; place-items: center;
+    border-radius: 10px; background: var(--surface-1);
+    border: 1px solid var(--border); color: var(--text-dim);
+}
+.sheet-ic svg { width: 19px; height: 19px; }
+.sheet-lbl { flex: 1; min-width: 0; }
+.sheet-chev { flex: none; width: 18px; height: 18px; color: var(--text-faint); }
+.sheet-row-danger { color: var(--danger, #d64545); }
+.sheet-row-danger .sheet-ic { color: var(--danger, #d64545); }
+/* Toggle switch (Dark mode, Monitor-only) — reflects the bound store state. */
+.sheet-switch {
+    flex: none; width: 42px; height: 24px; border-radius: 999px;
+    background: var(--border-strong, var(--border)); position: relative;
+    transition: background 0.16s ease;
+}
+.sheet-switch.on { background: var(--accent); }
+.sheet-switch-knob {
+    position: absolute; top: 2px; inset-inline-start: 2px;
+    width: 20px; height: 20px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.16s ease;
+}
+.sheet-switch.on .sheet-switch-knob { transform: translateX(18px); }
+[dir="rtl"] .sheet-switch.on .sheet-switch-knob { transform: translateX(-18px); }
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    nav.app-nav .nav-links { display: none; }
+    nav.app-nav .nav-hamburger { display: inline-flex; }
+    /* With the inline routes hidden, push the status pills + control icons to
+       the right edge (the hidden nav-links no longer supplies the auto margin). */
+    nav.app-nav .nav-status { margin-inline-start: auto; }
+}
+@media (max-width: 639px) {
+    nav.app-nav .nav-links { display: none; }
+    .mobile-tab-bar { display: flex; }
+    /* Clear the fixed bottom tab bar (66px) plus the iOS home-indicator inset so
+       the last card on every view isn't hidden behind it. NB: the selector must be
+       `main.app-container` — a bare `main` (element specificity) loses to
+       `.app-container { padding: 0 1.25rem }` above, which zeroes padding-bottom. */
+    main.app-container { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+
+    /* Phone top bar = one non-wrapping row: brand on the left, the live/ready
+       status + alerts bell pushed to the right. The settings toggles (monitor,
+       theme, account, admin, sign-in) move out of the bar and into the "More"
+       sheet, so they no longer wrap onto a second line. */
+    nav.app-nav .nav-inner { flex-wrap: nowrap; gap: 8px; padding-inline: 16px; }
+    nav.app-nav .nav-brand { flex: 0 0 auto; }
+    nav.app-nav .nav-status { margin-inline-start: auto; flex: 0 0 auto; }
+    nav.app-nav .nav-controls { display: none; }
 }
