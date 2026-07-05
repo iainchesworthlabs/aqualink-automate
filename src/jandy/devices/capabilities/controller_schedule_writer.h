@@ -7,11 +7,15 @@ namespace AqualinkAutomate::Scheduling { struct ControllerSchedule; }
 namespace AqualinkAutomate::Devices::Capabilities
 {
 
-	// Mixin advertised by a controller that can CREATE or DELETE its own internal program entries
-	// (the controller's built-in schedule timers) by driving its Program menu. The AqualinkTouch
-	// (IAQDevice, 0x33) is the implementer; the OneTouch and a Serial Adapter do not offer this
-	// write path, so a request falls through to NotSupported on them. The write is asynchronous
-	// (a page-navigation goal serviced per poll), so Accepted means "queued", not "done".
+	// Mixin advertised by a controller that can CREATE, DELETE or EDIT its own internal program
+	// entries (the controller's built-in schedule timers) by driving its Program menu. Two devices
+	// implement it: the AqualinkTouch (IAQDevice, 0x33) drives its touch-grid Program pages, and the
+	// OneTouch (0x40) drives its 16x12 character Program menu with discrete nav keys (see
+	// docs/onetouch_schedule_protocol.md, write path). A Serial Adapter does not offer this write
+	// path, so a request falls through to NotSupported on it. Only an EMULATED panel transmits, so a
+	// passive (real-observed) IAQ/OneTouch also reports NotSupported and the dispatcher falls back to
+	// the other. The write is asynchronous (a page-navigation goal serviced per poll), so Accepted
+	// means "queued", not "done".
 	class ControllerScheduleWriter
 	{
 	public:

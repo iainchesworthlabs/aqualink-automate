@@ -1,10 +1,10 @@
 # OneTouch Schedule Protocol (read path — reverse-engineered)
 
 Status: **read path decoded AND implemented** (parser + detection fix + store population landed
-2026-07-05); **write path DECODED** (add/change/delete keypress flow — see "Write path" below —
-implementation is the next slice). Decoded from a live capture (`captures/onetouch_program.cap` in
-the schedule-reveng worktree + the recorder log). Companion to the IAQ decode
-(`docs/iaq_schedule_protocol.md`).
+2026-07-05); **write path DECODED AND implemented** (add/change/delete keypress flow — see "Write
+path" below — landed 2026-07-05 on `OneTouchDevice` as the `ControllerScheduleWriter` mixin).
+Decoded from a live capture (`captures/onetouch_program.cap` in the schedule-reveng worktree + the
+recorder log). Companion to the IAQ decode (`docs/iaq_schedule_protocol.md`).
 This is the "OneTouch delta" of the controller-schedule integration: the OneTouch (device 0x40)
 is a **16×12 character text-menu** panel (not a touchscreen), so its Program pages are
 reconstructed by the existing OneTouch Screen capability (`onetouch_messageprocessors.cpp` →
@@ -201,32 +201,56 @@ Select                                   → days = All Days (unchanged) → SAV
 NO confirmation dialog** (contrast the IAQ, which pops a confirm dialog needing `0x01` Ok). The panel
 returns to the detail page showing `No Programs`.
 
-### Implementation plan (tee-up for the write slice)
+### Implementation (landed 2026-07-05)
 
-Mirror the IAQ write state machine (`ControllerScheduleWrite_ProcessStep`) but drive the OneTouch
-**Navigator** instead of touch commands — the `OneTouchDevice` already owns a Navigator, menu model,
-and the `m_KeyCommand_ToSend` send path, and already implements the shared
-`Capabilities::ControllerScheduleWriter` for the read path's device. So the HTTP routes + dispatcher
-(`Create/Delete/EditControllerProgram` → `DispatchToCapable<ControllerScheduleWriter>`) and the
-promotion/constraint checks are **already wired** — this slice only adds the OneTouch device-side
-actuation.
+`OneTouchDevice` now implements the shared `Capabilities::ControllerScheduleWriter` mixin
+(`Create/Delete/EditControllerProgram`), driving the OneTouch **Navigator** + `m_KeyCommand_ToSend`
+send path instead of the IAQ's touch commands. The `OneTouchDevice` already owned a Navigator, menu
+model, and the read-path parser, so this slice added only the device-side actuation. The HTTP routes
++ dispatcher (`Create/Delete/EditControllerProgram` → `DispatchToCapable<ControllerScheduleWriter>`)
+and the promotion/constraint checks were **already wired**, so once the OneTouch advertised the
+capability the dispatcher reached it automatically.
 
-- **Phases (Create/Edit):** `NavigateToProgramMenu → SelectEquipment(target)` (scroll-to-target,
-  closed-loop on the parked row) `→ EnterEditor` (Add row for Create, Change row for Edit)
-  `→ SetOnHour → SetOnMinute → SetOffHour → SetOffMinute → SetDays → Verify` (re-parse the returned
-  detail page via `ParseProgramDetailPage` and confirm target+times+days).
-- **Phases (Delete):** `NavigateToProgramMenu → SelectEquipment → SelectDeleteRow → Verify` (detail
-  now `No Programs`).
-- **Each field phase is closed-loop, not press-counting:** read the field's current value from the
-  reconstructed editor screen (ON = line 3, OFF = line 4, days = line 5), emit one `LineUp`/`LineDown`
-  toward the target, wait a poll for the echo, repeat until it matches, then `Select` to advance. This
-  is robust to wheel direction, meridiem crossing, minute/day wrap, and pre-filled Edit values without
-  hardcoding step counts. Track the active field by counting `Select`s since editor entry
-  (`0`=ON-hour … `4`=days) since the panel gives no field-cursor highlight.
-- **Backstop:** reuse the IAQ writer's per-poll page-gating + settle/abandon backstop so a UI that
-  adds/rejects steps (e.g. max-programs, day rules) fails cleanly rather than mis-keying.
+- **Entry points** (`OneTouchDevice::{Create,Delete,Edit}ControllerProgram`): passive-guard
+  (`!IsEmulationActive()` → `NotSupported`), fault-state guard, busy-guard (`GoalInProgress()` →
+  `NotSupported`), and the `Scheduling::CheckControllerCandidate` feasibility gate for Create/Edit
+  (→ `InvalidValue`; Delete rejects only an empty target). A validated goal is queued via
+  `QueueScheduleWrite`; `GoalInProgress()` now includes the schedule-write goal so it and the other
+  keypad goals are mutually exclusive on the single shared Navigator.
+- **Service step** `ControllerScheduleWrite_ProcessStep` (runs 5th in `NormalOperation`), a
+  screen-driven phase machine mirroring the spa-switch writer's shape:
+  - **Create/Edit:** `ToProgramMenu` (Navigator → Program equipment list) `→ SelectEquipment`
+    (scroll the list to the target row, cursor onto it, `Select`) `→ ChooseAction` (cursor onto the
+    **Add** row for Create / **Change** row for Edit, `Select` → editor) `→ EnterEditor → SetOnHour →
+    SetOnMinute → SetOffHour → SetOffMinute → SetDays` (each field closed-loop) `→ Verify` (re-parse
+    the returned detail page via `ParseProgramDetailPage` and confirm target + on/off + days).
+  - **Delete:** `ToProgramMenu → SelectEquipment → ChooseAction` (cursor onto the **Delete** row,
+    `Select` — **immediate, no confirm**) `→ VerifyGone` (detail now shows `No Programs`).
+- **Closed-loop field entry (not press-counting):** each field reads the current on-screen value
+  (ON = line 3, OFF = line 4, days = line 5 — via `DisplayedTime` / `DisplayedDays`, which reuse the
+  read-path `ParseProgramDetailLines` / `ParseDaysRow`), emits ONE `LineUp`/`LineDown` the shorter way
+  round the wheel (hour mod-24, minute mod-60, days by `LineUp` toward the target), waits a frame for
+  the echo, repeats until it matches, then `Select` to commit + advance. Robust to wheel direction,
+  meridiem crossing, minute/day wrap, and pre-filled Edit values. The active field is tracked by the
+  **phase progression** (each field's `Select` advances the phase) since the editor reports no field
+  highlight. Every loop is bounded by `ONETOUCH_SCHEDULE_MAX_STEP` (per-field/list-scroll) and the
+  whole goal by `ONETOUCH_SCHEDULE_STEP_LIMIT` (frame backstop) so a mis-detected page fails cleanly
+  (`finish(false)`) rather than wedging `NormalOperation`.
+- **Files:** `src/jandy/devices/onetouch_device.{h,cpp}` (the capability + phase machine + the
+  `DisplayedTime`/`DisplayedDays` helpers + the `SetHighlightedLineForTest`/`PendingKeyCommandForTest`
+  test seams); the capability-header comment in
+  `src/jandy/devices/capabilities/controller_schedule_writer.h` was updated to note the OneTouch now
+  implements it. No new `.cpp` (all in the existing device file) and no HTTP route/JSON change.
+- **Tests:** `test/unit/devices/test_jandy_onetouch_schedule_write.cpp` drives the real phase machine
+  frame by frame through the screen seams and asserts the emitted `KeyCommands` stream for Create
+  (times + days), Delete (no confirm), Edit (steps only the changed field), the day-wheel stepping
+  (All Days → Weekends → Weekdays), plus the request-gating (`NotSupported` when passive / busy,
+  `InvalidValue` for a non-representable day selection or empty target).
 
-Capture coverage is complete for a single-program add/change/delete on one equipment; **still
-unexercised** (defer or capture if needed): multiple programs per equipment (`Pgm N of M` > 1, i.e.
-Page Up/Down to select which program to Change/Delete), and the equipment-list scroll key→row map for
-an equipment far down the list (the read-path spidering gap covers the same navigation).
+Capture coverage is complete for a single-program add/change/delete on one equipment. **Deferred**
+(unexercised by the capture, so not implemented — see the read-path spidering gap above, which shares
+the same navigation): **multiple programs per equipment** (`Pgm N of M` > 1 — Page Up/Down to pick
+*which* program to Change/Delete; the writer targets the first/only program shown), and the
+**equipment-list scroll key→row map** for an equipment far down the list (the writer scrolls with
+`LineDown` and positions the cursor by row content, bounded by `ONETOUCH_SCHEDULE_MAX_STEP`, rather
+than a decoded far-row map). Both are tracked here rather than half-wired.
