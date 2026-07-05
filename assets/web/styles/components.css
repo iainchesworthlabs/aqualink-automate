@@ -2965,7 +2965,12 @@ main input[type="range"] { accent-color: var(--accent); }
    (Appended last so it out-orders the legacy max-width:480 /
    max-width:768 gauge rules above.)
    ============================================================ */
-@media (max-width: 639px) {
+/* Compact dashboard band (phone + iPad portrait, < 1024). The job-first reflow
+   — equipment promoted, chemistry consolidated, setpoints folded into the heater
+   card — spans this whole range; tablet-specific grid widths are layered on in
+   the 640–1023 block below. (Header nav-controls stay visible on tablet; only
+   the phone rule in app.css hides them.) */
+@media (max-width: 1023px) {
     /* Water chemistry: two compact gauges per row; the SWG card keeps the
        full width so its slider + Set/Boost controls stay usable. */
     .gauge-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -3033,15 +3038,29 @@ main input[type="range"] { accent-color: var(--accent); }
     .mqtt-val { min-width: 0; overflow-wrap: anywhere; }
     .mqtt-mono { overflow-wrap: anywhere; }
 
-    /* --- Phone: setpoints folded into the Heater card ("Heater & Setpoints") ---
-       The per-row read-only setpoint is dropped (the footer steppers below the
-       heater rows show the same values, adjustable), and a card-like footer
-       hosts the Pool/Spa steppers reused from the standalone card. */
+    /* --- Setpoints folded into the Heater card ("Heater & Setpoints") ---
+       The heater rows shed their individual card chrome and combine with the
+       setpoints footer into ONE bordered card divided by hairlines (mock), and
+       the per-row read-only setpoint is dropped (the footer steppers show the
+       same values, adjustable). */
     .heater-row .heater-setpoint { display: none; }
+    .sec-heater .heater-rows {
+        background: var(--surface-1); border: 1px solid var(--border);
+        border-radius: 16px; overflow: hidden; margin-bottom: 0;
+        display: flex; flex-direction: column;
+    }
+    .sec-heater .heater-row {
+        background: transparent; border: 0; box-shadow: none; border-radius: 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .sec-heater .heater-row:last-child { border-bottom: 0; }
+    /* When the setpoints footer follows, flatten the join so the two read as one card. */
+    .sec-heater .heater-rows:has(+ .heater-setpoints) { border-radius: 16px 16px 0 0; border-bottom: 0; }
     .heater-setpoints {
         display: flex; flex-direction: column; gap: 10px;
-        margin-top: 10px; padding: 14px 16px;
-        background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+        padding: 14px 16px;
+        background: var(--surface-1); border: 1px solid var(--border);
+        border-top: 1px solid var(--border); border-radius: 0 0 16px 16px;
     }
     .heater-setpoints-title {
         font: 600 11px/1 var(--font-ui); letter-spacing: .1em; text-transform: uppercase;
@@ -3075,4 +3094,31 @@ main input[type="range"] { accent-color: var(--accent); }
     .chem-swg-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
     .chem-swg-label { font: 600 10px/1 var(--font-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); }
     .chem-swg-value { margin-inline-start: auto; font-family: var(--font-display); font-weight: 600; font-size: 22px; font-variant-numeric: tabular-nums; }
+}
+
+/* iPad portrait (640–1023): the compact layout above, but the extra width lets
+   the grids widen — equipment goes 3-up, the setpoint steppers sit side by side,
+   and the diagnostics/schedules rows regain their roomy multi-column form (the
+   phone single-file versions would waste the width). */
+@media (min-width: 640px) and (max-width: 1023px) {
+    /* Equipment tap-tiles: three across (mock: iPad portrait). */
+    .control-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+    /* Slightly larger status temps than the phone squeeze. */
+    .summary-temp { font-size: 34px; }
+    .summary-section { padding: 12px 18px; }
+
+    /* Heater & Setpoints: Pool and Spa steppers side by side beneath the title
+       (the title spans both columns), matching the mock's "Target Setpoints" row. */
+    .heater-setpoints { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; align-items: center; }
+    .heater-setpoints-title { grid-column: 1 / -1; }
+
+    /* Chemistry consolidated card: a touch more presence at tablet width. */
+    .chem-cell-value { font-size: 28px; }
+
+    /* Diagnostics metric grids go three-up (not the phone two-up); schedule rows
+       stay a single inline row (not wrapped) now that there's room. */
+    .stat-cards { grid-template-columns: repeat(3, 1fr); }
+    .sched-row { flex-wrap: nowrap; }
+    .sched-actions, .sched-readonly { flex-basis: auto; }
 }

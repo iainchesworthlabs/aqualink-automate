@@ -58,6 +58,13 @@ document.addEventListener('alpine:init', () => {
         // The iPad dashboard gets a dedicated orientation layout (Phase 5).
         get isTabletLandscape() { return this.isTablet && this.isLandscape; },
 
+        // "Compact" = the phone + tablet-portrait band (< 1024). The dashboard's
+        // job-first reflow — equipment promoted, chemistry consolidated, setpoints
+        // folded into the heater card — applies across this whole range; only the
+        // grid widths differ (phone stacks, tablet goes multi-up via CSS). Desktop
+        // (>= 1024, which an iPad in landscape reports) keeps the rich layout.
+        get isCompact() { return this.isPhone || this.isTablet; },
+
         // --- hamburger drawer ---
         toggleMobileNav() { this.mobileNavOpen = !this.mobileNavOpen; },
         closeMobileNav() { this.mobileNavOpen = false; },

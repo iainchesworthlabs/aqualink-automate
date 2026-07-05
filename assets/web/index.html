@@ -1162,7 +1162,7 @@
                  On phone these fold into the Heater card (see .heater-setpoints
                  below), so hide this standalone card there UNLESS there is no
                  heater section to host them (setpoints without a heater button). -->
-            <div class="card" x-show="($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--') && !($store.layout.isPhone && heaterButtons().length > 0)">
+            <div class="card" x-show="($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--') && !($store.layout.isCompact && heaterButtons().length > 0)">
                 <div class="card-header" x-text="$t('dash.temperature_setpoints')"></div>
                 <div class="card-body">
                     <!-- Pool setpoint -->
@@ -1198,8 +1198,8 @@
             <!-- Chemistry Gauges -->
             <section class="dsec sec-chem">
             <div class="section-title" x-text="$t('dash.water_chemistry')"></div>
-            <!-- Desktop/tablet: circular gauge dials + a separate SWG card. -->
-            <template x-if="!$store.layout.isPhone">
+            <!-- Desktop only (>= 1024): circular gauge dials + a separate SWG card. -->
+            <template x-if="!$store.layout.isCompact">
             <div class="gauge-grid mb-2">
                 <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
                     <div class="gauge-card" x-data="chemistryGauge(type)"
@@ -1268,7 +1268,7 @@
                  (mirrors the temperature header), then SWG output + Set/Boost
                  below a divider. Same chemistryGauge()/chlorinatorControl()
                  components as the desktop dials, so no data path is duplicated. -->
-            <template x-if="$store.layout.isPhone">
+            <template x-if="$store.layout.isCompact">
             <div class="chem-compact card mb-2">
                 <div class="chem-compact-row">
                     <template x-for="type in ['ph', 'orp', 'salt']" :key="type">
@@ -1356,7 +1356,7 @@
                     <!-- Setpoints folded into the Heater card on phone (mockup:
                          "Heater & Setpoints"). Same store-backed steppers as the
                          standalone card, which is hidden here at phone width. -->
-                    <template x-if="$store.layout.isPhone && ($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--')">
+                    <template x-if="$store.layout.isCompact && ($store.pool.poolSetpoint !== '--' || $store.pool.spaSetpoint !== '--')">
                         <div class="heater-setpoints">
                             <div class="heater-setpoints-title" x-text="$t('dash.temperature_setpoints')"></div>
                             <div class="setpoint-row" x-show="$store.pool.poolSetpoint !== '--'">

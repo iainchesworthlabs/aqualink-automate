@@ -200,6 +200,25 @@ test.describe('phone dashboard structure (390)', () => {
   });
 });
 
+// iPad portrait (820) uses the SAME compact layout as the phone (consolidated
+// chemistry, folded setpoints, promoted equipment) — the reflow spans the whole
+// < 1024 band — but with wider grids: equipment goes 3-up. This is the fix for
+// the "iPad portrait renders the desktop layout" bug.
+test.describe('tablet-portrait dashboard structure (820)', () => {
+  test.use({ viewport: { width: 820, height: 1180 } });
+
+  // The e2e webServer runs the chemistry-only fixture, so this covers the
+  // consolidated-chemistry half of the compact layout; the folded heater/setpoints
+  // and 3-up equipment (which need the OneTouch fixture) are checked by
+  // scripts/capture-responsive-screenshots.js + verify against the mockup.
+  test('uses the compact layout (consolidated chemistry, no dials) at tablet width', async ({ page }) => {
+    await page.goto('/#dashboard');
+    await page.waitForTimeout(600);
+    await expect(page.locator('.chem-compact'), 'tablet: consolidated chemistry card').toBeVisible();
+    await expect(page.locator('.gauge-card'), 'tablet: circular dials replaced').toHaveCount(0);
+  });
+});
+
 test.describe('desktop dashboard structure (1280)', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
 
