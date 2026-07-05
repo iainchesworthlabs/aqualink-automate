@@ -44,8 +44,13 @@ namespace AqualinkAutomate::HTTP
 			auto& c = checks["configuration"];
 			c["status"] = ready ? "ok" : "pending";
 			c["ready"] = ready;
-			c["pool_configuration"] = std::string{ magic_enum::enum_name(data_hub->PoolConfiguration) };
-			c["system_board"] = std::string{ magic_enum::enum_name(data_hub->SystemBoard) };
+			// User-facing display labels (e.g. "RS-8 Combo", "Dual Body (Shared
+			// Equipment)") rather than the raw enum identifiers. This response feeds
+			// the diagnostics page, which renders these verbatim; the raw enum name is
+			// kept on the machine-token paths (equipment-cache restore/fingerprint and
+			// the /api/equipment 'Unknown' readiness check).
+			c["pool_configuration"] = Kernel::ToDisplayString(data_hub->PoolConfiguration);
+			c["system_board"] = Kernel::ToDisplayString(data_hub->SystemBoard);
 			c["mode"] = std::string{ magic_enum::enum_name(data_hub->Mode) };
 			c["emulation_disabled"] = data_hub->EmulationDisabled;
 

@@ -981,8 +981,8 @@ paths:
                   configuration:
                     status: ok
                     ready: true
-                    pool_configuration: "SingleBody"
-                    system_board: "RS8_Only"
+                    pool_configuration: "Single Body"
+                    system_board: "RS-8 Only"
                     mode: "Normal"
                     emulation_disabled: false
                     equipment_validation:
@@ -2742,10 +2742,12 @@ components:
                   type: boolean
                 pool_configuration:
                   type: string
-                  example: "SingleBody"
+                  description: Human-readable pool configuration label (e.g. "Single Body", "Dual Body (Shared Equipment)").
+                  example: "Single Body"
                 system_board:
                   type: string
-                  example: "RS8_Only"
+                  description: Human-readable system board label (e.g. "RS-8 Combo").
+                  example: "RS-8 Only"
                 mode:
                   type: string
                   example: "Normal"
