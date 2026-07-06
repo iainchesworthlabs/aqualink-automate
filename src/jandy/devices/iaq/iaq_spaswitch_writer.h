@@ -20,7 +20,7 @@ namespace AqualinkAutomate::Devices::IAQ
 	// the picker to the target function, commit, then verify via the DataHub. Serviced at most one
 	// command per poll, page-gated so a navigation miss can never write the wrong cell. RE'd +
 	// cross-validated from captures/iaq_spaswitch_edit{,2}.cap; see docs/alwin32/spaside-remotes.md
-	// and docs/iaq_device_decomposition.md.
+	// and docs/design/iaq_device_decomposition.md.
 	class SpaSwitchWriter
 	{
 	public:

@@ -13,8 +13,8 @@ lists its own acceptance criteria. Merge order is at the end.
 ## Status at a glance
 
 The user-facing surfaces these workstreams shipped (auth token, history API, scheduler API) are
-documented in [usage-and-api.md](usage-and-api.md). The e2e-ui jobs that exercise them on every
-push live in [ci-cd.md](ci-cd.md) and in `.github/workflows/ci.yml`.
+documented in [usage-and-api.md](../usage-and-api.md). The e2e-ui jobs that exercise them on every
+push live in [ci-cd.md](../ci-cd.md) and in `.github/workflows/ci.yml`.
 
 | WS | Area | Status | Notes |
 |---|---|---|---|
@@ -406,7 +406,7 @@ Two route classes in the same `src/core/http/webroute_schedules.h`: the collecti
 e2e-ui `identity` jobs (`AQUALINK_AUTH_MODE=enabled`) run `e2e/auth.spec.ts` (and, since Wave B,
 `admin.spec.ts` / `guest.spec.ts`) against an identity-enabled build; the earlier WS5 token-gated
 `auth.spec` was superseded by the identity system. The web UI works (login → live WebSocket). The shipped auth surface is
-documented in [usage-and-api.md](usage-and-api.md).
+documented in [usage-and-api.md](../usage-and-api.md).
 
 **Size:** medium. **Risk:** medium (touches the security path). **Dependencies:** none.
 

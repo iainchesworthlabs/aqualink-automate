@@ -1,6 +1,6 @@
 # CI/CD redesign plan
 
-*Internal progress tracker for the maintainer. It records what the CI/CD redesign set out to do and how much has shipped. For the accurate, current description of how the pipelines actually work, read [ci-cd.md](ci-cd.md); for the release pipeline specifically, [releasing.md](releasing.md).*
+*Internal progress tracker for the maintainer. It records what the CI/CD redesign set out to do and how much has shipped. For the accurate, current description of how the pipelines actually work, read [ci-cd.md](../ci-cd.md); for the release pipeline specifically, [releasing.md](../releasing.md).*
 
 > Produced by a multi-agent analysis of the GitHub CI / release / packaging / tagging flow
 > (2026-06-15). The **plan** (synthesis) is followed by an **adversarial critique** that corrects

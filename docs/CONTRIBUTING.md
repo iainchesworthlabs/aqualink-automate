@@ -222,7 +222,7 @@ In particular:
 - **Wire-protocol opcodes or message types** → update the relevant protocol doc under `docs/`.
 - **Web UI appearance** (layout, theme, navigation, new/renamed views or controls, auth screens, the language list) → regenerate the affected screenshots (see below).
 
-Prefer durable references (symbols, route URLs, option long-names, section headings) over bare `file.cpp:NNN` line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (`docs/async_migration_*.md`, `docs/cicd-redesign.md`) are dated snapshots — do not treat their line citations as current truth.
+Prefer durable references (symbols, route URLs, option long-names, section headings) over bare `file.cpp:NNN` line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (`docs/design/async_migration_*.md`, `docs/design/cicd-redesign.md`) are dated snapshots — do not treat their line citations as current truth.
 
 ### Documentation screenshots
 

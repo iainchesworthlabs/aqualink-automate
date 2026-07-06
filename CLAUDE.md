@@ -22,7 +22,7 @@ When you touch a subsystem, check (and update if affected) its companion doc:
 | HTTP API routes, WebSocket event types, JSON request/response shapes | `assets/web/api/swagger.yaml` **and** `docs/usage-and-api.md` (route reference + WS event list) |
 | CLI flags / config keys / defaults (`src/**/options/`) | `docs/configuration.md` (and `docs/mqtt-home-assistant.md`, `docs/hardware-rs485-connectivity.md`, `docs/raspberry-pi.md` for their areas) |
 | Auth / TLS / bind / rate-limiting behavior | `docs/SECURITY.md` |
-| GitHub Actions workflows (`.github/workflows/`), Packer/runner images (`cicd/`) | `docs/ci-cd.md`, `docs/cicd-redesign.md`, `docs/releasing.md` |
+| GitHub Actions workflows (`.github/workflows/`), Packer/runner images (`cicd/`) | `docs/ci-cd.md`, `docs/design/cicd-redesign.md`, `docs/releasing.md` |
 | CMake presets, build/install steps | `docs/INSTALL.md`, `docs/worktrees.md` |
 | Profiling/logging facade | `docs/profiling.md` |
 | Logging sinks / `--log-sinks` / `--log-syslog-facility` / audit routing (`src/core/logging/sinks/`, `src/core/auth/audit_log.*`) | `docs/logging-sinks-redesign.md`, `docs/configuration.md` (Logging section) **and** `docs/SECURITY.md` (audit trail) |
@@ -35,7 +35,7 @@ When you touch a subsystem, check (and update if affected) its companion doc:
 Rules of thumb:
 
 - **Prefer durable anchors over raw line numbers.** Cite symbols, function names, route URLs, option long-names, or section headers — not `file.cpp:NNN`. Bare line numbers drift the moment code is inserted above them and silently rot.
-- **Design/analysis docs are dated snapshots.** `docs/async_migration_*.md` and `docs/cicd-redesign.md` are point-in-time roadmaps. Do **not** trust their file:line citations as current truth; verify against the code before relying on them, and if you reconcile one, anchor it to symbols and date the reconciliation.
+- **Design/analysis docs are dated snapshots.** The design/planning snapshots live under `docs/design/` (e.g. `docs/design/async_migration_*.md`, `docs/design/cicd-redesign.md`) and are point-in-time roadmaps. Do **not** trust their file:line citations as current truth; verify against the code before relying on them, and if you reconcile one, anchor it to symbols and date the reconciliation.
 - **Verify before you write.** Confirm a claim against the code (read the source, don't assume) before documenting it. If unsure, mark it explicitly as a hypothesis / pending capture rather than asserting it as fact.
 
 ### Documentation screenshots

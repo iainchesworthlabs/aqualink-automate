@@ -24,4 +24,4 @@ CI/CD for this project lives in **two** places:
   details and are **git-ignored**; only the `*.pkrvars.hcl.example` templates
   are tracked.
 - Self-hosted runner image build/publish details live in
-  [`docs/ci-cd.md`](../docs/ci-cd.md) and [`docs/cicd-redesign.md`](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/cicd-redesign.md).
+  [`docs/ci-cd.md`](../docs/ci-cd.md) and [`docs/design/cicd-redesign.md`](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/cicd-redesign.md).

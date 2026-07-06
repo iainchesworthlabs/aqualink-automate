@@ -29,7 +29,7 @@ namespace AqualinkAutomate::Options::Mqtt
 	/// selectable (via --mqtt-protocol-version / config) so a deployment can match
 	/// the dialect its broker and Home Assistant install expect. Default v3_1_1
 	/// preserves the historical behaviour. The v5 wire backend is delivered by the
-	/// async-mqtt client integration (see docs/async_migration_analysis.md, Phase 5).
+	/// async-mqtt client integration (see docs/design/async_migration_analysis.md, Phase 5).
 	enum class ProtocolVersion : uint8_t
 	{
 		v3_1_1 = 0,  // MQTT 3.1.1 (default)
