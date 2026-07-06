@@ -31,6 +31,10 @@ namespace AqualinkAutomate::Devices::OneTouch
 	// slow "Label Aux" menu crawl at startup and reuses those labels.
 	bool DataHubHasSeededAuxLabels(const Kernel::DataHub& data_hub);
 
+	// True when the DataHub chlorinator is reporting (ChlorinatorStatusTrait not Off/Unknown); the
+	// offline->online edge of this drives the setpoint-refresh's one-shot recovery re-scrape.
+	bool DataHubChlorinatorOnline(const Kernel::DataHub& data_hub);
+
 	// Cross-check the discovered equipment set against the model's expected aux/power-centre layout
 	// and record the outcome on the DataHub (EquipmentValidationResult); logs any anomalies.
 	void ValidateDiscoveredEquipment(Kernel::DataHub& data_hub, const Devices::JandyDeviceType& device_id);

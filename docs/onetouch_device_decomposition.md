@@ -1,16 +1,67 @@
 # Decomposing `OneTouchDevice` — a composable, testable, SOLID target
 
-**Status:** Recommendation / analysis snapshot (2026-07-06). No code has been changed.
+**Status:** ✅ **Implemented** (2026-07-06) on branch `refactor/onetouch-decomposition`.
+Originally written as a recommendation snapshot; the plan below was then carried out in full.
+See **"Implementation status"** immediately below for what actually landed.
 **Scope:** `src/jandy/devices/onetouch_device.{h,cpp}`, its sibling translation units
 under `src/jandy/devices/onetouch/`, and the navigation stack it drives
 (`src/jandy/navigation/`).
 
-SonarCloud flags the header with **cpp:S1448** (107 methods, limit 35) and
-**cpp:S1820** (39 fields, limit 20). It is the largest class in the codebase. This
+SonarCloud flagged the header with **cpp:S1448** (107 methods, limit 35) and
+**cpp:S1820** (39 fields, limit 20) — it was the largest class in the codebase. This
 document maps the class's responsibilities, proposes a delegation-based
 decomposition into injected collaborators, calls out the DRY / implicit-state
 cleanups, and gives a phased, behaviour-preserving migration plan with the
 per-step risk and blast radius.
+
+---
+
+## Implementation status (as landed)
+
+All phases below were implemented, each a separately-shippable commit that left **build +
+the full 2628-case / 11043-assertion suite green**. Behaviour is preserved end to end
+(toggle / setpoint / chlorinator / spa-switch / schedule read+write replay flows all pass
+unchanged).
+
+**Result vs the Sonar findings:**
+
+| Finding | Before | After | |
+|---|---|---|---|
+| cpp:S1820 (≤20 fields) | 39 | **17** | ✅ resolved |
+| cpp:S1448 (≤35 methods) | 107 | **~29** | ✅ resolved |
+
+**What landed, by phase:**
+
+- **0 — `ScreenReader`** (`onetouch_screen_reader.{h,cpp}`): pure row-scraping primitives
+  (`SanitiseFunctionText`, `FirstNumber`, `DisplayedValue`, `DisplayedFunctionOnRow`,
+  `FindLineStartingWith`, later `LineText`, `EqualsCaseInsensitive`).
+- **1 — DRY**: collapsed the duplicated `line_text` / `equals_ci` / `move_cursor_to` lambdas
+  and the 4× emulation+fault queue-guard into `ReasonCannotActuate` + a `MoveCursorToward`
+  helper. *(A drive-by fix — `SetSpaSwitchAssignment` now shares the fault guard — shipped with
+  a regression test.)*
+- **2 — `OneTouchScraper`** (`onetouch_scraper.{h,cpp}`): the entire read path — 35 page
+  processors + 9 status processors + panel-config decode + controller-schedule accumulation.
+- **3 — keypad goals** (`onetouch_keypad.{h,cpp}` + `onetouch_goals.{h,cpp}`): `KeypadContext`
+  + `IKeypadGoal` + `OneTouchGoalRunner`, then the five state machines as goal classes
+  (`ToggleGoal`, `ValueEditGoal`, `BoostGoal`, `SpaSwitchGoal`, `ScheduleWriteGoal`), one
+  commit each. The ~24 per-goal fields collapsed to one `m_Runner`.
+- **4 — startup survey** (`onetouch_startup_survey.{h,cpp}`): the crawl-analysis helpers
+  (`DataHubHasSeededAuxLabels`, `ValidateDiscoveredEquipment`, `BuildMenuSurvey`,
+  `DataHubChlorinatorOnline`) as pure free functions; the op-state machine stayed on the device.
+- **5 — `OneTouchMessageRouter`** (`onetouch_message_router.{h,cpp}`): the ten RS-485 slot
+  handlers, isolating message ingest (friend of the device, as the handlers drive its Screen +
+  op-state + watchdog).
+- **test-seam relocation**: the `*ForTest` seams moved to a shared test-only subclass
+  `Test::SeamedOneTouchDevice` (`test/unit/support/onetouch_test_device.h`); the production
+  class exposes `m_OpState` / `m_HighlightedLine` / `OperatingStates` as `protected` instead of
+  carrying test-only methods.
+
+**Deviations from the original plan:** `SetpointRefresh` stayed a device method rather than
+becoming the 6th goal — it drives the `SpiderEngine` crawl (a read-only GET), not the
+Navigator/keypad, so forcing it into `IKeypadGoal` would have leaked the SpiderEngine into
+`KeypadContext`; its policy (`ChlorinatorSetpointRefresh`) was already cleanly extracted.
+
+---
 
 > **Read this first — the one constraint that shapes everything.**
 > `CommandDispatcher::DispatchToCapable` (see `command_dispatcher.h`) discovers

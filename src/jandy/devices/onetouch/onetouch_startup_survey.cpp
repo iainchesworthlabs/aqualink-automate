@@ -46,6 +46,26 @@ namespace AqualinkAutomate::Devices::OneTouch
 		return false;
 	}
 
+	bool DataHubChlorinatorOnline(const Kernel::DataHub& data_hub)
+	{
+		using namespace Kernel::AuxillaryTraitsTypes;
+
+		auto chlorinators = data_hub.Chlorinators();
+		if (chlorinators.empty())
+		{
+			return false;
+		}
+
+		const auto& device = chlorinators.front();
+		if (!device->AuxillaryTraits.Has(ChlorinatorStatusTrait{}))
+		{
+			return false;
+		}
+
+		const auto status = *(device->AuxillaryTraits[ChlorinatorStatusTrait{}]);
+		return (status != Kernel::ChlorinatorStatuses::Off) && (status != Kernel::ChlorinatorStatuses::Unknown);
+	}
+
 	void ValidateDiscoveredEquipment(Kernel::DataHub& data_hub, const Devices::JandyDeviceType& device_id)
 	{
 		// Gather the Jandy ids of every numbered auxillary that was discovered.

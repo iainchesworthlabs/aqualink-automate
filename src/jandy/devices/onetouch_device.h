@@ -60,6 +60,9 @@ namespace AqualinkAutomate::Devices
 		inline static const uint32_t ONETOUCH_SETPOINT_REFRESH_STEP_LIMIT{ 500 };  // frame backstop for a read-only setpoint re-scrape crawl
 		inline static const uint32_t ONETOUCH_FAULT_RECOVERY_STATUS_FRAMES{ 3 };   // consecutive recognised-page Status frames required to trust a faulted controller again before recovering to NormalOperation
 
+	protected:
+		// Protected (not private) so the test-only Test::SeamedOneTouchDevice can force/read the
+		// operating state in unit tests without the production class carrying test-only methods.
 		enum class OperatingStates
 		{
 			ColdStart,          // Waiting for initial splash screen from controller
@@ -145,52 +148,12 @@ namespace AqualinkAutomate::Devices
 		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) override;
 		Capabilities::ActuationResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override;
 
-		// Sanitise a screen row's text for function/label comparison: trim surrounding whitespace
-		// and non-printable bytes, yielding the clean displayed text (the controller's inverse-video
-		// highlight is a separate Highlight message, never appended to the row Text). Public+static
-		// for direct unit testing of the picker compare.
-		static std::string SanitiseFunctionText(const std::string& raw);
-
 	protected:
-		// Test seam: force the ScrapingFaulted operating state so a test can verify that actuation
-		// is refused (NotSupported) rather than falsely accepted while the controller is in a fault,
-		// and that the device subsequently recovers when comms resume. Not used in production code.
-		void ForceScrapingFaultedForTest() { m_OpState = OperatingStates::ScrapingFaulted; }
-
-		// Test seam: force the FaultHasOccurred operating state (the watchdog-during-startup fault)
-		// so the comms-resumed recovery path can be exercised from it too. Not used in production.
-		void ForceFaultHasOccurredForTest() { m_OpState = OperatingStates::FaultHasOccurred; }
-
-		// Test seam: true once the device has recovered to NormalOperation (the OperatingStates
-		// enum is private, so a test cannot read m_OpState directly). Not used in production.
-		bool IsInNormalOperationForTest() const { return m_OpState == OperatingStates::NormalOperation; }
-
-		// Test seam: render text onto a screen line exactly as an incoming MessageLong would, so a
-		// test can present a recognised page before driving a Status frame. Not used in production.
-		void RenderScreenLineForTest(uint8_t line_number, const std::string& text)
-		{
-			ScreenMode(Capabilities::ScreenModes::Updating);
-			ProcessScreenEvent(Utility::ScreenDataPageUpdaterImpl::evUpdate(line_number, text));
-			ProcessScreenUpdates();
-		}
-
-		// Test seam: drive one Status-message controller update as if a Status frame arrived for our
-		// device id (render the page with RenderScreenLineForTest first). Exercises the real
-		// fault-recovery decision in ProcessControllerUpdates without a wire frame. Not used in production.
-		void DeliverStatusFrameForTest() { ProcessControllerUpdates(true); }
-
-		// Test seam: set the cursor line exactly as an incoming PDAMessage_Highlight would (0xFF is the
-		// clear-all/no-cursor sentinel), so a test can position the panel cursor without a wire frame.
-		// The screen-driven write/spa-switch machines read m_HighlightedLine to decide cursor moves.
-		// Not used in production.
-		void SetHighlightedLineForTest(uint8_t line_number) { m_HighlightedLine = line_number; }
-
-		// Test seam: read the key command the current service step queued (before it is cleared by the
-		// Status-ACK send), so a test can assert the emitted KeyCommands stream frame by frame. Not
-		// used in production.
-		KeyCommands PendingKeyCommandForTest() const { return m_KeyCommand_ToSend; }
-
-	private:
+		// The controller-update tick. ProcessControllerUpdates(bool) is protected (not private) so
+		// the test-only Test::SeamedOneTouchDevice can drive one real update; the base declares
+		// ProcessControllerUpdates() protected-virtual. The former "*ForTest" seams that used to sit
+		// here now live on that subclass (which is why m_OpState / m_HighlightedLine / the
+		// OperatingStates enum below are protected).
 		void ProcessControllerUpdates() override;
 		void ProcessControllerUpdates(bool is_status_message);
 
@@ -242,10 +205,6 @@ namespace AqualinkAutomate::Devices
 		// user command cannot interleave on the single shared Navigator.
 		void SetpointRefresh_ProcessStep();
 
-		// True when the DataHub chlorinator is reporting (ChlorinatorStatusTrait not Off/Unknown);
-		// the offline->online edge of this drives a one-shot recovery re-scrape.
-		bool DataHubChlorinatorOnline() const;
-
 		// Row-scraping primitives (displayed value, function-on-row, find-line-by-prefix) now
 		// live as pure functions in devices/onetouch/onetouch_screen_reader.h and are called
 		// directly with DisplayedPage(); they are no longer device methods.
@@ -273,7 +232,9 @@ namespace AqualinkAutomate::Devices
 		std::unique_ptr<Navigation::Navigator> m_Navigator;
 		std::unique_ptr<Navigation::SpiderEngine> m_SpiderEngine;
 
-	private:
+	protected:
+		// m_OpState and m_HighlightedLine are protected so the test-only Test::SeamedOneTouchDevice
+		// can force the fault states / position the cursor in unit tests (see onetouch_test_device.h).
 		OperatingStates m_OpState{ OperatingStates::ColdStart };
 		uint32_t m_ScrapingStallCounter{ 0 };
 		uint32_t m_FaultRecoveryStatusCount{ 0 };  // consecutive recognised-page Status frames seen during the current faulted dwell (drives AttemptFaultRecovery's hysteresis)

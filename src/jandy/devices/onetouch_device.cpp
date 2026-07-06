@@ -444,31 +444,6 @@ namespace AqualinkAutomate::Devices
 			DeviceId(), m_RefreshState.IsEnabled() ? "enabled" : "disabled", interval.count()));
 	}
 
-	bool OneTouchDevice::DataHubChlorinatorOnline() const
-	{
-		if (!JandyController::m_DataHub)
-		{
-			return false;
-		}
-
-		using namespace Kernel::AuxillaryTraitsTypes;
-
-		auto chlorinators = JandyController::m_DataHub->Chlorinators();
-		if (chlorinators.empty())
-		{
-			return false;
-		}
-
-		const auto& device = chlorinators.front();
-		if (!device->AuxillaryTraits.Has(ChlorinatorStatusTrait{}))
-		{
-			return false;
-		}
-
-		const auto status = *(device->AuxillaryTraits[ChlorinatorStatusTrait{}]);
-		return (status != Kernel::ChlorinatorStatuses::Off) && (status != Kernel::ChlorinatorStatuses::Unknown);
-	}
-
 	void OneTouchDevice::SetpointRefresh_ProcessStep()
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::SetpointRefresh_ProcessStep", std::source_location::current());
@@ -514,7 +489,7 @@ namespace AqualinkAutomate::Devices
 		// Not in progress: decide whether to start a refresh this tick. The decision struct
 		// applies all the gating (enabled / configured / actively emulating / menu free / startup
 		// finished / interval-or-recovery), so a passive or busy device never navigates.
-		if (m_RefreshState.Evaluate(IsEmulationActive(), GoalInProgress(), DataHubChlorinatorOnline(), std::chrono::steady_clock::now()) != ChlorinatorSetpointRefresh::Action::Scrape)
+		if (m_RefreshState.Evaluate(IsEmulationActive(), GoalInProgress(), (m_DataHub && OneTouch::DataHubChlorinatorOnline(*m_DataHub)), std::chrono::steady_clock::now()) != ChlorinatorSetpointRefresh::Action::Scrape)
 		{
 			return;
 		}
@@ -598,14 +573,6 @@ namespace AqualinkAutomate::Devices
 	}
 
 
-
-	std::string OneTouchDevice::SanitiseFunctionText(const std::string& raw)
-	{
-		// Thin forwarder to the pure implementation so existing callers (and the direct unit
-		// tests that reference OneTouchDevice::SanitiseFunctionText) keep working while the logic
-		// lives in one place - devices/onetouch/onetouch_screen_reader.h.
-		return OneTouch::SanitiseFunctionText(raw);
-	}
 
 	Capabilities::ActuationResult OneTouchDevice::SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, const std::string& function)
 	{

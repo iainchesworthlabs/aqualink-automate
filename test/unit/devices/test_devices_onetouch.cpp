@@ -19,6 +19,7 @@
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 
 #include "support/unit_test_hublocatorinjector.h"
+#include "support/onetouch_test_device.h"
 
 using namespace AqualinkAutomate;
 using namespace AqualinkAutomate::Devices;
@@ -175,17 +176,8 @@ BOOST_AUTO_TEST_CASE(TestSetpoint_NonEmulated_NotSupported)
 
 namespace
 {
-	// Exposes the protected test seams so a test can drive the fault states and the
-	// comms-resumed recovery path back to NormalOperation.
-	struct FaultableOneTouchDevice : public OneTouchDevice
-	{
-		using OneTouchDevice::OneTouchDevice;
-		using OneTouchDevice::ForceScrapingFaultedForTest;
-		using OneTouchDevice::ForceFaultHasOccurredForTest;
-		using OneTouchDevice::IsInNormalOperationForTest;
-		using OneTouchDevice::RenderScreenLineForTest;
-		using OneTouchDevice::DeliverStatusFrameForTest;
-	};
+	// The shared test-only subclass exposes the fault/screen/status drivers this suite needs.
+	using FaultableOneTouchDevice = Test::SeamedOneTouchDevice;
 
 	// Build a labelled aux that ActuateDevice can target.
 	std::shared_ptr<Kernel::AuxillaryDevice> MakeLabelledAux()
@@ -413,26 +405,26 @@ BOOST_AUTO_TEST_CASE(TestChlorinator_RejectsWhileAnotherGoalBusy)
 
 BOOST_AUTO_TEST_CASE(TestSanitise_TrimsSurroundingWhitespace)
 {
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("   Pool Light   "), "Pool Light");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("   Pool Light   "), "Pool Light");
 }
 
 BOOST_AUTO_TEST_CASE(TestSanitise_PreservesInteriorSpaces)
 {
 	// Only the surrounding run is trimmed; interior spacing is part of the label.
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("Equipment ON/OFF"), "Equipment ON/OFF");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("Equipment ON/OFF"), "Equipment ON/OFF");
 }
 
 BOOST_AUTO_TEST_CASE(TestSanitise_StripsControlAndDelBytes)
 {
 	// Leading/trailing bytes < 0x20 and 0x7f (DEL) are trimmed like whitespace.
 	const std::string raw = std::string("\x01\x02") + "Spa" + std::string("\x7f\x1f");
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText(raw), "Spa");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText(raw), "Spa");
 }
 
 BOOST_AUTO_TEST_CASE(TestSanitise_AllWhitespaceYieldsEmpty)
 {
-	BOOST_CHECK(OneTouchDevice::SanitiseFunctionText("     ").empty());
-	BOOST_CHECK(OneTouchDevice::SanitiseFunctionText("").empty());
+	BOOST_CHECK(Devices::OneTouch::SanitiseFunctionText("     ").empty());
+	BOOST_CHECK(Devices::OneTouch::SanitiseFunctionText("").empty());
 }
 
 // =============================================================================
@@ -453,7 +445,7 @@ BOOST_AUTO_TEST_CASE(TestAvailableFunctions_IsNonEmptyAndSanitised)
 	{
 		BOOST_CHECK(!fn.empty());
 		// Each entry is already in its sanitised (trimmed) form.
-		BOOST_CHECK_EQUAL(fn, OneTouchDevice::SanitiseFunctionText(fn));
+		BOOST_CHECK_EQUAL(fn, Devices::OneTouch::SanitiseFunctionText(fn));
 		// No duplicates: the picker cycles a set, not a list with repeats.
 		BOOST_CHECK_MESSAGE(seen.insert(fn).second, "duplicate function in catalogue: " + fn);
 	}
