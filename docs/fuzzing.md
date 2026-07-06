@@ -21,6 +21,9 @@ harness covers many message types:
 | `fuzz-jandy-message` | `Generators::GenerateMessageFromRawData` (framing, DLE-null de-escaping, checksum, packet-boundary scanning, buffer cleanup) + `Factory::JandyMessageFactoryT::CreateFromSerialData` → every registered `JandyMessage` subtype's `DeserializeContents` |
 | `fuzz-pentair-message` | `Pentair::Generators::GenerateMessageFromRawData` (0xA5 preamble scan, 16-bit BE checksum) + `Pentair::Factory::PentairMessageFactory::CreateFromSerialData` → every `PentairMessage` subtype's `DeserializeContents` |
 | `fuzz-schedule-json` | the web-API schedule request-body validators `Scheduling::FromJson` + `ControllerScheduleFromJson` (POST/PUT `/api/schedules` and `/api/controller/schedules`), fed arbitrary bytes parsed as JSON exactly as the handlers do |
+| `fuzz-websocket-json` | the inbound WebSocket message-envelope parser `HTTP::WebSocket_Event::ConvertFromStringView` (`{type, payload}` JSON + case-insensitive event-type enum-cast) that every browser frame flows through |
+| `fuzz-mqtt-payload` | the untrusted MQTT command-payload parsers `Mqtt::PayloadParsing::ParsePayloadNumber<T>` / `ParsePayloadString` / `SanitiseForLog` (range-checked numeric extraction, string extraction, log sanitising) |
+| `fuzz-config-parse` | config-file reading + option-value validation: arbitrary INI text through `boost::program_options::parse_config_file` + the project's custom validators (`Severity` / `ProfilerTypes` / `SyslogFacility` / MQTT `ProtocolVersion`) over a representative options grammar |
 
 Each harness does two things per input (see `fuzz/fuzz_jandy_message.cpp` /
 `fuzz/fuzz_pentair_message.cpp`):
@@ -149,30 +152,33 @@ in the code that turns a *parsed* request into a domain object — the validator
 dispatchers. The same `ENABLE_FUZZING` scaffolding extends to these with a new
 harness per target; they are ranked by value × isolatability:
 
-1. **Schedule request bodies** — ✅ **implemented** as `fuzz-schedule-json`
-   (`Scheduling::FromJson` / `ControllerScheduleFromJson`). Pure
-   `(json, std::string& error) -> optional<...>` validators. This harness
-   immediately found a real bug: `FromJson` read optional fields via nlohmann
-   `json.value(key, default)`, which **throws** `type_error.302` on a present-but-
-   wrong-typed field (e.g. `{"name": 5}`) instead of returning `nullopt` per its
-   contract — an uncaught exception on the untrusted `/api/schedules` body. Fixed
-   (type-safe reads, matching `ControllerScheduleFromJson`) + regression tests in
+Implemented so far (beyond the RS-485 decoders):
+
+1. **Schedule request bodies** — ✅ `fuzz-schedule-json` (`Scheduling::FromJson` /
+   `ControllerScheduleFromJson`). This harness immediately found a real bug:
+   `FromJson` read optional fields via nlohmann `json.value(key, default)`, which
+   **throws** `type_error.302` on a present-but-wrong-typed field (e.g.
+   `{"name": 5}`) instead of returning `nullopt` per its contract — an uncaught
+   exception on the untrusted `/api/schedules` body. Fixed (type-safe reads,
+   matching `ControllerScheduleFromJson`) + regression tests in
    `test/unit/scheduling/test_schedule.cpp`.
-2. **WebSocket message envelope** — `WebSocket_Event::ConvertFromStringView()`
-   (`src/core/http/websocket_event.cpp`). Pure `string_view -> optional<Event>`:
-   JSON parse + `type` enum cast + payload. Every connected client feeds it.
-3. **MQTT command payloads** — the pure helpers in
-   `src/core/mqtt/mqtt_payload_parsing.h` (`ParsePayloadNumber<T>`,
-   `ParsePayloadString`) that range-check untrusted broker payloads. (Full
-   `MqttHub::ProcessCommand` dispatch needs a mocked handler registry — harder.)
+2. **WebSocket message envelope** — ✅ `fuzz-websocket-json`
+   (`WebSocket_Event::ConvertFromStringView`, `src/core/http/websocket_event.cpp`).
+3. **MQTT command payloads** — ✅ `fuzz-mqtt-payload` (the pure helpers in
+   `src/core/mqtt/mqtt_payload_parsing.h`).
+4. **Config file + option values** — ✅ `fuzz-config-parse`. Note the config file is
+   operator-controlled (a weaker threat model than the wire/HTTP surfaces), so the
+   goal here is robustness: a malformed value must not crash startup. The custom
+   validators only throw `boost::program_options::error` (the one exception type the
+   production config path catches); this harness guards that invariant — any *other*
+   escaping exception is a real startup-crash bug.
 
-Lower-value / mostly third-party (skip unless a specific bug points here): bearer/
-subprotocol token splitting, query-string and URL-path segment extraction, API-key
-digest lookup. These are thin first-party wrappers over well-fuzzed libraries.
-
-Target #1 is implemented (`fuzz-schedule-json`); #2 and #3 are the natural next
-additions and drop in beside the existing harnesses under `fuzz/` (add the source,
-list it in `fuzz/CMakeLists.txt`, and a corpus + matrix entry).
+Still open (lower priority — mostly thin wrappers over well-fuzzed third-party
+libraries; add only if a specific bug points here): the `.cap` replay-line parser
+(`Developer::MockSerialPortImpl::DecodeReplayLine` — easy, pure, but a dev/local
+input), the `HH:MM:SS` duration parser (`TimeoutDurationStringConverter` — `noexcept`,
+so low risk), bearer/subprotocol token splitting, query-string / URL-path segment
+extraction, and JWT decode (needs a `JwtKeyStore`; the decode itself is jwt-cpp).
 
 ## If the fuzzer finds a crash
 

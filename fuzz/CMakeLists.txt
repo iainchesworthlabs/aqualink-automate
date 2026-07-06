@@ -17,6 +17,9 @@ set(_aq_fuzz_harnesses
     fuzz-jandy-message      # Jandy RS-485 decoders
     fuzz-pentair-message    # Pentair RS-485 decoders
     fuzz-schedule-json      # schedule request-body JSON validators (web API)
+    fuzz-websocket-json     # inbound WebSocket message-envelope parser (web API)
+    fuzz-mqtt-payload       # inbound MQTT command-payload parsers
+    fuzz-config-parse       # config-file reading + option-value validators
 )
 
 foreach(_target IN LISTS _aq_fuzz_harnesses)
