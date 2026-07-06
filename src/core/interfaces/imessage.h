@@ -10,7 +10,7 @@ namespace AqualinkAutomate::Interfaces
 	class IMessage
 	{
 	public:
-		IMessage(const MESSAGE_ID message_id) : 
+		constexpr IMessage(const MESSAGE_ID message_id) :
 			m_Id(message_id)
 		{
 		}
@@ -18,7 +18,7 @@ namespace AqualinkAutomate::Interfaces
 		virtual ~IMessage() = default;
 
 	public:
-		MESSAGE_ID Id() const
+		constexpr MESSAGE_ID Id() const
 		{
 			return m_Id;
 		}
@@ -29,7 +29,7 @@ namespace AqualinkAutomate::Interfaces
 		virtual std::string ToString() const = 0;
 
 	public:
-		bool operator==(const IMessage& other) const
+		constexpr bool operator==(const IMessage& other) const
 		{
 			bool is_equal = true;
 
@@ -40,7 +40,7 @@ namespace AqualinkAutomate::Interfaces
 		}
 
 	protected:
-		void SetId(MESSAGE_ID id) { m_Id = id; }
+		constexpr void SetId(MESSAGE_ID id) { m_Id = id; }
 
 	private:
 		MESSAGE_ID m_Id;

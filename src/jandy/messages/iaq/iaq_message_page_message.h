@@ -15,8 +15,8 @@ namespace AqualinkAutomate::Messages
 	class IAQMessage_PageMessage : public IAQMessage, public Interfaces::IMessageSignalRecv<IAQMessage_PageMessage>
 	{
 	public:
-		static const uint8_t Index_LineId = 4;
-		static const uint8_t Index_LineText = 5;
+		static constexpr uint8_t Index_LineId = 4;
+		static constexpr uint8_t Index_LineText = 5;
 
 	public:
 		IAQMessage_PageMessage() noexcept;

@@ -54,7 +54,7 @@ namespace AqualinkAutomate::Messages::Text
 	// Append a span of wire bytes onto an output string, sanitising each byte to
 	// printable ASCII (see SanitisePrintableAsciiByte).
 	//
-	inline void AppendSanitisedAscii(std::string& out, std::span<const uint8_t> bytes)
+	constexpr void AppendSanitisedAscii(std::string& out, std::span<const uint8_t> bytes)
 	{
 		out.reserve(out.size() + bytes.size());
 
@@ -73,7 +73,7 @@ namespace AqualinkAutomate::Messages::Text
 	// any payload between start_index and the footer, an empty string is returned
 	// and no out-of-range / wrap-around length is ever computed.
 	//
-	[[nodiscard]] inline std::string ExtractTrailingAsciiPayload(std::span<const uint8_t> message_bytes, std::size_t start_index)
+	[[nodiscard]] constexpr std::string ExtractTrailingAsciiPayload(std::span<const uint8_t> message_bytes, std::size_t start_index)
 	{
 		const std::size_t footer = JandyMessage::PACKET_FOOTER_LENGTH;
 
@@ -111,7 +111,7 @@ namespace AqualinkAutomate::Messages::Text
 	// survives the decode.  Genuinely unexpected interior control / high bytes are still
 	// mapped to '?' (log-injection / terminal-escape defence; see SanitisePrintableAsciiByte).
 	//
-	[[nodiscard]] inline std::string ExtractTrailingDisplayLine(std::span<const uint8_t> message_bytes, std::size_t start_index)
+	[[nodiscard]] constexpr std::string ExtractTrailingDisplayLine(std::span<const uint8_t> message_bytes, std::size_t start_index)
 	{
 		constexpr uint8_t FIRST_PRINTABLE_ASCII{ 0x20 }; // space
 		constexpr uint8_t LAST_PRINTABLE_ASCII{ 0x7E };  // tilde

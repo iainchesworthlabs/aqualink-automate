@@ -76,7 +76,7 @@ namespace AqualinkAutomate::Interfaces
 
 	template<typename THIS_STATUS, typename THAT_STATUS>
 		requires std::derived_from<THIS_STATUS, Interfaces::IStatus> && std::derived_from<THAT_STATUS, Interfaces::IStatus>
-	[[nodiscard]] constexpr bool IsSameStatusType() noexcept
+	[[nodiscard]] consteval bool IsSameStatusType() noexcept
 	{
 		return std::same_as<std::remove_cvref_t<THIS_STATUS>, std::remove_cvref_t<THAT_STATUS>>;
 	}

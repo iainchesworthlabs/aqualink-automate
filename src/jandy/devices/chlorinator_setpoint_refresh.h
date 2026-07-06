@@ -73,7 +73,7 @@ namespace AqualinkAutomate::Devices
 		// pending one-shot regardless of the other gates, then applies the hard gates (enabled,
 		// configured, actively emulating, menu free of any user/SET goal, startup finished) and
 		// finally the timing (interval elapsed, or a pending recovery).
-		Action Evaluate(bool emulation_active, bool goal_in_progress, bool chlorinator_online, TimePoint now)
+		constexpr Action Evaluate(bool emulation_active, bool goal_in_progress, bool chlorinator_online, TimePoint now)
 		{
 			// Latch a genuine offline->online transition as a one-shot recovery scrape. The very
 			// first observation only establishes the baseline (the chlorinator may already be

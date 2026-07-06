@@ -15,7 +15,7 @@ namespace AqualinkAutomate::Messages
 	class IAQMessage_TitleMessage : public IAQMessage, public Interfaces::IMessageSignalRecv<IAQMessage_TitleMessage>
 	{
 	public:
-		static const uint8_t Index_TitleText = 4;
+		static constexpr uint8_t Index_TitleText = 4;
 
 	public:
 		IAQMessage_TitleMessage() noexcept;

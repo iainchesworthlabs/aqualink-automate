@@ -16,7 +16,7 @@ namespace AqualinkAutomate::Messages
 	public:
 		// The page identifier rides as the first payload byte (e.g. 0x01 home, 0x14 Setup,
 		// 0x3a Spa Remotes, 0x3b the 4-Function detail). Used to page-GATE the spa-switch writer.
-		static const uint8_t Index_PageId = 4;
+		static constexpr uint8_t Index_PageId = 4;
 
 	public:
 		IAQMessage_PageStart() noexcept;

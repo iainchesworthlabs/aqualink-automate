@@ -35,7 +35,7 @@ namespace AqualinkAutomate::Utility
 	/// @param celsius        The setpoint in degrees Celsius.
 	/// @param system_units   The unit the controller expects on the wire.
 	/// @returns the clamped, rounded wire byte.
-	inline std::uint8_t CelsiusToWireSetpoint(double celsius, Kernel::TemperatureUnits system_units) noexcept
+	inline constexpr std::uint8_t CelsiusToWireSetpoint(double celsius, Kernel::TemperatureUnits system_units) noexcept
 	{
 		const double wire_value = (Kernel::TemperatureUnits::Celsius == system_units)
 			? std::round(celsius)

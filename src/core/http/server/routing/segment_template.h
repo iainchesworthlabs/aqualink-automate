@@ -28,7 +28,7 @@ namespace AqualinkAutomate::HTTP::Routing
         friend struct segment_template_rule_t;
 
     public:
-        segment_template() = default;
+        constexpr segment_template() = default;
 
         bool match(boost::urls::pct_string_view seg) const;
 
@@ -49,7 +49,7 @@ namespace AqualinkAutomate::HTTP::Routing
             return is_literal_;
         }
 
-        bool has_modifier() const
+        constexpr bool has_modifier() const
         {
             return !is_literal() && modifier_ != modifier::none;
         }
@@ -69,7 +69,7 @@ namespace AqualinkAutomate::HTTP::Routing
             return modifier_ == modifier::plus;
         }
 
-        friend bool operator==(segment_template const& a, segment_template const& b)
+        friend constexpr bool operator==(segment_template const& a, segment_template const& b)
         {
             if (a.is_literal_ != b.is_literal_)
             {
@@ -91,7 +91,7 @@ namespace AqualinkAutomate::HTTP::Routing
         //     - plus
         //     - star
 
-        friend bool operator<(segment_template const& a, segment_template const& b)
+        friend constexpr bool operator<(segment_template const& a, segment_template const& b)
         {
             if (b.is_literal())
             {
