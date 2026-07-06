@@ -20,6 +20,7 @@ harness covers many message types:
 |---|---|
 | `fuzz-jandy-message` | `Generators::GenerateMessageFromRawData` (framing, DLE-null de-escaping, checksum, packet-boundary scanning, buffer cleanup) + `Factory::JandyMessageFactoryT::CreateFromSerialData` → every registered `JandyMessage` subtype's `DeserializeContents` |
 | `fuzz-pentair-message` | `Pentair::Generators::GenerateMessageFromRawData` (0xA5 preamble scan, 16-bit BE checksum) + `Pentair::Factory::PentairMessageFactory::CreateFromSerialData` → every `PentairMessage` subtype's `DeserializeContents` |
+| `fuzz-schedule-json` | the web-API schedule request-body validators `Scheduling::FromJson` + `ControllerScheduleFromJson` (POST/PUT `/api/schedules` and `/api/controller/schedules`), fed arbitrary bytes parsed as JSON exactly as the handlers do |
 
 Each harness does two things per input (see `fuzz/fuzz_jandy_message.cpp` /
 `fuzz/fuzz_pentair_message.cpp`):
@@ -81,7 +82,10 @@ python fuzz/seed_corpus.py
 - **Seed source:** `fuzz/seed_corpus.py` parses every `test/fixtures/**/*.cap`
   recording, extracts the on-the-wire byte frames, and sorts them into
   `fuzz/corpus/jandy/` and `fuzz/corpus/pentair/` (Pentair identified by its
-  `FF 00 FF A5` preamble; everything else Jandy). Files are named by SHA-1, so
+  `FF 00 FF A5` preamble; everything else Jandy). It also writes a handful of
+  representative schedule/controller-schedule request bodies to
+  `fuzz/corpus/schedule-json/` (these are not from `.cap` — they seed the
+  schedule-json harness with valid structure). Files are named by SHA-1, so
   re-running de-duplicates.
 - **Not committed:** `fuzz/corpus/` is git-ignored (`fuzz/.gitignore`) — it is
   generated from the fixtures and grown by the fuzzer. Regenerate it any time with
@@ -145,12 +149,15 @@ in the code that turns a *parsed* request into a domain object — the validator
 dispatchers. The same `ENABLE_FUZZING` scaffolding extends to these with a new
 harness per target; they are ranked by value × isolatability:
 
-1. **Schedule request bodies** — `Scheduling::FromJson()` /
-   `ControllerScheduleFromJson()` (`src/core/scheduling/schedule.cpp`,
-   `controller_schedule.cpp`). Pure `(json, std::string& error) -> optional<...>`
-   functions with rich validation: `days_of_week` 0–127, `"HH:MM"` parsing via
-   `std::from_chars`, action-type enum matching, setpoint/percentage ranges. No DI
-   context needed — the easiest, highest-ROI web target.
+1. **Schedule request bodies** — ✅ **implemented** as `fuzz-schedule-json`
+   (`Scheduling::FromJson` / `ControllerScheduleFromJson`). Pure
+   `(json, std::string& error) -> optional<...>` validators. This harness
+   immediately found a real bug: `FromJson` read optional fields via nlohmann
+   `json.value(key, default)`, which **throws** `type_error.302` on a present-but-
+   wrong-typed field (e.g. `{"name": 5}`) instead of returning `nullopt` per its
+   contract — an uncaught exception on the untrusted `/api/schedules` body. Fixed
+   (type-safe reads, matching `ControllerScheduleFromJson`) + regression tests in
+   `test/unit/scheduling/test_schedule.cpp`.
 2. **WebSocket message envelope** — `WebSocket_Event::ConvertFromStringView()`
    (`src/core/http/websocket_event.cpp`). Pure `string_view -> optional<Event>`:
    JSON parse + `type` enum cast + payload. Every connected client feeds it.
@@ -163,9 +170,9 @@ Lower-value / mostly third-party (skip unless a specific bug points here): beare
 subprotocol token splitting, query-string and URL-path segment extraction, API-key
 digest lookup. These are thin first-party wrappers over well-fuzzed libraries.
 
-These are **not yet implemented** — this section is the roadmap. A schedule-JSON
-harness (target #1) is the natural next addition and drops in beside the two
-protocol harnesses under `fuzz/`.
+Target #1 is implemented (`fuzz-schedule-json`); #2 and #3 are the natural next
+additions and drop in beside the existing harnesses under `fuzz/` (add the source,
+list it in `fuzz/CMakeLists.txt`, and a corpus + matrix entry).
 
 ## If the fuzzer finds a crash
 

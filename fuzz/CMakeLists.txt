@@ -14,8 +14,9 @@
 # e.g. fuzz-jandy-message -> fuzz_jandy_message.cpp.
 
 set(_aq_fuzz_harnesses
-    fuzz-jandy-message
-    fuzz-pentair-message
+    fuzz-jandy-message      # Jandy RS-485 decoders
+    fuzz-pentair-message    # Pentair RS-485 decoders
+    fuzz-schedule-json      # schedule request-body JSON validators (web API)
 )
 
 foreach(_target IN LISTS _aq_fuzz_harnesses)
@@ -73,7 +74,10 @@ if(Python3_FOUND)
 endif()
 
 foreach(_target IN LISTS _aq_fuzz_harnesses)
-    string(REGEX REPLACE "^fuzz-([a-z0-9]+)-message$" "\\1" _proto "${_target}")
+    # Corpus subdir = target with the leading "fuzz-" and any trailing "-message"
+    # stripped: fuzz-jandy-message -> jandy, fuzz-schedule-json -> schedule-json.
+    string(REGEX REPLACE "^fuzz-" "" _proto "${_target}")
+    string(REGEX REPLACE "-message$" "" _proto "${_proto}")
     set(_corpus "${CMAKE_CURRENT_SOURCE_DIR}/corpus/${_proto}")
     file(MAKE_DIRECTORY "${_corpus}") # libFuzzer requires the corpus dir to exist.
 

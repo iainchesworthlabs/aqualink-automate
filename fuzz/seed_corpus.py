@@ -57,6 +57,36 @@ def classify(frame: bytes) -> str:
     return "pentair" if _PENTAIR_PREAMBLE in frame else "jandy"
 
 
+# Representative valid request bodies for the schedule-JSON validators (FromJson /
+# ControllerScheduleFromJson). These are not derived from the .cap captures — they
+# give the schedule-json harness real structure to mutate from. Kept as compact JSON
+# strings (both app-schedule and controller-schedule shapes).
+_SCHEDULE_JSON_SEEDS = [
+    '{"name":"Morning pump","enabled":true,"days_of_week":31,"time_local":"08:05",'
+    '"action":{"type":"button_on","target":"Pool Pump"}}',
+    '{"days_of_week":64,"time_local":"17:30","action":{"type":"spa_setpoint","value":38}}',
+    '{"days_of_week":127,"time_local":"09:00","action":{"type":"chlorinator_percent","value":60}}',
+    '{"days_of_week":1,"time_local":"06:00","action":{"type":"circulation_mode","target":"Pool"}}',
+    '{"uuid":"abc-123","name":"Off","enabled":false,"days_of_week":0,"time_local":"23:59",'
+    '"action":{"type":"button_toggle","target":"Spa"}}',
+    # Controller-schedule shape (on_local/off_local/target/group).
+    '{"target":"Filter Pump","group":"A","days_of_week":62,"on_local":"07:00","off_local":"19:00"}',
+    '{"target":"Aux1","days_of_week":127,"on_local":"00:00","off_local":"23:59","name":"All day"}',
+]
+
+
+def seed_schedule_json(out_dir: pathlib.Path) -> int:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written = 0
+    for body in _SCHEDULE_JSON_SEEDS:
+        data = body.encode("utf-8")
+        dest = out_dir / hashlib.sha1(data).hexdigest()
+        if not dest.exists():
+            dest.write_bytes(data)
+            written += 1
+    return written
+
+
 def main(argv: list[str]) -> int:
     here = pathlib.Path(__file__).resolve().parent
     repo_root = here.parent
@@ -86,9 +116,12 @@ def main(argv: list[str]) -> int:
                 dest.write_bytes(frame)
                 written[protocol] += 1
 
+    schedule_written = seed_schedule_json(args.out / "schedule-json")
+
     print(f"Seeded corpus from {len(cap_files)} fixture(s):")
-    print(f"  jandy:   {written['jandy']} new frame(s) -> {args.out / 'jandy'}")
-    print(f"  pentair: {written['pentair']} new frame(s) -> {args.out / 'pentair'}")
+    print(f"  jandy:         {written['jandy']} new frame(s) -> {args.out / 'jandy'}")
+    print(f"  pentair:       {written['pentair']} new frame(s) -> {args.out / 'pentair'}")
+    print(f"  schedule-json: {schedule_written} new body(ies) -> {args.out / 'schedule-json'}")
     return 0
 
 

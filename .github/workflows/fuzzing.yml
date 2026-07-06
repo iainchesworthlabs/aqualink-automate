@@ -22,6 +22,7 @@ on:
       - "src/jandy/**"
       - "src/pentair/**"
       - "src/core/protocol/**"
+      - "src/core/scheduling/**"
       - "fuzz/**"
       - "cmake/Fuzzing.cmake"
       - ".github/workflows/fuzzing.yml"
@@ -54,6 +55,8 @@ jobs:
             corpus: jandy
           - harness: fuzz-pentair-message
             corpus: pentair
+          - harness: fuzz-schedule-json
+            corpus: schedule-json
     steps:
       - name: Clean workspace (self-hosted)
         if: contains(vars.RUNNER_LINUX, 'self-hosted')
