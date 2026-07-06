@@ -220,6 +220,12 @@ BOOST_AUTO_TEST_CASE(TestActuate_FaultState_Refused)
 	FaultableOneTouchDevice fresh(device_type, *this, true);
 	BOOST_CHECK(fresh.ActuateDevice(aux, Capabilities::ActuationAction::Toggle) == Capabilities::ActuationResult::Accepted);
 
+	// Spa-switch programming on a fresh (non-faulted) emulated panel is likewise accepted -- so the
+	// faulted refusal below is the fault gate, not an invalid request. A separate device because
+	// 'fresh' now has a toggle goal in flight (one goal at a time on the shared keypad).
+	FaultableOneTouchDevice fresh_spaswitch(device_type, *this, true);
+	BOOST_CHECK(fresh_spaswitch.SetSpaSwitchAssignment(1, 2, "Pool Light") == Capabilities::ActuationResult::Accepted);
+
 	// Same kind of device, driven into the ScrapingFaulted state: every actuation path refuses
 	// honestly. The fault gate runs before any goal is queued, so the calls do not interfere with
 	// one another (none of them sets a pending goal).
@@ -230,6 +236,10 @@ BOOST_AUTO_TEST_CASE(TestActuate_FaultState_Refused)
 	BOOST_CHECK(faulted.SetSpaSetpoint(100) == Capabilities::ActuationResult::NotSupported);
 	BOOST_CHECK(faulted.SetChlorinatorPercentage(50) == Capabilities::ActuationResult::NotSupported);
 	BOOST_CHECK(faulted.SetChlorinatorBoost(true) == Capabilities::ActuationResult::NotSupported);
+	// Regression: SetSpaSwitchAssignment previously guarded on emulation ONLY (not the fault
+	// state), so a faulted panel wrongly ACCEPTED and queued a spa-switch goal the
+	// NormalOperation-only service step could never run. It must refuse honestly like the rest.
+	BOOST_CHECK(faulted.SetSpaSwitchAssignment(1, 2, "Pool Light") == Capabilities::ActuationResult::NotSupported);
 }
 
 // =============================================================================

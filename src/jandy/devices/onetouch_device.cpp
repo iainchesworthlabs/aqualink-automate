@@ -1007,12 +1007,13 @@ namespace AqualinkAutomate::Devices
 
 	Capabilities::ActuationResult OneTouchDevice::SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, const std::string& function)
 	{
-		// A passive OneTouch never transmits keys (non-emulated or presence-suppressed),
-		// so it cannot program anything.
-		if (!IsEmulationActive())
+		// Passive/suppressed (cannot transmit) or in a dead-end fault state: refuse honestly. The
+		// screen-driven spa-switch service step runs ONLY in NormalOperation, so a goal queued while
+		// faulted would be stranded until comms recover - the same gate the other capability methods
+		// apply (this path previously checked only emulation, letting a faulted panel accept it).
+		if (auto reason = ReasonCannotActuate("program spa-switch assignment"); reason.has_value())
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Not actively emulating - cannot program spa-switch assignment", DeviceId()));
-			return Capabilities::ActuationResult::NotSupported;
+			return reason.value();
 		}
 
 		if ((switch_number < 1) || (button_number < 1) || function.empty())
