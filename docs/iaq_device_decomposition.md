@@ -12,6 +12,26 @@ members > 20) on `IAQDevice`.
 
 ---
 
+## Implementation status (2026-07-06, branch `claude/iaq-device-decomp`)
+
+Landed, each an independently green + committed step (full test suite `*** No errors detected`):
+
+| Phase | What | Result |
+|---|---|---|
+| 0 | `Utility::EqualsCaseInsensitive` added; writers' `eq_ci` lambdas migrated to it | done |
+| 1 | **`IAQ::PageModel`** extracted (`iaq_page_model.{h,cpp}`) — page id/title/button table + schedule/device-picker/spa-switch-picker rows + `FindButtonByLabel`; new unit test | done |
+| 3 | **`IAQ::PageSurvey`** extracted (header-only in `iaq_page_registry.h`) — the 3 survey fields → 1 | done |
+| 7 | **`IAQ::SpaSwitchWriter`** extracted over a new **`IAQ::ICommandSink`** seam that `IAQDevice` implements | done |
+| 8 | **`IAQ::ScheduleWriter`** (create/delete/edit) extracted over `ICommandSink` (extended with `ArmControlValue`) | done |
+
+**Outcome vs the Sonar rules:**
+- **`cpp:S1820` (fields) — SATISFIED.** `IAQDevice` went from **37 → 17** non-static data members (the two write state machines + survey + page clusters collapsed into `m_PageModel`, `m_SpaSwitchWriter`, `m_ScheduleWriter`, `m_PageSurvey`). Under the limit of 20, with margin.
+- **`cpp:S1448` (methods) — improved but still above 35, as predicted in §5/§6.** The private helpers that could leave did (`FindPageButtonByLabel`, `SpaSwitchWrite_ProcessStep`, `QueueScheduleWrite`, `ControllerScheduleWrite_ProcessStep`), but the 17 `signals2` slots + ~17 capability overrides + ctor/dtor/state-queries are all methods that *must* stay on `IAQDevice`. Driving it ≤35 needs the separate **data-driven slot-registration table** (out of scope here — a deliberate, individually-reviewed follow-up).
+
+**Not yet done (optional / lower value):** phase 2 (status publisher), phase 4 (schedule reader), phase 5b (relocate the command-channel fields into an `IAQCommandChannel`), phase 6 (actuator), phase 9 (cross-device `PollGoalRunner` shared with OneTouch). None are needed for S1820; they are cpp-complexity / DRY / testability improvements. The `ICommandSink` seam now exists, so the actuator and a full command-channel extraction are straightforward follow-ups.
+
+---
+
 ## 1. Why the class is over the threshold
 
 `IAQDevice` is the 0x33 (AqualinkTouch) / 0xA3 (iAqualink2 cloud) virtual-device handler. It
