@@ -158,7 +158,6 @@ namespace AqualinkAutomate::Devices
 			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> normal_operation", std::source_location::current());
 			LogTrace(Channel::Devices, std::format("OneTouch ({}): Processing NormalOperation state", DeviceId()));
 			ServiceActiveGoal();
-			ValueEdit_ProcessStep();
 			Boost_ProcessStep();
 			SpaSwitchEdit_ProcessStep();
 			ControllerScheduleWrite_ProcessStep();
@@ -447,8 +446,6 @@ namespace AqualinkAutomate::Devices
 	bool OneTouchDevice::GoalInProgress() const
 	{
 		return m_Runner.HasActiveGoal()
-			|| m_ValueEditInProgress
-			|| m_PendingValueEdit.has_value()
 			|| m_BoostInProgress
 			|| m_PendingBoost.has_value()
 			|| m_SpaSwitchEditInProgress
@@ -594,12 +591,12 @@ namespace AqualinkAutomate::Devices
 
 	Capabilities::ActuationResult OneTouchDevice::SetPoolSetpoint(uint8_t temperature)
 	{
-		return QueueValueEdit({ Navigation::PageId::SetTemperature, SETTEMP_POOL_HEAT_LINE, "Pool Heat", temperature, "pool setpoint" });
+		return QueueValueEdit(Navigation::PageId::SetTemperature, SETTEMP_POOL_HEAT_LINE, "Pool Heat", temperature, "pool setpoint");
 	}
 
 	Capabilities::ActuationResult OneTouchDevice::SetSpaSetpoint(uint8_t temperature)
 	{
-		return QueueValueEdit({ Navigation::PageId::SetTemperature, SETTEMP_SPA_HEAT_LINE, "Spa Heat", temperature, "spa setpoint" });
+		return QueueValueEdit(Navigation::PageId::SetTemperature, SETTEMP_SPA_HEAT_LINE, "Spa Heat", temperature, "spa setpoint");
 	}
 
 	Capabilities::ActuationResult OneTouchDevice::SetChlorinatorPercentage(uint8_t percentage)
@@ -610,14 +607,14 @@ namespace AqualinkAutomate::Devices
 		const auto rounded = static_cast<uint8_t>(((clamped + (ONETOUCH_CHLORINATOR_STEP / 2)) / ONETOUCH_CHLORINATOR_STEP) * ONETOUCH_CHLORINATOR_STEP);
 		// Drives the POOL chlorination row ("Set Pool to: NN%") to match the IAQ's single-%
 		// behaviour. Verified vs onetouch_chlorinator.cap (Pool % = Set AquaPure line 3).
-		return QueueValueEdit({ Navigation::PageId::SetAquapure, OneTouchScraper::SETAQUAPURE_POOL_LINE, "Set Pool", rounded, "chlorinator %" });
+		return QueueValueEdit(Navigation::PageId::SetAquapure, OneTouchScraper::SETAQUAPURE_POOL_LINE, "Set Pool", rounded, "chlorinator %");
 	}
 
-	Capabilities::ActuationResult OneTouchDevice::QueueValueEdit(ValueEditGoal goal)
+	Capabilities::ActuationResult OneTouchDevice::QueueValueEdit(Navigation::PageId page, uint8_t line, std::string label, int target, std::string desc)
 	{
 		// Passive/suppressed or in a dead-end fault state: refuse honestly (a queued edit would
 		// be stranded) so the dispatcher can fall back.
-		if (auto reason = ReasonCannotActuate(std::format("edit {}", goal.desc)); reason.has_value())
+		if (auto reason = ReasonCannotActuate(std::format("edit {}", desc)); reason.has_value())
 		{
 			return reason.value();
 		}
@@ -626,13 +623,12 @@ namespace AqualinkAutomate::Devices
 		// never interleave on the single shared Navigator.
 		if (GoalInProgress())
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting {} request", DeviceId(), goal.desc));
+			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting {} request", DeviceId(), desc));
 			return Capabilities::ActuationResult::NotSupported;
 		}
 
-		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued {} -> {}", DeviceId(), goal.desc, static_cast<int>(goal.target)));
-		m_PendingValueEdit = std::move(goal);
-		m_ValueEditPhase = ValueEditPhase::Navigating;
+		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued {} -> {}", DeviceId(), desc, target));
+		m_Runner.TryStart(std::make_unique<OneTouch::ValueEditGoal>(page, line, std::move(label), target, std::move(desc)));
 		return Capabilities::ActuationResult::Accepted;
 	}
 
@@ -655,141 +651,6 @@ namespace AqualinkAutomate::Devices
 		return Capabilities::ActuationResult::Accepted;
 	}
 
-	void OneTouchDevice::ValueEdit_ProcessStep()
-	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ValueEdit_ProcessStep", std::source_location::current());
-
-		if (!m_PendingValueEdit.has_value() || !m_Navigator)
-		{
-			return;
-		}
-
-		const ValueEditGoal& goal = m_PendingValueEdit.value();
-		const uint8_t row_line = goal.line;
-		const std::string& row_label = goal.label;
-		const std::string& desc = goal.desc;
-		const auto target = static_cast<int>(goal.target);
-
-		auto finish = [&](bool ok)
-		{
-			if (ok)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): {} edit completed", DeviceId(), desc));
-			}
-			else
-			{
-				LogWarning(Channel::Devices, std::format("OneTouch ({}): {} edit abandoned", DeviceId(), desc));
-			}
-			m_Navigator->Reset();
-			m_PendingValueEdit.reset();
-			m_ValueEditInProgress = false;
-			m_ValueEditPhase = ValueEditPhase::Navigating;
-		};
-
-		// Frame backstop so a mis-detected page can never wedge NormalOperation (the
-		// Navigator's own timeouts normally drive it to Failed first).
-		if (m_ValueEditInProgress)
-		{
-			if (++m_ValueEditStepCount > ONETOUCH_VALUEEDIT_STEP_LIMIT)
-			{
-				LogWarning(Channel::Devices, std::format("OneTouch ({}): {} edit exceeded {} steps - abandoning", DeviceId(), desc, ONETOUCH_VALUEEDIT_STEP_LIMIT));
-				finish(false);
-				return;
-			}
-		}
-
-		switch (m_ValueEditPhase)
-		{
-		case ValueEditPhase::Navigating:
-		{
-			// Kick off navigation once: drive to the goal's page and position the cursor on
-			// the value row. select_target is left Unknown so the Navigator stops AT the row
-			// (cursor positioned) instead of pressing Select - the in-place value editor is
-			// driven by this device, not the Navigator.
-			if (!m_ValueEditInProgress)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to '{}' row for {}", DeviceId(), row_label, desc));
-				m_Navigator->NavigateToItem(goal.page, row_line, row_label, Navigation::PageId::Unknown);
-				m_ValueEditInProgress = true;
-				m_ValueEditStepCount = 0;
-			}
-
-			if (auto nav_cmd = m_Navigator->OnPageUpdate(DisplayedPage(), m_HighlightedLine); nav_cmd.has_value())
-			{
-				m_KeyCommand_ToSend = ConvertNavKeyCommand(nav_cmd.value());
-			}
-
-			if (m_Navigator->IsComplete())
-			{
-				if (m_Navigator->IsSuccess())
-				{
-					LogInfo(Channel::Devices, std::format("OneTouch ({}): Cursor on '{}' row - entering value editor", DeviceId(), row_label));
-					m_ValueEditPhase = ValueEditPhase::BeginEdit;
-				}
-				else
-				{
-					finish(false);
-				}
-			}
-			break;
-		}
-
-		case ValueEditPhase::BeginEdit:
-		{
-			// Skip the edit entirely if the row already shows the target value (avoids a
-			// pointless enter/exit-edit toggle). Wait if the value isn't readable yet.
-			if (auto current = OneTouch::DisplayedValue(DisplayedPage(), row_line); current.has_value() && current.value() == target)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): '{}' already at target {} - no edit required", DeviceId(), row_label, target));
-				finish(true);
-				break;
-			}
-
-			// Select on the highlighted row ENTERS the in-place value editor (verified vs
-			// hardware: Select then arrows change the value).
-			LogDebug(Channel::Devices, std::format("OneTouch ({}): Select to begin editing '{}'", DeviceId(), row_label));
-			m_KeyCommand_ToSend = KeyCommands::Select;
-			m_ValueEditPhase = ValueEditPhase::Stepping;
-			break;
-		}
-
-		case ValueEditPhase::Stepping:
-		{
-			// In edit mode, step toward the target per status cycle: LineUp increments,
-			// LineDown decrements (the device applies its own increment - 1 degree for
-			// setpoints, 5% for chlorinator - so the target must be reachable by it). If the
-			// value isn't parseable yet (page mid-render), wait for the next update.
-			auto current = OneTouch::DisplayedValue(DisplayedPage(), row_line);
-			if (!current.has_value())
-			{
-				LogTrace(Channel::Devices, std::format("OneTouch ({}): '{}' value not yet readable - waiting", DeviceId(), row_label));
-				break;
-			}
-
-			if (current.value() == target)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): '{}' reached target {} - committing", DeviceId(), row_label, target));
-				m_ValueEditPhase = ValueEditPhase::Commit;
-				break;
-			}
-
-			m_KeyCommand_ToSend = (current.value() < target) ? KeyCommands::LineUp : KeyCommands::LineDown;
-			LogTrace(Channel::Devices, std::format("OneTouch ({}): Stepping '{}' {} -> {} ({})", DeviceId(), row_label, current.value(), target, magic_enum::enum_name(m_KeyCommand_ToSend)));
-			break;
-		}
-
-		case ValueEditPhase::Commit:
-		{
-			// Press Select once to COMMIT the edited value and leave the editor (verified vs
-			// hardware: each edit is bracketed Select...Select, NOT Back - Back would navigate
-			// away from the page instead of committing the value in place).
-			LogDebug(Channel::Devices, std::format("OneTouch ({}): Select to commit '{}'", DeviceId(), row_label));
-			m_KeyCommand_ToSend = KeyCommands::Select;
-			finish(true);
-			break;
-		}
-		}
-	}
 
 	void OneTouchDevice::Boost_ProcessStep()
 	{
