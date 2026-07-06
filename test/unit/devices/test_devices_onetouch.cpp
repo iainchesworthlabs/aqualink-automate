@@ -19,6 +19,7 @@
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 
 #include "support/unit_test_hublocatorinjector.h"
+#include "support/onetouch_test_device.h"
 
 using namespace AqualinkAutomate;
 using namespace AqualinkAutomate::Devices;
@@ -100,11 +101,11 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_NoLabels_PlansFullScrape)
 	OneTouchDevice device(device_type, *this, true);
 
 	// Nothing seeded yet.
-	BOOST_CHECK(!device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(!Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 
 	// An aux that exists but carries no label is not evidence of seeded labels.
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_1, "");
-	BOOST_CHECK(!device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(!Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // POSITIVE: when a real iAqualink2 has seeded an aux label onto the DataHub, the
@@ -114,7 +115,7 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_LabelPresent_SkipsScrape)
 	OneTouchDevice device(device_type, *this, true);
 
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_1, "Pool Light");
-	BOOST_CHECK(device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // A whitespace-only label is treated as no label (not a real seeded name).
@@ -123,7 +124,7 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_WhitespaceLabel_PlansFullScrape)
 	OneTouchDevice device(device_type, *this, true);
 
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_2, "   ");
-	BOOST_CHECK(!device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(!Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // One labelled aux among several unlabelled ones is enough to trigger the skip.
@@ -134,7 +135,7 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_OneOfManyLabelled_SkipsScrape)
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_1, "");
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_2, "");
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_3, "Waterfall");
-	BOOST_CHECK(device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // =============================================================================
@@ -175,17 +176,8 @@ BOOST_AUTO_TEST_CASE(TestSetpoint_NonEmulated_NotSupported)
 
 namespace
 {
-	// Exposes the protected test seams so a test can drive the fault states and the
-	// comms-resumed recovery path back to NormalOperation.
-	struct FaultableOneTouchDevice : public OneTouchDevice
-	{
-		using OneTouchDevice::OneTouchDevice;
-		using OneTouchDevice::ForceScrapingFaultedForTest;
-		using OneTouchDevice::ForceFaultHasOccurredForTest;
-		using OneTouchDevice::IsInNormalOperationForTest;
-		using OneTouchDevice::RenderScreenLineForTest;
-		using OneTouchDevice::DeliverStatusFrameForTest;
-	};
+	// The shared test-only subclass exposes the fault/screen/status drivers this suite needs.
+	using FaultableOneTouchDevice = Test::SeamedOneTouchDevice;
 
 	// Build a labelled aux that ActuateDevice can target.
 	std::shared_ptr<Kernel::AuxillaryDevice> MakeLabelledAux()
@@ -220,6 +212,12 @@ BOOST_AUTO_TEST_CASE(TestActuate_FaultState_Refused)
 	FaultableOneTouchDevice fresh(device_type, *this, true);
 	BOOST_CHECK(fresh.ActuateDevice(aux, Capabilities::ActuationAction::Toggle) == Capabilities::ActuationResult::Accepted);
 
+	// Spa-switch programming on a fresh (non-faulted) emulated panel is likewise accepted -- so the
+	// faulted refusal below is the fault gate, not an invalid request. A separate device because
+	// 'fresh' now has a toggle goal in flight (one goal at a time on the shared keypad).
+	FaultableOneTouchDevice fresh_spaswitch(device_type, *this, true);
+	BOOST_CHECK(fresh_spaswitch.SetSpaSwitchAssignment(1, 2, "Pool Light") == Capabilities::ActuationResult::Accepted);
+
 	// Same kind of device, driven into the ScrapingFaulted state: every actuation path refuses
 	// honestly. The fault gate runs before any goal is queued, so the calls do not interfere with
 	// one another (none of them sets a pending goal).
@@ -230,6 +228,10 @@ BOOST_AUTO_TEST_CASE(TestActuate_FaultState_Refused)
 	BOOST_CHECK(faulted.SetSpaSetpoint(100) == Capabilities::ActuationResult::NotSupported);
 	BOOST_CHECK(faulted.SetChlorinatorPercentage(50) == Capabilities::ActuationResult::NotSupported);
 	BOOST_CHECK(faulted.SetChlorinatorBoost(true) == Capabilities::ActuationResult::NotSupported);
+	// Regression: SetSpaSwitchAssignment previously guarded on emulation ONLY (not the fault
+	// state), so a faulted panel wrongly ACCEPTED and queued a spa-switch goal the
+	// NormalOperation-only service step could never run. It must refuse honestly like the rest.
+	BOOST_CHECK(faulted.SetSpaSwitchAssignment(1, 2, "Pool Light") == Capabilities::ActuationResult::NotSupported);
 }
 
 // =============================================================================
@@ -403,26 +405,26 @@ BOOST_AUTO_TEST_CASE(TestChlorinator_RejectsWhileAnotherGoalBusy)
 
 BOOST_AUTO_TEST_CASE(TestSanitise_TrimsSurroundingWhitespace)
 {
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("   Pool Light   "), "Pool Light");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("   Pool Light   "), "Pool Light");
 }
 
 BOOST_AUTO_TEST_CASE(TestSanitise_PreservesInteriorSpaces)
 {
 	// Only the surrounding run is trimmed; interior spacing is part of the label.
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("Equipment ON/OFF"), "Equipment ON/OFF");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("Equipment ON/OFF"), "Equipment ON/OFF");
 }
 
 BOOST_AUTO_TEST_CASE(TestSanitise_StripsControlAndDelBytes)
 {
 	// Leading/trailing bytes < 0x20 and 0x7f (DEL) are trimmed like whitespace.
 	const std::string raw = std::string("\x01\x02") + "Spa" + std::string("\x7f\x1f");
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText(raw), "Spa");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText(raw), "Spa");
 }
 
 BOOST_AUTO_TEST_CASE(TestSanitise_AllWhitespaceYieldsEmpty)
 {
-	BOOST_CHECK(OneTouchDevice::SanitiseFunctionText("     ").empty());
-	BOOST_CHECK(OneTouchDevice::SanitiseFunctionText("").empty());
+	BOOST_CHECK(Devices::OneTouch::SanitiseFunctionText("     ").empty());
+	BOOST_CHECK(Devices::OneTouch::SanitiseFunctionText("").empty());
 }
 
 // =============================================================================
@@ -443,7 +445,7 @@ BOOST_AUTO_TEST_CASE(TestAvailableFunctions_IsNonEmptyAndSanitised)
 	{
 		BOOST_CHECK(!fn.empty());
 		// Each entry is already in its sanitised (trimmed) form.
-		BOOST_CHECK_EQUAL(fn, OneTouchDevice::SanitiseFunctionText(fn));
+		BOOST_CHECK_EQUAL(fn, Devices::OneTouch::SanitiseFunctionText(fn));
 		// No duplicates: the picker cycles a set, not a list with repeats.
 		BOOST_CHECK_MESSAGE(seen.insert(fn).second, "duplicate function in catalogue: " + fn);
 	}

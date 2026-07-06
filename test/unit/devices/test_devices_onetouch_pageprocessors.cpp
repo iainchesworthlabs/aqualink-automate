@@ -1,7 +1,12 @@
+#include <algorithm>
+#include <utility>
+#include <vector>
+
 #include <boost/test/unit_test.hpp>
 
 #include "kernel/auxillary_devices/chlorinator_status.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
+#include "kernel/body_of_water_ids.h"
 
 #include "support/unit_test_onetouchdevice.h"
 #include "support/unit_test_ostream_support.h"
@@ -459,6 +464,147 @@ BOOST_AUTO_TEST_CASE(SetTemperaturePage_DecodesHeatSetpoints_MultiWordLabelAndTh
 	auto spa_sp = DataHub().SpaTempSetpoint();
 	BOOST_REQUIRE(spa_sp.has_value());
 	BOOST_CHECK_CLOSE(spa_sp.value().InFahrenheit().value(), 102.0, 1.0);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// =============================================================================
+// Panel-configuration decode consistency between the two pages that carry it.
+//
+// Both the cold-start splash (PageProcessor_StartUp) and the REV page
+// (PageProcessor_Version) decode model/type/revision, run the
+// PoolConfigurationDecoder, and build the bodies of water. They MUST build the
+// same bodies (same ids AND the same active flag) for a given panel. The REV
+// page used to build them with an inline switch that never marked the active
+// body, diverging from the splash path (which builds via
+// DataHub::ApplyPoolConfiguration). Both now share DecodePanelConfiguration; this
+// suite locks the two paths together and pins the active-body behaviour so the
+// divergence cannot silently return.
+// =============================================================================
+
+BOOST_AUTO_TEST_SUITE(PageProcessor_PanelConfig_Consistency_TestSuite)
+
+namespace
+{
+	using Snapshot = std::vector<std::pair<Kernel::BodyOfWaterIds, bool>>;
+
+	// A 12-line REV page: model on line 4, panel type on line 5, "REV ..." on line 7 (the
+	// { 7, "REV " } detector routes it to PageProcessor_Version). Line 5's dash also trips the
+	// Page_StartUp { 5, "-" } detector, but Version is registered first and builds the bodies;
+	// the splash processor then finds them already present and is a no-op - so this observes the
+	// Version path's output.
+	Test::OneTouchDevice::TestPage MakeVersionPage(const std::string& panel_type_16col)
+	{
+		return Test::OneTouchDevice::TestPage
+		{
+			{ 0x0, "                " },
+			{ 0x1, "                " },
+			{ 0x2, "                " },
+			{ 0x3, "                " },
+			{ 0x4, "    B0029221    " },
+			{ 0x5, panel_type_16col   },
+			{ 0x6, "                " },
+			{ 0x7, "   REV T.0.1    " },
+			{ 0x8, "                " },
+			{ 0x9, "                " },
+			{ 0xA, "                " },
+			{ 0xB, "                " }
+		};
+	}
+
+	// A 12-line cold-start splash: identical to the REV page EXCEPT line 7 omits "REV" so the
+	// Page_Version detector does NOT match - ONLY the Page_StartUp { 5, "-" } detector fires,
+	// isolating PageProcessor_StartUp so the snapshot reflects the splash path's output alone.
+	Test::OneTouchDevice::TestPage MakeStartUpPage(const std::string& panel_type_16col)
+	{
+		return Test::OneTouchDevice::TestPage
+		{
+			{ 0x0, "                " },
+			{ 0x1, "                " },
+			{ 0x2, "                " },
+			{ 0x3, "                " },
+			{ 0x4, "    B0029221    " },
+			{ 0x5, panel_type_16col   },
+			{ 0x6, "                " },
+			{ 0x7, "     T.0.1      " },
+			{ 0x8, "                " },
+			{ 0x9, "                " },
+			{ 0xA, "                " },
+			{ 0xB, "                " }
+		};
+	}
+
+	Snapshot SnapshotBodies(const Kernel::DataHub& hub)
+	{
+		Snapshot bodies;
+		for (const auto& body : hub.Bodies())
+		{
+			bodies.emplace_back(body.Id(), body.IsActive());
+		}
+		std::sort(bodies.begin(), bodies.end());
+		return bodies;
+	}
+
+	// Drive a single page through a FRESH device and return the bodies it built. The rig is
+	// scoped to this call so only ONE OneTouchDevice is ever alive while a page is signalled -
+	// the per-message-type receive signal is a process-wide static, so a second live device
+	// (with the same id) would also process the page. Constructing/destroying the rig inside the
+	// helper keeps each path's decode isolated.
+	Snapshot DriveAndSnapshot(const Test::OneTouchDevice::TestPage& page)
+	{
+		Test::OneTouchDevice rig;
+		rig.LoadAndSignalTestPage(page);
+		return SnapshotBodies(rig.DataHub());
+	}
+
+	std::size_t CountActive(const Snapshot& bodies)
+	{
+		return static_cast<std::size_t>(std::count_if(bodies.begin(), bodies.end(), [](const auto& b) { return b.second; }));
+	}
+}
+
+// For a DUAL-body panel, the REV page and the splash build the identical set of bodies
+// (Pool + Spa) with the identical active flag (Pool active by default circulation mode).
+BOOST_AUTO_TEST_CASE(VersionAndStartUpBuildIdenticalBodies_DualBody)
+{
+	const std::string panel_type{ "  RS-2/14 Dual  " }; // DualBody_DualEquipment
+
+	const auto version_bodies = DriveAndSnapshot(MakeVersionPage(panel_type));
+	const auto startup_bodies = DriveAndSnapshot(MakeStartUpPage(panel_type));
+
+	// Both paths recognised the panel and built two bodies...
+	BOOST_REQUIRE_EQUAL(version_bodies.size(), 2u);
+	BOOST_REQUIRE_EQUAL(startup_bodies.size(), 2u);
+
+	// ...that are byte-for-byte the same (ids + active flags): the core consistency guarantee.
+	BOOST_CHECK(version_bodies == startup_bodies);
+
+	// And the active body is actually set - the specific behaviour the REV path used to miss.
+	// Exactly one body active (default circulation is Pool), on BOTH paths.
+	BOOST_CHECK_EQUAL(CountActive(version_bodies), 1u);
+	BOOST_CHECK_EQUAL(CountActive(startup_bodies), 1u);
+
+	const std::pair<Kernel::BodyOfWaterIds, bool> pool_active{ Kernel::BodyOfWaterIds::Pool, true };
+	const std::pair<Kernel::BodyOfWaterIds, bool> spa_inactive{ Kernel::BodyOfWaterIds::Spa, false };
+	BOOST_CHECK(std::find(version_bodies.begin(), version_bodies.end(), pool_active) != version_bodies.end());
+	BOOST_CHECK(std::find(version_bodies.begin(), version_bodies.end(), spa_inactive) != version_bodies.end());
+}
+
+// For a SINGLE-body panel, both paths build exactly one (Pool) body and mark it active.
+BOOST_AUTO_TEST_CASE(VersionAndStartUpBuildIdenticalBodies_SingleBody)
+{
+	const std::string panel_type{ "   RS-8 Only    " }; // SingleBody
+
+	const auto version_bodies = DriveAndSnapshot(MakeVersionPage(panel_type));
+	const auto startup_bodies = DriveAndSnapshot(MakeStartUpPage(panel_type));
+
+	BOOST_REQUIRE_EQUAL(version_bodies.size(), 1u);
+	BOOST_CHECK(version_bodies == startup_bodies);
+
+	// The single body is Pool and is active on both paths (previously the REV path left it inactive).
+	const std::pair<Kernel::BodyOfWaterIds, bool> pool_active{ Kernel::BodyOfWaterIds::Pool, true };
+	BOOST_CHECK(version_bodies.front() == pool_active);
+	BOOST_CHECK_EQUAL(CountActive(version_bodies), 1u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
