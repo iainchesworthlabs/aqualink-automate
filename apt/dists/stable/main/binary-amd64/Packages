@@ -3,15 +3,27 @@ Architecture: amd64
 Depends: libc6 (>= 2.36), systemd
 Priority: optional
 Section: net
-Filename: pool/main/a/aqualink-automate/aqualink-automate_0.12.0~beta.1_amd64.deb
-Size: 13603698
-SHA256: ea7dfa7da503b800c301b63b8dcc57a7588d1f81c85ddc9de28bbe1e17dfb99b
-SHA1: bf89bae0987efe379eaa8c8ef8f0ab02dc649be5
-MD5sum: cbbe8e9c52c4b6400371648bc5fdde57
+Filename: pool/main/a/aqualink-automate/aqualink-automate_0.12.0~beta.2_amd64.deb
+Size: 13624892
+SHA256: 7a824ee8767dabeeb718343389367119a51d583e4a07c20c12252bed59b3b073
+SHA1: 68650b92a7f1140e1800e7854becd264ca30fcfe
+MD5sum: ed230b22207e06d9f9fa4ec8e4617934
 Description: Control Jandy Aqualink RS pool equipment via common IoT integrations
  # Aqualink Automate
  .
  Local control of Jandy/Zodiac (Fluidra) Aqualink RS pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.
+ .
+ &lt;!-- Build &amp; code health --&gt;
+ [![CI](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml)
+ [![Code Scanning](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml)
+ [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=alert_status)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+ [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=coverage)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+ [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=security_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+ [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
+ &lt;!-- Supply chain &amp; project meta --&gt;
+ [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworth/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworth/aqualink-automate)
+ [![Latest release](https://img.shields.io/github/v/release/iainchesworth/aqualink-automate?include_prereleases&amp;sort=semver)](https://github.com/iainchesworth/aqualink-automate/releases/latest)
+ [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.txt)
  .
  Aqualink Automate is a C++ service that talks to your pool equipment over an RS-485 serial link and exposes it on your own network. It reads status from the panel and lets you control it through a built-in Web UI, an HTTP and WebSocket API, MQTT (with Home Assistant discovery), and a Matter bridge for Apple Home, Google Home, Alexa, and SmartThings. Everything runs on hardware you own; nothing is sent to a vendor cloud.
  .
@@ -107,6 +119,6 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  This project was influenced by sfeakes&apos; [AqualinkD](https://github.com/sfeakes/AqualinkD). The original goal was a variant that also runs on Windows and macOS.
 Homepage: https://github.com/iainchesworth/aqualink-automate
 Maintainer: Iain Chesworth
-Version: 0.12.0~beta.1
-Installed-Size: 61569
+Version: 0.12.0~beta.2
+Installed-Size: 61598
 
