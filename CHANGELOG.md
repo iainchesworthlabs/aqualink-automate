@@ -8,11 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
-## [Unreleased]
+## [0.12.0-beta.4] - 2026-07-07
+
+A release-integrity update: release artifacts now carry verifiable build provenance and optional signatures, and the codebase gains a broad compile-time (`constexpr`/`consteval`) pass. No functional or configuration changes.
 
 ### Added
 
 - **Verifiable release provenance.** Every release package and the Docker image now ships with a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (SLSA provenance, signed via Sigstore using the release workflow's OIDC identity) and an SPDX SBOM attestation, so anyone can confirm a download was built by this repository from a specific commit — not swapped for a poisoned build. Verify with `gh attestation verify <file> --repo iainchesworth/aqualink-automate` (or `oci://…` for the image). Release binaries are additionally GPG-signed (detached `.asc` per file plus a signed `SHA512SUMS`) when the project signing key is configured. See [SECURITY.md > Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity).
+
+### Changed
+
+- **Compile-time hardening (`constexpr`/`consteval`).** A codebase-wide sweep made pure in-header functions, constants, and small value types (device identifiers, restart timeouts) `constexpr`/`consteval` where sound, shifting more work to compile time. No behaviour change.
 
 ## [0.12.0-beta.3] - 2026-07-06
 
@@ -26,6 +32,10 @@ A robustness and supply-chain hardening release: the protocol and input parsers 
 
 - **Fuzz testing of the wire protocol and input surfaces.** New libFuzzer harnesses continuously exercise the RS-485 Jandy/Pentair message decoders and the untrusted input parsers (schedule/web-API JSON, config file, WebSocket and MQTT payloads, query strings, JWTs, durations, and `.cap` replay files), guarding against crashes on hostile or corrupt input. No behaviour change for well-formed data.
 - **Supply-chain and repository hygiene.** CI GitHub Actions are pinned by commit SHA with least-privilege `GITHUB_TOKEN` permissions (OpenSSF Scorecard posture), committed third-party binary tools were removed in favour of documented downloads, and per-developer IDE/editor configuration is no longer tracked.
+
+## [0.12.0-beta.2] - 2026-07-06
+
+A stabilization and code-health release: user-facing bug fixes alongside a large internal quality pass and two device-class refactorings. No new features, and no configuration changes.
 
 ### Fixed
 
