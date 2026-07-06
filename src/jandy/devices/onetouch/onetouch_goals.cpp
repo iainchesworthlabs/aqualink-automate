@@ -266,5 +266,172 @@ namespace AqualinkAutomate::Devices::OneTouch
 		return GoalStatus::Running;
 	}
 
+	SpaSwitchGoal::SpaSwitchGoal(uint8_t switch_number, uint8_t button_number, std::string function) :
+		m_SwitchNumber(switch_number),
+		m_ButtonNumber(button_number),
+		m_Function(std::move(function)),
+		m_RowTag(std::format("{}:{}", switch_number, button_number)),
+		m_Desc(std::format("spa-switch {}:{} -> '{}'", switch_number, button_number, m_Function))
+	{
+	}
+
+	GoalStatus SpaSwitchGoal::Step(KeypadContext& ctx)
+	{
+		if (m_Started && (++m_StepCount > STEP_LIMIT))
+		{
+			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", ctx.DeviceId(), m_Desc, STEP_LIMIT));
+			return GoalStatus::Failed;
+		}
+
+		switch (m_Phase)
+		{
+		case Phase::ToSystemSetup:
+		{
+			// Reuse the proven navigator to reach System Setup, then hand off to the screen-driven
+			// walk (the Spa Switch sub-pages -- especially the number-of-switches page -- need bare
+			// Selects without cursor moves, which the navigator's edge model does not express).
+			if (!m_Started)
+			{
+				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to System Setup for {}", ctx.DeviceId(), m_Desc));
+				ctx.navigator.NavigateTo(Navigation::PageId::SystemSetup);
+				m_Started = true;
+				m_StepCount = 0;
+			}
+
+			if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
+			{
+				ctx.Emit(nav_cmd.value());
+			}
+
+			if (ctx.navigator.IsComplete())
+			{
+				if (ctx.navigator.IsSuccess())
+				{
+					ctx.navigator.Reset();   // navigation done; the rest is screen-driven
+					m_CursorStuck = 0;
+					m_Phase = Phase::SelectSpaSwitch;
+				}
+				else
+				{
+					return GoalStatus::Failed;
+				}
+			}
+			break;
+		}
+
+		case Phase::SelectSpaSwitch:
+		{
+			// On the System Setup menu: find the "Spa Switch" item (scrolling if below the fold),
+			// move the cursor onto it, then Select to open the Spa Switch number page.
+			if (auto line = FindLineStartingWith(ctx.page, "Spa Switch"); line.has_value())
+			{
+				m_CursorStuck = 0;
+				if (ctx.MoveCursorToward(line.value()))
+				{
+					ctx.Emit(Navigation::NavKeyCommand::Select);
+					m_Phase = Phase::PassNumberPage;
+				}
+			}
+			else
+			{
+				ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll the list to reveal it
+				if (++m_CursorStuck > MAX_SCROLL)
+				{
+					LogWarning(Channel::Devices, std::format("OneTouch ({}): 'Spa Switch' menu item not found", ctx.DeviceId()));
+					return GoalStatus::Failed;
+				}
+			}
+			break;
+		}
+
+		case Phase::PassNumberPage:
+		{
+			// The "Spa Switch / Setup" number-of-switches page (line 1 == "Setup"). Press a BARE
+			// Select to advance to the Button Setup list WITHOUT moving the cursor -- moving it
+			// would change the configured switch count.
+			if (LineText(ctx.page, 1) == "Setup")
+			{
+				ctx.Emit(Navigation::NavKeyCommand::Select);
+				m_Phase = Phase::ToRow;
+				m_CursorStuck = 0;
+			}
+			break;   // else: still transitioning -- wait for the page
+		}
+
+		case Phase::ToRow:
+		{
+			// The "Button Setup" list (line 1 contains "Button Setup"). Find the "S:B" row, move
+			// the cursor onto it, Select to open that button's function picker.
+			if (LineText(ctx.page, 1).contains("Button Setup"))
+			{
+				if (auto line = FindLineStartingWith(ctx.page, m_RowTag); line.has_value())
+				{
+					m_CursorStuck = 0;
+					if (ctx.MoveCursorToward(line.value()))
+					{
+						ctx.Emit(Navigation::NavKeyCommand::Select);
+						m_PickerFirstSeen.reset();
+						m_Phase = Phase::CyclePicker;
+					}
+				}
+				else
+				{
+					ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll to reveal the row
+					if (++m_CursorStuck > MAX_SCROLL)
+					{
+						LogWarning(Channel::Devices, std::format("OneTouch ({}): button row '{}' not found", ctx.DeviceId(), m_RowTag));
+						return GoalStatus::Failed;
+					}
+				}
+			}
+			break;   // else: still transitioning -- wait
+		}
+
+		case Phase::CyclePicker:
+		{
+			// The per-button picker (line 1 == "Button <S:B>"). Cycle (LineUp) until the selected
+			// function (line 3) matches the target, then commit. Wrap-detect to bail if the target
+			// is not offered by this controller.
+			if (LineText(ctx.page, 1).contains("Button") && LineText(ctx.page, 1).contains(m_RowTag))
+			{
+				auto current = DisplayedFunctionOnRow(ctx.page, PICKER_FUNCTION_LINE);
+				if (!current.has_value())
+				{
+					break;   // not rendered yet -- wait
+				}
+
+				if (EqualsCaseInsensitive(current.value(), m_Function))
+				{
+					m_Phase = Phase::Commit;
+					break;
+				}
+
+				if (!m_PickerFirstSeen.has_value())
+				{
+					m_PickerFirstSeen = current;
+				}
+				else if (EqualsCaseInsensitive(current.value(), m_PickerFirstSeen.value()))
+				{
+					LogWarning(Channel::Devices, std::format("OneTouch ({}): function '{}' not offered by the picker for {}", ctx.DeviceId(), m_Function, m_RowTag));
+					return GoalStatus::Failed;
+				}
+
+				ctx.Emit(Navigation::NavKeyCommand::LineUp);   // cycle to the next function
+			}
+			break;   // else: not on the picker yet -- wait
+		}
+
+		case Phase::Commit:
+		{
+			// Select writes the chosen function and leaves the picker (back to the Button Setup
+			// list, which then shows "S:B  <function>").
+			ctx.Emit(Navigation::NavKeyCommand::Select);
+			return GoalStatus::Done;
+		}
+		}
+
+		return GoalStatus::Running;
+	}
+
 }
 // namespace AqualinkAutomate::Devices::OneTouch

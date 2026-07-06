@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -94,6 +95,46 @@ namespace AqualinkAutomate::Devices::OneTouch
 		Phase m_Phase{ Phase::Navigating };
 		bool m_Started{ false };
 		uint32_t m_StepCount{ 0 };
+	};
+
+	// SPA-SWITCH ASSIGNMENT edit (SpaSwitchConfigurator): walk the Spa Switch config menu (System
+	// Setup -> Spa Switch -> the number-of-switches page -> Button Setup list -> the "S:B" row ->
+	// the function picker) and cycle the picker until it shows the target function, then Select.
+	// Screen-driven after System Setup because the number-of-switches page must be passed with a
+	// bare Select (no cursor move) so the switch count is preserved.
+	class SpaSwitchGoal : public IKeypadGoal
+	{
+	public:
+		SpaSwitchGoal(uint8_t switch_number, uint8_t button_number, std::string function);
+
+		GoalStatus Step(KeypadContext& ctx) override;
+		std::string_view Description() const override { return m_Desc; }
+
+	private:
+		enum class Phase
+		{
+			ToSystemSetup,    // Navigator drives to the System Setup menu
+			SelectSpaSwitch,  // cursor to the "Spa Switch" item, then Select -> number page
+			PassNumberPage,   // bare Select on the number-of-switches page -> Button Setup list
+			ToRow,            // cursor to the "S:B" row, then Select -> function picker
+			CyclePicker,      // LineUp-cycle the picker until it shows the target function
+			Commit            // Select to write the function and leave the picker
+		};
+
+		static constexpr uint32_t STEP_LIMIT{ 800 };   // menu walk + up to a full picker cycle
+		static constexpr uint32_t MAX_SCROLL{ 40 };
+		static constexpr uint8_t PICKER_FUNCTION_LINE{ 3 };
+
+		uint8_t m_SwitchNumber;
+		uint8_t m_ButtonNumber;
+		std::string m_Function;   // target function name (as the controller's picker lists it)
+		std::string m_RowTag;     // "<switch>:<button>" -- the Button Setup row label
+		std::string m_Desc;
+		Phase m_Phase{ Phase::ToSystemSetup };
+		bool m_Started{ false };
+		uint32_t m_StepCount{ 0 };
+		uint32_t m_CursorStuck{ 0 };
+		std::optional<std::string> m_PickerFirstSeen;   // wrap detection while cycling the picker
 	};
 
 }

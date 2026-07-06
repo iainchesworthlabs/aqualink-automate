@@ -261,11 +261,6 @@ namespace AqualinkAutomate::Devices
 		// actually differs (DeviceActuator).
 		std::optional<bool> CurrentOnState(const std::shared_ptr<Kernel::AuxillaryDevice>& device) const;
 
-		// On-demand SPA-SWITCH ASSIGNMENT edit (SpaSwitchConfigurator): service a single pending
-		// assignment goal in NormalOperation. Screen-driven phase machine that walks the Spa
-		// Switch config menu and cycles the per-button function picker to the target.
-		void SpaSwitchEdit_ProcessStep();
-
 		// Proactive chlorinator-setpoint re-acquisition (the GET): periodically (and on a
 		// chlorinator offline->online edge) drive a READ-ONLY menu visit to the Set AquaPure
 		// page so PageProcessor_SetAquapure re-scrapes the configured Pool/Spa %. Runs 5th in
@@ -344,36 +339,6 @@ namespace AqualinkAutomate::Devices
 		// SetChlorinatorPercentage): validate the device can actuate, reject if another goal is
 		// mid-flight, then start a ValueEditGoal on the runner.
 		Capabilities::ActuationResult QueueValueEdit(Navigation::PageId page, uint8_t line, std::string label, int target, std::string desc);
-
-		// On-demand SPA-SWITCH assignment edit goal (one at a time). Set by SetSpaSwitchAssignment,
-		// serviced by SpaSwitchEdit_ProcessStep. Screen-driven: each phase reads the current page and
-		// emits one key. Distinct from the value-edit because it crosses several pages (System Setup
-		// -> Spa Switch -> number page -> Button Setup -> picker) and must NOT move the cursor on the
-		// number-of-switches page (that would change the switch count).
-		enum class SpaSwitchEditPhase
-		{
-			ToSystemSetup,    // Navigator drives to the System Setup menu
-			SelectSpaSwitch,  // move cursor to the "Spa Switch" item, then Select -> number page
-			PassNumberPage,   // bare Select on the number-of-switches page -> Button Setup list
-			ToRow,            // move cursor to the "S:B" row, then Select -> function picker
-			CyclePicker,      // LineUp-cycle the picker until it shows the target function
-			Commit            // Select to write the function and leave the picker
-		};
-		struct SpaSwitchEditGoal
-		{
-			uint8_t switch_number{ 0 };
-			uint8_t button_number{ 0 };
-			std::string function;   // target function name (as the controller's picker lists it)
-			std::string row_tag;    // "<switch>:<button>" e.g. "1:2" -- the Button Setup row label
-			std::string desc;
-		};
-		inline static const uint32_t ONETOUCH_SPASWITCH_STEP_LIMIT{ 800 };  // menu walk + up to a full picker cycle
-		std::optional<SpaSwitchEditGoal> m_PendingSpaSwitchEdit;
-		SpaSwitchEditPhase m_SpaSwitchEditPhase{ SpaSwitchEditPhase::ToSystemSetup };
-		bool m_SpaSwitchEditInProgress{ false };
-		uint32_t m_SpaSwitchEditStepCount{ 0 };
-		std::optional<std::string> m_PickerFirstSeenFunction;  // wrap detection while cycling the picker
-		uint32_t m_SpaSwitchCursorStuck{ 0 };
 
 		// On-demand controller-schedule WRITE goal (one at a time). Set by the ControllerScheduleWriter
 		// methods, serviced by ControllerScheduleWrite_ProcessStep in NormalOperation. Screen-driven:

@@ -158,7 +158,6 @@ namespace AqualinkAutomate::Devices
 			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> normal_operation", std::source_location::current());
 			LogTrace(Channel::Devices, std::format("OneTouch ({}): Processing NormalOperation state", DeviceId()));
 			ServiceActiveGoal();
-			SpaSwitchEdit_ProcessStep();
 			ControllerScheduleWrite_ProcessStep();
 			SetpointRefresh_ProcessStep();
 			break;
@@ -445,8 +444,6 @@ namespace AqualinkAutomate::Devices
 	bool OneTouchDevice::GoalInProgress() const
 	{
 		return m_Runner.HasActiveGoal()
-			|| m_SpaSwitchEditInProgress
-			|| m_PendingSpaSwitchEdit.has_value()
 			|| m_ScheduleWriteInProgress
 			|| m_PendingScheduleWrite.has_value()
 			|| m_RefreshInProgress;
@@ -680,16 +677,8 @@ namespace AqualinkAutomate::Devices
 			return Capabilities::ActuationResult::NotSupported;
 		}
 
-		SpaSwitchEditGoal goal;
-		goal.switch_number = switch_number;
-		goal.button_number = button_number;
-		goal.function = function;
-		goal.row_tag = std::format("{}:{}", switch_number, button_number);
-		goal.desc = std::format("spa-switch {}:{} -> '{}'", switch_number, button_number, function);
-
-		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued {}", DeviceId(), goal.desc));
-		m_PendingSpaSwitchEdit = std::move(goal);
-		m_SpaSwitchEditPhase = SpaSwitchEditPhase::ToSystemSetup;
+		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued spa-switch {}:{} -> '{}'", DeviceId(), switch_number, button_number, function));
+		m_Runner.TryStart(std::make_unique<OneTouch::SpaSwitchGoal>(switch_number, button_number, function));
 		return Capabilities::ActuationResult::Accepted;
 	}
 
@@ -699,200 +688,6 @@ namespace AqualinkAutomate::Devices
 		return Utility::KnownSpaSwitchFunctions();
 	}
 
-	void OneTouchDevice::SpaSwitchEdit_ProcessStep()
-	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::SpaSwitchEdit_ProcessStep", std::source_location::current());
-
-		if (!m_PendingSpaSwitchEdit.has_value() || !m_Navigator)
-		{
-			return;
-		}
-
-		const SpaSwitchEditGoal& goal = m_PendingSpaSwitchEdit.value();
-
-		// The picker shows the currently-selected function on line 3 (verified vs
-		// spaside_setup_nav.cap: line 3 cycles through the function list as 0x06 is pressed).
-		static constexpr uint8_t PICKER_FUNCTION_LINE{ 3 };
-		// Bound the per-phase scroll so a missing item (e.g. the menu differs on this model) ends
-		// the goal cleanly rather than scrolling forever (the step backstop also covers it).
-		static constexpr uint32_t MAX_SCROLL{ 40 };
-
-		auto finish = [&](bool ok)
-		{
-			if (ok) { LogInfo(Channel::Devices, std::format("OneTouch ({}): {} completed", DeviceId(), goal.desc)); }
-			else    { LogWarning(Channel::Devices, std::format("OneTouch ({}): {} abandoned", DeviceId(), goal.desc)); }
-			m_Navigator->Reset();
-			m_PendingSpaSwitchEdit.reset();
-			m_SpaSwitchEditInProgress = false;
-			m_SpaSwitchEditPhase = SpaSwitchEditPhase::ToSystemSetup;
-			m_PickerFirstSeenFunction.reset();
-			m_SpaSwitchCursorStuck = 0;
-		};
-
-		if (m_SpaSwitchEditInProgress)
-		{
-			if (++m_SpaSwitchEditStepCount > ONETOUCH_SPASWITCH_STEP_LIMIT)
-			{
-				LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", DeviceId(), goal.desc, ONETOUCH_SPASWITCH_STEP_LIMIT));
-				finish(false);
-				return;
-			}
-		}
-
-		const auto& page = DisplayedPage();
-		// Row-text read, case-insensitive compare and cursor stepping are shared helpers now:
-		// OneTouch::LineText / OneTouch::EqualsCaseInsensitive (onetouch_screen_reader.h) and the
-		// MoveCursorToward member.
-
-		switch (m_SpaSwitchEditPhase)
-		{
-		case SpaSwitchEditPhase::ToSystemSetup:
-		{
-			// Reuse the proven navigator to reach System Setup, then hand off to the screen-driven
-			// walk (the Spa Switch sub-pages -- especially the number-of-switches page -- need bare
-			// Selects without cursor moves, which the navigator's edge model does not express).
-			if (!m_SpaSwitchEditInProgress)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to System Setup for {}", DeviceId(), goal.desc));
-				m_Navigator->NavigateTo(Navigation::PageId::SystemSetup);
-				m_SpaSwitchEditInProgress = true;
-				m_SpaSwitchEditStepCount = 0;
-			}
-
-			if (auto nav_cmd = m_Navigator->OnPageUpdate(page, m_HighlightedLine); nav_cmd.has_value())
-			{
-				m_KeyCommand_ToSend = ConvertNavKeyCommand(nav_cmd.value());
-			}
-
-			if (m_Navigator->IsComplete())
-			{
-				if (m_Navigator->IsSuccess())
-				{
-					m_Navigator->Reset();   // navigation done; the rest is screen-driven
-					m_SpaSwitchCursorStuck = 0;
-					m_SpaSwitchEditPhase = SpaSwitchEditPhase::SelectSpaSwitch;
-				}
-				else
-				{
-					finish(false);
-				}
-			}
-			break;
-		}
-
-		case SpaSwitchEditPhase::SelectSpaSwitch:
-		{
-			// On the System Setup menu: find the "Spa Switch" item (scrolling if below the fold),
-			// move the cursor onto it, then Select to open the Spa Switch number page.
-			if (auto line = OneTouch::FindLineStartingWith(page, "Spa Switch"); line.has_value())
-			{
-				m_SpaSwitchCursorStuck = 0;
-				if (MoveCursorToward(line.value()))
-				{
-					m_KeyCommand_ToSend = KeyCommands::Select;
-					m_SpaSwitchEditPhase = SpaSwitchEditPhase::PassNumberPage;
-				}
-			}
-			else
-			{
-				m_KeyCommand_ToSend = KeyCommands::LineDown;   // scroll the list to reveal it
-				if (++m_SpaSwitchCursorStuck > MAX_SCROLL)
-				{
-					LogWarning(Channel::Devices, std::format("OneTouch ({}): 'Spa Switch' menu item not found", DeviceId()));
-					finish(false);
-				}
-			}
-			break;
-		}
-
-		case SpaSwitchEditPhase::PassNumberPage:
-		{
-			// The "Spa Switch / Setup" number-of-switches page (line 1 == "Setup"). Press a BARE
-			// Select to advance to the Button Setup list WITHOUT moving the cursor -- moving it
-			// would change the configured switch count.
-			if (OneTouch::LineText(page,1) == "Setup")
-			{
-				m_KeyCommand_ToSend = KeyCommands::Select;
-				m_SpaSwitchEditPhase = SpaSwitchEditPhase::ToRow;
-				m_SpaSwitchCursorStuck = 0;
-			}
-			break;   // else: still transitioning -- wait for the page
-		}
-
-		case SpaSwitchEditPhase::ToRow:
-		{
-			// The "Button Setup" list (line 1 contains "Button Setup"). Find the "S:B" row, move
-			// the cursor onto it, Select to open that button's function picker.
-			if (OneTouch::LineText(page,1).contains("Button Setup"))
-			{
-				if (auto line = OneTouch::FindLineStartingWith(page, goal.row_tag); line.has_value())
-				{
-					m_SpaSwitchCursorStuck = 0;
-					if (MoveCursorToward(line.value()))
-					{
-						m_KeyCommand_ToSend = KeyCommands::Select;
-						m_PickerFirstSeenFunction.reset();
-						m_SpaSwitchEditPhase = SpaSwitchEditPhase::CyclePicker;
-					}
-				}
-				else
-				{
-					m_KeyCommand_ToSend = KeyCommands::LineDown;   // scroll to reveal the row
-					if (++m_SpaSwitchCursorStuck > MAX_SCROLL)
-					{
-						LogWarning(Channel::Devices, std::format("OneTouch ({}): button row '{}' not found", DeviceId(), goal.row_tag));
-						finish(false);
-					}
-				}
-			}
-			break;   // else: still transitioning -- wait
-		}
-
-		case SpaSwitchEditPhase::CyclePicker:
-		{
-			// The per-button picker (line 1 == "Button <S:B>"). Cycle (LineUp) until the selected
-			// function (line 3) matches the target, then commit. Wrap-detect to bail if the target
-			// is not offered by this controller.
-			if (OneTouch::LineText(page,1).contains("Button") && OneTouch::LineText(page,1).contains(goal.row_tag))
-			{
-				auto current = OneTouch::DisplayedFunctionOnRow(page, PICKER_FUNCTION_LINE);
-				if (!current.has_value())
-				{
-					break;   // not rendered yet -- wait
-				}
-
-				if (OneTouch::EqualsCaseInsensitive(current.value(), goal.function))
-				{
-					m_SpaSwitchEditPhase = SpaSwitchEditPhase::Commit;
-					break;
-				}
-
-				if (!m_PickerFirstSeenFunction.has_value())
-				{
-					m_PickerFirstSeenFunction = current;
-				}
-				else if (OneTouch::EqualsCaseInsensitive(current.value(), m_PickerFirstSeenFunction.value()))
-				{
-					LogWarning(Channel::Devices, std::format("OneTouch ({}): function '{}' not offered by the picker for {}", DeviceId(), goal.function, goal.row_tag));
-					finish(false);
-					break;
-				}
-
-				m_KeyCommand_ToSend = KeyCommands::LineUp;   // cycle to the next function
-			}
-			break;   // else: not on the picker yet -- wait
-		}
-
-		case SpaSwitchEditPhase::Commit:
-		{
-			// Select writes the chosen function and leaves the picker (back to the Button Setup
-			// list, which then shows "S:B  <function>").
-			m_KeyCommand_ToSend = KeyCommands::Select;
-			finish(true);
-			break;
-		}
-		}
-	}
 
 	//=========================================================================
 	// Controller-schedule WRITE (ControllerScheduleWriter). Drives the emulated
