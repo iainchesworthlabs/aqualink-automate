@@ -4,44 +4,44 @@ Hash: SHA512
 Origin: Aqualink Automate
 Label: Aqualink Automate
 Codename: stable
-Date: Mon, 06 Jul 2026 17:19:28 UTC
+Date: Mon, 06 Jul 2026 20:57:45 UTC
 Architectures: amd64 arm64
 Components: main
 Description: Aqualink Automate APT repository
 MD5Sum:
- 5581b0a5f38f9455d3cdaa55185886f4 9070 main/binary-amd64/Packages
- a50b3137cd000a22a7bd4eb869ca2fed 3579 main/binary-amd64/Packages.gz
+ 56c3fb3786c8f4959bb6f508b2b2220a 9707 main/binary-amd64/Packages
+ 554d04f9b182dba989a86ba184633d17 3809 main/binary-amd64/Packages.gz
  d971d3bbe41152811ef0fd506cc8c6c1 133 main/binary-amd64/Release
- a8594c68599b06a7469b229c79d455b4 9070 main/binary-arm64/Packages
- 8dddbf1009fe70ec87ab203c37601804 3584 main/binary-arm64/Packages.gz
+ 39c1fa3d80868e7ed1b836069a52efdc 9707 main/binary-arm64/Packages
+ 9e55c2f348fa5c99c441dd544478ecf5 3813 main/binary-arm64/Packages.gz
  17df63a7897ce330d6be74a7840c3061 133 main/binary-arm64/Release
 SHA1:
- ee54be28d2df707456a7436d5089426625630e7b 9070 main/binary-amd64/Packages
- 622cf90f2ae7ae86785f334f2e88e0512dbd26c8 3579 main/binary-amd64/Packages.gz
+ 2b8c8aa48f5732dbfa3f3d8ab991f6309bee6be4 9707 main/binary-amd64/Packages
+ ea3aed4c76a7c6a3b672e32d510907aefc287cdf 3809 main/binary-amd64/Packages.gz
  49b9046ea11419384cb6b70972826d28bcf18e79 133 main/binary-amd64/Release
- e55051275bdcde34ad6986f5ebb45351b3dd0865 9070 main/binary-arm64/Packages
- 595b8f87454769aa53e1bfe5fc2b3408d393e851 3584 main/binary-arm64/Packages.gz
+ 4119990e0f8b319cd1bd9dc6fb725525a3092416 9707 main/binary-arm64/Packages
+ ec4bf975813cad36a44008a3867d5ff192631ce2 3813 main/binary-arm64/Packages.gz
  f734ef360d77d822fbd223b5183408a8900757dd 133 main/binary-arm64/Release
 SHA256:
- 511c37168c56d223bbc893deae4e16c0e4d544f0ec2571f7a9487582fa2d936c 9070 main/binary-amd64/Packages
- 83b1e154cc03e3c09b9a0dc0233bc192cb776b333c37c5196e06668f8cf12628 3579 main/binary-amd64/Packages.gz
+ 4c7e43ff8d3842f3220d23d8502fee254d9c69cd4000f45886c013540266e421 9707 main/binary-amd64/Packages
+ 806296a8cd5702807116865713cbc38ee37fc48ce0aad7604a49eaee9fda6f72 3809 main/binary-amd64/Packages.gz
  b930f48053dc93e634356edbe7f7e233fcaeb2689c3d5d59e92bdd64cfc8c76c 133 main/binary-amd64/Release
- ac1eff8d221eedf32ac384d8bf270f20c9cc18fff7355c7efa02db312b63b149 9070 main/binary-arm64/Packages
- 1dc2dab0912509d3382be49e784b35b624ed28c222c97869eb6f15b99cd56755 3584 main/binary-arm64/Packages.gz
+ 72a72ad9dd820edd8bcd98c7d59eeab2968d857ce9a5463db70b937d49ce3242 9707 main/binary-arm64/Packages
+ bf484f337be6ea4522167a8974551c274a902256c71def08141e0d8be9a0deda 3813 main/binary-arm64/Packages.gz
  7e3e72911a1127ccccfdd8769b410fe8d8e6a5f4af24a19080e79afdc9234f48 133 main/binary-arm64/Release
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEExKp+OO+ZF5ZXHZEfgeRxctW1XrAFAmpL46AACgkQgeRxctW1
-XrDCDxAAnk+x+CoZQK8XxACwOUiwK8lggiiMW6URV5Jm4fUpvl9KmE2920JxcdTR
-Fv2iJLt/m50ucCINNrkwPmGVhcKEkO5LU8LqW/nx9P4M82PEUgrDd2PD2UUOx23m
-GD5b9Qc0/gpaBnO+3EOIs4AFYDKg1IUf/wAr4Sphe1NF4BCRkFW+jsAsO7bpdKMN
-s7RiZ/TyIMWeT7kfCv1Ki+sNBJRLzaZKMxYBkFb/VqpJ8bbezCap2sUNrK6CRtN4
-vWKiAM+nIyWre2QMjBubHxl/sSWFHKIQ7Ze80hDtKGXco3QBKWbBD573OF4d3NSZ
-Zsa8NUYNWBak90lWIAxQxRjjWLdUYrKpRIRN5LR3RQk7ZCC51lvM18I+e/J+M+tA
-4I4XuwY06vpJYXTK9490pDUvA7G2o+n4l3zM1h9Vr8+fhT5+Lh699tIYlGkaPTcs
-KaDH35jrPCjvQzGw2Ns0uFI43JbINp4NpjFV8rjwHeujJ+1wg3qp8LTmVe69bK7m
-ZH0u4alo8JYKwARtclJ+muR/gP3lk/sGfN/FrGpEF5C5mNGVVOOePq+tQaBn/Wv5
-oqZJmTjwnuC1/9x4HwIDgZ+2HMbk4Uszn5eZsPJBbg1o1aBK/7L+zJZQFQ4hR3/F
-VNSNCCwTFs0s2iFKdf0v2iIXqFYA7UfrttNXlusm/S+083G+cMo=
-=tnTm
+iQIzBAEBCgAdFiEExKp+OO+ZF5ZXHZEfgeRxctW1XrAFAmpMFskACgkQgeRxctW1
+XrDf/BAAlXyqQpjhXZ/yefIDvENPAcAp/hKS0YZqFFDLzVFYLlx0100sSn8ke4Wl
+HUJX4I5XEba7ssOEAUkZ2ocHtLMENcSqn87GkZHDIGjOYydBxXc3JqTuG61YoMad
+gaW7fUvhI5RQXCg/6NwOb7RV1JmRr79tnxSjKVo28t03WUwoofgSC4MS8MjJhyEW
+ZtQrr9fcenX5IWRJAnTcccv+Wn18oVKuKhbClKL/7wIn0NZiY2nrQ4/2Cj95qzX3
+Lvw9tpYsiLq8Cf+GFKXky2WQxcdWxawxVamthT0S7bmP/GRX6MJBjxiHE8iMVqyR
+DfmV6bCIktekE65c4kITe+7lDv3q1L1uhONbTjvOmovTkDnZjfetN+twyLj9m008
+jN+PbcjUJrj5K6OaOmgMKOQh8bMiXNEKp9rhOlk8Xoi2r5gNamEi6b5OcTJa2Zxj
+ZaC3AF3xrxeDB0JDfh0eeKJDd0AKzWKddnrq28EyzGO0CYdXvAquo7bcuyySLGid
+zgzuEGZtlMM7TTvSIKWUiyCvmCMzj4zo9S9zwT7ZN1sTPubKWmGVPKcah9/ASEJZ
+HFV1OYMGMEEFbTKcf1L2yinlliH6XAWmbMTVhQa/iu0QWcDSu9N06MWA1q4StEXb
+NMTrD0fvWk9Xna+SGVfUPmCRexBfM5ZI8Ljx+Ld6GPT1laLi7oo=
+=9+Gt
 -----END PGP SIGNATURE-----

@@ -3,11 +3,11 @@ Architecture: amd64
 Depends: libc6 (>= 2.36), systemd
 Priority: optional
 Section: net
-Filename: pool/main/a/aqualink-automate/aqualink-automate_0.12.0~beta.3_amd64.deb
-Size: 13625736
-SHA256: 627a6277549567300d47e4b4b50b5d985acc36f5da5c13b9ba1c19d7b7e7f810
-SHA1: dda20fd5cfdce91b4aaa4e464e0b6e3f0256603c
-MD5sum: 6349bedecc6da76390e9ac060b113c74
+Filename: pool/main/a/aqualink-automate/aqualink-automate_0.12.0~beta.4_amd64.deb
+Size: 13619236
+SHA256: 281d31228118502456b59ac073523dd9f45af4c70b1bec1abe5ba36d25eb3b8a
+SHA1: bff6914a7149d6eea72841e24a5d2e53ee47a65a
+MD5sum: 943caa0ef6fec4e5f0240a80df19690b
 Description: Control Jandy Aqualink RS pool equipment via common IoT integrations
  # Aqualink Automate
  .
@@ -74,6 +74,15 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  .
  For pre-built binaries, dev containers, Docker deployment, and the full build-from-source walkthrough, see [INSTALL.md](docs/INSTALL.md).
  .
+ Every release binary and container image carries a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (and a GPG signature), so you can confirm a download really came from this pipeline and not a tampered build:
+ .
+ ```bash
+ gh attestation verify &lt;downloaded-file&gt; --repo iainchesworth/aqualink-automate
+ gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:&lt;version&gt; --repo iainchesworth/aqualink-automate
+ ```
+ .
+ See [SECURITY.md &gt; Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity) for the full walkthrough.
+ .
  ## Documentation
  .
  📖 **[Read the documentation online](https://iainchesworth.github.io/aqualink-automate/)** — the same guides below, rendered and searchable.
@@ -119,6 +128,6 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  This project was influenced by sfeakes&apos; [AqualinkD](https://github.com/sfeakes/AqualinkD). The original goal was a variant that also runs on Windows and macOS.
 Homepage: https://github.com/iainchesworth/aqualink-automate
 Maintainer: Iain Chesworth
-Version: 0.12.0~beta.3
-Installed-Size: 61598
+Version: 0.12.0~beta.4
+Installed-Size: 61586
 
