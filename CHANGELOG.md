@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.12.0-beta.2] - 2026-07-06
+
+A stabilization and code-health release: user-facing bug fixes alongside a large internal quality pass and two device-class refactorings. No new features, and no configuration changes.
+
+### Fixed
+
+- **Temperature values display the degree symbol correctly.** A build-toolchain quirk could render `°` as the literal text `u{B0}` (e.g. `22u{B0}C`) in temperature readouts and Home Assistant discovery payloads; temperatures now show `22°C` on every platform.
+- **Diagnostics shows human-readable system-board and pool-configuration labels** instead of raw internal codes.
+- **Spa-switch assignment no longer proceeds while the device is in a fault state**, avoiding a spurious assignment.
+- **Controller schedule times parse reliably around midday/midnight.** The 12-hour AM/PM time parser used an uninitialised flag, so the 12 AM / 12 PM edge cases could be misread.
+- **Body-of-water detection is consistent** across the controller's Version and StartUp pages.
+- **Web UI polish.** The heater card's applied/rejected chip is vertically centred on desktop, and the equipment-stats WebSocket no longer logs a spurious "closed before established" message to the browser console.
+
+### Changed
+
+- **Internal code-health pass — no behaviour change.** Over 1,100 static-analysis findings were resolved across the codebase (modern C++ idioms, explicit lambda captures, `const`-correctness, narrowed exception handling, reduced function complexity), with the full test suite green throughout.
+- **Device-handler decomposition.** The two largest device classes (`OneTouchDevice`, `IAQDevice`) were split into smaller, composable, unit-testable collaborators. No functional change.
+- **CI builds the Windows leg on Visual Studio 2026** (MSVC 14.5x), matching the local development toolchain.
+
 ## [0.12.0-beta.1] - 2026-07-05
 
 The scheduling and responsive-UI release. Aqualink Automate can now read, write, and manage the pool controller's own built-in RS-485 schedules alongside its richer app-level schedules in one unified view, and the entire web interface reflows for phones and tablets — a bottom tab bar, tap-tile equipment controls, and consolidated cards on small screens — while the desktop layout is unchanged.
