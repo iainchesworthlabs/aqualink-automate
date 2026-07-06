@@ -125,8 +125,7 @@ namespace AqualinkAutomate::Devices
 
 	void IAQDevice::EnablePageSurvey(const IAQ::PageRegistry& registry)
 	{
-		m_PageSurveyEnabled = true;
-		m_PageSurveyRegistry = registry;
+		m_PageSurvey.Enable(registry);
 		LogInfo(Channel::Devices, [this, &registry]() { return std::format("IAQ ({}): Page survey armed with {} target page(s)", DeviceId(), registry.size()); });
 	}
 
@@ -135,15 +134,14 @@ namespace AqualinkAutomate::Devices
 		// Source data the pushed home page doesn't carry by visiting a small declarative set of
 		// pages -- targeted navigation, not a menu crawl. Only an emulated panel drives the bus,
 		// it runs once, and only after the home page is established (so navigation is well-defined).
-		if (!IsEmulated() || !m_PageSurveyEnabled || m_PageSurveyDone)
+		if (!IsEmulated() || !m_PageSurvey.IsArmed())
 		{
 			return;
 		}
-		m_PageSurveyDone = true;
 
-		auto commands = IAQ::BuildSurveyCommandSequence(m_PageSurveyRegistry);
+		auto commands = m_PageSurvey.Consume();
 		LogInfo(Channel::Devices, [this, &commands]() { return std::format("IAQ ({}): Home established -> starting page survey ({} command(s) over {} target page(s))",
-			DeviceId(), commands.size(), m_PageSurveyRegistry.size()); });
+			DeviceId(), commands.size(), m_PageSurvey.TargetCount()); });
 		m_CommandQueue.assign(commands.begin(), commands.end());
 	}
 

@@ -281,9 +281,9 @@ namespace AqualinkAutomate::Devices
 		bool m_AwaitingControlReady{ false };
 		std::string m_ControlDataValue;
 
-		bool m_PageSurveyEnabled{ false };       // arm a start-up data-page survey (auto-startup page-push)
-		bool m_PageSurveyDone{ false };          // the survey runs once, after home is established
-		IAQ::PageRegistry m_PageSurveyRegistry;  // the declarative pages to visit
+		// Start-up page-survey state (extracted; SonarCloud S1820). EnablePageSurvey arms it;
+		// MaybeStartPageSurvey (emulated + home established) consumes it once into the command queue.
+		IAQ::PageSurvey m_PageSurvey;
 
 	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;
