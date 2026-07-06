@@ -21,8 +21,11 @@ target_sources(
 	devices/iaq_device.cpp
 	devices/iaq/iaq_messageprocessors.cpp
 	devices/iaq/iaq_statusprocessors.cpp
+	devices/iaq/iaq_page_model.cpp
 	devices/iaq/iaq_page_registry.cpp
 	devices/iaq/iaq_schedule_parser.cpp
+	devices/iaq/iaq_schedule_writer.cpp
+	devices/iaq/iaq_spaswitch_writer.cpp
 	devices/jandy_controller.cpp
 	devices/jandy_device.cpp 
 	devices/jandy_device_id.cpp 
@@ -40,9 +43,14 @@ target_sources(
 	devices/spaside_remote_controller.cpp
 	devices/spaside_remote_device.cpp
 	devices/keypad/keypad_messageprocessors.cpp 
-	devices/onetouch/onetouch_messageprocessors.cpp
+	devices/onetouch/onetouch_message_router.cpp
+	devices/onetouch/onetouch_goals.cpp
+	devices/onetouch/onetouch_keypad.cpp
 	devices/onetouch/onetouch_pageprocessors.cpp
 	devices/onetouch/onetouch_schedule_parser.cpp
+	devices/onetouch/onetouch_scraper.cpp
+	devices/onetouch/onetouch_screen_reader.cpp
+	devices/onetouch/onetouch_startup_survey.cpp
 	devices/onetouch/onetouch_statusprocessors.cpp
 	navigation/menu_model.cpp
 	navigation/navigator.cpp

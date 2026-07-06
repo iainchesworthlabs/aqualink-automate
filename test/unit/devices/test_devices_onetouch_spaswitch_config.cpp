@@ -91,25 +91,25 @@ BOOST_AUTO_TEST_CASE(SanitiseFunctionText_TrimsEdgesPreservesInteriorSpaces)
 	using Devices::OneTouchDevice;
 
 	// Surrounding spaces trimmed; the function name itself (incl. interior spaces) preserved.
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("Pool Light"), "Pool Light");
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("   Pool Light   "), "Pool Light");
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("Air Blower"), "Air Blower");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("Pool Light"), "Pool Light");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("   Pool Light   "), "Pool Light");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("Air Blower"), "Air Blower");
 
 	// Whitespace control bytes (tab/CR/LF) at the edges are also trimmed.
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("\tSpa Jets\r\n"), "Spa Jets");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("\tSpa Jets\r\n"), "Spa Jets");
 
 	// Non-printable artefacts at the edges (e.g. a stray cursor/highlight byte that leaked
 	// into the raw row) are stripped, leaving the displayed text.
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText(std::string("\x01Spillway\x7f", 10)), "Spillway");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText(std::string("\x01Spillway\x7f", 10)), "Spillway");
 }
 
 BOOST_AUTO_TEST_CASE(SanitiseFunctionText_BlankOrEmptyRowYieldsEmpty)
 {
 	using Devices::OneTouchDevice;
 
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText(""), "");
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText("                "), "");
-	BOOST_CHECK_EQUAL(OneTouchDevice::SanitiseFunctionText(std::string("\0\0\0", 3)), "");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText(""), "");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText("                "), "");
+	BOOST_CHECK_EQUAL(Devices::OneTouch::SanitiseFunctionText(std::string("\0\0\0", 3)), "");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

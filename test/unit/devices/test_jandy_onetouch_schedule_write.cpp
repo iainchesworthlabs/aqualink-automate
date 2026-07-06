@@ -16,6 +16,7 @@
 #include "scheduling/controller_schedule.h"
 
 #include "support/unit_test_hublocatorinjector.h"
+#include "support/onetouch_test_device.h"
 
 using namespace AqualinkAutomate;
 using namespace AqualinkAutomate::Devices;
@@ -38,17 +39,8 @@ namespace
 {
 	using KeyCommands = OneTouchDevice::KeyCommands;
 
-	// Subclass exposing the protected test seams (mirrors FaultableOneTouchDevice in
-	// test_devices_onetouch.cpp) plus the screen-render / highlight / status-frame drivers.
-	struct WritableOneTouchDevice : public OneTouchDevice
-	{
-		using OneTouchDevice::OneTouchDevice;
-		using OneTouchDevice::ForceScrapingFaultedForTest;
-		using OneTouchDevice::IsInNormalOperationForTest;
-		using OneTouchDevice::RenderScreenLineForTest;
-		using OneTouchDevice::DeliverStatusFrameForTest;
-		using OneTouchDevice::SetHighlightedLineForTest;
-	};
+	// The shared test-only subclass exposes the fault/screen/highlight/status drivers this suite needs.
+	using WritableOneTouchDevice = Test::SeamedOneTouchDevice;
 
 	struct OneTouchScheduleWriteFixture : public Test::HubLocatorInjector
 	{

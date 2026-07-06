@@ -198,11 +198,13 @@ target_sources(
 	unit/devices/test_devices_iaq.cpp
 	unit/devices/test_devices_iaq_spaswitch_config.cpp
 	unit/devices/test_devices_onetouch_spaswitch_config.cpp
+	unit/devices/test_jandy_iaq_page_model.cpp
 	unit/devices/test_jandy_iaq_page_registry.cpp
 	unit/devices/test_jandy_iaq_schedule_parser.cpp
 	unit/devices/test_jandy_iaq_schedule_read.cpp
 	unit/devices/test_jandy_iaq_schedule_write.cpp
 	unit/devices/test_jandy_onetouch_schedule_parser.cpp
+	unit/devices/test_jandy_onetouch_screen_reader.cpp
 	unit/devices/test_jandy_onetouch_schedule_read.cpp
 	unit/devices/test_jandy_onetouch_schedule_write.cpp
 	unit/devices/test_pentair_vsp_pump.cpp

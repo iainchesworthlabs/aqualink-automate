@@ -3,7 +3,7 @@
 
 #include <boost/regex.hpp>
 
-#include "devices/onetouch_device.h"
+#include "devices/onetouch/onetouch_scraper.h"
 #include "kernel/auxillary_traits/auxillary_traits_helpers.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 #include "kernel/body_of_water_ids.h"
@@ -17,7 +17,7 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::Devices
 {
 
-	bool OneTouchDevice::StatusProcessor_ShouldSkipLineProcessing(const HintArrayType& hint_array, const std::string_view line_to_process) const
+	bool OneTouchScraper::StatusProcessor_ShouldSkipLineProcessing(const HintArrayType& hint_array, const std::string_view line_to_process) const
 	{
 		// ASSUMPTIONS:
 		//
@@ -44,9 +44,9 @@ namespace AqualinkAutomate::Devices
 		return !(first_matches && second_matches);
 	}
 
-	void OneTouchDevice::StatusProcessor_FilterPump(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_FilterPump(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_FilterPump", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_FilterPump", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_FilterPump status line.", DeviceId()); });
 
@@ -94,9 +94,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_PoolHeat(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_PoolHeat(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_PoolHeat", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_PoolHeat", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_PoolHeat status line.", DeviceId()); });
 
@@ -152,9 +152,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_SpaHeat(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_SpaHeat(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_SpaHeat", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_SpaHeat", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_SpaHeat status line.", DeviceId()); });
 
@@ -210,9 +210,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_SolarHeat(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_SolarHeat(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_SolarHeat", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_SolarHeat", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_SolarHeat status line.", DeviceId()); });
 
@@ -268,9 +268,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_HeatPump(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_HeatPump(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_HeatPump", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_HeatPump", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_HeatPump status line.", DeviceId()); });
 
@@ -326,9 +326,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_Chiller(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_Chiller(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_Chiller", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_Chiller", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_Chiller status line.", DeviceId()); });
 
@@ -384,9 +384,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_AquaPurePercentage(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_AquaPurePercentage(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_AquaPurePercentage", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_AquaPurePercentage", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_AquaPurePercentage status line.", DeviceId()); });
 
@@ -443,9 +443,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_SaltLevelPPM(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_SaltLevelPPM(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_SaltLevelPPM", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_SaltLevelPPM", std::source_location::current());
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_SaltLevelPPM status line.", DeviceId()); });
 
 		// As with the AquaPure percentage line, the real screen row is 16 columns
@@ -481,9 +481,9 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::StatusProcessor_CheckAquaPure(const Utility::ScreenDataPage& page, const uint8_t line_id)
+	void OneTouchScraper::StatusProcessor_CheckAquaPure(const Utility::ScreenDataPage& page, const uint8_t line_id)
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::StatusProcessor_CheckAquaPure", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::StatusProcessor_CheckAquaPure", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is checking for a StatusProcessor_CheckAquaPure status line.", DeviceId()); });
 
