@@ -8,9 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
-## [0.12.0-beta.2] - 2026-07-06
+## [0.12.0-beta.3] - 2026-07-06
 
-A stabilization and code-health release: user-facing bug fixes alongside a large internal quality pass and two device-class refactorings. No new features, and no configuration changes.
+A robustness and supply-chain hardening release: the protocol and input parsers are now continuously fuzz-tested, a scheduling API crash on malformed input is fixed, and the CI/build posture is tightened. No new features, and no configuration changes.
+
+### Fixed
+
+- **Malformed schedule requests no longer crash the handler.** Posting a controller-schedule request whose JSON fields had the wrong type could throw out of the parser; the request now fails cleanly with a validation error instead.
+
+### Changed
+
+- **Fuzz testing of the wire protocol and input surfaces.** New libFuzzer harnesses continuously exercise the RS-485 Jandy/Pentair message decoders and the untrusted input parsers (schedule/web-API JSON, config file, WebSocket and MQTT payloads, query strings, JWTs, durations, and `.cap` replay files), guarding against crashes on hostile or corrupt input. No behaviour change for well-formed data.
+- **Supply-chain and repository hygiene.** CI GitHub Actions are pinned by commit SHA with least-privilege `GITHUB_TOKEN` permissions (OpenSSF Scorecard posture), committed third-party binary tools were removed in favour of documented downloads, and per-developer IDE/editor configuration is no longer tracked.
 
 ### Fixed
 
