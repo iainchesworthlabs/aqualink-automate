@@ -24,6 +24,7 @@
 #include "devices/iaq/iaq_page_model.h"
 #include "devices/iaq/iaq_page_registry.h"
 #include "devices/iaq/iaq_schedule_parser.h"
+#include "devices/iaq/iaq_schedule_writer.h"
 #include "devices/iaq/iaq_spaswitch_writer.h"
 #include "scheduling/controller_schedule.h"
 #include "messages/jandy_message_probe.h"
@@ -146,7 +147,7 @@ namespace AqualinkAutomate::Devices
 
 		// WRITE a new program into the controller's active schedule group by driving the
 		// AqualinkTouch Program pages (see docs/iaq_schedule_protocol.md, write path). Queues a
-		// goal serviced per-poll by ControllerScheduleWrite_ProcessStep: navigate to the Schedule
+		// goal on m_ScheduleWriter serviced per-poll: navigate to the Schedule
 		// list (0x28) -> Add Program (0x11) -> select the target device on the picker (0x38) ->
 		// set the ON/OFF times (0x21/0x22 -> time picker -> submit) and day (0x17-0x20).
 		// Rejects (InvalidValue) any program the controller cannot represent -- the feasibility is
@@ -256,69 +257,22 @@ namespace AqualinkAutomate::Devices
 		// ProcessControllerUpdates services it one command per poll through this (as ICommandSink).
 		IAQ::SpaSwitchWriter m_SpaSwitchWriter;
 
+		// The controller-schedule WRITE state machine (create/delete/edit; extracted; SonarCloud
+		// S1820; see docs/iaq_device_decomposition.md). Create/Delete/EditControllerProgram arm it
+		// via Queue*(); ProcessControllerUpdates services it one command per poll through this
+		// (as ICommandSink), passing m_PageModel + m_StatusPage (for the time picker's AM/PM line).
+		IAQ::ScheduleWriter m_ScheduleWriter;
+
 	private:
 		// ICommandSink: the write state machines emit their per-poll command through these. IssueCommand
-		// sets the single pending poll-ACK byte (no logging -- it fires every poll); IsBusy reports the
-		// command channel occupied so a new write goal is not armed on top of a draining sequence.
+		// sets the single pending poll-ACK byte (no logging -- it fires every poll); ArmControlValue
+		// primes the control-data handshake (value + awaiting flag); IsBusy reports the command channel
+		// occupied so a new write goal is not armed on top of a draining sequence.
 		void IssueCommand(uint8_t command) override { m_PendingCommand = command; }
+		void ArmControlValue(std::string value) override { m_ControlDataValue = std::move(value); m_AwaitingControlReady = true; }
 		bool IsBusy() const override { return !m_CommandQueue.empty() || m_AwaitingControlReady; }
 
 	private:
-		// On-demand controller-schedule WRITE goal (one at a time), serviced per-poll by
-		// ControllerScheduleWrite_ProcessStep. Drives the AqualinkTouch Program pages to create a
-		// program in the active schedule group. RE'd from captures/iaq_schedule_{session,clean}.cap;
-		// see docs/iaq_schedule_protocol.md (write path).
-		// Full CREATE flow (RE'd from captures/iaq_schedule_{session,clean,picker}.cap; see
-		// docs/iaq_schedule_protocol.md). The device picker is a scrolling touchscreen list: click a
-		// visible row R with command (IAQ_SCHEDULE_PICK_ROW_BASE + R), scroll with 0x12, confirm with
-		// 0x13. Times (SetOnTime/SetOffTime via 0x21/0x22 + the value-submit handshake) are decoded
-		// and land as the final increment; this build completes device selection + the day.
-		enum class ScheduleWriteOp
-		{
-			Create,   // add a new program (device -> times -> day)
-			Delete,   // remove an existing program (click its row -> Delete -> Ok)
-			Edit,     // change an existing program (click its row -> Edit -> times -> day)
-		};
-		enum class ScheduleWritePhase
-		{
-			NavigateToList,  // page-gated walk to the Schedule list (0x28)
-			AddProgram,      // press Add Program (0x11) -> device picker (0x38)
-			SelectDevice,    // scroll the picker until the target device is visible, click its row, confirm
-			SetOnTime,       // open the ON field (0x21) -> time picker -> AM/PM toggle + submit "1"+HH:MM
-			SetOffTime,      // open the OFF field (0x22) -> time picker -> AM/PM toggle + submit
-			SetDay,          // on the list, press the day key (0x17-0x20) for the desired selection
-			Verify,          // confirm the new program is present in the parsed list
-			SelectRow,       // (delete/edit) click the target program's row (0x22 + ordinal) to highlight it
-			PressDelete,     // (delete) press Delete (0x13) -> the confirm dialog
-			ConfirmDelete,   // (delete) press Ok (0x01) on the confirm dialog
-			VerifyGone,      // (delete) confirm the program is no longer in the parsed list
-			PressEdit,       // (edit) press Edit (0x12) -> enter the highlighted row's edit mode
-			Done,
-			Failed,
-		};
-		struct ScheduleWriteGoal
-		{
-			ScheduleWriteOp op{ ScheduleWriteOp::Create };
-			Scheduling::ControllerSchedule program;  // desired device + on/off + day mask to write (create/edit)
-			Scheduling::ControllerSchedule match;    // the existing program to locate (delete/edit): its row is clicked
-			std::string desc;
-		};
-		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;
-		ScheduleWritePhase m_ScheduleWritePhase{ ScheduleWritePhase::NavigateToList };
-		uint32_t m_ScheduleWritePollCount{ 0 };   // overall backstop
-		uint32_t m_ScheduleWriteSettleCount{ 0 }; // polls to let the master render after a command
-		uint32_t m_ScheduleWriteScrollCount{ 0 }; // bound the device-picker scroll search
-		bool m_ScheduleProgramAdded{ false };     // the Add-Program press has been issued
-		bool m_ScheduleDeviceClicked{ false };    // the target device row has been clicked (awaiting the OK confirm)
-		bool m_ScheduleTimeFieldOpened{ false };  // the current time field's open press (0x21/0x22) has been issued
-
-		// Arm a schedule-write goal (create or delete) and reset the per-goal state.
-		void QueueScheduleWrite(ScheduleWriteGoal goal);
-
-		// Service the pending schedule-write goal: examine the current page + decoded state and emit
-		// at most one command (into m_PendingCommand) per poll, page-gated on m_PageModel.PageId().
-		void ControllerScheduleWrite_ProcessStep();
-
 		OperatingStates m_OpState{ OperatingStates::StartUp };
 		bool m_HasReceivedData{ false };       // has any traffic ever been addressed to this id? (distinguishes "not present" from "went silent")
 		bool m_HasReceivedMainStatus{ false }; // has a MainStatus ever decoded? (a 0x33 renders System Status; a heartbeat-only 0xA3 renders Cloud Link)

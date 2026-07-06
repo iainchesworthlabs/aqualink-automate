@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace AqualinkAutomate::Devices::IAQ
 {
@@ -16,6 +17,11 @@ namespace AqualinkAutomate::Devices::IAQ
 
 		// Set the single next poll-ACK command (0x00 == send nothing / dwell this poll).
 		virtual void IssueCommand(uint8_t command) = 0;
+
+		// Arm the control-data handshake: the value (e.g. "1"+HH:MM) is sent when the master next
+		// raises IAQ_ControlReady, after the 0x80 value-submit command. Used by the schedule writer's
+		// time fields. Setting the value implies "awaiting control ready".
+		virtual void ArmControlValue(std::string value) = 0;
 
 		// True when the command channel is busy: a multi-step command queue is draining or a
 		// control-data handshake is in flight. A new write goal must not be armed on top of it.
