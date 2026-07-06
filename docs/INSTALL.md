@@ -136,6 +136,8 @@ brew install cmake ninja llvm
 
 Run `cicd\build.ps1` from PowerShell. It locates Visual Studio with `vswhere`, activates the x64 developer environment with `vcvarsall amd64`, bootstraps `vcpkg.exe` if needed, then configures, builds, tests, and optionally packages.
 
+> `vswhere.exe` ships with every Visual Studio 2017+ / Build Tools install at `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`, which is exactly the copy `build.ps1` and the CI `setup-msvc-env` action use — so nothing extra is needed. A standalone copy was previously committed under `cmake/tools/vswhere/`; it was removed (unauditable committed binary) since the VS-installed one already suffices. If you ever need it outside a VS install, get it from <https://github.com/microsoft/vswhere/releases> or `winget install Microsoft.VisualStudio.Locator`.
+
 ```powershell
 .\cicd\build.ps1                                      # default: MSVC debug
 .\cicd\build.ps1 -Compiler clang -Type release        # Clang (clang-cl) release build
