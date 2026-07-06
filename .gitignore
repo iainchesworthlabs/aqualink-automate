@@ -13,6 +13,14 @@
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
+# JetBrains / VS Code IDE working directories (per-developer; never shared)
+.idea/
+.vscode/
+
+# Claude Code machine-local settings (permissions/paths specific to one machine).
+# The shared .claude/skills/** and any team-wide .claude/settings.json stay tracked.
+.claude/settings.local.json
+
 # Mono auto generated files
 mono_crash.*
 
@@ -41,14 +49,6 @@ bld/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
-
-# IDE / editor working directories (per-developer; must not be checked in)
-.idea/
-.vscode/
-
-# Claude Code per-developer settings (machine-local permission allowlist etc.).
-# The shared, checked-in skills under .claude/skills/ stay tracked.
-.claude/settings.local.json
 
 # CMake user presets / settings (local, per-developer; must not be checked in)
 CMakeUserPresets.json

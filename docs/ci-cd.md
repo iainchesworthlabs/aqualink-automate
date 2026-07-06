@@ -4,7 +4,7 @@
 
 ## Workflow set
 
-The pipeline is eight workflow files plus two composite actions, all under `.github/`.
+The pipeline is nine workflow files plus two composite actions, all under `.github/`.
 
 | File | Kind | Purpose |
 |------|------|---------|
@@ -16,6 +16,7 @@ The pipeline is eight workflow files plus two composite actions, all under `.git
 | `.github/workflows/trivy.yml` | Workflow | Trivy scan of the runtime container image (OS packages + Node deps) → Security tab. |
 | `.github/workflows/osv-scanner.yml` | Workflow | OSV-Scanner CVE check of declared dependencies, incl. the vcpkg C++ manifest → Security tab. |
 | `.github/workflows/scorecard.yml` | Workflow | OpenSSF Scorecard supply-chain posture grade → Security tab. |
+| `.github/workflows/fuzzing.yml` | Workflow | Bounded libFuzzer run over the RS-485 protocol decoders on a weekly cron + decoder-touching PRs. Feeds Scorecard's Fuzzing check. See [fuzzing.md](fuzzing.md). |
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 
@@ -231,6 +232,14 @@ Two Scorecard checks are satisfied structurally rather than per-finding:
 
 - **Token permissions** — every workflow declares `permissions: {}` (deny-all) at the top level and re-grants the minimum `write` scope on the single job that needs it (e.g. `contents: write` on the tag/publish jobs, `actions: write` on the cache-cleanup job, `security-events: write` on the SARIF-upload jobs). A top-level write is what Scorecard penalizes; a narrowly job-scoped write is the recommended pattern and the residual per-job grants are the least privilege each job genuinely requires.
 - **Pinned dependencies** — the external base images in the root `Dockerfile` (`ubuntu:26.04`, `node:24-bookworm-slim`) are pinned by `@sha256:` digest. `.github/dependabot.yml` carries a `docker` ecosystem entry so Dependabot advances those digests weekly — a digest pin without an update path would otherwise freeze the image onto a stale, unpatched base. (Internal `FROM <stage>` references and the GitHub-hosted runner toolchains are not digest-pinnable and are not flagged as real findings.)
+
+## Fuzzing (fuzzing.yml)
+
+`fuzzing.yml` runs the libFuzzer harnesses over the **untrusted RS-485 protocol decoders** (Jandy + Pentair message deserialisers) — the one supply-chain surface the posture scanners above cannot reach, because it is a *runtime* property of first-party parsing code. It builds the `config-linux-llvm-fuzzing` preset (Clang + `-fsanitize=fuzzer,address`), seeds a corpus from the recorded `test/fixtures/**/*.cap` captures, and fuzzes each harness for a bounded time; a crash fails the job and uploads the reproducer as an artifact. This gives the OpenSSF Scorecard **Fuzzing** check a genuine signal rather than a posture tick.
+
+- **Triggers:** weekly cron (`47 22 * * 1`, staggered after the supply-chain crons); `pull_request` touching `src/jandy/**`, `src/pentair/**`, `src/core/protocol/**`, `fuzz/**`, or the fuzzing scaffolding; and `workflow_dispatch` (with a `max_total_time` input). It is **not** a required gate — a bounded run is best-effort reassurance, but any crash it does find is a real bug.
+- **Matrix:** one job per harness (`fuzz-jandy-message`, `fuzz-pentair-message`), on the GitHub-hosted `ubuntu-latest` (or `vars.RUNNER_LINUX`), with the same fork-PR gating as the build jobs.
+- A crash is handled per the bug-fix discipline: fix the decoder + add a regression test, never weaken the parser. Full harness/corpus/run docs: [fuzzing.md](fuzzing.md).
 
 ## cleanup-branch-caches.yml
 
