@@ -75,16 +75,76 @@ _SCHEDULE_JSON_SEEDS = [
 ]
 
 
-def seed_schedule_json(out_dir: pathlib.Path) -> int:
+# Representative inbound WebSocket message envelopes ({type, payload}) for the
+# fuzz-websocket-json harness (type names are WebSocket_EventTypes enumerators).
+_WEBSOCKET_JSON_SEEDS = [
+    '{"type":"TemperatureUpdate","payload":{"pool":26.5,"spa":38}}',
+    '{"type":"ButtonStateChange","payload":{"id":3,"state":"on"}}',
+    '{"type":"ChemistryUpdate","payload":{"ph":7.4,"orp":650}}',
+    '{"type":"CirculationUpdate","payload":{"mode":"Pool"}}',
+    '{"type":"SystemStatusChange","payload":{}}',
+    '{"type":"unknown","payload":null}',
+]
+
+# Representative MQTT command payloads for the fuzz-mqtt-payload harness (JSON
+# number, quoted number, {"raw": ...} envelope, plain string, object).
+_MQTT_PAYLOAD_SEEDS = [
+    "50", "101", "-1", "3.14", '"75"', '{"raw":"60"}', '"boost"', '{"raw":"on"}', "true",
+]
+
+# Representative INI config-file bodies for the fuzz-config-parse harness (keys are
+# option long-names; values exercise the custom validators).
+_CONFIG_PARSE_SEEDS = [
+    "loglevel-main = debug\nprofiler = tracy\nverbose = true\n",
+    "mqtt-protocol-version = 5.0\nlog-syslog-facility = local0\n",
+    "# a comment\nname = pool\ncount = 42\n",
+    "loglevel-main=trace\nmqtt-protocol-version=v3.1.1\n",
+    "log-syslog-facility = daemon\n",
+]
+
+# Representative HTTP request targets for the fuzz-query-string harness.
+_QUERY_STRING_SEEDS = [
+    "/api/equipment/button?id=3",
+    "/api/schedules?foo=bar&id=7",
+    "/?id=42", "/api/controller/schedules", "/a?%zz", "//",
+]
+
+# Representative bearer tokens (JWT-shaped + garbage) for the fuzz-jwt harness.
+_JWT_SEEDS = [
+    "eyJhbGciOiJIUzI1NiIsImtpZCI6ImsxIn0.eyJzdWIiOiJhIn0.c2ln",
+    "a.b.c", "not-a-jwt", "", "eyJ9.eyJ9.",
+]
+
+# Representative HH:MM:SS values for the fuzz-duration harness.
+_DURATION_SEEDS = [
+    "01:02:03", "23:59:59", "00:00:00", "99:00:00", "1:2:3", "aa:bb:cc", "12:34",
+]
+
+# Representative .cap capture-file bodies for the fuzz-replay-line harness (both the
+# recorder "[ts] DIR ..." and legacy bare formats, plus comments/malformed tokens).
+_REPLAY_LINE_SEEDS = [
+    "[100] R 0x10|0x02|0x50|0x14|0x76|0x10|0x03\n",
+    "0x10|0x02|0x00|0x01\n",
+    "# comment header\n[5] W 0xff|0x00\n[6] R 0x48\n",
+    "[x] R 0xZZ|0x10\n",
+    "not a valid line at all\n",
+]
+
+
+def _seed_text(out_dir: pathlib.Path, seeds: list) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     written = 0
-    for body in _SCHEDULE_JSON_SEEDS:
+    for body in seeds:
         data = body.encode("utf-8")
         dest = out_dir / hashlib.sha1(data).hexdigest()
         if not dest.exists():
             dest.write_bytes(data)
             written += 1
     return written
+
+
+def seed_schedule_json(out_dir: pathlib.Path) -> int:
+    return _seed_text(out_dir, _SCHEDULE_JSON_SEEDS)
 
 
 def main(argv: list[str]) -> int:
@@ -116,12 +176,23 @@ def main(argv: list[str]) -> int:
                 dest.write_bytes(frame)
                 written[protocol] += 1
 
-    schedule_written = seed_schedule_json(args.out / "schedule-json")
+    text_corpora = {
+        "schedule-json": _SCHEDULE_JSON_SEEDS,
+        "websocket-json": _WEBSOCKET_JSON_SEEDS,
+        "mqtt-payload": _MQTT_PAYLOAD_SEEDS,
+        "config-parse": _CONFIG_PARSE_SEEDS,
+        "query-string": _QUERY_STRING_SEEDS,
+        "jwt": _JWT_SEEDS,
+        "duration": _DURATION_SEEDS,
+        "replay-line": _REPLAY_LINE_SEEDS,
+    }
+    text_written = {name: _seed_text(args.out / name, seeds) for name, seeds in text_corpora.items()}
 
     print(f"Seeded corpus from {len(cap_files)} fixture(s):")
-    print(f"  jandy:         {written['jandy']} new frame(s) -> {args.out / 'jandy'}")
-    print(f"  pentair:       {written['pentair']} new frame(s) -> {args.out / 'pentair'}")
-    print(f"  schedule-json: {schedule_written} new body(ies) -> {args.out / 'schedule-json'}")
+    print(f"  jandy:          {written['jandy']} new frame(s) -> {args.out / 'jandy'}")
+    print(f"  pentair:        {written['pentair']} new frame(s) -> {args.out / 'pentair'}")
+    for name, count in text_written.items():
+        print(f"  {name + ':':15s} {count} new seed(s) -> {args.out / name}")
     return 0
 
 

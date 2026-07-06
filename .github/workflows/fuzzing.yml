@@ -23,6 +23,12 @@ on:
       - "src/pentair/**"
       - "src/core/protocol/**"
       - "src/core/scheduling/**"
+      - "src/core/http/**"
+      - "src/core/mqtt/**"
+      - "src/core/options/**"
+      - "src/core/auth/**"
+      - "src/core/developer/**"
+      - "src/core/utility/**"
       - "fuzz/**"
       - "cmake/Fuzzing.cmake"
       - ".github/workflows/fuzzing.yml"
@@ -57,6 +63,20 @@ jobs:
             corpus: pentair
           - harness: fuzz-schedule-json
             corpus: schedule-json
+          - harness: fuzz-websocket-json
+            corpus: websocket-json
+          - harness: fuzz-mqtt-payload
+            corpus: mqtt-payload
+          - harness: fuzz-config-parse
+            corpus: config-parse
+          - harness: fuzz-query-string
+            corpus: query-string
+          - harness: fuzz-jwt
+            corpus: jwt
+          - harness: fuzz-duration
+            corpus: duration
+          - harness: fuzz-replay-line
+            corpus: replay-line
     steps:
       - name: Clean workspace (self-hosted)
         if: contains(vars.RUNNER_LINUX, 'self-hosted')
