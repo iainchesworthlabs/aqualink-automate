@@ -42,6 +42,14 @@ bld/
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 
+# IDE / editor working directories (per-developer; must not be checked in)
+.idea/
+.vscode/
+
+# Claude Code per-developer settings (machine-local permission allowlist etc.).
+# The shared, checked-in skills under .claude/skills/ stay tracked.
+.claude/settings.local.json
+
 # CMake user presets / settings (local, per-developer; must not be checked in)
 CMakeUserPresets.json
 CMakeSettings.json
