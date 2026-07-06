@@ -225,6 +225,13 @@ Division of labour with the existing tooling: **CodeQL / SonarCloud / MSVC** sca
 
 The three PR-facing jobs (`trivy.yml`, `osv-scanner.yml`) share the code scanners' promotion-PR skip and fork-PR gating. `scorecard.yml` does not run on `pull_request` at all (its checks are repository-level and need a token a fork PR lacks). The weekly crons are staggered (22:17 / 22:27 / 22:37 UTC) so they do not all contend at once.
 
+### Scorecard hardening applied
+
+Two Scorecard checks are satisfied structurally rather than per-finding:
+
+- **Token permissions** — every workflow declares `permissions: {}` (deny-all) at the top level and re-grants the minimum `write` scope on the single job that needs it (e.g. `contents: write` on the tag/publish jobs, `actions: write` on the cache-cleanup job, `security-events: write` on the SARIF-upload jobs). A top-level write is what Scorecard penalizes; a narrowly job-scoped write is the recommended pattern and the residual per-job grants are the least privilege each job genuinely requires.
+- **Pinned dependencies** — the external base images in the root `Dockerfile` (`ubuntu:26.04`, `node:24-bookworm-slim`) are pinned by `@sha256:` digest. `.github/dependabot.yml` carries a `docker` ecosystem entry so Dependabot advances those digests weekly — a digest pin without an update path would otherwise freeze the image onto a stale, unpatched base. (Internal `FROM <stage>` references and the GitHub-hosted runner toolchains are not digest-pinnable and are not flagged as real findings.)
+
 ## cleanup-branch-caches.yml
 
 This workflow keeps the Actions cache from filling up with stale per-PR entries.

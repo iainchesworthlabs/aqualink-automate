@@ -38,12 +38,16 @@ concurrency:
   group: publish-repos
   cancel-in-progress: false
 
-permissions:
-  contents: write   # push to gh-pages
+# Deny-all at the top level; the publish job re-grants contents: write to push the
+# APT/DNF package tree to gh-pages. Scorecard TokenPermissions flags top-level
+# writes, so keep the grant job-scoped.
+permissions: {}
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push to gh-pages
     # The secrets context is not usable in a job-level if, so surface the key's
     # presence as an env value and gate the steps' work on it (same pattern as
     # docker-publish's Docker Hub login).

@@ -5,12 +5,16 @@ on:
     types:
       - closed
 
-permissions:
-  actions: write
+# Deny-all at the top level; the cleanup job re-grants only actions: write (to
+# delete this PR's caches). Keeps Scorecard TokenPermissions happy — no top-level
+# write.
+permissions: {}
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write   # delete the closed PR's caches
     steps:
       - name: Check out code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
