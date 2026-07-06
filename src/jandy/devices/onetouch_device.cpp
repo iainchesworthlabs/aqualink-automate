@@ -735,38 +735,6 @@ namespace AqualinkAutomate::Devices
 		return Capabilities::ActuationResult::Accepted;
 	}
 
-	std::optional<int> OneTouchDevice::DisplayedValue(uint8_t line_id) const
-	{
-		const auto& page = DisplayedPage();
-		if (line_id >= page.Size())
-		{
-			return std::nullopt;
-		}
-
-		// Read the integer value exactly as shown on the row, e.g. "Pool Heat   30`C" -> 30,
-		// "Pool Heat   90`F" -> 90, "Set Pool to: 45%" -> 45. The on-screen value and the
-		// target are in the same units (the setpoints route converts to the system's units
-		// before dispatch; chlorinator % is unit-less), so the raw displayed integer is
-		// compared directly with the target - NO conversion. Verified against the
-		// onetouch_setpoint_edit.cap (30`C/38`C) and onetouch_chlorinator.cap (40/45%) captures.
-		int value{ 0 };
-		bool found{ false };
-		for (const char c : page[line_id].Text)
-		{
-			if (c >= '0' && c <= '9')
-			{
-				value = (value * 10) + (c - '0');
-				found = true;
-			}
-			else if (found)
-			{
-				break;  // first contiguous digit run only (the value)
-			}
-		}
-
-		return found ? std::optional<int>{ value } : std::nullopt;
-	}
-
 	void OneTouchDevice::ValueEdit_ProcessStep()
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ValueEdit_ProcessStep", std::source_location::current());
@@ -850,7 +818,7 @@ namespace AqualinkAutomate::Devices
 		{
 			// Skip the edit entirely if the row already shows the target value (avoids a
 			// pointless enter/exit-edit toggle). Wait if the value isn't readable yet.
-			if (auto current = DisplayedValue(row_line); current.has_value() && current.value() == target)
+			if (auto current = OneTouch::DisplayedValue(DisplayedPage(), row_line); current.has_value() && current.value() == target)
 			{
 				LogInfo(Channel::Devices, std::format("OneTouch ({}): '{}' already at target {} - no edit required", DeviceId(), row_label, target));
 				finish(true);
@@ -871,7 +839,7 @@ namespace AqualinkAutomate::Devices
 			// LineDown decrements (the device applies its own increment - 1 degree for
 			// setpoints, 5% for chlorinator - so the target must be reachable by it). If the
 			// value isn't parseable yet (page mid-render), wait for the next update.
-			auto current = DisplayedValue(row_line);
+			auto current = OneTouch::DisplayedValue(DisplayedPage(), row_line);
 			if (!current.has_value())
 			{
 				LogTrace(Channel::Devices, std::format("OneTouch ({}): '{}' value not yet readable - waiting", DeviceId(), row_label));
@@ -1031,56 +999,10 @@ namespace AqualinkAutomate::Devices
 
 	std::string OneTouchDevice::SanitiseFunctionText(const std::string& raw)
 	{
-		// Trim surrounding whitespace and any non-printable bytes. The row Text is already the
-		// clean line content (the controller's inverse-video highlight arrives as separate
-		// Highlight/HighlightChars messages -> the row's HighlightRange, never the Text), so a
-		// plain trim yields the function/label exactly as displayed.
-		auto is_trim = [](char c)
-		{
-			const auto u = static_cast<unsigned char>(c);
-			return (u < 0x20) || (u == 0x7f) || (c == ' ');
-		};
-		std::size_t b = 0;
-		std::size_t e = raw.size();
-		while (b < e && is_trim(raw[b])) { ++b; }
-		while (e > b && is_trim(raw[e - 1])) { --e; }
-		return raw.substr(b, e - b);
-	}
-
-	std::optional<std::string> OneTouchDevice::DisplayedFunctionOnRow(uint8_t line_id) const
-	{
-		const auto& page = DisplayedPage();
-		if (line_id >= page.Size())
-		{
-			return std::nullopt;
-		}
-		auto text = SanitiseFunctionText(page[line_id].Text);
-		if (text.empty())
-		{
-			return std::nullopt;
-		}
-		return text;
-	}
-
-	std::optional<uint8_t> OneTouchDevice::FindLineStartingWith(const std::string& prefix) const
-	{
-		auto to_lower = [](std::string s)
-		{
-			for (char& c : s) { c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); }
-			return s;
-		};
-		const std::string needle = to_lower(prefix);
-
-		const auto& page = DisplayedPage();
-		for (std::size_t i = 0; i < page.Size(); ++i)
-		{
-			const std::string hay = to_lower(SanitiseFunctionText(page[i].Text));
-			if ((hay.size() >= needle.size()) && (hay.compare(0, needle.size(), needle) == 0))
-			{
-				return static_cast<uint8_t>(i);
-			}
-		}
-		return std::nullopt;
+		// Thin forwarder to the pure implementation so existing callers (and the direct unit
+		// tests that reference OneTouchDevice::SanitiseFunctionText) keep working while the logic
+		// lives in one place - devices/onetouch/onetouch_screen_reader.h.
+		return OneTouch::SanitiseFunctionText(raw);
 	}
 
 	Capabilities::ActuationResult OneTouchDevice::SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, const std::string& function)
@@ -1231,7 +1153,7 @@ namespace AqualinkAutomate::Devices
 		{
 			// On the System Setup menu: find the "Spa Switch" item (scrolling if below the fold),
 			// move the cursor onto it, then Select to open the Spa Switch number page.
-			if (auto line = FindLineStartingWith("Spa Switch"); line.has_value())
+			if (auto line = OneTouch::FindLineStartingWith(page, "Spa Switch"); line.has_value())
 			{
 				m_SpaSwitchCursorStuck = 0;
 				if (move_cursor_to(line.value()))
@@ -1272,7 +1194,7 @@ namespace AqualinkAutomate::Devices
 			// the cursor onto it, Select to open that button's function picker.
 			if (line_text(1).contains("Button Setup"))
 			{
-				if (auto line = FindLineStartingWith(goal.row_tag); line.has_value())
+				if (auto line = OneTouch::FindLineStartingWith(page, goal.row_tag); line.has_value())
 				{
 					m_SpaSwitchCursorStuck = 0;
 					if (move_cursor_to(line.value()))
@@ -1302,7 +1224,7 @@ namespace AqualinkAutomate::Devices
 			// is not offered by this controller.
 			if (line_text(1).contains("Button") && line_text(1).contains(goal.row_tag))
 			{
-				auto current = DisplayedFunctionOnRow(PICKER_FUNCTION_LINE);
+				auto current = OneTouch::DisplayedFunctionOnRow(page, PICKER_FUNCTION_LINE);
 				if (!current.has_value())
 				{
 					break;   // not rendered yet -- wait
@@ -1655,7 +1577,7 @@ namespace AqualinkAutomate::Devices
 				m_ScheduleWritePhase = ScheduleWritePhase::ChooseAction;
 				return;
 			}
-			if (auto line = FindLineStartingWith(goal.program.target); line.has_value() && line.value() != 0)
+			if (auto line = OneTouch::FindLineStartingWith(page, goal.program.target); line.has_value() && line.value() != 0)
 			{
 				m_ScheduleWriteFieldStep = 0;
 				if (move_cursor_to(line.value()))

@@ -14,6 +14,7 @@
 #include "devices/jandy_controller.h"
 #include "devices/jandy_device_types.h"
 #include "devices/chlorinator_setpoint_refresh.h"
+#include "devices/onetouch/onetouch_screen_reader.h"
 #include "devices/capabilities/chlorinator_controller.h"
 #include "devices/capabilities/command_history.h"
 #include "devices/capabilities/controller_schedule_writer.h"
@@ -344,20 +345,9 @@ namespace AqualinkAutomate::Devices
 		// the offline->online edge of this drives a one-shot recovery re-scrape.
 		bool DataHubChlorinatorOnline() const;
 
-		// Read the currently displayed integer value from a row (e.g. "Pool Heat   90`F" -> 90,
-		// "Set Pool to: 45%" -> 45). Returns nullopt when no value is parseable yet (page not
-		// rendered, or value blanked mid-edit), so the step loop simply waits.
-		std::optional<int> DisplayedValue(uint8_t line_id) const;
-
-		// Read the function name shown on a row, sanitised for comparison (via SanitiseFunctionText):
-		// the displayed text with surrounding whitespace/non-printable artifacts trimmed (e.g.
-		// "Pool Light" from a Button-Setup row's "S:B  Pool Light"). Empty when the row is
-		// blank/not rendered. Used for the picker compare and to read a row's current function.
-		std::optional<std::string> DisplayedFunctionOnRow(uint8_t line_id) const;
-
-		// Find the first screen line whose text (trimmed) STARTS WITH 'prefix' (case-insensitive);
-		// used to locate the "Spa Switch" menu item and the "S:B" assignment row on screen.
-		std::optional<uint8_t> FindLineStartingWith(const std::string& prefix) const;
+		// Row-scraping primitives (displayed value, function-on-row, find-line-by-prefix) now
+		// live as pure functions in devices/onetouch/onetouch_screen_reader.h and are called
+		// directly with DisplayedPage(); they are no longer device methods.
 
 		// True when any on-demand goal (toggle / value-edit / boost / spa-switch / setpoint
 		// refresh) is mid-flight; the single shared Navigator/keypad means goals must never
