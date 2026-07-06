@@ -132,6 +132,54 @@ Slice 3 covers anonymous visitors and shared terminals:
 
 The route-level detail (including `GET /api/auth/me`'s `kiosk_enabled` flag the login screen keys off) is in [Usage and API](usage-and-api.md).
 
+## Verifying build authenticity
+
+Every released binary and container image can be traced back to the exact source
+commit and workflow run that produced it, so you can confirm a download came from
+this project's pipeline rather than a tampered or "poisoned" build. Two
+independent, complementary checks are provided.
+
+### Build provenance (keyless, always present)
+
+Each release package and the Docker image is published with a
+[GitHub build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations)
+— a SLSA provenance statement signed through Sigstore using the release
+workflow's short-lived OIDC identity. There is no long-lived signing key to
+steal, and the attestation records the repository, commit, and workflow that
+built the artifact.
+
+Verify with the [GitHub CLI](https://cli.github.com/) (`gh`):
+
+```bash
+# A downloaded package
+gh attestation verify aqualink-automate_<version>_amd64.deb \
+  --repo iainchesworth/aqualink-automate
+
+# The container image (tag or digest)
+gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:<version> \
+  --repo iainchesworth/aqualink-automate
+```
+
+A successful check prints the source repository, commit SHA, and the workflow
+that produced the artifact. Reject any download that fails to verify.
+
+### GPG signature (maintainer identity)
+
+When the project signing key is configured, each release also ships a detached
+GPG signature (`<file>.asc`), a signed checksum manifest (`SHA512SUMS` +
+`SHA512SUMS.asc`), and the public key (`aqualink-automate-signing-key.asc`) — the
+same key that signs the [APT/DNF repositories](releasing.md#package-repositories-apt--dnf).
+
+```bash
+gpg --import aqualink-automate-signing-key.asc
+gpg --verify SHA512SUMS.asc SHA512SUMS && sha512sum -c SHA512SUMS
+```
+
+This binds the artifacts to the maintainer's key; provenance binds them to the
+build. Verifying both gives the strongest assurance. A Software Bill of Materials
+(SPDX SBOM) is also attested for the release artifacts and the image (attested
+alongside the provenance, and pushed to GHCR for the image).
+
 ## Policy adoption
 
 This security policy is adapted from common open-source practice. Aqualink Automate is licensed under the GNU General Public License v3 (see [LICENSE.txt](https://github.com/iainchesworth/aqualink-automate/blob/main/LICENSE.txt)).
