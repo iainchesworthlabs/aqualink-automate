@@ -358,6 +358,20 @@ namespace AqualinkAutomate::Devices
 		// Convert Navigator key command to device KeyCommand
 		static KeyCommands ConvertNavKeyCommand(Navigation::NavKeyCommand nav_cmd);
 
+		// Queue a single cursor key (into m_KeyCommand_ToSend) to step the on-screen cursor toward
+		// 'target_line'; establishes a cursor first if none is highlighted. Returns true once the
+		// cursor already sits on the target (no key queued). Shared by the screen-driven spa-switch
+		// and schedule-write walks.
+		bool MoveCursorToward(uint8_t target_line);
+
+		// Shared precondition guard for accepting a keypad actuation goal: the device must be
+		// actively emulating and NOT in a dead-end fault state (the per-frame service steps run
+		// only in NormalOperation, so a goal queued while faulted would be stranded). Returns the
+		// ActuationResult to hand back to the caller when the device cannot act, or nullopt when it
+		// is clear to queue. 'what' is a short description used only for the log line. (The
+		// one-at-a-time GoalInProgress() gate is applied separately by each caller.)
+		std::optional<Capabilities::ActuationResult> ReasonCannotActuate(std::string_view what) const;
+
 	private:
 		// Navigation system
 		Navigation::MenuModel m_MenuModel;

@@ -401,28 +401,12 @@ namespace AqualinkAutomate::Devices
 			return Capabilities::ActuationResult::MappingFailed;
 		}
 
-		// A passive OneTouch never transmits key commands, so it cannot actuate. This
-		// holds for a non-emulated instance AND an emulated one that has been
-		// presence-suppressed, so gate on IsEmulationActive() rather than IsEmulated().
-		// Report NotSupported so the dispatcher can fall back to another controller (or
-		// surface that nothing on the bus can act).
-		if (!IsEmulationActive())
+		// Passive/suppressed (cannot transmit) or in a dead-end fault state (a queued goal would
+		// be stranded): refuse honestly so the dispatcher can fall back. Transient startup states
+		// are NOT blocked - the goal is serviced once scraping completes.
+		if (auto reason = ReasonCannotActuate("actuate equipment"); reason.has_value())
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Not actively emulating - cannot actuate equipment", DeviceId()));
-			return Capabilities::ActuationResult::NotSupported;
-		}
-
-		// Operating-state gate: ScrapingFaulted / FaultHasOccurred are unrecoverable dead-end
-		// states (the on-screen state is unknown and the per-frame service step that drains a
-		// queued goal runs ONLY in NormalOperation). Queuing here would strand the goal forever
-		// while the caller is told it succeeded. Refuse honestly with NotSupported so the
-		// dispatcher can fall back (or surface the failure) instead of a false Accepted. Transient
-		// startup states (ColdStart/StartUp/Scraping) are intentionally NOT blocked: the goal is
-		// serviced as soon as scraping completes (or the watchdog forces NormalOperation).
-		if (OperatingStates::ScrapingFaulted == m_OpState || OperatingStates::FaultHasOccurred == m_OpState)
-		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): controller is in fault state {} - cannot actuate equipment", DeviceId(), magic_enum::enum_name(m_OpState)));
-			return Capabilities::ActuationResult::NotSupported;
+			return reason.value();
 		}
 
 		auto label = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{});
@@ -554,6 +538,41 @@ namespace AqualinkAutomate::Devices
 			|| m_RefreshInProgress;
 	}
 
+	bool OneTouchDevice::MoveCursorToward(uint8_t target_line)
+	{
+		if (m_HighlightedLine == target_line) { return true; }
+		if (m_HighlightedLine == Navigation::Navigator::CURSOR_LINE_NONE)
+		{
+			m_KeyCommand_ToSend = KeyCommands::LineDown;   // establish a cursor first
+			return false;
+		}
+		m_KeyCommand_ToSend = (m_HighlightedLine < target_line) ? KeyCommands::LineDown : KeyCommands::LineUp;
+		return false;
+	}
+
+	std::optional<Capabilities::ActuationResult> OneTouchDevice::ReasonCannotActuate(std::string_view what) const
+	{
+		// A passive OneTouch never transmits key commands (non-emulated or presence-suppressed),
+		// so it cannot actuate; gate on IsEmulationActive() rather than IsEmulated().
+		if (!IsEmulationActive())
+		{
+			LogWarning(Channel::Devices, std::format("OneTouch ({}): Not actively emulating - cannot {}", DeviceId(), what));
+			return Capabilities::ActuationResult::NotSupported;
+		}
+
+		// Dead-end fault states (ScrapingFaulted / FaultHasOccurred) never run the per-frame
+		// service step that drains a queued goal (NormalOperation only), so a goal queued here
+		// would be stranded while the caller is told it succeeded. Refuse honestly with
+		// NotSupported so the dispatcher can fall back. Transient startup states are NOT blocked.
+		if (OperatingStates::ScrapingFaulted == m_OpState || OperatingStates::FaultHasOccurred == m_OpState)
+		{
+			LogWarning(Channel::Devices, std::format("OneTouch ({}): controller is in fault state {} - cannot {}", DeviceId(), magic_enum::enum_name(m_OpState), what));
+			return Capabilities::ActuationResult::NotSupported;
+		}
+
+		return std::nullopt;
+	}
+
 	void OneTouchDevice::EnableChlorinatorSetpointRefresh(std::chrono::seconds interval)
 	{
 		m_RefreshState.Configure(interval);
@@ -676,21 +695,11 @@ namespace AqualinkAutomate::Devices
 
 	Capabilities::ActuationResult OneTouchDevice::QueueValueEdit(ValueEditGoal goal)
 	{
-		// A passive OneTouch never transmits key commands (non-emulated or
-		// presence-suppressed), so it cannot actuate. Report NotSupported so the
-		// dispatcher can fall back to another controller.
-		if (!IsEmulationActive())
+		// Passive/suppressed or in a dead-end fault state: refuse honestly (a queued edit would
+		// be stranded) so the dispatcher can fall back.
+		if (auto reason = ReasonCannotActuate(std::format("edit {}", goal.desc)); reason.has_value())
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Not actively emulating - cannot edit {}", DeviceId(), goal.desc));
-			return Capabilities::ActuationResult::NotSupported;
-		}
-
-		// Dead-end fault states never run the value-edit service step (NormalOperation only), so
-		// a queued edit would be stranded. Refuse honestly rather than returning a false Accepted.
-		if (OperatingStates::ScrapingFaulted == m_OpState || OperatingStates::FaultHasOccurred == m_OpState)
-		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): controller is in fault state {} - cannot edit {}", DeviceId(), magic_enum::enum_name(m_OpState), goal.desc));
-			return Capabilities::ActuationResult::NotSupported;
+			return reason.value();
 		}
 
 		// One goal at a time: reject while any goal is mid-navigation so two cursor walks
@@ -709,18 +718,9 @@ namespace AqualinkAutomate::Devices
 
 	Capabilities::ActuationResult OneTouchDevice::SetChlorinatorBoost(bool enable)
 	{
-		if (!IsEmulationActive())
+		if (auto reason = ReasonCannotActuate(std::format("{} boost", enable ? "start" : "stop")); reason.has_value())
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Not actively emulating - cannot {} boost", DeviceId(), enable ? "start" : "stop"));
-			return Capabilities::ActuationResult::NotSupported;
-		}
-
-		// Dead-end fault states never run the boost service step (NormalOperation only), so a
-		// queued boost would be stranded. Refuse honestly rather than returning a false Accepted.
-		if (OperatingStates::ScrapingFaulted == m_OpState || OperatingStates::FaultHasOccurred == m_OpState)
-		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): controller is in fault state {} - cannot {} boost", DeviceId(), magic_enum::enum_name(m_OpState), enable ? "start" : "stop"));
-			return Capabilities::ActuationResult::NotSupported;
+			return reason.value();
 		}
 
 		if (GoalInProgress())
@@ -1087,31 +1087,9 @@ namespace AqualinkAutomate::Devices
 		}
 
 		const auto& page = DisplayedPage();
-		auto line_text = [&](std::size_t i)
-		{
-			return (i < page.Size()) ? SanitiseFunctionText(page[i].Text) : std::string{};
-		};
-		auto equals_ci = [](const std::string& a, const std::string& b)
-		{
-			if (a.size() != b.size()) { return false; }
-			for (std::size_t i = 0; i < a.size(); ++i)
-			{
-				if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) { return false; }
-			}
-			return true;
-		};
-		// Queue one cursor key toward target line L; returns true once the cursor is on L.
-		auto move_cursor_to = [&](uint8_t target_line)
-		{
-			if (m_HighlightedLine == target_line) { return true; }
-			if (m_HighlightedLine == Navigation::Navigator::CURSOR_LINE_NONE)
-			{
-				m_KeyCommand_ToSend = KeyCommands::LineDown;   // establish a cursor first
-				return false;
-			}
-			m_KeyCommand_ToSend = (m_HighlightedLine < target_line) ? KeyCommands::LineDown : KeyCommands::LineUp;
-			return false;
-		};
+		// Row-text read, case-insensitive compare and cursor stepping are shared helpers now:
+		// OneTouch::LineText / OneTouch::EqualsCaseInsensitive (onetouch_screen_reader.h) and the
+		// MoveCursorToward member.
 
 		switch (m_SpaSwitchEditPhase)
 		{
@@ -1156,7 +1134,7 @@ namespace AqualinkAutomate::Devices
 			if (auto line = OneTouch::FindLineStartingWith(page, "Spa Switch"); line.has_value())
 			{
 				m_SpaSwitchCursorStuck = 0;
-				if (move_cursor_to(line.value()))
+				if (MoveCursorToward(line.value()))
 				{
 					m_KeyCommand_ToSend = KeyCommands::Select;
 					m_SpaSwitchEditPhase = SpaSwitchEditPhase::PassNumberPage;
@@ -1179,7 +1157,7 @@ namespace AqualinkAutomate::Devices
 			// The "Spa Switch / Setup" number-of-switches page (line 1 == "Setup"). Press a BARE
 			// Select to advance to the Button Setup list WITHOUT moving the cursor -- moving it
 			// would change the configured switch count.
-			if (line_text(1) == "Setup")
+			if (OneTouch::LineText(page,1) == "Setup")
 			{
 				m_KeyCommand_ToSend = KeyCommands::Select;
 				m_SpaSwitchEditPhase = SpaSwitchEditPhase::ToRow;
@@ -1192,12 +1170,12 @@ namespace AqualinkAutomate::Devices
 		{
 			// The "Button Setup" list (line 1 contains "Button Setup"). Find the "S:B" row, move
 			// the cursor onto it, Select to open that button's function picker.
-			if (line_text(1).contains("Button Setup"))
+			if (OneTouch::LineText(page,1).contains("Button Setup"))
 			{
 				if (auto line = OneTouch::FindLineStartingWith(page, goal.row_tag); line.has_value())
 				{
 					m_SpaSwitchCursorStuck = 0;
-					if (move_cursor_to(line.value()))
+					if (MoveCursorToward(line.value()))
 					{
 						m_KeyCommand_ToSend = KeyCommands::Select;
 						m_PickerFirstSeenFunction.reset();
@@ -1222,7 +1200,7 @@ namespace AqualinkAutomate::Devices
 			// The per-button picker (line 1 == "Button <S:B>"). Cycle (LineUp) until the selected
 			// function (line 3) matches the target, then commit. Wrap-detect to bail if the target
 			// is not offered by this controller.
-			if (line_text(1).contains("Button") && line_text(1).contains(goal.row_tag))
+			if (OneTouch::LineText(page,1).contains("Button") && OneTouch::LineText(page,1).contains(goal.row_tag))
 			{
 				auto current = OneTouch::DisplayedFunctionOnRow(page, PICKER_FUNCTION_LINE);
 				if (!current.has_value())
@@ -1230,7 +1208,7 @@ namespace AqualinkAutomate::Devices
 					break;   // not rendered yet -- wait
 				}
 
-				if (equals_ci(current.value(), goal.function))
+				if (OneTouch::EqualsCaseInsensitive(current.value(), goal.function))
 				{
 					m_SpaSwitchEditPhase = SpaSwitchEditPhase::Commit;
 					break;
@@ -1240,7 +1218,7 @@ namespace AqualinkAutomate::Devices
 				{
 					m_PickerFirstSeenFunction = current;
 				}
-				else if (equals_ci(current.value(), m_PickerFirstSeenFunction.value()))
+				else if (OneTouch::EqualsCaseInsensitive(current.value(), m_PickerFirstSeenFunction.value()))
 				{
 					LogWarning(Channel::Devices, std::format("OneTouch ({}): function '{}' not offered by the picker for {}", DeviceId(), goal.function, goal.row_tag));
 					finish(false);
@@ -1312,20 +1290,11 @@ namespace AqualinkAutomate::Devices
 
 	Capabilities::ActuationResult OneTouchDevice::QueueScheduleWrite(ScheduleWriteGoal goal)
 	{
-		// A passive OneTouch never transmits keys (non-emulated or presence-suppressed), so it cannot
-		// drive the panel. Report NotSupported so the dispatcher can fall back to another writer.
-		if (!IsEmulationActive())
+		// Passive/suppressed or in a dead-end fault state: refuse honestly (a queued goal would be
+		// stranded) so the dispatcher can fall back to another writer.
+		if (auto reason = ReasonCannotActuate(goal.desc); reason.has_value())
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Not actively emulating - cannot {}", DeviceId(), goal.desc));
-			return Capabilities::ActuationResult::NotSupported;
-		}
-
-		// Dead-end fault states never run the write service step (NormalOperation only), so a queued
-		// goal would be stranded. Refuse honestly rather than returning a false Accepted.
-		if (OperatingStates::ScrapingFaulted == m_OpState || OperatingStates::FaultHasOccurred == m_OpState)
-		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): controller is in fault state {} - cannot {}", DeviceId(), magic_enum::enum_name(m_OpState), goal.desc));
-			return Capabilities::ActuationResult::NotSupported;
+			return reason.value();
 		}
 
 		// One goal at a time on the single shared keypad.
@@ -1451,45 +1420,23 @@ namespace AqualinkAutomate::Devices
 		}
 
 		const auto& page = DisplayedPage();
-		auto line_text = [&](std::size_t i)
-		{
-			return (i < page.Size()) ? SanitiseFunctionText(page[i].Text) : std::string{};
-		};
-		auto equals_ci = [](const std::string& a, const std::string& b)
-		{
-			if (a.size() != b.size()) { return false; }
-			for (std::size_t i = 0; i < a.size(); ++i)
-			{
-				if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) { return false; }
-			}
-			return true;
-		};
-		// Queue one cursor key toward target line L; returns true once the cursor is on L.
-		auto move_cursor_to = [&](uint8_t target_line)
-		{
-			if (m_HighlightedLine == target_line) { return true; }
-			if (m_HighlightedLine == Navigation::Navigator::CURSOR_LINE_NONE)
-			{
-				m_KeyCommand_ToSend = KeyCommands::LineDown;   // establish a cursor first
-				return false;
-			}
-			m_KeyCommand_ToSend = (m_HighlightedLine < target_line) ? KeyCommands::LineDown : KeyCommands::LineUp;
-			return false;
-		};
+		// Row-text read, case-insensitive compare and cursor stepping are shared helpers now:
+		// OneTouch::LineText / OneTouch::EqualsCaseInsensitive (onetouch_screen_reader.h) and the
+		// MoveCursorToward member.
 		// True when the current page is the per-equipment Program detail page rather than the Program
 		// equipment LIST. The LIST's line 0 is the "Program" title; the detail page's line 0 is the
 		// equipment name and it carries either "Pgm N of M" (line 2) or "No Programs" (line 4).
 		auto on_detail_page = [&]()
 		{
-			if (line_text(0).contains("Program")) { return false; }   // the LIST title
-			return line_text(2).contains("Pgm ")
-				|| line_text(4).contains("No Programs")
-				|| line_text(ONETOUCH_SCHEDULE_CHANGE_ROW).contains("Change");
+			if (OneTouch::LineText(page,0).contains("Program")) { return false; }   // the LIST title
+			return OneTouch::LineText(page,2).contains("Pgm ")
+				|| OneTouch::LineText(page,4).contains("No Programs")
+				|| OneTouch::LineText(page,ONETOUCH_SCHEDULE_CHANGE_ROW).contains("Change");
 		};
 		// True when the current page is the Add/Change editor (title line 1 + the arrow-keys prompt).
 		auto on_editor_page = [&]()
 		{
-			const std::string title = line_text(ONETOUCH_SCHEDULE_TITLE_LINE);
+			const std::string title = OneTouch::LineText(page,ONETOUCH_SCHEDULE_TITLE_LINE);
 			return title.contains("New Program") || title.contains("Change Program");
 		};
 
@@ -1580,7 +1527,7 @@ namespace AqualinkAutomate::Devices
 			if (auto line = OneTouch::FindLineStartingWith(page, goal.program.target); line.has_value() && line.value() != 0)
 			{
 				m_ScheduleWriteFieldStep = 0;
-				if (move_cursor_to(line.value()))
+				if (MoveCursorToward(line.value()))
 				{
 					m_KeyCommand_ToSend = KeyCommands::Select;
 					m_ScheduleWritePhase = ScheduleWritePhase::ChooseAction;
@@ -1609,12 +1556,12 @@ namespace AqualinkAutomate::Devices
 			if (goal.op == ScheduleWriteOp::Delete)
 			{
 				// "No Programs" already? Nothing to delete -- treat as done.
-				if (line_text(4).contains("No Programs"))
+				if (OneTouch::LineText(page,4).contains("No Programs"))
 				{
 					finish(true);
 					break;
 				}
-				if (move_cursor_to(ONETOUCH_SCHEDULE_DELETE_ROW))
+				if (MoveCursorToward(ONETOUCH_SCHEDULE_DELETE_ROW))
 				{
 					m_KeyCommand_ToSend = KeyCommands::Select;   // immediate delete, no confirm
 					m_ScheduleWritePhase = ScheduleWritePhase::VerifyGone;
@@ -1622,7 +1569,7 @@ namespace AqualinkAutomate::Devices
 				break;
 			}
 
-			if (const uint8_t action_row = (goal.op == ScheduleWriteOp::Edit) ? ONETOUCH_SCHEDULE_CHANGE_ROW : ONETOUCH_SCHEDULE_ADD_ROW; move_cursor_to(action_row))
+			if (const uint8_t action_row = (goal.op == ScheduleWriteOp::Edit) ? ONETOUCH_SCHEDULE_CHANGE_ROW : ONETOUCH_SCHEDULE_ADD_ROW; MoveCursorToward(action_row))
 			{
 				m_KeyCommand_ToSend = KeyCommands::Select;   // -> the editor
 				m_ScheduleWriteFieldStep = 0;
@@ -1690,7 +1637,7 @@ namespace AqualinkAutomate::Devices
 			int count = 0;
 			if (const auto parsed = OneTouch::ParseProgramDetailPage(page, &idx, &count);
 				parsed.has_value()
-				&& equals_ci(parsed->target, goal.program.target)
+				&& OneTouch::EqualsCaseInsensitive(parsed->target, goal.program.target)
 				&& parsed->days_of_week == (goal.program.days_of_week & OneTouch::DayMask::AllDays)
 				&& parsed->on_hour == goal.program.on_hour && parsed->on_minute == goal.program.on_minute
 				&& parsed->off_hour == goal.program.off_hour && parsed->off_minute == goal.program.off_minute)
@@ -1705,7 +1652,7 @@ namespace AqualinkAutomate::Devices
 			// Delete complete once the detail page shows "No Programs" (or no longer parses as a
 			// program-detail with the deleted program). Dwell until the panel re-renders.
 			if (!on_detail_page()) { break; }
-			if (line_text(4).contains("No Programs"))
+			if (OneTouch::LineText(page,4).contains("No Programs"))
 			{
 				finish(true);
 				break;

@@ -44,5 +44,14 @@ namespace AqualinkAutomate::Devices::OneTouch
 	// matches.
 	std::optional<uint8_t> FindLineStartingWith(const Utility::ScreenDataPage& page, std::string_view prefix);
 
+	// The sanitised text of a row, or "" when line_id is out of range. A plain-string
+	// convenience over DisplayedFunctionOnRow for the screen-driven keypad walks that compare
+	// row content directly (a missing row simply reads as empty).
+	std::string LineText(const Utility::ScreenDataPage& page, std::size_t line_id);
+
+	// Case-insensitive equality of two strings (per-character ASCII tolower). Used by the
+	// picker/verify compares in the spa-switch and schedule-write walks.
+	bool EqualsCaseInsensitive(std::string_view a, std::string_view b);
+
 }
 // namespace AqualinkAutomate::Devices::OneTouch
