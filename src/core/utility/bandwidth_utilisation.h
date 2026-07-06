@@ -117,7 +117,7 @@ namespace AqualinkAutomate::Utility
 		}
 
 	public:
-		double ConvertSerialSpeedToBytesPerSecond(const Developer::SerialPortOptions& options)
+		constexpr double ConvertSerialSpeedToBytesPerSecond(const Developer::SerialPortOptions& options)
 		{
 			const double bits_start = 1;
 			const double bits_per_character = options.character_size;

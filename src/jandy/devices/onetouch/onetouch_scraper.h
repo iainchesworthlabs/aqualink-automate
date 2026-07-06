@@ -96,7 +96,7 @@ namespace AqualinkAutomate::Devices
 		void PageProcessor_StartUp(const Utility::ScreenDataPage& page);
 
 	private:
-		static const uint32_t HINT_COUNT{ 2 };
+		static constexpr uint32_t HINT_COUNT{ 2 };
 		using HintArrayType = std::array<unsigned char, HINT_COUNT>;
 
 		bool StatusProcessor_ShouldSkipLineProcessing(const HintArrayType& hint_array, const std::string_view line_to_process) const;

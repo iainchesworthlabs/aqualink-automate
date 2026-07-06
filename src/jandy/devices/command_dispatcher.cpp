@@ -25,7 +25,7 @@ namespace AqualinkAutomate::Devices
 
 	namespace
 	{
-		Capabilities::ActuationAction ToActuationAction(Interfaces::ICommandDispatcher::DeviceAction action)
+		constexpr Capabilities::ActuationAction ToActuationAction(Interfaces::ICommandDispatcher::DeviceAction action)
 		{
 			switch (action)
 			{
@@ -35,7 +35,7 @@ namespace AqualinkAutomate::Devices
 			}
 		}
 
-		std::string_view ActionVerb(Interfaces::ICommandDispatcher::DeviceAction action)
+		constexpr std::string_view ActionVerb(Interfaces::ICommandDispatcher::DeviceAction action)
 		{
 			switch (action)
 			{

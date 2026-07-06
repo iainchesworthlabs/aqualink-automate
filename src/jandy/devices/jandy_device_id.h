@@ -12,15 +12,15 @@ namespace AqualinkAutomate::Devices
 		using value_type = uint8_t;
 
 	public:
-		JandyDeviceId();
-		JandyDeviceId(value_type device_id);
+		constexpr JandyDeviceId() : m_DeviceId(0) {}
+		constexpr JandyDeviceId(value_type device_id) : m_DeviceId(device_id) {}
 
 	public:
-		value_type operator()() const;
+		constexpr value_type operator()() const { return m_DeviceId; }
 
 	public:
-		bool operator==(const JandyDeviceId& other) const;
-		bool operator!=(const JandyDeviceId& other) const;
+		constexpr bool operator==(const JandyDeviceId& other) const { return (m_DeviceId == other.m_DeviceId); }
+		constexpr bool operator!=(const JandyDeviceId& other) const { return !operator==(other); }
 
 	private:
 		value_type m_DeviceId;

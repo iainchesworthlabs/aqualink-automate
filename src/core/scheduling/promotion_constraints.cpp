@@ -11,7 +11,7 @@ namespace AqualinkAutomate::Scheduling
 		constexpr std::uint8_t DAYS_WEEKDAYS = 0x1f; // Mon-Fri (bits 0..4)
 		constexpr std::uint8_t DAYS_WEEKENDS = 0x60; // Sat+Sun (bits 5,6)
 
-		bool TimeInRange(int hour, int minute)
+		constexpr bool TimeInRange(int hour, int minute)
 		{
 			return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
 		}

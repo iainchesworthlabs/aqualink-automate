@@ -12,7 +12,7 @@ namespace AqualinkAutomate::HTTP::Responses
 	// HTML error bodies; escaping the five HTML-significant characters prevents a
 	// crafted request target from breaking out of the body and injecting markup
 	// (reflected XSS).
-	inline std::string HtmlEscape(std::string_view input)
+	constexpr std::string HtmlEscape(std::string_view input)
 	{
 		std::string escaped;
 		escaped.reserve(input.size());

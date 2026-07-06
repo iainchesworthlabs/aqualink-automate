@@ -48,7 +48,7 @@ namespace AqualinkAutomate::Pentair::Utility
 
 	// Append a 16-bit checksum to a frame buffer in big-endian wire order (high
 	// byte first, then low byte).
-	inline void AppendBigEndianChecksum(std::vector<uint8_t>& message_bytes, uint16_t checksum)
+	constexpr void AppendBigEndianChecksum(std::vector<uint8_t>& message_bytes, uint16_t checksum)
 	{
 		message_bytes.emplace_back(static_cast<uint8_t>((checksum >> 8) & 0xFF));
 		message_bytes.emplace_back(static_cast<uint8_t>(checksum & 0xFF));

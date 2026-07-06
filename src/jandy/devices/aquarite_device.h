@@ -41,7 +41,7 @@ namespace AqualinkAutomate::Devices
 	template<typename TYPE_WITH_TIME>
 	struct AquariteTypeWithTimeComparator
 	{
-		bool operator()(const TYPE_WITH_TIME& p1, const TYPE_WITH_TIME& p2)
+		constexpr bool operator()(const TYPE_WITH_TIME& p1, const TYPE_WITH_TIME& p2)
 		{
 			return (p1.value == p2.value);
 		}

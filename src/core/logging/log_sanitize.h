@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Logging
 	// to forge an extra log record, or an ESC (0x1B) to start an ANSI escape
 	// sequence that rewrites a terminal tailing the log.  Replace every control
 	// byte (< 0x20) and DEL (0x7F) with '?'; printable bytes pass through.
-	inline std::string SanitizeForLog(std::string_view value)
+	constexpr std::string SanitizeForLog(std::string_view value)
 	{
 		std::string out;
 		out.reserve(value.size());

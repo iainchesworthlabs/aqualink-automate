@@ -21,9 +21,9 @@ namespace AqualinkAutomate::Messages
 	class IAQMessage_TableMessage : public IAQMessage, public Interfaces::IMessageSignalRecv<IAQMessage_TableMessage>
 	{
 	public:
-		static const uint8_t Index_LineId = 4;
-		static const uint8_t Index_Attribute = 5;
-		static const uint8_t Index_LineText = 6;
+		static constexpr uint8_t Index_LineId = 4;
+		static constexpr uint8_t Index_Attribute = 5;
+		static constexpr uint8_t Index_LineText = 6;
 
 	public:
 		IAQMessage_TableMessage() noexcept;

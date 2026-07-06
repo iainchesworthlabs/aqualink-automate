@@ -19,7 +19,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	// "field present?" guard so the three decoders no longer hand-roll an
 	// identical capturing lambda each: a field beyond the advertised length reads
 	// back as zero rather than over-running the span.
-	[[nodiscard]] inline uint8_t DataByteAt(std::span<const uint8_t> message_bytes, uint8_t data_index)
+	[[nodiscard]] inline constexpr uint8_t DataByteAt(std::span<const uint8_t> message_bytes, uint8_t data_index)
 	{
 		if (const uint8_t data_length = message_bytes[Offset_Length]; data_index >= data_length)
 		{
@@ -30,7 +30,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	}
 
 	// Advertised DATA length for the frame (the LEN header byte).
-	[[nodiscard]] inline uint8_t DataLengthOf(std::span<const uint8_t> message_bytes)
+	[[nodiscard]] inline constexpr uint8_t DataLengthOf(std::span<const uint8_t> message_bytes)
 	{
 		return message_bytes[Offset_Length];
 	}

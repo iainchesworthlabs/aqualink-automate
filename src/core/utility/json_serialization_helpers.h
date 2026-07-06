@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Utility
 {
 
 	/// Convert nanoseconds to microseconds for JSON output.
-	inline double NanosToMicros(std::chrono::nanoseconds ns) noexcept
+	inline constexpr double NanosToMicros(std::chrono::nanoseconds ns) noexcept
 	{
 		return static_cast<double>(ns.count()) / 1000.0;
 	}
@@ -59,6 +59,8 @@ namespace AqualinkAutomate::Utility
 	/// 7.1 promotes to 7.099999904632568). Snapping to the quantity's real resolution before
 	/// emission collapses that noise. `factor` is built by repeated *10 so it is an exact power
 	/// of ten (1, 10, 100, ...), never the fuzz std::pow could introduce.
+	// NB: not constexpr — std::round is not a constant expression on MSVC's STL (C3615),
+	// and this helper is only ever called at runtime during JSON/MQTT serialization.
 	inline double RoundToDecimalPlaces(double value, int places) noexcept
 	{
 		double factor = 1.0;
@@ -77,6 +79,7 @@ namespace AqualinkAutomate::Utility
 	/// only ever reports whole degrees (deci-Celsius at most), so 0.1 is the real resolution;
 	/// rounding to the nearest tenth collapses the noise and makes the output match the documented
 	/// swagger examples (e.g. spa_setpoint fahrenheit: 100.4, not 100.399...).
+	// NB: not constexpr — delegates to RoundToDecimalPlaces (see above).
 	inline double RoundTemperatureForDisplay(double value) noexcept
 	{
 		return RoundToDecimalPlaces(value, 1);

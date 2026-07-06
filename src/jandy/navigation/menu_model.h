@@ -44,8 +44,8 @@ namespace AqualinkAutomate::Navigation
 		uint8_t trigger_line;   // For Select: required highlighted line. 0 otherwise.
 		std::string label;      // Human-readable (e.g. "Equipment ON/OFF")
 
-		bool IsSelfLoop() const { return source == target; }
-		bool IsPageTransition() const { return !IsSelfLoop(); }
+		constexpr bool IsSelfLoop() const { return source == target; }
+		constexpr bool IsPageTransition() const { return !IsSelfLoop(); }
 	};
 
 	// Describes a single page in the menu hierarchy

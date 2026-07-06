@@ -21,7 +21,7 @@ namespace AqualinkAutomate::Mqtt::PayloadParsing
 	/// Sanitise an untrusted broker-supplied string for safe inclusion in a log line.
 	/// Non-printable bytes are replaced with '?' and the result is truncated so a
 	/// hostile/oversized payload cannot flood or corrupt the log.
-	inline std::string SanitiseForLog(std::string_view value)
+	inline constexpr std::string SanitiseForLog(std::string_view value)
 	{
 		std::string result;
 		result.reserve(std::min(value.size(), MAX_LOGGED_PAYLOAD_LENGTH));

@@ -18,7 +18,7 @@
 namespace AqualinkAutomate::HTTP
 {
 	// Map a command-dispatch result to the HTTP status a route should return.
-	inline HTTP::Status StatusForCommandResult(Interfaces::ICommandDispatcher::CommandResult result)
+	constexpr HTTP::Status StatusForCommandResult(Interfaces::ICommandDispatcher::CommandResult result)
 	{
 		using enum Interfaces::ICommandDispatcher::CommandResult;
 		using enum HTTP::Status;

@@ -40,11 +40,11 @@ namespace AqualinkAutomate::Messages
 	class IAQMessage_PageButton : public IAQMessage, public Interfaces::IMessageSignalRecv<IAQMessage_PageButton>
 	{
 	public:
-		static const uint8_t Index_ButtonIndex = 4;
-		static const uint8_t Index_ButtonState = 5;
+		static constexpr uint8_t Index_ButtonIndex = 4;
+		static constexpr uint8_t Index_ButtonState = 5;
 		// Unknown byte value stored at index position 6.
-		static const uint8_t Index_ButtonType = 7;
-		static const uint8_t Index_ButtonNameText = 8;
+		static constexpr uint8_t Index_ButtonType = 7;
+		static constexpr uint8_t Index_ButtonNameText = 8;
 
 	public:
 		IAQMessage_PageButton() noexcept;

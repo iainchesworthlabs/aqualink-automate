@@ -21,7 +21,7 @@ namespace AqualinkAutomate::Interfaces
         std::string_view Action{};
         std::string_view ResourceKind{};
 
-        [[nodiscard]] bool IsSpecified() const noexcept { return !Action.empty(); }
+        [[nodiscard]] constexpr bool IsSpecified() const noexcept { return !Action.empty(); }
     };
 
 	class IWebRouteBase

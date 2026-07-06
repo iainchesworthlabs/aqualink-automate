@@ -16,7 +16,7 @@ namespace AqualinkAutomate::Scheduling
 	namespace
 	{
 		// The control-type entitlement a non-button action requires.
-		std::string_view ActionEntitlement(ActionType type)
+		constexpr std::string_view ActionEntitlement(ActionType type)
 		{
 			using enum ActionType;
 
@@ -37,7 +37,7 @@ namespace AqualinkAutomate::Scheduling
 			}
 		}
 
-		bool IsButtonAction(ActionType type)
+		constexpr bool IsButtonAction(ActionType type)
 		{
 			using enum ActionType;
 

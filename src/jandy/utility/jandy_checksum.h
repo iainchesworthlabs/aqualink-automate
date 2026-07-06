@@ -15,7 +15,7 @@ namespace AqualinkAutomate::Utility
 
 	template <std::ranges::input_range Range>
 		requires ByteLikeIntegral<std::ranges::range_value_t<Range>>
-	uint8_t JandyPacket_CalculateChecksum_FromRange(Range&& message_bytes)
+	constexpr uint8_t JandyPacket_CalculateChecksum_FromRange(Range&& message_bytes)
 	{
 		uint32_t checksum = 0;
 
@@ -41,7 +41,7 @@ namespace AqualinkAutomate::Utility
 
 	template <std::input_iterator It>
 		requires ByteLikeIntegral<std::iter_value_t<It>>
-	uint8_t JandyPacket_CalculateChecksum(It first, It last)
+	constexpr uint8_t JandyPacket_CalculateChecksum(It first, It last)
 	{
 		auto subrange = std::ranges::subrange(first, last);
 		return JandyPacket_CalculateChecksum_FromRange(subrange);

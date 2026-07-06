@@ -26,7 +26,7 @@ namespace AqualinkAutomate::Messages
 
 		// Convert raw MainStatus heater byte to HeaterStatuses enum.
 		// Protocol values: 0x00=off, 0x01=heating, 0x03=enabled (standby).
-		Kernel::HeaterStatuses RawToHeaterStatus(uint8_t raw)
+		constexpr Kernel::HeaterStatuses RawToHeaterStatus(uint8_t raw)
 		{
 			switch (raw)
 			{

@@ -9,7 +9,7 @@ namespace AqualinkAutomate::Auth
 
 	namespace
 	{
-		bool IsBuiltInName(std::string_view name)
+		constexpr bool IsBuiltInName(std::string_view name)
 		{
 			return (BuiltInGroups::EVERYONE == name) || (BuiltInGroups::GUEST == name) || (BuiltInGroups::ADMINISTRATORS == name);
 		}

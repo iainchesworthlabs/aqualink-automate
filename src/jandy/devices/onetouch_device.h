@@ -54,11 +54,11 @@ namespace AqualinkAutomate::Devices
 
 	class OneTouchDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::ChlorinatorController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
 	{
-		inline static const uint8_t ONETOUCH_PAGE_LINES = 12;
-		inline static const std::chrono::seconds ONETOUCH_TIMEOUT_DURATION{ std::chrono::seconds(30) };
-		inline static const uint32_t ONETOUCH_SCRAPING_STALL_LIMIT{ 10 };
-		inline static const uint32_t ONETOUCH_SETPOINT_REFRESH_STEP_LIMIT{ 500 };  // frame backstop for a read-only setpoint re-scrape crawl
-		inline static const uint32_t ONETOUCH_FAULT_RECOVERY_STATUS_FRAMES{ 3 };   // consecutive recognised-page Status frames required to trust a faulted controller again before recovering to NormalOperation
+		inline static constexpr uint8_t ONETOUCH_PAGE_LINES = 12;
+		inline static constexpr std::chrono::seconds ONETOUCH_TIMEOUT_DURATION{ std::chrono::seconds(30) };
+		inline static constexpr uint32_t ONETOUCH_SCRAPING_STALL_LIMIT{ 10 };
+		inline static constexpr uint32_t ONETOUCH_SETPOINT_REFRESH_STEP_LIMIT{ 500 };  // frame backstop for a read-only setpoint re-scrape crawl
+		inline static constexpr uint32_t ONETOUCH_FAULT_RECOVERY_STATUS_FRAMES{ 3 };   // consecutive recognised-page Status frames required to trust a faulted controller again before recovering to NormalOperation
 
 	protected:
 		// Protected (not private) so the test-only Test::SeamedOneTouchDevice can force/read the
@@ -250,9 +250,9 @@ namespace AqualinkAutomate::Devices
 		// Value rows (see PageProcessor_SetTemperature / the Set AquaPure page): on Set
 		// Temperature, Pool Heat is line 2 / Spa Heat line 3; on Set AquaPure, "Set Pool to:"
 		// is line 3 (verified vs onetouch_chlorinator.cap).
-		inline static const uint8_t SETTEMP_POOL_HEAT_LINE{ 2 };
-		inline static const uint8_t SETTEMP_SPA_HEAT_LINE{ 3 };
-		inline static const uint8_t ONETOUCH_CHLORINATOR_STEP{ 5 };  // the OneTouch edits AquaPure % in 5% increments
+		inline static constexpr uint8_t SETTEMP_POOL_HEAT_LINE{ 2 };
+		inline static constexpr uint8_t SETTEMP_SPA_HEAT_LINE{ 3 };
+		inline static constexpr uint8_t ONETOUCH_CHLORINATOR_STEP{ 5 };  // the OneTouch edits AquaPure % in 5% increments
 		// The Set AquaPure Pool-% row the value editor targets is OneTouchScraper::SETAQUAPURE_POOL_LINE.
 
 		// Shared body of the value-edit capability methods (SetPoolSetpoint / SetSpaSetpoint /
