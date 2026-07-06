@@ -159,5 +159,112 @@ namespace AqualinkAutomate::Devices::OneTouch
 		return GoalStatus::Running;
 	}
 
+	BoostGoal::BoostGoal(bool start) :
+		m_Start(start),
+		m_Desc(std::format("chlorinator boost {}", start ? "start" : "stop"))
+	{
+	}
+
+	GoalStatus BoostGoal::Step(KeypadContext& ctx)
+	{
+		if (m_Started && (++m_StepCount > STEP_LIMIT))
+		{
+			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", ctx.DeviceId(), m_Desc, STEP_LIMIT));
+			return GoalStatus::Failed;
+		}
+
+		// The Boost Pool page shows "Time Remaining" while a boost is running and "Operate ... at
+		// 100%" when idle - used to decide whether an action is actually needed.
+		auto boost_is_running = [&ctx]()
+		{
+			for (std::size_t i = 0; i < ctx.page.Size(); ++i)
+			{
+				if (ctx.page[i].Text.contains("Time Remaining"))
+				{
+					return true;
+				}
+			}
+			return false;
+		};
+
+		switch (m_Phase)
+		{
+		case Phase::Navigating:
+		{
+			// Drive to the Boost Pool page (no in-place Select yet - we decide the action from the
+			// page state once there).
+			if (!m_Started)
+			{
+				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Boost Pool to {} boost", ctx.DeviceId(), m_Start ? "start" : "stop"));
+				ctx.navigator.NavigateTo(Navigation::PageId::Boost);
+				m_Started = true;
+				m_StepCount = 0;
+			}
+
+			if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
+			{
+				ctx.Emit(nav_cmd.value());
+			}
+
+			if (ctx.navigator.IsComplete())
+			{
+				if (!ctx.navigator.IsSuccess())
+				{
+					return GoalStatus::Failed;
+				}
+
+				const bool running = boost_is_running();
+				if (m_Start && running)
+				{
+					LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already running - nothing to do", ctx.DeviceId()));
+					return GoalStatus::Done;
+				}
+				else if (!m_Start && !running)
+				{
+					LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already stopped - nothing to do", ctx.DeviceId()));
+					return GoalStatus::Done;
+				}
+				else if (m_Start)
+				{
+					// Idle page ("Operate the chlorinator at 100%"): a single Select starts boost.
+					LogDebug(Channel::Devices, std::format("OneTouch ({}): Select to start boost", ctx.DeviceId()));
+					ctx.Emit(Navigation::NavKeyCommand::Select);
+					m_Phase = Phase::Settle;
+				}
+				else
+				{
+					// Running page: navigate to the "Stop" submenu item and Select it in place.
+					LogDebug(Channel::Devices, std::format("OneTouch ({}): Navigating to 'Stop' to stop boost", ctx.DeviceId()));
+					ctx.navigator.NavigateToItem(Navigation::PageId::Boost, 0, "Stop", Navigation::PageId::Boost);
+					m_Phase = Phase::Acting;
+				}
+			}
+			break;
+		}
+
+		case Phase::Acting:
+		{
+			// Stop path: let the Navigator walk the cursor to the "Stop" item and Select it.
+			if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
+			{
+				ctx.Emit(nav_cmd.value());
+			}
+			if (ctx.navigator.IsComplete())
+			{
+				return ctx.navigator.IsSuccess() ? GoalStatus::Done : GoalStatus::Failed;
+			}
+			break;
+		}
+
+		case Phase::Settle:
+		{
+			// Start path: the Select has been queued; the action is one-shot, so we are done.
+			return GoalStatus::Done;
+		}
+		}
+
+		return GoalStatus::Running;
+	}
+
 }
 // namespace AqualinkAutomate::Devices::OneTouch

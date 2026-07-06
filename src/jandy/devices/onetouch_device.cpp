@@ -158,7 +158,6 @@ namespace AqualinkAutomate::Devices
 			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> normal_operation", std::source_location::current());
 			LogTrace(Channel::Devices, std::format("OneTouch ({}): Processing NormalOperation state", DeviceId()));
 			ServiceActiveGoal();
-			Boost_ProcessStep();
 			SpaSwitchEdit_ProcessStep();
 			ControllerScheduleWrite_ProcessStep();
 			SetpointRefresh_ProcessStep();
@@ -446,8 +445,6 @@ namespace AqualinkAutomate::Devices
 	bool OneTouchDevice::GoalInProgress() const
 	{
 		return m_Runner.HasActiveGoal()
-			|| m_BoostInProgress
-			|| m_PendingBoost.has_value()
 			|| m_SpaSwitchEditInProgress
 			|| m_PendingSpaSwitchEdit.has_value()
 			|| m_ScheduleWriteInProgress
@@ -645,138 +642,12 @@ namespace AqualinkAutomate::Devices
 			return Capabilities::ActuationResult::NotSupported;
 		}
 
-		m_PendingBoost = enable;
-		m_BoostPhase = BoostPhase::Navigating;
+		m_Runner.TryStart(std::make_unique<OneTouch::BoostGoal>(enable));
 		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued chlorinator boost {}", DeviceId(), enable ? "start" : "stop"));
 		return Capabilities::ActuationResult::Accepted;
 	}
 
 
-	void OneTouchDevice::Boost_ProcessStep()
-	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Boost_ProcessStep", std::source_location::current());
-
-		if (!m_PendingBoost.has_value() || !m_Navigator)
-		{
-			return;
-		}
-
-		const bool want_start = m_PendingBoost.value();
-
-		auto finish = [&](bool ok)
-		{
-			LogInfo(Channel::Devices, std::format("OneTouch ({}): chlorinator boost {} {}", DeviceId(), want_start ? "start" : "stop", ok ? "completed" : "abandoned"));
-			m_Navigator->Reset();
-			m_PendingBoost.reset();
-			m_BoostInProgress = false;
-			m_BoostPhase = BoostPhase::Navigating;
-		};
-
-		if (m_BoostInProgress)
-		{
-			if (++m_BoostStepCount > ONETOUCH_BOOST_STEP_LIMIT)
-			{
-				LogWarning(Channel::Devices, std::format("OneTouch ({}): boost {} exceeded {} steps - abandoning", DeviceId(), want_start ? "start" : "stop", ONETOUCH_BOOST_STEP_LIMIT));
-				finish(false);
-				return;
-			}
-		}
-
-		// The Boost Pool page shows "Time Remaining" while a boost is running and "Operate ...
-		// at 100%" when idle - used to decide whether an action is actually needed.
-		auto boost_is_running = [this]()
-		{
-			const auto& page = DisplayedPage();
-			for (std::size_t i = 0; i < page.Size(); ++i)
-			{
-				if (page[i].Text.contains("Time Remaining"))
-				{
-					return true;
-				}
-			}
-			return false;
-		};
-
-		switch (m_BoostPhase)
-		{
-		case BoostPhase::Navigating:
-		{
-			// Drive to the Boost Pool page (no in-place Select yet - we decide the action from
-			// the page state once there).
-			if (!m_BoostInProgress)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Boost Pool to {} boost", DeviceId(), want_start ? "start" : "stop"));
-				m_Navigator->NavigateTo(Navigation::PageId::Boost);
-				m_BoostInProgress = true;
-				m_BoostStepCount = 0;
-			}
-
-			if (auto nav_cmd = m_Navigator->OnPageUpdate(DisplayedPage(), m_HighlightedLine); nav_cmd.has_value())
-			{
-				m_KeyCommand_ToSend = ConvertNavKeyCommand(nav_cmd.value());
-			}
-
-			if (m_Navigator->IsComplete())
-			{
-				if (!m_Navigator->IsSuccess())
-				{
-					finish(false);
-					break;
-				}
-
-				const bool running = boost_is_running();
-				if (want_start && running)
-				{
-					LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already running - nothing to do", DeviceId()));
-					finish(true);
-				}
-				else if (!want_start && !running)
-				{
-					LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already stopped - nothing to do", DeviceId()));
-					finish(true);
-				}
-				else if (want_start)
-				{
-					// Idle page ("Operate the chlorinator at 100%"): a single Select starts boost
-					// (verified vs onetouch_chlorinator.cap).
-					LogDebug(Channel::Devices, std::format("OneTouch ({}): Select to start boost", DeviceId()));
-					m_KeyCommand_ToSend = KeyCommands::Select;
-					m_BoostPhase = BoostPhase::Settle;
-				}
-				else
-				{
-					// Running page: navigate to the "Stop" submenu item and Select it in place
-					// (verified vs onetouch_chlorinator.cap - user confirmed the pump stopped).
-					LogDebug(Channel::Devices, std::format("OneTouch ({}): Navigating to 'Stop' to stop boost", DeviceId()));
-					m_Navigator->NavigateToItem(Navigation::PageId::Boost, 0, "Stop", Navigation::PageId::Boost);
-					m_BoostPhase = BoostPhase::Acting;
-				}
-			}
-			break;
-		}
-
-		case BoostPhase::Acting:
-		{
-			// Stop path: let the Navigator walk the cursor to the "Stop" item and Select it.
-			if (auto nav_cmd = m_Navigator->OnPageUpdate(DisplayedPage(), m_HighlightedLine); nav_cmd.has_value())
-			{
-				m_KeyCommand_ToSend = ConvertNavKeyCommand(nav_cmd.value());
-			}
-			if (m_Navigator->IsComplete())
-			{
-				finish(m_Navigator->IsSuccess());
-			}
-			break;
-		}
-
-		case BoostPhase::Settle:
-		{
-			// Start path: the Select has been queued; the action is one-shot, so we are done.
-			finish(true);
-			break;
-		}
-		}
-	}
 
 	std::string OneTouchDevice::SanitiseFunctionText(const std::string& raw)
 	{

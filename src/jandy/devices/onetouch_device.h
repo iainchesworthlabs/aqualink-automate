@@ -54,7 +54,6 @@ namespace AqualinkAutomate::Devices
 		inline static const uint8_t ONETOUCH_PAGE_LINES = 12;
 		inline static const std::chrono::seconds ONETOUCH_TIMEOUT_DURATION{ std::chrono::seconds(30) };
 		inline static const uint32_t ONETOUCH_SCRAPING_STALL_LIMIT{ 10 };
-		inline static const uint32_t ONETOUCH_BOOST_STEP_LIMIT{ 500 };      // frame backstop for a chlorinator-boost goal
 		inline static const uint32_t ONETOUCH_SETPOINT_REFRESH_STEP_LIMIT{ 500 };  // frame backstop for a read-only setpoint re-scrape crawl
 		inline static const uint32_t ONETOUCH_FAULT_RECOVERY_STATUS_FRAMES{ 3 };   // consecutive recognised-page Status frames required to trust a faulted controller again before recovering to NormalOperation
 
@@ -267,11 +266,6 @@ namespace AqualinkAutomate::Devices
 		// Switch config menu and cycles the per-button function picker to the target.
 		void SpaSwitchEdit_ProcessStep();
 
-		// On-demand chlorinator BOOST (ChlorinatorController): service a single pending
-		// boost start/stop goal in NormalOperation via the Boost Pool page - Select on the
-		// "Operate at 100%" page starts it; navigating to the "Stop" item and Select stops it.
-		void Boost_ProcessStep();
-
 		// Proactive chlorinator-setpoint re-acquisition (the GET): periodically (and on a
 		// chlorinator offline->online edge) drive a READ-ONLY menu visit to the Set AquaPure
 		// page so PageProcessor_SetAquapure re-scrapes the configured Pool/Spa %. Runs 5th in
@@ -350,19 +344,6 @@ namespace AqualinkAutomate::Devices
 		// SetChlorinatorPercentage): validate the device can actuate, reject if another goal is
 		// mid-flight, then start a ValueEditGoal on the runner.
 		Capabilities::ActuationResult QueueValueEdit(Navigation::PageId page, uint8_t line, std::string label, int target, std::string desc);
-
-		// On-demand chlorinator-boost goal (start/stop, one at a time). Set by
-		// SetChlorinatorBoost, serviced by Boost_ProcessStep in NormalOperation.
-		enum class BoostPhase
-		{
-			Navigating,     // Navigator driving to the Boost Pool page
-			Acting,         // pressing Select (start) or selecting the Stop item (stop)
-			Settle          // waiting for the action to take effect / complete
-		};
-		std::optional<bool> m_PendingBoost;   // true = start, false = stop
-		BoostPhase m_BoostPhase{ BoostPhase::Navigating };
-		bool m_BoostInProgress{ false };
-		uint32_t m_BoostStepCount{ 0 };
 
 		// On-demand SPA-SWITCH assignment edit goal (one at a time). Set by SetSpaSwitchAssignment,
 		// serviced by SpaSwitchEdit_ProcessStep. Screen-driven: each phase reads the current page and

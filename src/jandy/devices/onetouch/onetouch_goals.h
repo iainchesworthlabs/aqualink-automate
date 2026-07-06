@@ -67,5 +67,34 @@ namespace AqualinkAutomate::Devices::OneTouch
 		uint32_t m_StepCount{ 0 };
 	};
 
+	// Chlorinator BOOST start/stop (ChlorinatorController) via the Boost Pool page: Select on the
+	// idle "Operate at 100%" page starts it; on a running page, navigate to the "Stop" item and
+	// Select. The page state ("Time Remaining" vs "Operate ... at 100%") decides whether an action
+	// is actually needed.
+	class BoostGoal : public IKeypadGoal
+	{
+	public:
+		explicit BoostGoal(bool start);
+
+		GoalStatus Step(KeypadContext& ctx) override;
+		std::string_view Description() const override { return m_Desc; }
+
+	private:
+		enum class Phase
+		{
+			Navigating,   // Navigator driving to the Boost Pool page
+			Acting,       // walking the cursor to the Stop item and Selecting (stop path)
+			Settle        // the start Select has been queued; one-shot, done
+		};
+
+		static constexpr uint32_t STEP_LIMIT{ 500 };
+
+		bool m_Start;   // true = start boost, false = stop
+		std::string m_Desc;
+		Phase m_Phase{ Phase::Navigating };
+		bool m_Started{ false };
+		uint32_t m_StepCount{ 0 };
+	};
+
 }
 // namespace AqualinkAutomate::Devices::OneTouch
