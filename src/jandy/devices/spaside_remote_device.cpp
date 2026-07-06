@@ -17,7 +17,7 @@ namespace AqualinkAutomate::Devices
 		Capabilities::Restartable(SPASIDE_TIMEOUT_DURATION),
 		Capabilities::Emulated(is_emulated)
 	{
-		if (IsEmulated())
+		if (Capabilities::Emulated::IsEmulated())
 		{
 			// We ARE the remote: ACK the master's discovery probe and its cmd-0x02 LED-image
 			// poll, injecting any pending button press into the [0x01][0x00][button] reply.

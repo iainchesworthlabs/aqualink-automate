@@ -790,7 +790,7 @@ namespace AqualinkAutomate::Mqtt
 						LogDebug(Channel::Mqtt, std::format("Heater command for '{}': action={}, result={}",
 							label, action_str, std::to_underlying(result)));
 					}
-					catch (const std::exception& ex)
+					catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: MQTT command-handler callback; an escaping exception would unwind into the hub's dispatch loop.
 					{
 						LogError(Channel::Mqtt, std::format("Error handling heater command for '{}': {}", label, ex.what()));
 					}

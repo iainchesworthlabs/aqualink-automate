@@ -55,7 +55,10 @@ namespace AqualinkAutomate::History
 
 	HistoryService::~HistoryService()
 	{
-		Stop();
+		// Stop() flushes and tears down timers/connections; a storage error must
+		// never escape a destructor, so swallow anything that slips past its own
+		// internal guards.
+		try { Stop(); } catch (...) { /* nothing may escape a destructor */ }  // NOSONAR(cpp:S1048) — destructor boundary: cleanup must not throw
 	}
 
 	void HistoryService::Start()
@@ -115,7 +118,7 @@ namespace AqualinkAutomate::History
 		m_PurgeTimer.cancel();
 
 		// Flush whatever is buffered so a clean shutdown loses nothing.
-		try { Flush(); } catch (const std::exception& ex) { LogWarning(Channel::Main, [&ex] { return std::format("History flush on shutdown failed: {}", ex.what()); }); }
+		try { Flush(); } catch (const std::exception& ex) { LogWarning(Channel::Main, [&ex] { return std::format("History flush on shutdown failed: {}", ex.what()); }); }  // NOSONAR(cpp:S1181) — boundary: shutdown/destructor path must not let a storage error propagate
 
 		m_Db.reset();
 	}
@@ -150,7 +153,7 @@ namespace AqualinkAutomate::History
 				RecordDeviceState(key, std::string{ button->Label() }, StateToValue(button->Status()));
 			}
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex)  // NOSONAR(cpp:S1181) — boundary: invoked as a boost::signals2 slot from DataHub emit on the main loop; must swallow all storage/alloc errors
 		{
 			LogWarning(Channel::Main, [&ex] { return std::format("History record from config event failed: {}", ex.what()); });
 		}
@@ -247,7 +250,7 @@ namespace AqualinkAutomate::History
 				m_Db->Exec("ALTER TABLE series ADD COLUMN label TEXT");
 			}
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex)  // NOSONAR(cpp:S1181) — boundary: a schema-migration failure must not abort Start(); the service degrades to not recording rather than taking down bootstrap
 		{
 			LogWarning(Channel::Main, [&ex] { return std::format("History schema migration failed: {}", ex.what()); });
 		}
@@ -321,7 +324,7 @@ namespace AqualinkAutomate::History
 			m_Buffer.emplace_back(series_id, now, value);
 			m_LastSampleTs[key] = now;
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex)  // NOSONAR(cpp:S1181) — boundary: reachable from asio heartbeat/flush completion handlers and the DataHub signal slot; a storage/alloc error must never propagate into the main loop
 		{
 			LogWarning(Channel::Main, [&key, &ex] { return std::format("History RecordNumeric('{}') failed: {}", key, ex.what()); });
 		}
@@ -340,7 +343,7 @@ namespace AqualinkAutomate::History
 			m_Buffer.emplace_back(series_id, m_Clock(), value);
 			m_LastSampleTs[key] = m_Clock();
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex)  // NOSONAR(cpp:S1181) — boundary: storage-write path must swallow all storage/alloc errors so a hiccup never takes down the main loop
 		{
 			LogWarning(Channel::Main, [&key, &ex] { return std::format("History RecordState('{}') failed: {}", key, ex.what()); });
 		}
@@ -372,7 +375,7 @@ namespace AqualinkAutomate::History
 			m_Buffer.emplace_back(series_id, m_Clock(), value);
 			m_LastSampleTs[key] = m_Clock();
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex)  // NOSONAR(cpp:S1181) — boundary: reached from the DataHub signal slot; a storage/alloc error (incl. the legacy-series merge) must never propagate into the main loop
 		{
 			LogWarning(Channel::Main, [&key, &ex] { return std::format("History RecordDeviceState('{}') failed: {}", key, ex.what()); });
 		}
@@ -400,7 +403,7 @@ namespace AqualinkAutomate::History
 			txn.Commit();
 			m_Buffer.clear();
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex)  // NOSONAR(cpp:S1181) — boundary: invoked from the asio flush-timer completion handler; retain the buffer and swallow all storage/alloc errors so the main loop survives
 		{
 			LogWarning(Channel::Main, [&ex] { return std::format("History flush failed (retaining buffer): {}", ex.what()); });
 		}
@@ -423,7 +426,7 @@ namespace AqualinkAutomate::History
 			del.Bind(1, cutoff);
 			del.Step();
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex)  // NOSONAR(cpp:S1181) — boundary: invoked from the asio purge-timer completion handler; a storage/alloc error must never propagate into the main loop
 		{
 			LogWarning(Channel::Main, [&ex] { return std::format("History retention purge failed: {}", ex.what()); });
 		}

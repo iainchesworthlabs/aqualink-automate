@@ -276,7 +276,7 @@ namespace AqualinkAutomate::Protocol
 				{
 					ProtocolHandler_ReadOp_MessageHandler(*message, m_StatisticsHub);
 				}
-				catch (const std::exception& ex)
+				catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: poll-loop barrier; any throwing signal slot must not kill the daemon (remote-DoS over RS-485).
 				{
 					if (m_StatisticsHub) { ++m_StatisticsHub->MessageErrors.HandlerExceptions; }
 					LogWarning(Channel::Protocol, [&ex] { return std::format(

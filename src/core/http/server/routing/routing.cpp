@@ -12,6 +12,7 @@
 #include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/network_v4.hpp>
 #include <boost/asio/ip/network_v6.hpp>
+#include <boost/system/system_error.hpp>
 #include <boost/beast/core/string.hpp>
 #include <boost/beast/http/field.hpp>
 #include <boost/beast/http/verb.hpp>
@@ -409,8 +410,10 @@ namespace AqualinkAutomate::HTTP::Routing
 				const auto network = boost::asio::ip::make_network_v6(cidr);
 				return boost::asio::ip::network_v6(address.to_v6(), network.prefix_length()).canonical() == network.canonical();
 			}
-			catch (const std::exception&)
+			catch (const boost::system::system_error&)
 			{
+				// make_network_v4/v6 throw system_error on a malformed CIDR string;
+				// fail closed (extend no trust) on a parse failure.
 				return false;
 			}
 		}

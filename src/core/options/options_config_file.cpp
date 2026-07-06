@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <boost/program_options/errors.hpp>
 #include <boost/program_options/parsers.hpp>
 
 #include "logging/logging.h"
@@ -197,8 +198,18 @@ namespace AqualinkAutomate::Options
 
 					return state;
 				}
-				catch (const std::exception& e)
+				catch (const boost::program_options::error& e)
 				{
+					// boost::program_options::error is the common base of every
+					// parser/store/notify failure (unknown option, invalid value,
+					// ambiguous option, multiple occurrences, ...).
+					LogError(Channel::Options, std::format(
+						"Failed to parse configuration file: {}", e.what()));
+					return std::unexpected(Error::OptionsParsingFailed);
+				}
+				catch (const std::filesystem::filesystem_error& e)
+				{
+					// path construction / exists() query on the config path.
 					LogError(Channel::Options, std::format(
 						"Failed to parse configuration file: {}", e.what()));
 					return std::unexpected(Error::OptionsParsingFailed);

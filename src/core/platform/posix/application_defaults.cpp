@@ -1,7 +1,9 @@
 #include "application/application_defaults.h"
 
 #include <filesystem>
+#include <new>
 #include <string>
+#include <system_error>
 
 #include <boost/dll/runtime_symbol_info.hpp>
 
@@ -22,9 +24,15 @@ namespace
 			const std::filesystem::path exe{ boost::dll::program_location().string() };
 			return (exe.parent_path() / ".." / "share" / "aqualink-automate" / relative).lexically_normal().string();
 		}
-		catch (const std::exception&)
+		catch (const std::system_error&)
 		{
-			// program_location can throw if the executable path is unavailable;
+			// program_location can throw std::system_error if the executable path is
+			// unavailable; fall back to a working-directory-relative path.
+			return (std::filesystem::path("share") / "aqualink-automate" / relative).lexically_normal().string();
+		}
+		catch (const std::bad_alloc&)
+		{
+			// program_location documents std::bad_alloc on insufficient memory;
 			// fall back to a working-directory-relative path.
 			return (std::filesystem::path("share") / "aqualink-automate" / relative).lexically_normal().string();
 		}

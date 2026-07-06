@@ -91,7 +91,7 @@ namespace AqualinkAutomate::HTTP
 				ioc.run_for(SIDECAR_TIMEOUT + std::chrono::milliseconds(250));
 				return body;
 			}
-			catch (const std::exception&)
+			catch (const std::exception&)   // NOSONAR(cpp:S1181) — boundary: runs on the background RefreshLoop thread and must degrade to "unreachable" (nullopt) on ANY failure rather than let an exception escape and kill the poller thread
 			{
 				return std::nullopt;
 			}

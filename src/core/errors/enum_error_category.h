@@ -36,6 +36,11 @@ namespace AqualinkAutomate::ErrorCodes
 			return DERIVED::CategoryName.data();
 		}
 
+		// Re-expose the base's other message() overload (the buffer-filling
+		// char const* message(int, char*, std::size_t) noexcept) which the
+		// std::string override below would otherwise hide.
+		using boost::system::error_category::message;
+
 		std::string message(int ev) const override
 		{
 			if (const auto value = magic_enum::enum_cast<ENUM>(ev); value.has_value())

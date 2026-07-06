@@ -136,23 +136,34 @@ namespace AqualinkAutomate::Equipment
 			connection.disconnect();
 		}
 
-		magic_enum::enum_for_each<Messages::JandyMessageIds>([this](Messages::JandyMessageIds id)
-			{
-				LogInfo(Channel::Devices, [this, id] { return std::format("Stats: processed {} messages of type {}", m_StatsHub->MessageCounts[id], magic_enum::enum_name(id)); });
-			}
-		);
+		// The end-of-life statistics logging below formats strings (std::format can
+		// throw std::bad_alloc / std::format_error). A destructor must not let an
+		// exception escape, so guard the diagnostic logging and swallow any failure.
+		try
+		{
+			magic_enum::enum_for_each<Messages::JandyMessageIds>([this](Messages::JandyMessageIds id)
+				{
+					LogInfo(Channel::Devices, [this, id] { return std::format("Stats: processed {} messages of type {}", m_StatsHub->MessageCounts[id], magic_enum::enum_name(id)); });
+				}
+			);
 
-		LogInfo(
-			Channel::Equipment,
-			[this]
-			{
-				return std::format("Stats: {} total messages received",
-					std::accumulate(m_StatsHub->MessageCounts.cbegin(), m_StatsHub->MessageCounts.cend(), static_cast<uint64_t>(0), [](const uint64_t previous, const decltype(m_StatsHub->MessageCounts)::value_type& elem)
-					{
-						return previous + elem.second.Count();
-					}));
-			}
-		);
+			LogInfo(
+				Channel::Equipment,
+				[this]
+				{
+					return std::format("Stats: {} total messages received",
+						std::accumulate(m_StatsHub->MessageCounts.cbegin(), m_StatsHub->MessageCounts.cend(), static_cast<uint64_t>(0), [](const uint64_t previous, const decltype(m_StatsHub->MessageCounts)::value_type& elem)
+						{
+							return previous + elem.second.Count();
+						}));
+				}
+			);
+		}
+		catch (...)
+		{
+			// Deliberately swallow: statistics logging is best-effort and a
+			// destructor must remain non-throwing.
+		}
 	}
 
 	void JandyEquipment::IdentifyAndAddDevice(const Messages::JandyMessage& message)

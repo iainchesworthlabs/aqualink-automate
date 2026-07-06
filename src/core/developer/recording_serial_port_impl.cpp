@@ -26,7 +26,7 @@ namespace AqualinkAutomate::Developer
 		, m_StartTime(std::chrono::steady_clock::now())
 	{
 		// Start-at-boot path (preserves `--record-serial <file>`).
-		StartRecording(recording_file_path);
+		RecordingSerialPortImpl::StartRecording(recording_file_path);
 	}
 
 	RecordingSerialPortImpl::~RecordingSerialPortImpl()
