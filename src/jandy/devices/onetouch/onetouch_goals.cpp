@@ -65,7 +65,12 @@ namespace AqualinkAutomate::Devices::OneTouch
 	{
 		// Frame backstop so a mis-detected page can never wedge NormalOperation (the Navigator's
 		// own timeouts normally drive it to Failed first).
-		if (m_Started && (++m_StepCount > STEP_LIMIT))
+		if (m_Started)
+		{
+			++m_StepCount;
+		}
+
+		if (m_Started && (m_StepCount > STEP_LIMIT))
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} edit exceeded {} steps - abandoning", ctx.DeviceId(), m_Desc, STEP_LIMIT));
 			return GoalStatus::Failed;
@@ -169,7 +174,12 @@ namespace AqualinkAutomate::Devices::OneTouch
 
 	GoalStatus BoostGoal::Step(KeypadContext& ctx)
 	{
-		if (m_Started && (++m_StepCount > STEP_LIMIT))
+		if (m_Started)
+		{
+			++m_StepCount;
+		}
+
+		if (m_Started && (m_StepCount > STEP_LIMIT))
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", ctx.DeviceId(), m_Desc, STEP_LIMIT));
 			return GoalStatus::Failed;
@@ -279,7 +289,12 @@ namespace AqualinkAutomate::Devices::OneTouch
 
 	GoalStatus SpaSwitchGoal::Step(KeypadContext& ctx)
 	{
-		if (m_Started && (++m_StepCount > STEP_LIMIT))
+		if (m_Started)
+		{
+			++m_StepCount;
+		}
+
+		if (m_Started && (m_StepCount > STEP_LIMIT))
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", ctx.DeviceId(), m_Desc, STEP_LIMIT));
 			return GoalStatus::Failed;
@@ -541,7 +556,12 @@ namespace AqualinkAutomate::Devices::OneTouch
 	GoalStatus ScheduleWriteGoal::Step(KeypadContext& ctx)
 	{
 		// Frame backstop so a mis-detected page can never wedge NormalOperation.
-		if (m_Started && (++m_StepCount > STEP_LIMIT))
+		if (m_Started)
+		{
+			++m_StepCount;
+		}
+
+		if (m_Started && (m_StepCount > STEP_LIMIT))
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", ctx.DeviceId(), m_Desc, STEP_LIMIT));
 			return GoalStatus::Failed;
