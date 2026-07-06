@@ -102,6 +102,34 @@ _CONFIG_PARSE_SEEDS = [
     "log-syslog-facility = daemon\n",
 ]
 
+# Representative HTTP request targets for the fuzz-query-string harness.
+_QUERY_STRING_SEEDS = [
+    "/api/equipment/button?id=3",
+    "/api/schedules?foo=bar&id=7",
+    "/?id=42", "/api/controller/schedules", "/a?%zz", "//",
+]
+
+# Representative bearer tokens (JWT-shaped + garbage) for the fuzz-jwt harness.
+_JWT_SEEDS = [
+    "eyJhbGciOiJIUzI1NiIsImtpZCI6ImsxIn0.eyJzdWIiOiJhIn0.c2ln",
+    "a.b.c", "not-a-jwt", "", "eyJ9.eyJ9.",
+]
+
+# Representative HH:MM:SS values for the fuzz-duration harness.
+_DURATION_SEEDS = [
+    "01:02:03", "23:59:59", "00:00:00", "99:00:00", "1:2:3", "aa:bb:cc", "12:34",
+]
+
+# Representative .cap capture-file bodies for the fuzz-replay-line harness (both the
+# recorder "[ts] DIR ..." and legacy bare formats, plus comments/malformed tokens).
+_REPLAY_LINE_SEEDS = [
+    "[100] R 0x10|0x02|0x50|0x14|0x76|0x10|0x03\n",
+    "0x10|0x02|0x00|0x01\n",
+    "# comment header\n[5] W 0xff|0x00\n[6] R 0x48\n",
+    "[x] R 0xZZ|0x10\n",
+    "not a valid line at all\n",
+]
+
 
 def _seed_text(out_dir: pathlib.Path, seeds: list) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -153,6 +181,10 @@ def main(argv: list[str]) -> int:
         "websocket-json": _WEBSOCKET_JSON_SEEDS,
         "mqtt-payload": _MQTT_PAYLOAD_SEEDS,
         "config-parse": _CONFIG_PARSE_SEEDS,
+        "query-string": _QUERY_STRING_SEEDS,
+        "jwt": _JWT_SEEDS,
+        "duration": _DURATION_SEEDS,
+        "replay-line": _REPLAY_LINE_SEEDS,
     }
     text_written = {name: _seed_text(args.out / name, seeds) for name, seeds in text_corpora.items()}
 

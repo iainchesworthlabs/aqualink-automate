@@ -20,6 +20,10 @@ set(_aq_fuzz_harnesses
     fuzz-websocket-json     # inbound WebSocket message-envelope parser (web API)
     fuzz-mqtt-payload       # inbound MQTT command-payload parsers
     fuzz-config-parse       # config-file reading + option-value validators
+    fuzz-query-string       # HTTP request-target / query-string parsing
+    fuzz-jwt                # JWT bearer-token verify robustness
+    fuzz-duration           # HH:MM:SS timeout-duration option parser
+    fuzz-replay-line        # record/replay .cap capture-file parser (dev/local)
 )
 
 foreach(_target IN LISTS _aq_fuzz_harnesses)

@@ -24,6 +24,10 @@ harness covers many message types:
 | `fuzz-websocket-json` | the inbound WebSocket message-envelope parser `HTTP::WebSocket_Event::ConvertFromStringView` (`{type, payload}` JSON + case-insensitive event-type enum-cast) that every browser frame flows through |
 | `fuzz-mqtt-payload` | the untrusted MQTT command-payload parsers `Mqtt::PayloadParsing::ParsePayloadNumber<T>` / `ParsePayloadString` / `SanitiseForLog` (range-checked numeric extraction, string extraction, log sanitising) |
 | `fuzz-config-parse` | config-file reading + option-value validation: arbitrary INI text through `boost::program_options::parse_config_file` + the project's custom validators (`Severity` / `ProfilerTypes` / `SyslogFacility` / MQTT `ProtocolVersion`) over a representative options grammar |
+| `fuzz-query-string` | HTTP request-target / query-string parsing — `HTTP::ParseQueryString` (`boost::urls::parse_origin_form` + param lookup) over a fuzzed Boost.Beast request target |
+| `fuzz-jwt` | JWT bearer-token verify robustness — `Auth::JwtCodec::Verify` (backed by an empty key store) must return `std::nullopt` on any malformed token, never throw/crash |
+| `fuzz-duration` | the `HH:MM:SS` timeout-duration option parser `Utility::TimeoutDurationStringConverter` (fixed-width, `std::from_chars`; `noexcept`, so this catches OOB indexing) |
+| `fuzz-replay-line` | the record/replay `.cap` capture-file parser, driven through the public `MockSerialPortImpl` file path (line parse + multi-read buffering); a dev/local input |
 
 Each harness does two things per input (see `fuzz/fuzz_jandy_message.cpp` /
 `fuzz/fuzz_pentair_message.cpp`):
@@ -173,12 +177,23 @@ Implemented so far (beyond the RS-485 decoders):
    production config path catches); this harness guards that invariant — any *other*
    escaping exception is a real startup-crash bug.
 
-Still open (lower priority — mostly thin wrappers over well-fuzzed third-party
-libraries; add only if a specific bug points here): the `.cap` replay-line parser
-(`Developer::MockSerialPortImpl::DecodeReplayLine` — easy, pure, but a dev/local
-input), the `HH:MM:SS` duration parser (`TimeoutDurationStringConverter` — `noexcept`,
-so low risk), bearer/subprotocol token splitting, query-string / URL-path segment
-extraction, and JWT decode (needs a `JwtKeyStore`; the decode itself is jwt-cpp).
+5. **Query string / request target** — ✅ `fuzz-query-string`.
+6. **JWT verify** — ✅ `fuzz-jwt`. Note: with an empty key store every signature
+   check fails, so this fuzzes the jwt-cpp decode + the first-party `kid` extraction
+   and guards the "`Verify` never throws" contract; the claim-extraction path past
+   signature verification is only reachable with a validly-signed token, which a
+   mutation fuzzer cannot forge.
+7. **`HH:MM:SS` duration** — ✅ `fuzz-duration`.
+8. **`.cap` replay parser** — ✅ `fuzz-replay-line` (via the public `MockSerialPortImpl`
+   file path, since the line parser is private).
+
+That covers the input surfaces worth fuzzing. What remains is genuinely third-party
+and already fuzzed upstream — the Boost.Beast HTTP framing, the nlohmann JSON parser
+itself, Boost.URL, Boost.program_options' own INI tokeniser, and jwt-cpp's base64/
+decode — so a first-party harness would mostly re-test someone else's code. Add a new
+harness when a new first-party parser of untrusted input appears (a new wire message
+type is already covered automatically; a new request-body validator or inbound
+message format is not).
 
 ## If the fuzzer finds a crash
 
