@@ -1,0 +1,9 @@
+# Generated fuzzing artefacts — regenerate with `python fuzz/seed_corpus.py`
+# (seed corpus from test/fixtures/*.cap) and libFuzzer's own corpus growth.
+corpus/
+
+# libFuzzer crash / timeout / oom reproducers dropped in the run directory.
+crash-*
+timeout-*
+oom-*
+leak-*

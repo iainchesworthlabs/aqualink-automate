@@ -1,0 +1,139 @@
+# fuzzing.yml — bounded coverage-guided fuzzing of the RS-485 protocol decoders.
+#
+# The app parses UNTRUSTED wire data in the Jandy and Pentair message
+# deserialisers; this workflow builds the libFuzzer harnesses (fuzz/) and runs each
+# for a bounded time against a corpus seeded from the recorded capture fixtures.
+# It exists to give the OpenSSF Scorecard "Fuzzing" check a real signal (not just a
+# posture tick) and to catch malformed-frame crashes before they reach the field.
+#
+# It is NOT a required PR gate: a bounded fuzz run is best-effort, so a clean run is
+# reassurance, not proof. A crash, however, fails the job and uploads the reproducer
+# — that IS a real bug (fix the decoder + add a regression test; never weaken the
+# parser). Docs: docs/fuzzing.md.
+name: Fuzzing
+
+on:
+  # Weekly deep-ish run (staggered from the supply-chain crons at :17/:27/:37).
+  schedule:
+    - cron: "47 22 * * 1"
+  # Smoke the harnesses on PRs that touch the decoders or the fuzzing scaffolding.
+  pull_request:
+    paths:
+      - "src/jandy/**"
+      - "src/pentair/**"
+      - "src/core/protocol/**"
+      - "fuzz/**"
+      - "cmake/Fuzzing.cmake"
+      - ".github/workflows/fuzzing.yml"
+  workflow_dispatch:
+    inputs:
+      max_total_time:
+        description: "Seconds to fuzz EACH harness."
+        type: string
+        default: "300"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzzing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.harness }}
+    # Fork PRs must not run on the persistent self-hosted runners selected via
+    # vars.RUNNER_* (untrusted code on a long-lived host); GitHub-hosted fallback.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - harness: fuzz-jandy-message
+            corpus: jandy
+          - harness: fuzz-pentair-message
+            corpus: pentair
+    steps:
+      - name: Clean workspace (self-hosted)
+        if: contains(vars.RUNNER_LINUX, 'self-hosted')
+        shell: bash
+        run: |
+          if [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
+            docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
+          fi
+          rm -rf build install
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: ./.github/actions/setup-cpp-toolchain
+        if: ${{ !contains(vars.RUNNER_LINUX, 'self-hosted') }}
+        with:
+          compiler: llvm
+
+      - uses: ./.github/actions/setup-vcpkg-cache
+        if: ${{ !contains(vars.RUNNER_LINUX, 'self-hosted') }}
+        with:
+          cache-key-prefix: fuzzing
+
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: bash "${{ github.workspace }}/deps/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+        env:
+          VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+
+      - name: Install autotools for libbacktrace
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq autoconf autoconf-archive automake libtool
+
+      - name: Configure
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
+        with:
+          configurePreset: config-linux-llvm-fuzzing
+          configurePresetAdditionalArgs: "['-DDERIVED_VERSION_OVERRIDE=0.0.0-dev']"
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
+
+      - name: Build fuzz harness
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
+        with:
+          buildPreset: build-linux-llvm-fuzzing
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
+
+      - name: Seed corpus from capture fixtures
+        shell: bash
+        run: python3 fuzz/seed_corpus.py
+
+      - name: Fuzz (bounded)
+        shell: bash
+        env:
+          MAX_TOTAL_TIME: ${{ github.event.inputs.max_total_time || '180' }}
+        run: |
+          set -o pipefail
+          exe="build/config-linux-llvm-fuzzing/fuzz/${{ matrix.harness }}"
+          corpus="fuzz/corpus/${{ matrix.corpus }}"
+          mkdir -p "$corpus" artifacts
+          # -max_total_time bounds wall time; -rss_limit_mb guards a runaway alloc;
+          # -artifact_prefix drops any reproducer where we can upload it. libFuzzer
+          # exits non-zero on a crash/leak/timeout, failing the job.
+          "$exe" "$corpus" \
+            -max_total_time="$MAX_TOTAL_TIME" \
+            -rss_limit_mb=4096 \
+            -timeout=25 \
+            -print_final_stats=1 \
+            -artifact_prefix=artifacts/
+
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-crashes-${{ matrix.harness }}
+          if-no-files-found: ignore
+          path: artifacts/
+          retention-days: 30

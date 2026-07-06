@@ -48,7 +48,8 @@ target_sources(
 	unit/formatters/test_formatters.cpp
 	unit/factories/test_factories_jandy_auxillary.cpp	 	
 	unit/factories/test_factories_jandy_messages.cpp
-	unit/generators/test_jandy_message_generator.cpp 
+	unit/generators/test_jandy_message_generator.cpp
+	unit/fuzz/test_protocol_fuzz_smoke.cpp
 	unit/http/test_api_equipment.cpp
 	unit/http/test_api_metrics.cpp
 	unit/http/test_display_label.cpp
@@ -271,6 +272,9 @@ target_include_directories(
 	testaqualink-automate
 	PUBLIC
 	"${PROJECT_SOURCE_DIR}/test/unit"
+	# Shared fuzz frame builders (fuzz/fuzz_frame_builders.h) are exercised by the
+	# protocol fuzz smoke/regression test (unit/fuzz/test_protocol_fuzz_smoke.cpp).
+	"${PROJECT_SOURCE_DIR}/fuzz"
 )
 
 target_link_libraries(
