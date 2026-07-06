@@ -46,6 +46,8 @@
 namespace AqualinkAutomate::Devices
 {
 
+	class OneTouchScraper;  // devices/onetouch/onetouch_scraper.h — owns the read path (page/status processors)
+
 	class OneTouchDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::ChlorinatorController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
 	{
 		inline static const uint8_t ONETOUCH_PAGE_LINES = 12;
@@ -233,66 +235,10 @@ namespace AqualinkAutomate::Devices
 		void Slot_OneTouch_DisplayUpdate(const Messages::JandyMessage_DisplayUpdate& msg);
 		void Slot_OneTouch_Unknown(const Messages::JandyMessage_Unknown& msg);
 
-	private:
-		void PageProcessor_System(const Utility::ScreenDataPage& page);
-		void PageProcessor_Service(const Utility::ScreenDataPage& page);
-		void PageProcessor_TimeOut(const Utility::ScreenDataPage& page);
-		void PageProcessor_OneTouch(const Utility::ScreenDataPage& page);
-		void PageProcessor_EquipmentOnOff(const Utility::ScreenDataPage& page);
-		void PageProcessor_EquipmentStatus(const Utility::ScreenDataPage& page);
-		void PageProcessor_SelectSpeed(const Utility::ScreenDataPage& page);
-		void PageProcessor_MenuHelp(const Utility::ScreenDataPage& page);
-		void PageProcessor_HelpSubmenu(const Utility::ScreenDataPage& page);
-		void PageProcessor_SetTemperature(const Utility::ScreenDataPage& page);
-		void PageProcessor_SetTime(const Utility::ScreenDataPage& page);
-		void PageProcessor_SystemSetup(const Utility::ScreenDataPage& page);
-		void PageProcessor_FreezeProtect(const Utility::ScreenDataPage& page);
-		void PageProcessor_Boost(const Utility::ScreenDataPage& page);
-		void PageProcessor_SetAquapure(const Utility::ScreenDataPage& page);
-		void PageProcessor_Version(const Utility::ScreenDataPage& page);
-		void PageProcessor_DiagnosticsSensors(const Utility::ScreenDataPage& page);
-		void PageProcessor_DiagnosticsRemotes(const Utility::ScreenDataPage& page);
-		void PageProcessor_DiagnosticsErrors(const Utility::ScreenDataPage& page);
-		void PageProcessor_LabelAuxList(const Utility::ScreenDataPage& page);
-		void PageProcessor_LabelAux(const Utility::ScreenDataPage& page);
-		void PageProcessor_MoreOneTouch(const Utility::ScreenDataPage& page);
-		void PageProcessor_SetPoolHeat(const Utility::ScreenDataPage& page);
-		void PageProcessor_SetSpaHeat(const Utility::ScreenDataPage& page);
-		void PageProcessor_Program(const Utility::ScreenDataPage& page);
-		void PageProcessor_DisplayLight(const Utility::ScreenDataPage& page);
-		void PageProcessor_Lockouts(const Utility::ScreenDataPage& page);
-		void PageProcessor_PasswordSettings(const Utility::ScreenDataPage& page);
-		void PageProcessor_ProgramGroup(const Utility::ScreenDataPage& page);
-		void PageProcessor_GeneralLabels(const Utility::ScreenDataPage& page);
-		void PageProcessor_LightLabels(const Utility::ScreenDataPage& page);
-		void PageProcessor_WaterfallLabels(const Utility::ScreenDataPage& page);
-		void PageProcessor_CustomLabel(const Utility::ScreenDataPage& page);
-		void PageProcessor_EnterPassword(const Utility::ScreenDataPage& page);
-		void PageProcessor_HelpKeys(const Utility::ScreenDataPage& page);
-		void PageProcessor_SpaSwitch(const Utility::ScreenDataPage& page);
-		void PageProcessor_StartUp(const Utility::ScreenDataPage& page);
-
-		// Shared decode for the two pages that carry the panel identity + pool configuration
-		// (the cold-start splash handled by PageProcessor_StartUp and the REV page handled by
-		// PageProcessor_Version). Extracts model/type/revision, runs the PoolConfigurationDecoder,
-		// records SystemBoard / expected aux + power-centre counts / EquipmentVersions, and builds
-		// the bodies of water via DataHub::ApplyPoolConfiguration so every call site is consistent.
-		void DecodePanelConfiguration(const Utility::ScreenDataPage& page);
-
-	private:
-		static const uint32_t HINT_COUNT{ 2 };
-		using HintArrayType = std::array<unsigned char, HINT_COUNT>;
-
-		bool StatusProcessor_ShouldSkipLineProcessing(const HintArrayType& hint_array, const std::string_view line_to_process) const;
-		void StatusProcessor_FilterPump(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_PoolHeat(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_SpaHeat(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_SolarHeat(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_HeatPump(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_Chiller(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_AquaPurePercentage(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_SaltLevelPPM(const Utility::ScreenDataPage& page, const uint8_t line_id);
-		void StatusProcessor_CheckAquaPure(const Utility::ScreenDataPage& page, const uint8_t line_id);
+		// The page processors (screen -> DataHub), the Equipment-Status line processors, the
+		// panel-config decode and the controller-schedule accumulation have moved to the
+		// OneTouchScraper collaborator (devices/onetouch/onetouch_scraper.h). This device owns one
+		// scraper (m_Scraper) and registers its processors into the Screen capability.
 
 	private:
 		// Navigation-based scraping
@@ -426,9 +372,8 @@ namespace AqualinkAutomate::Devices
 		// is line 3 (verified vs onetouch_chlorinator.cap).
 		inline static const uint8_t SETTEMP_POOL_HEAT_LINE{ 2 };
 		inline static const uint8_t SETTEMP_SPA_HEAT_LINE{ 3 };
-		inline static const uint8_t SETAQUAPURE_POOL_LINE{ 3 };
-		inline static const uint8_t SETAQUAPURE_SPA_LINE{ 4 };       // Spa % row on Set AquaPure (verified vs onetouch_chlorinator.cap)
 		inline static const uint8_t ONETOUCH_CHLORINATOR_STEP{ 5 };  // the OneTouch edits AquaPure % in 5% increments
+		// The Set AquaPure Pool-% row the value editor targets is OneTouchScraper::SETAQUAPURE_POOL_LINE.
 
 		std::optional<ValueEditGoal> m_PendingValueEdit;
 		ValueEditPhase m_ValueEditPhase{ ValueEditPhase::Navigating };
@@ -559,27 +504,11 @@ namespace AqualinkAutomate::Devices
 		KeyCommands m_KeyCommand_ToSend{ KeyCommands::NoKeyCommand };
 
 	private:
-		// Read-only sink for the controller's internal schedules parsed off the per-equipment
-		// Program detail pages (the /api/controller/schedules source). Resolved from the
-		// HubLocator in the constructor; null on a passive/test rig that registers no store.
-		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore;
-
-		// Accumulator for the controller schedules scraped across the per-equipment Program
-		// detail pages. The OneTouch, unlike the IAQ's single list page, shows ONE program at a
-		// time (one equipment, one "Pgm N of M"), so each detail-page visit adds/updates its
-		// entry here and the whole snapshot is republished to the store. Keyed by
-		// (target, program-index) so revisiting a page updates in place rather than duplicating,
-		// and the map iteration order gives a stable, sorted snapshot.
-		std::map<std::pair<std::string, int>, Scheduling::ControllerSchedule> m_ControllerSchedules;
-
-		// The active Program Group, if it has been read off the Program Group page during this
-		// crawl (empty otherwise). Stamped onto each schedule and passed to the store so the UI
-		// can show which group the snapshot belongs to.
-		std::string m_ControllerScheduleGroup;
-
-		// Parse a just-completed Program detail page, fold it into m_ControllerSchedules, and
-		// republish the accumulated snapshot to m_ControllerScheduleStore (status Available).
-		void PublishControllerSchedules(const Utility::ScreenDataPage& page);
+		// The read path: page + status processors, panel-config decode and controller-schedule
+		// accumulation. Created in the constructor with the shared DataHub + schedule store; its
+		// processors are registered into the Screen capability. Destroyed after the Screen base's
+		// processor closures are torn down (bases destruct last), which never invoke them.
+		std::unique_ptr<OneTouchScraper> m_Scraper;
 
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;
 	};
