@@ -128,6 +128,93 @@ namespace AqualinkAutomate::Options
 
 			return argv;
 		}
+
+		/// Body of the ParseConfigFile() transform, extracted so the returned
+		/// lambda stays small. Behaviour is identical to the inline lambda:
+		/// takes the pipeline State by value, reads/stores into its vm, and
+		/// returns the (possibly mutated) State or an OptionsParsingFailed error.
+		Result DoParseConfigFile(State state)
+		{
+			auto& [desc, vm, settings, validators] = state;
+
+			try
+			{
+				// If --config was not provided on the CLI, just notify and return.
+				if (!vm.count("config"))
+				{
+					boost::program_options::notify(vm);
+					return state;
+				}
+
+				auto config_path = std::filesystem::path(vm["config"].as<std::string>());
+
+				if (!std::filesystem::exists(config_path))
+				{
+					LogError(Channel::Options, std::format(
+						"Configuration file not found: {}", config_path.string()));
+					return std::unexpected(Error::OptionsParsingFailed);
+				}
+
+				LogInfo(Channel::Options, std::format(
+					"Loading configuration from: {}", config_path.string()));
+
+				// Read INI file
+				auto entries = ReadConfigFile(config_path);
+
+				// Build zero-token set from registered options
+				auto zero_token_set = BuildZeroTokenSet(*desc);
+
+				// Convert to synthetic argv
+				auto synthetic_argv = BuildSyntheticArgv(entries, zero_token_set);
+
+				// Build raw argv pointers
+				std::vector<const char*> raw_argv;
+				raw_argv.reserve(synthetic_argv.size());
+				for (const auto& arg : synthetic_argv)
+				{
+					raw_argv.push_back(arg.c_str());
+				}
+
+				// Parse with allow_unregistered to catch unknown keys
+				auto parsed = boost::program_options::command_line_parser(
+					static_cast<int>(raw_argv.size()),
+					const_cast<char**>(raw_argv.data()))
+					.options(*desc)
+					.allow_unregistered()
+					.run();
+
+				// Log warnings for unrecognized options
+				auto unrecognized = boost::program_options::collect_unrecognized(
+					parsed.options, boost::program_options::include_positional);
+				for (const auto& unknown : unrecognized)
+				{
+					LogWarning(Channel::Options, std::format(
+						"Config file: unrecognized option '{}'", unknown));
+				}
+
+				// Store into vm (first-write-wins: CLI values already present take precedence)
+				boost::program_options::store(parsed, vm);
+				boost::program_options::notify(vm);
+
+				return state;
+			}
+			catch (const boost::program_options::error& e)
+			{
+				// boost::program_options::error is the common base of every
+				// parser/store/notify failure (unknown option, invalid value,
+				// ambiguous option, multiple occurrences, ...).
+				LogError(Channel::Options, std::format(
+					"Failed to parse configuration file: {}", e.what()));
+				return std::unexpected(Error::OptionsParsingFailed);
+			}
+			catch (const std::filesystem::filesystem_error& e)
+			{
+				// path construction / exists() query on the config path.
+				LogError(Channel::Options, std::format(
+					"Failed to parse configuration file: {}", e.what()));
+				return std::unexpected(Error::OptionsParsingFailed);
+			}
+		}
 	}
 	// anonymous namespace
 
@@ -135,85 +222,7 @@ namespace AqualinkAutomate::Options
 	{
 		return [](State state) -> Result
 			{
-				auto& [desc, vm, settings, validators] = state;
-
-				try
-				{
-					// If --config was not provided on the CLI, just notify and return.
-					if (!vm.count("config"))
-					{
-						boost::program_options::notify(vm);
-						return state;
-					}
-
-					auto config_path = std::filesystem::path(vm["config"].as<std::string>());
-
-					if (!std::filesystem::exists(config_path))
-					{
-						LogError(Channel::Options, std::format(
-							"Configuration file not found: {}", config_path.string()));
-						return std::unexpected(Error::OptionsParsingFailed);
-					}
-
-					LogInfo(Channel::Options, std::format(
-						"Loading configuration from: {}", config_path.string()));
-
-					// Read INI file
-					auto entries = ReadConfigFile(config_path);
-
-					// Build zero-token set from registered options
-					auto zero_token_set = BuildZeroTokenSet(*desc);
-
-					// Convert to synthetic argv
-					auto synthetic_argv = BuildSyntheticArgv(entries, zero_token_set);
-
-					// Build raw argv pointers
-					std::vector<const char*> raw_argv;
-					raw_argv.reserve(synthetic_argv.size());
-					for (const auto& arg : synthetic_argv)
-					{
-						raw_argv.push_back(arg.c_str());
-					}
-
-					// Parse with allow_unregistered to catch unknown keys
-					auto parsed = boost::program_options::command_line_parser(
-						static_cast<int>(raw_argv.size()),
-						const_cast<char**>(raw_argv.data()))
-						.options(*desc)
-						.allow_unregistered()
-						.run();
-
-					// Log warnings for unrecognized options
-					auto unrecognized = boost::program_options::collect_unrecognized(
-						parsed.options, boost::program_options::include_positional);
-					for (const auto& unknown : unrecognized)
-					{
-						LogWarning(Channel::Options, std::format(
-							"Config file: unrecognized option '{}'", unknown));
-					}
-
-					// Store into vm (first-write-wins: CLI values already present take precedence)
-					boost::program_options::store(parsed, vm);
-					boost::program_options::notify(vm);
-
-					return state;
-				}
-				catch (const boost::program_options::error& e)
-				{
-					// boost::program_options::error is the common base of every
-					// parser/store/notify failure (unknown option, invalid value,
-					// ambiguous option, multiple occurrences, ...).
-					LogError(Channel::Options, std::format(
-						"Failed to parse configuration file: {}", e.what()));
-					return std::unexpected(Error::OptionsParsingFailed);
-				}
-				catch (const std::filesystem::filesystem_error& e)
-				{
-					// path construction / exists() query on the config path.
-					LogError(Channel::Options, std::format(
-						"Failed to parse configuration file: {}", e.what()));
-					return std::unexpected(Error::OptionsParsingFailed);
-				}
+				return DoParseConfigFile(std::move(state));
 			};
 	}
 

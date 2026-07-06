@@ -92,6 +92,11 @@ namespace AqualinkAutomate::Devices::OneTouch
 
 		static constexpr uint32_t STEP_LIMIT{ 500 };
 
+		// The Boost Pool page shows "Time Remaining" while a boost is running.
+		static bool BoostIsRunning(const KeypadContext& ctx);
+		// Per-phase handlers: nullopt = keep running (fall through to GoalStatus::Running).
+		std::optional<GoalStatus> HandleNavigating(KeypadContext& ctx);
+
 		bool m_Start;   // true = start boost, false = stop
 		std::string m_Desc;
 		Phase m_Phase{ Phase::Navigating };
@@ -126,6 +131,13 @@ namespace AqualinkAutomate::Devices::OneTouch
 		static constexpr uint32_t STEP_LIMIT{ 800 };   // menu walk + up to a full picker cycle
 		static constexpr uint32_t MAX_SCROLL{ 40 };
 		static constexpr uint8_t PICKER_FUNCTION_LINE{ 3 };
+
+		// Per-phase handlers: nullopt = keep running (fall through to GoalStatus::Running).
+		std::optional<GoalStatus> HandleToSystemSetup(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleSelectSpaSwitch(KeypadContext& ctx);
+		std::optional<GoalStatus> HandlePassNumberPage(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleToRow(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleCyclePicker(KeypadContext& ctx);
 
 		uint8_t m_SwitchNumber;
 		uint8_t m_ButtonNumber;
@@ -199,6 +211,14 @@ namespace AqualinkAutomate::Devices::OneTouch
 		// Closed-loop hour/minute wheel steppers: nullopt = keep running, Failed = abandon.
 		std::optional<GoalStatus> StepHour(KeypadContext& ctx, uint8_t line, int target_hour, Phase next);
 		std::optional<GoalStatus> StepMinute(KeypadContext& ctx, uint8_t line, int target_minute, Phase next);
+
+		// Per-phase handlers: nullopt = keep running (fall through to GoalStatus::Running).
+		std::optional<GoalStatus> HandleToProgramMenu(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleSelectEquipment(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleChooseAction(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleSetDays(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleVerify(KeypadContext& ctx);
+		std::optional<GoalStatus> HandleVerifyGone(KeypadContext& ctx);
 
 		ScheduleWriteOp m_Op;
 		Scheduling::ControllerSchedule m_Program;   // the program to write (create/edit) / locate (delete)

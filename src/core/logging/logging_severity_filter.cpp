@@ -28,7 +28,11 @@ namespace AqualinkAutomate::Logging
 				return table;
 			}
 
-			std::array<Severity, CHANNEL_COUNT> MinimumSeverityLevelPerChannel = MakeDefaultSeverityTable();
+			std::array<Severity, CHANNEL_COUNT>& MinimumSeverityLevelPerChannel()
+			{
+				static std::array<Severity, CHANNEL_COUNT> table = MakeDefaultSeverityTable();
+				return table;
+			}
 
 			[[nodiscard]] std::size_t ChannelIndex(Channel channel_id) noexcept
 			{
@@ -52,17 +56,17 @@ namespace AqualinkAutomate::Logging
 
 		void SetChannelFilterLevel(Channel channel, Severity severity)
 		{
-			MinimumSeverityLevelPerChannel[ChannelIndex(channel)] = severity;
+			MinimumSeverityLevelPerChannel()[ChannelIndex(channel)] = severity;
 		}
 
 		Severity GetChannelFilterLevel(Channel channel)
 		{
-			return MinimumSeverityLevelPerChannel[ChannelIndex(channel)];
+			return MinimumSeverityLevelPerChannel()[ChannelIndex(channel)];
 		}
 
 		bool ShouldLog(Channel channel_id, Severity severity_level)
 		{
-			return severity_level >= MinimumSeverityLevelPerChannel[ChannelIndex(channel_id)];
+			return severity_level >= MinimumSeverityLevelPerChannel()[ChannelIndex(channel_id)];
 		}
 
 		bool PerChannelTest(boost::log::value_ref<Channel, tag::channel> const& channel, boost::log::value_ref<Severity, tag::severity> const& severity)
@@ -73,7 +77,7 @@ namespace AqualinkAutomate::Logging
 				return (severity ? (*severity >= GetChannelFilterLevel(DEFAULT_CHANNEL)) : true);
 			}
 
-			return (*severity >= MinimumSeverityLevelPerChannel[ChannelIndex(*channel)]);
+			return (*severity >= MinimumSeverityLevelPerChannel()[ChannelIndex(*channel)]);
 		}
 	}
 	// namespace SeverityFiltering

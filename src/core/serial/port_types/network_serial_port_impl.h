@@ -72,6 +72,11 @@ namespace AqualinkAutomate::Serial::PortTypes
 		std::unique_ptr<Interfaces::ISerialPortProtocol> CreateProtocolHandler();
 		std::unique_ptr<Interfaces::ISerialPortProtocol> m_ProtocolHandler;
 
+		// Configure a freshly-connected socket (non-blocking mode, TCP_NODELAY) and
+		// initialise the protocol handler.  Extracted from open() so the connect
+		// success path does not nest control flow too deeply.
+		void InitialiseConnectedSocket(const std::string& endpoint_name, boost::system::error_code& ec);
+
 	private:
 		Profiling::DomainPtr m_ProfilingDomain;
 	};

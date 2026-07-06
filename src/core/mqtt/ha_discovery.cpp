@@ -577,6 +577,33 @@ namespace AqualinkAutomate::Mqtt
 		}
 	}
 
+	void HomeAssistantDiscovery::AddDeviceSwitch(nlohmann::json& cmps, TopicScheme::DeviceCategory category,
+		const std::shared_ptr<Kernel::AuxillaryDevice>& dev,
+		const std::string& state_on, const std::string& state_off)
+	{
+		auto label = DeviceLabel(dev);
+		if (!label.has_value())
+		{
+			return;
+		}
+
+		auto slug = Slugify(label.value());
+		auto key = std::format("{}_{}", TopicScheme::CategoryName(category), slug);
+		auto state_topic = m_Client->BuildTopic(TopicScheme::DeviceStateSubtopic(category, slug));
+
+		cmps[key] = {
+			{"p", "switch"},
+			{"name", label.value()},
+			{"unique_id", UniqueId(key)},
+			{"state_topic", state_topic},
+			{"command_topic", DeviceCommandTopic(slug)},
+			{"payload_on", "ON"},
+			{"payload_off", "OFF"},
+			{"state_on", state_on},
+			{"state_off", state_off}
+		};
+	}
+
 	void HomeAssistantDiscovery::AddDynamicDeviceComponents(nlohmann::json& cmps)
 	{
 		auto data_hub = m_DataHub.lock();
@@ -588,27 +615,7 @@ namespace AqualinkAutomate::Mqtt
 		auto add_switch = [&](TopicScheme::DeviceCategory category, const std::shared_ptr<Kernel::AuxillaryDevice>& dev,
 			const std::string& state_on, const std::string& state_off)
 		{
-			auto label = DeviceLabel(dev);
-			if (!label.has_value())
-			{
-				return;
-			}
-
-			auto slug = Slugify(label.value());
-			auto key = std::format("{}_{}", TopicScheme::CategoryName(category), slug);
-			auto state_topic = m_Client->BuildTopic(TopicScheme::DeviceStateSubtopic(category, slug));
-
-			cmps[key] = {
-				{"p", "switch"},
-				{"name", label.value()},
-				{"unique_id", UniqueId(key)},
-				{"state_topic", state_topic},
-				{"command_topic", DeviceCommandTopic(slug)},
-				{"payload_on", "ON"},
-				{"payload_off", "OFF"},
-				{"state_on", state_on},
-				{"state_off", state_off}
-			};
+			AddDeviceSwitch(cmps, category, dev, state_on, state_off);
 		};
 
 		auto add_sensor = [&](TopicScheme::DeviceCategory category, const std::shared_ptr<Kernel::AuxillaryDevice>& dev)

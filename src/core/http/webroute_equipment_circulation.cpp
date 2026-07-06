@@ -46,35 +46,40 @@ namespace AqualinkAutomate::HTTP
 
 		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&req, this](const nlohmann::json& payload)
 		{
-			try
-			{
-				if (!payload.contains("mode") || !payload["mode"].is_string())
-				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "missing string field 'mode' (pool|spa|spillover)");
-				}
-
-				const auto mode_str = payload["mode"].get<std::string>();
-				const auto mode = ParseMode(mode_str);
-				if (!mode.has_value())
-				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "'mode' must be one of pool, spa, spillover");
-				}
-
-				const auto r = m_CommandDispatcher->SetCirculationMode(mode.value());
-
-				nlohmann::json result = {
-					{ "mode", mode_str },
-					{ "status", r == CommandResult::Success ? "success" : "error" }
-				};
-
-				return MakeJsonResponse(req, StatusForCommandResult(r), result.dump());
-			}
-			catch (const nlohmann::json::exception& ex)
-			{
-				LogWarning(Channel::Web, std::format("Circulation POST: JSON access error: {}", ex.what()));
-				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "invalid circulation payload");
-			}
+			return HandleCirculationCommand(req, payload);
 		});
+	}
+
+	HTTP::Response WebRoute_Equipment_Circulation::HandleCirculationCommand(const HTTP::Request& req, const nlohmann::json& payload)
+	{
+		try
+		{
+			if (!payload.contains("mode") || !payload["mode"].is_string())
+			{
+				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "missing string field 'mode' (pool|spa|spillover)");
+			}
+
+			const auto mode_str = payload["mode"].get<std::string>();
+			const auto mode = ParseMode(mode_str);
+			if (!mode.has_value())
+			{
+				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "'mode' must be one of pool, spa, spillover");
+			}
+
+			const auto r = m_CommandDispatcher->SetCirculationMode(mode.value());
+
+			nlohmann::json result = {
+				{ "mode", mode_str },
+				{ "status", r == CommandResult::Success ? "success" : "error" }
+			};
+
+			return MakeJsonResponse(req, StatusForCommandResult(r), result.dump());
+		}
+		catch (const nlohmann::json::exception& ex)
+		{
+			LogWarning(Channel::Web, std::format("Circulation POST: JSON access error: {}", ex.what()));
+			return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "invalid circulation payload");
+		}
 	}
 
 }

@@ -57,6 +57,59 @@ namespace AqualinkAutomate::Scheduling
 			minute = mv;
 			return true;
 		}
+
+		// Parse and validate the "action" object into schedule.action. Returns false and sets error on failure.
+		bool ParseAction(const nlohmann::json& action_json, Schedule& schedule, std::string& error)
+		{
+			auto type = ActionTypeFromString(action_json.value("type", std::string{}));
+			if (!type.has_value())
+			{
+				error = "action.type is unknown";
+				return false;
+			}
+			schedule.action.type = type.value();
+
+			if (IsButtonAction(*type))
+			{
+				schedule.action.target = action_json.value("target", std::string{});
+				if (schedule.action.target.empty())
+				{
+					error = "action.target (device label) is required for button actions";
+					return false;
+				}
+			}
+			else if (*type == ActionType::CirculationMode)
+			{
+				schedule.action.target = action_json.value("target", std::string{});
+				if (!magic_enum::enum_cast<Kernel::CirculationModes>(schedule.action.target).has_value())
+				{
+					error = "action.target is not a valid circulation mode";
+					return false;
+				}
+			}
+			else
+			{
+				if (!action_json.contains("value") || !action_json["value"].is_number_integer())
+				{
+					error = "action.value (integer) is required";
+					return false;
+				}
+				schedule.action.value = action_json["value"].get<int>();
+
+				if (IsSetpointAction(*type) && (schedule.action.value < 1 || schedule.action.value > 104))
+				{
+					error = "setpoint value must be 1..104";
+					return false;
+				}
+				if (*type == ActionType::ChlorinatorPercent && (schedule.action.value < 0 || schedule.action.value > 100))
+				{
+					error = "chlorinator_percent value must be 0..100";
+					return false;
+				}
+			}
+
+			return true;
+		}
 	}
 	// unnamed namespace
 
@@ -144,53 +197,10 @@ namespace AqualinkAutomate::Scheduling
 			error = "action object is required";
 			return std::nullopt;
 		}
-		const auto& action_json = json["action"];
 
-		auto type = ActionTypeFromString(action_json.value("type", std::string{}));
-		if (!type.has_value())
+		if (!ParseAction(json["action"], schedule, error))
 		{
-			error = "action.type is unknown";
 			return std::nullopt;
-		}
-		schedule.action.type = type.value();
-
-		if (IsButtonAction(*type))
-		{
-			schedule.action.target = action_json.value("target", std::string{});
-			if (schedule.action.target.empty())
-			{
-				error = "action.target (device label) is required for button actions";
-				return std::nullopt;
-			}
-		}
-		else if (*type == ActionType::CirculationMode)
-		{
-			schedule.action.target = action_json.value("target", std::string{});
-			if (!magic_enum::enum_cast<Kernel::CirculationModes>(schedule.action.target).has_value())
-			{
-				error = "action.target is not a valid circulation mode";
-				return std::nullopt;
-			}
-		}
-		else
-		{
-			if (!action_json.contains("value") || !action_json["value"].is_number_integer())
-			{
-				error = "action.value (integer) is required";
-				return std::nullopt;
-			}
-			schedule.action.value = action_json["value"].get<int>();
-
-			if (IsSetpointAction(*type) && (schedule.action.value < 1 || schedule.action.value > 104))
-			{
-				error = "setpoint value must be 1..104";
-				return std::nullopt;
-			}
-			if (*type == ActionType::ChlorinatorPercent && (schedule.action.value < 0 || schedule.action.value > 100))
-			{
-				error = "chlorinator_percent value must be 0..100";
-				return std::nullopt;
-			}
 		}
 
 		return schedule;

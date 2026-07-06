@@ -13,6 +13,30 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::Navigation
 {
 
+	namespace
+	{
+		// Reconstruct a path by walking predecessor edges back from the edge that first
+		// reached the destination to the BFS start, then reversing into forward order.
+		std::vector<const MenuEdge*> ReconstructPath(
+			const MenuEdge* reaching_edge,
+			const std::unordered_map<PageId, const MenuEdge*>& predecessor,
+			PageId from,
+			PageId to)
+		{
+			std::vector<const MenuEdge*> path;
+			for (const MenuEdge* e = reaching_edge; e != nullptr; e = predecessor.at(e->source))
+			{
+				path.push_back(e);
+			}
+			std::ranges::reverse(path);
+
+			LogDebug(Channel::Navigation, [&from, &to, &path] { return std::format("MenuModel: Found path from {} to {} with {} steps",
+				std::to_underlying(from), std::to_underlying(to), path.size()); });
+			return path;
+		}
+	}
+	// anonymous namespace
+
 	// =========================================================================
 	// MenuPage convenience methods
 	// =========================================================================
@@ -239,16 +263,7 @@ namespace AqualinkAutomate::Navigation
 				if (edge.target == to)
 				{
 					// Reconstruct the path by walking predecessors back to the start.
-					std::vector<const MenuEdge*> path;
-					for (const MenuEdge* e = &edge; e != nullptr; e = predecessor.at(e->source))
-					{
-						path.push_back(e);
-					}
-					std::ranges::reverse(path);
-
-					LogDebug(Channel::Navigation, [&from, &to, &path] { return std::format("MenuModel: Found path from {} to {} with {} steps",
-						std::to_underlying(from), std::to_underlying(to), path.size()); });
-					return path;
+					return ReconstructPath(&edge, predecessor, from, to);
 				}
 
 				queue.push(edge.target);

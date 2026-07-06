@@ -102,59 +102,14 @@ namespace AqualinkAutomate::HTTP
 		nlohmann::json result;
 		bool any_dispatch_failed = false;
 
-		// Returns std::nullopt on success; otherwise the bad-request response to send immediately.
-		auto convert_and_dispatch = [&](const std::string& key, auto dispatch_fn) -> std::optional<HTTP::Response>
-		{
-			if (!payload.contains(key))
-			{
-				return std::nullopt; // field not present = OK, skip
-			}
-
-			const auto& field = payload[key];
-			if (!field.is_number())
-			{
-				LogWarning(Channel::Web, std::format("Setpoints POST: '{}' field is not a number", key));
-				return MakeErrorResponse(req, HTTP::Status::bad_request, "setpoint_not_a_number", std::format("Setpoint '{}' must be a number", key), {{"target", key}});
-			}
-
-			double celsius = field.get<double>();
-
-			if (!std::isfinite(celsius) || (celsius < SETPOINT_CELSIUS_MIN) || (celsius > SETPOINT_CELSIUS_MAX))
-			{
-				LogWarning(Channel::Web, std::format("Setpoints POST: '{}' value {} out of range [{}, {}]", key, celsius, SETPOINT_CELSIUS_MIN, SETPOINT_CELSIUS_MAX));
-				return MakeErrorResponse(req, HTTP::Status::bad_request, "setpoint_out_of_range", std::format("Setpoint '{}' out of range", key), {{"target", key}, {"min", SETPOINT_CELSIUS_MIN}, {"max", SETPOINT_CELSIUS_MAX}});
-			}
-
-			// Convert to the system's configured units, then clamp to the uint8_t domain BEFORE the
-			// cast so an out-of-range double can never trigger undefined behaviour. The range check
-			// above already guarantees this, but the clamp is kept as defence-in-depth.
-			double wire_value = (m_DataHub->SystemTemperatureUnits() == Kernel::TemperatureUnits::Celsius)
-				? std::round(celsius)
-				: std::round(celsius * 9.0 / 5.0 + 32.0);
-
-			wire_value = std::clamp(wire_value, 0.0, 255.0);
-			auto temp_value = static_cast<uint8_t>(wire_value);
-
-			auto cmd_result = dispatch_fn(temp_value);
-			bool succeeded = (cmd_result == Interfaces::ICommandDispatcher::CommandResult::Success);
-			any_dispatch_failed = any_dispatch_failed || !succeeded;
-
-			result[key] = {
-				{"status", succeeded ? "success" : "error"},
-				{"celsius", celsius}
-			};
-
-			return std::nullopt;
-		};
-
 		try
 		{
-			if (auto err = convert_and_dispatch("pool", [this](uint8_t temp) { return m_CommandDispatcher->SetPoolSetpoint(temp); }); err.has_value())
+			if (auto err = ConvertAndDispatchSetpoint(req, payload, "pool", [this](uint8_t temp) { return m_CommandDispatcher->SetPoolSetpoint(temp); }, result, any_dispatch_failed); err.has_value())
 			{
 				return std::move(*err);
 			}
 
-			if (auto err = convert_and_dispatch("spa", [this](uint8_t temp) { return m_CommandDispatcher->SetSpaSetpoint(temp); }); err.has_value())
+			if (auto err = ConvertAndDispatchSetpoint(req, payload, "spa", [this](uint8_t temp) { return m_CommandDispatcher->SetSpaSetpoint(temp); }, result, any_dispatch_failed); err.has_value())
 			{
 				return std::move(*err);
 			}
@@ -176,6 +131,57 @@ namespace AqualinkAutomate::HTTP
 		resp.prepare_payload();
 
 		return resp;
+	}
+
+	// Returns std::nullopt on success; otherwise the bad-request response to send immediately.
+	std::optional<HTTP::Response> WebRoute_Equipment_Setpoints::ConvertAndDispatchSetpoint(
+		const HTTP::Request& req,
+		const nlohmann::json& payload,
+		const std::string& key,
+		const std::function<Interfaces::ICommandDispatcher::CommandResult(uint8_t)>& dispatch_fn,
+		nlohmann::json& result,
+		bool& any_dispatch_failed)
+	{
+		if (!payload.contains(key))
+		{
+			return std::nullopt; // field not present = OK, skip
+		}
+
+		const auto& field = payload[key];
+		if (!field.is_number())
+		{
+			LogWarning(Channel::Web, std::format("Setpoints POST: '{}' field is not a number", key));
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "setpoint_not_a_number", std::format("Setpoint '{}' must be a number", key), {{"target", key}});
+		}
+
+		double celsius = field.get<double>();
+
+		if (!std::isfinite(celsius) || (celsius < SETPOINT_CELSIUS_MIN) || (celsius > SETPOINT_CELSIUS_MAX))
+		{
+			LogWarning(Channel::Web, std::format("Setpoints POST: '{}' value {} out of range [{}, {}]", key, celsius, SETPOINT_CELSIUS_MIN, SETPOINT_CELSIUS_MAX));
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "setpoint_out_of_range", std::format("Setpoint '{}' out of range", key), {{"target", key}, {"min", SETPOINT_CELSIUS_MIN}, {"max", SETPOINT_CELSIUS_MAX}});
+		}
+
+		// Convert to the system's configured units, then clamp to the uint8_t domain BEFORE the
+		// cast so an out-of-range double can never trigger undefined behaviour. The range check
+		// above already guarantees this, but the clamp is kept as defence-in-depth.
+		double wire_value = (m_DataHub->SystemTemperatureUnits() == Kernel::TemperatureUnits::Celsius)
+			? std::round(celsius)
+			: std::round(celsius * 9.0 / 5.0 + 32.0);
+
+		wire_value = std::clamp(wire_value, 0.0, 255.0);
+		auto temp_value = static_cast<uint8_t>(wire_value);
+
+		auto cmd_result = dispatch_fn(temp_value);
+		bool succeeded = (cmd_result == Interfaces::ICommandDispatcher::CommandResult::Success);
+		any_dispatch_failed = any_dispatch_failed || !succeeded;
+
+		result[key] = {
+			{"status", succeeded ? "success" : "error"},
+			{"celsius", celsius}
+		};
+
+		return std::nullopt;
 	}
 
 }

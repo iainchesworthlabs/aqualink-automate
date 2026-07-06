@@ -13,6 +13,7 @@
 #include "kernel/data_hub.h"
 #include "kernel/preferences_hub.h"
 #include "mqtt/mqtt_client.h"
+#include "mqtt/mqtt_topic_scheme.h"
 #include "options/options_mqtt_options.h"
 
 
@@ -116,6 +117,12 @@ namespace AqualinkAutomate::Mqtt
 		void AddAlertComponents(nlohmann::json& cmps) const;
 
 		void AddDynamicDeviceComponents(nlohmann::json& cmps);
+
+		/// Add one writable `switch` entity for a labelled device (pump/chlorinator/auxiliary),
+		/// mapping its live state string to state_on/state_off. No-op for null/unlabelled devices.
+		void AddDeviceSwitch(nlohmann::json& cmps, TopicScheme::DeviceCategory category,
+			const std::shared_ptr<Kernel::AuxillaryDevice>& dev,
+			const std::string& state_on, const std::string& state_off);
 
 		/// Add the chlorinator's extra entities (generating %, boost, health, setpoint,
 		/// boost switch) that read the device's JSON status blob.

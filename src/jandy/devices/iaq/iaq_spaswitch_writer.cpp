@@ -104,6 +104,144 @@ namespace AqualinkAutomate::Devices::IAQ
 		return Capabilities::ActuationResult::Accepted;
 	}
 
+	// Issue one command this poll, then settle.
+	void SpaSwitchWriter::IssueAndSettle(ICommandSink& sink, uint8_t cmd)
+	{
+		sink.IssueCommand(cmd);
+		m_SettleCount = IAQ_SPASWITCH_SETTLE_POLLS;
+	}
+
+	// Tear down the goal (reads goal.desc BEFORE resetting -- callers return immediately after).
+	void SpaSwitchWriter::FinishGoal(ICommandSink& sink, bool ok, const Goal& goal, const JandyDeviceType& device_id)
+	{
+		if (ok) { LogInfo(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} completed", device_id, goal.desc); }); }
+		else    { LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} abandoned", device_id, goal.desc); }); }
+		sink.IssueCommand(0x00);
+		m_Pending.reset();
+		m_Phase = Phase::Navigate;
+		m_RowSelected = false;
+		m_ScrollCount = 0;
+		m_SettleCount = 0;
+		m_FirstPickerSeen.reset();
+	}
+
+	void SpaSwitchWriter::StepNavigate(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id)
+	{
+		(void)device_id;
+
+		// Page-GATED walk to the 4-Function detail (0x3b). Each hop waits (via settle + page-id
+		// re-evaluation) for the master to land on the next page before the following command.
+		switch (page.PageId())
+		{
+		case IAQ_PAGE_SPA_SWITCH_DETAIL:
+			m_Phase = Phase::SelectRow;   // arrived; act next poll
+			return;
+
+		case IAQ_PAGE_SPA_REMOTES:
+			IssueAndSettle(sink, IAQ_CMD_OPEN_SPASWITCH_DETAIL);         // 0x16 -> detail
+			return;
+
+		case IAQ_PAGE_SETUP:
+			if (auto idx = page.FindButtonByLabel("Spa Remotes"); idx.has_value())
+			{
+				IssueAndSettle(sink, static_cast<uint8_t>(IAQ_CMD_PAGE_BUTTON_BASE + idx.value()));
+			}
+			else
+			{
+				sink.IssueCommand(0x00);   // button not rendered yet; dwell one poll
+			}
+			return;
+
+		case IAQ_PAGE_MENU:
+			IssueAndSettle(sink, IAQ_CMD_MENU_TO_SETUP);                 // 0x15 -> Setup
+			return;
+
+		case IAQ_PAGE_HOME:
+		default:
+			IssueAndSettle(sink, IAQ_CMD_BACK);                          // HOME or unknown: unwind toward menu
+			return;
+		}
+	}
+
+	void SpaSwitchWriter::StepSelectRow(const PageModel& page, ICommandSink& sink, const Goal& goal)
+	{
+		if (page.PageId() != IAQ_PAGE_SPA_SWITCH_DETAIL)
+		{
+			m_Phase = Phase::Navigate;   // lost the page; re-navigate
+			return;
+		}
+		if (!m_RowSelected)
+		{
+			const uint32_t ordinal = static_cast<uint32_t>(goal.switch_number - 1) * 4u + goal.button_number;
+			IssueAndSettle(sink, static_cast<uint8_t>(IAQ_SPASWITCH_ROWSELECT_CMD_BASE + ordinal));   // 0x15 + ordinal
+			m_RowSelected = true;
+		}
+		m_Phase = Phase::FindFunction;
+		m_FirstPickerSeen.reset();
+	}
+
+	void SpaSwitchWriter::StepFindFunction(const PageModel& page, ICommandSink& sink, const Goal& goal,
+		const JandyDeviceType& device_id)
+	{
+		if (page.PageId() != IAQ_PAGE_SPA_SWITCH_DETAIL)
+		{
+			m_Phase = Phase::Navigate;
+			return;
+		}
+
+		// Target visible in the current picker page? Commit at its slot (0x1c + slot).
+		for (const auto& [slot, function] : page.SpaSwitchPickerRows())
+		{
+			if (Utility::EqualsCaseInsensitive(function, goal.function))
+			{
+				IssueAndSettle(sink, static_cast<uint8_t>(IAQ_SPASWITCH_COMMIT_CMD_BASE + slot));
+				m_Phase = Phase::Verify;
+				return;
+			}
+		}
+
+		// Not visible: scroll the picker, with wrap-detection (the first row repeating means we
+		// have cycled the whole list without finding F) and a hard scroll bound.
+		const std::string signature = page.SpaSwitchPickerRows().empty() ? std::string{} : page.SpaSwitchPickerRows().begin()->second;
+		if (!m_FirstPickerSeen.has_value())
+		{
+			m_FirstPickerSeen = signature;
+		}
+		else if (!signature.empty() && (m_ScrollCount > 0) && Utility::EqualsCaseInsensitive(signature, m_FirstPickerSeen.value()))
+		{
+			LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): function '{}' not offered by the picker for {}", device_id, goal.function, goal.row_tag); });
+			FinishGoal(sink, false, goal, device_id);
+			return;
+		}
+
+		if (++m_ScrollCount > IAQ_SPASWITCH_MAX_SCROLLS)
+		{
+			LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): exhausted picker scroll for {}", device_id, goal.row_tag); });
+			FinishGoal(sink, false, goal, device_id);
+			return;
+		}
+		IssueAndSettle(sink, IAQ_CMD_SCROLL_PICKER);   // 0x15
+	}
+
+	void SpaSwitchWriter::StepVerify(const PageModel& page, ICommandSink& sink, Kernel::DataHub* data_hub,
+		const Goal& goal, const JandyDeviceType& device_id)
+	{
+		(void)page;
+
+		// The commit press IS the save -- the master re-pushes the group-0x00 row, which the read
+		// path writes to the DataHub. Confirm it now reads the target function.
+		if (nullptr != data_hub)
+		{
+			if (auto live = data_hub->SpaSwitchAssignment(goal.switch_number, goal.button_number);
+				live.has_value() && Utility::EqualsCaseInsensitive(live.value(), goal.function))
+			{
+				FinishGoal(sink, true, goal, device_id);
+				return;
+			}
+		}
+		sink.IssueCommand(0x00);   // dwell until the row re-pushes (or the poll backstop fires)
+	}
+
 	void SpaSwitchWriter::ProcessStep(const PageModel& page, ICommandSink& sink, Kernel::DataHub* data_hub,
 		const JandyDeviceType& device_id)
 	{
@@ -115,24 +253,10 @@ namespace AqualinkAutomate::Devices::IAQ
 		}
 		const Goal& goal = m_Pending.value();
 
-		// Tear down the goal (reads goal.desc BEFORE resetting -- callers return immediately after).
-		auto finish = [&](bool ok)
-		{
-			if (ok) { LogInfo(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} completed", device_id, goal.desc); }); }
-			else    { LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} abandoned", device_id, goal.desc); }); }
-			sink.IssueCommand(0x00);
-			m_Pending.reset();
-			m_Phase = Phase::Navigate;
-			m_RowSelected = false;
-			m_ScrollCount = 0;
-			m_SettleCount = 0;
-			m_FirstPickerSeen.reset();
-		};
-
 		// Overall backstop: never spin forever on a bus that isn't behaving as decoded.
 		if (++m_PollCount > IAQ_SPASWITCH_POLL_LIMIT)
 		{
-			finish(false);
+			FinishGoal(sink, false, goal, device_id);
 			return;
 		}
 
@@ -145,133 +269,28 @@ namespace AqualinkAutomate::Devices::IAQ
 			return;
 		}
 
-		// Issue one command this poll, then settle.
-		auto issue = [&](uint8_t cmd)
-		{
-			sink.IssueCommand(cmd);
-			m_SettleCount = IAQ_SPASWITCH_SETTLE_POLLS;
-		};
-
 		switch (m_Phase)
 		{
 		case Phase::Navigate:
-		{
-			// Page-GATED walk to the 4-Function detail (0x3b). Each hop waits (via settle + page-id
-			// re-evaluation) for the master to land on the next page before the following command.
-			switch (page.PageId())
-			{
-			case IAQ_PAGE_SPA_SWITCH_DETAIL:
-				m_Phase = Phase::SelectRow;   // arrived; act next poll
-				return;
-
-			case IAQ_PAGE_SPA_REMOTES:
-				issue(IAQ_CMD_OPEN_SPASWITCH_DETAIL);                     // 0x16 -> detail
-				return;
-
-			case IAQ_PAGE_SETUP:
-				if (auto idx = page.FindButtonByLabel("Spa Remotes"); idx.has_value())
-				{
-					issue(static_cast<uint8_t>(IAQ_CMD_PAGE_BUTTON_BASE + idx.value()));
-				}
-				else
-				{
-					sink.IssueCommand(0x00);   // button not rendered yet; dwell one poll
-				}
-				return;
-
-			case IAQ_PAGE_MENU:
-				issue(IAQ_CMD_MENU_TO_SETUP);                            // 0x15 -> Setup
-				return;
-
-			case IAQ_PAGE_HOME:
-			default:
-				issue(IAQ_CMD_BACK);                                     // HOME or unknown: unwind toward menu
-				return;
-			}
-		}
+			StepNavigate(page, sink, device_id);
+			return;
 
 		case Phase::SelectRow:
-		{
-			if (page.PageId() != IAQ_PAGE_SPA_SWITCH_DETAIL)
-			{
-				m_Phase = Phase::Navigate;   // lost the page; re-navigate
-				return;
-			}
-			if (!m_RowSelected)
-			{
-				const uint32_t ordinal = static_cast<uint32_t>(goal.switch_number - 1) * 4u + goal.button_number;
-				issue(static_cast<uint8_t>(IAQ_SPASWITCH_ROWSELECT_CMD_BASE + ordinal));   // 0x15 + ordinal
-				m_RowSelected = true;
-			}
-			m_Phase = Phase::FindFunction;
-			m_FirstPickerSeen.reset();
+			StepSelectRow(page, sink, goal);
 			return;
-		}
 
 		case Phase::FindFunction:
-		{
-			if (page.PageId() != IAQ_PAGE_SPA_SWITCH_DETAIL)
-			{
-				m_Phase = Phase::Navigate;
-				return;
-			}
-
-			// Target visible in the current picker page? Commit at its slot (0x1c + slot).
-			for (const auto& [slot, function] : page.SpaSwitchPickerRows())
-			{
-				if (Utility::EqualsCaseInsensitive(function, goal.function))
-				{
-					issue(static_cast<uint8_t>(IAQ_SPASWITCH_COMMIT_CMD_BASE + slot));
-					m_Phase = Phase::Verify;
-					return;
-				}
-			}
-
-			// Not visible: scroll the picker, with wrap-detection (the first row repeating means we
-			// have cycled the whole list without finding F) and a hard scroll bound.
-			const std::string signature = page.SpaSwitchPickerRows().empty() ? std::string{} : page.SpaSwitchPickerRows().begin()->second;
-			if (!m_FirstPickerSeen.has_value())
-			{
-				m_FirstPickerSeen = signature;
-			}
-			else if (!signature.empty() && (m_ScrollCount > 0) && Utility::EqualsCaseInsensitive(signature, m_FirstPickerSeen.value()))
-			{
-				LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): function '{}' not offered by the picker for {}", device_id, goal.function, goal.row_tag); });
-				finish(false);
-				return;
-			}
-
-			if (++m_ScrollCount > IAQ_SPASWITCH_MAX_SCROLLS)
-			{
-				LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): exhausted picker scroll for {}", device_id, goal.row_tag); });
-				finish(false);
-				return;
-			}
-			issue(IAQ_CMD_SCROLL_PICKER);   // 0x15
+			StepFindFunction(page, sink, goal, device_id);
 			return;
-		}
 
 		case Phase::Verify:
-		{
-			// The commit press IS the save -- the master re-pushes the group-0x00 row, which the read
-			// path writes to the DataHub. Confirm it now reads the target function.
-			if (nullptr != data_hub)
-			{
-				if (auto live = data_hub->SpaSwitchAssignment(goal.switch_number, goal.button_number);
-					live.has_value() && Utility::EqualsCaseInsensitive(live.value(), goal.function))
-				{
-					finish(true);
-					return;
-				}
-			}
-			sink.IssueCommand(0x00);   // dwell until the row re-pushes (or the poll backstop fires)
+			StepVerify(page, sink, data_hub, goal, device_id);
 			return;
-		}
 
 		case Phase::Done:
 		case Phase::Failed:
 		default:
-			finish(m_Phase == Phase::Done);
+			FinishGoal(sink, m_Phase == Phase::Done, goal, device_id);
 			return;
 		}
 	}

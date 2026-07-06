@@ -24,6 +24,31 @@ namespace AqualinkAutomate::HTTP
 			resp.prepare_payload();
 			return resp;
 		}
+
+		void CompletePinLogin(unsigned version, bool keep_alive, WebRoute_AuthPin::AsyncCompletion& complete, Auth::KioskService::LoginResult result)
+		{
+			if (result.LockedOut)
+			{
+				auto resp = MakeJsonResponse(version, keep_alive, HTTP::Status::too_many_requests, { { "error", result.Error } });
+				resp.set(boost::beast::http::field::retry_after, "900");
+				complete(std::move(resp));
+				return;
+			}
+
+			if (!result.Success)
+			{
+				complete(MakeJsonResponse(version, keep_alive, HTTP::Status::unauthorized, { { "error", result.Error } }));
+				return;
+			}
+
+			complete(MakeJsonResponse(version, keep_alive, HTTP::Status::ok,
+				{
+					{ "access_token", result.AccessToken },
+					{ "refresh_token", result.RefreshToken },
+					{ "session_id", result.SessionId },
+					{ "token_type", "Bearer" }
+				}));
+		}
 	}
 	// anonymous namespace
 
@@ -70,27 +95,7 @@ namespace AqualinkAutomate::HTTP
 		m_Kiosk.LoginWithPin(std::move(pin), std::move(peer_ip), std::move(user_agent), m_Executor,
 			[version, keep_alive, complete = std::move(complete)](Auth::KioskService::LoginResult result) mutable
 			{
-				if (result.LockedOut)
-				{
-					auto resp = MakeJsonResponse(version, keep_alive, HTTP::Status::too_many_requests, { { "error", result.Error } });
-					resp.set(boost::beast::http::field::retry_after, "900");
-					complete(std::move(resp));
-					return;
-				}
-
-				if (!result.Success)
-				{
-					complete(MakeJsonResponse(version, keep_alive, HTTP::Status::unauthorized, { { "error", result.Error } }));
-					return;
-				}
-
-				complete(MakeJsonResponse(version, keep_alive, HTTP::Status::ok,
-					{
-						{ "access_token", result.AccessToken },
-						{ "refresh_token", result.RefreshToken },
-						{ "session_id", result.SessionId },
-						{ "token_type", "Bearer" }
-					}));
+				CompletePinLogin(version, keep_alive, complete, std::move(result));
 			});
 	}
 

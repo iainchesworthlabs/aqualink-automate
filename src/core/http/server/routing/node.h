@@ -311,226 +311,12 @@ namespace AqualinkAutomate::HTTP::Routing
 					continue;
 				}
 
-				// calculate the lower bound on the possible number of branches to determine if we need to branch.  We 
-				// branch when we might have more than one child matching node at this level.  If so, we need to potentially 
-				// branch to find which path leads to a valid resource. Otherwise, we can just consume the node and input 
-				// without any recursive function calls.
-				bool branch = false;
-				if (cur->child_idx.size() > 1)
-				{
-					int branches_lb = 0;
-					for (auto i : cur->child_idx)
-					{
-						auto& c = nodes_[i];
-						if (c.seg.is_literal() || !c.seg.has_modifier())
-						{
-							// a literal path counts only
-							// if it matches
-							branches_lb += c.seg.match(s);
-						}
-						else
-						{
-							// everything not matching
-							// a single path counts as
-							// more than one path already
-							branches_lb = 2;
-						}
-						if (branches_lb > 1)
-						{
-							// already know we need to
-							// branch
-							branch = true;
-							break;
-						}
-					}
-				}
-
-				// attempt to match each child node
-				node<HANDLER_TYPE> const* r = nullptr;
+				// attempt to match each child node against the current segment.
+				// match_children may advance cur to a matched literal child (setting
+				// match_any) or return a terminal match; the branch lower-bound is
+				// computed inside.
 				bool match_any = false;
-				for (auto i : cur->child_idx)
-				{
-					auto& c = nodes_[i];
-					if (c.seg.match(s))
-					{
-						if (c.seg.is_literal())
-						{
-							// just continue from the
-							// next segment
-							if (branch)
-							{
-								r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
-								if (r)
-								{
-									break;
-								}
-							}
-							else
-							{
-								cur = &c;
-								match_any = true;
-								break;
-							}
-						}
-						else if (!c.seg.has_modifier())
-						{
-							// just continue from the
-							// next segment
-							if (branch)
-							{
-								auto matches0 = matches;
-								auto ids0 = ids;
-								WriteCapture(matches, matches_end, *it);
-								WriteCapture(ids, ids_end, c.seg.id());
-								r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
-								if (r)
-								{
-									break;
-								}
-								else
-								{
-									// rewind
-									matches = matches0;
-									ids = ids0;
-								}
-							}
-							else
-							{
-								// only path possible
-								WriteCapture(matches, matches_end, *it);
-								WriteCapture(ids, ids_end, c.seg.id());
-								cur = &c;
-								match_any = true;
-								break;
-							}
-						}
-						else if (c.seg.is_optional())
-						{
-							// attempt to match by ignoring
-							// and not ignoring the segment.
-							// we first try the complete
-							// continuation consuming the
-							// input, which is the
-							// longest and most likely
-							// match
-							auto matches0 = matches;
-							auto ids0 = ids;
-							WriteCapture(matches, matches_end, *it);
-							WriteCapture(ids, ids_end, c.seg.id());
-							r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
-							if (r)
-							{
-								break;
-							}
-							// rewind
-							matches = matches0;
-							ids = ids0;
-							// try complete continuation
-							// consuming no segment
-							WriteCapture(matches, matches_end, {});
-							WriteCapture(ids, ids_end, c.seg.id());
-							r = try_match(it, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
-							if (r)
-								break;
-							// rewind
-							matches = matches0;
-							ids = ids0;
-						}
-						else
-						{
-							// check if the next segments
-							// won't send us to a parent
-							// directory
-							auto first = it;
-							std::size_t ndotdot = 0;
-							std::size_t nnondot = 0;
-							auto it1 = it;
-							while (it1 != end)
-							{
-								if (*it1 == "..")
-								{
-									++ndotdot;
-									if (ndotdot >= (nnondot + c.seg.is_star()))
-									{
-										break;
-									}
-								}
-								else if (*it1 != ".")
-								{
-									++nnondot;
-								}
-								++it1;
-							}
-							if (it1 != end)
-							{
-								break;
-							}
-
-							// attempt to match many
-							// segments
-							auto matches0 = matches;
-							auto ids0 = ids;
-							WriteCapture(matches, matches_end, *it);
-							WriteCapture(ids, ids_end, c.seg.id());
-
-							// if this is a plus seg, we
-							// already consumed the first
-							// segment
-							if (c.seg.is_plus())
-							{
-								++first;
-							}
-
-							// {*} is usually the last
-							// match in a path.
-							// try complete continuation
-							// match for every subrange
-							// from {last, last} to
-							// {first, last}.
-							// We also try {last, last}
-							// first because it is the
-							// longest match.
-							auto start = end;
-							while (start != first)
-							{
-								r = try_match(start, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
-								if (r)
-								{
-									// matches0 was claimed by the WriteCapture above; only
-									// coalesce the captured range when that slot is in bounds.
-									if (matches_end == nullptr || matches0 < matches_end)
-									{
-										std::string_view prev = *std::prev(start);
-										*matches0 = std::string_view{ matches0->data(), prev.data() + prev.size() };
-									}
-									break;
-								}
-
-								matches = matches0 + 1;
-								ids = ids0 + 1;
-								--start;
-							}
-
-							if (r)
-							{
-								break;
-							}
-
-							// start == first
-							matches = matches0 + 1;
-							ids = ids0 + 1;
-							r = try_match(start, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
-							if (r)
-							{
-								if (!c.seg.is_plus())
-								{
-									WriteCaptureAt(matches0, matches_end, std::string_view{});
-								}
-								break;
-							}
-						}
-					}
-				}
+				node<HANDLER_TYPE> const* r = match_children(s, it, end, cur, level, cursors, match_any);
 				// r represent we already found a terminal
 				// node which is a match
 				if (r)
@@ -565,6 +351,246 @@ namespace AqualinkAutomate::HTTP::Routing
 			}
 
 			return cur;
+		}
+
+		// Try to match the current segment s against the children of cur. Extracted
+		// verbatim from try_match's per-segment child-matching block to keep that
+		// function's cognitive complexity manageable; behaviour is identical.
+		//
+		// On a matched literal (or single) child, cur is advanced to that child and
+		// match_any is set true. On a terminal recursive match, the matching node is
+		// returned. Otherwise nullptr is returned with match_any left false (the
+		// caller then discounts a level). matches / ids advance and rewind exactly as
+		// before via the cursor references.
+		node<HANDLER_TYPE> const* match_children(boost::urls::pct_string_view s, boost::urls::segments_encoded_view::const_iterator it, boost::urls::segments_encoded_view::const_iterator end, node<HANDLER_TYPE> const*& cur, int level, MatchCursors cursors, bool& match_any) const
+		{
+			// Alias the bundled cursors so the body below reads exactly as before.
+			std::string_view*& matches = cursors.matches;
+			std::string_view*& ids = cursors.ids;
+			std::string_view* const matches_end = cursors.matches_end;
+			std::string_view* const ids_end = cursors.ids_end;
+
+			// calculate the lower bound on the possible number of branches to determine if we need to branch.  We
+			// branch when we might have more than one child matching node at this level.  If so, we need to potentially
+			// branch to find which path leads to a valid resource. Otherwise, we can just consume the node and input
+			// without any recursive function calls.
+			bool branch = false;
+			if (cur->child_idx.size() > 1)
+			{
+				int branches_lb = 0;
+				for (auto i : cur->child_idx)
+				{
+					auto& c = nodes_[i];
+					if (c.seg.is_literal() || !c.seg.has_modifier())
+					{
+						// a literal path counts only
+						// if it matches
+						branches_lb += c.seg.match(s);
+					}
+					else
+					{
+						// everything not matching
+						// a single path counts as
+						// more than one path already
+						branches_lb = 2;
+					}
+					if (branches_lb > 1)
+					{
+						// already know we need to
+						// branch
+						branch = true;
+						break;
+					}
+				}
+			}
+
+			// attempt to match each child node
+			node<HANDLER_TYPE> const* r = nullptr;
+			for (auto i : cur->child_idx)
+			{
+				auto& c = nodes_[i];
+				if (c.seg.match(s))
+				{
+					if (c.seg.is_literal())
+					{
+						// just continue from the
+						// next segment
+						if (branch)
+						{
+							r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
+							if (r)
+							{
+								break;
+							}
+						}
+						else
+						{
+							cur = &c;
+							match_any = true;
+							break;
+						}
+					}
+					else if (!c.seg.has_modifier())
+					{
+						// just continue from the
+						// next segment
+						if (branch)
+						{
+							auto matches0 = matches;
+							auto ids0 = ids;
+							WriteCapture(matches, matches_end, *it);
+							WriteCapture(ids, ids_end, c.seg.id());
+							r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
+							if (r)
+							{
+								break;
+							}
+							else
+							{
+								// rewind
+								matches = matches0;
+								ids = ids0;
+							}
+						}
+						else
+						{
+							// only path possible
+							WriteCapture(matches, matches_end, *it);
+							WriteCapture(ids, ids_end, c.seg.id());
+							cur = &c;
+							match_any = true;
+							break;
+						}
+					}
+					else if (c.seg.is_optional())
+					{
+						// attempt to match by ignoring
+						// and not ignoring the segment.
+						// we first try the complete
+						// continuation consuming the
+						// input, which is the
+						// longest and most likely
+						// match
+						auto matches0 = matches;
+						auto ids0 = ids;
+						WriteCapture(matches, matches_end, *it);
+						WriteCapture(ids, ids_end, c.seg.id());
+						r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
+						if (r)
+						{
+							break;
+						}
+						// rewind
+						matches = matches0;
+						ids = ids0;
+						// try complete continuation
+						// consuming no segment
+						WriteCapture(matches, matches_end, {});
+						WriteCapture(ids, ids_end, c.seg.id());
+						r = try_match(it, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
+						if (r)
+							break;
+						// rewind
+						matches = matches0;
+						ids = ids0;
+					}
+					else
+					{
+						// check if the next segments
+						// won't send us to a parent
+						// directory
+						auto first = it;
+						std::size_t ndotdot = 0;
+						std::size_t nnondot = 0;
+						auto it1 = it;
+						while (it1 != end)
+						{
+							if (*it1 == "..")
+							{
+								++ndotdot;
+								if (ndotdot >= (nnondot + c.seg.is_star()))
+								{
+									break;
+								}
+							}
+							else if (*it1 != ".")
+							{
+								++nnondot;
+							}
+							++it1;
+						}
+						if (it1 != end)
+						{
+							break;
+						}
+
+						// attempt to match many
+						// segments
+						auto matches0 = matches;
+						auto ids0 = ids;
+						WriteCapture(matches, matches_end, *it);
+						WriteCapture(ids, ids_end, c.seg.id());
+
+						// if this is a plus seg, we
+						// already consumed the first
+						// segment
+						if (c.seg.is_plus())
+						{
+							++first;
+						}
+
+						// {*} is usually the last
+						// match in a path.
+						// try complete continuation
+						// match for every subrange
+						// from {last, last} to
+						// {first, last}.
+						// We also try {last, last}
+						// first because it is the
+						// longest match.
+						auto start = end;
+						while (start != first)
+						{
+							r = try_match(start, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
+							if (r)
+							{
+								// matches0 was claimed by the WriteCapture above; only
+								// coalesce the captured range when that slot is in bounds.
+								if (matches_end == nullptr || matches0 < matches_end)
+								{
+									std::string_view prev = *std::prev(start);
+									*matches0 = std::string_view{ matches0->data(), prev.data() + prev.size() };
+								}
+								break;
+							}
+
+							matches = matches0 + 1;
+							ids = ids0 + 1;
+							--start;
+						}
+
+						if (r)
+						{
+							break;
+						}
+
+						// start == first
+						matches = matches0 + 1;
+						ids = ids0 + 1;
+						r = try_match(start, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
+						if (r)
+						{
+							if (!c.seg.is_plus())
+							{
+								WriteCaptureAt(matches0, matches_end, std::string_view{});
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			return r;
 		}
 
 		static node<HANDLER_TYPE> const* find_optional_resource(const node<HANDLER_TYPE>* root, std::vector<node<HANDLER_TYPE>> const& ns, std::string_view*& matches, std::string_view*& ids, std::string_view* matches_end, std::string_view* ids_end)

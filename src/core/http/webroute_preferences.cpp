@@ -60,6 +60,88 @@ namespace AqualinkAutomate::HTTP
 	{
 	}
 
+	std::string WebRoute_Preferences::BuildMergedView(const Auth::Subject& subject, bool per_user_active) const
+	{
+		nlohmann::json view = m_Service->ToJson();
+		EnsurePerUserDefaults(view);
+
+		if (per_user_active)
+		{
+			// Overlay the caller's overrides on the LIVE global values.
+			// Bind the returned json to a named local FIRST: Overrides()
+			// returns by value, and iterating `.items()` on the temporary is
+			// a use-after-free — the temporary is destroyed at the end of the
+			// full-expression, before the loop body runs, so the iteration
+			// proxy dangles (a documented nlohmann pitfall).
+			const nlohmann::json overrides = m_UserPrefs->Overrides(subject.Id);
+			for (const auto& [key, value] : overrides.items())
+			{
+				view[key] = value;
+			}
+		}
+
+		return view.dump();
+	}
+
+	HTTP::Response WebRoute_Preferences::HandlePutRequest(const HTTP::Request& req, const Auth::Subject& subject, bool per_user_active)
+	{
+		auto json = nlohmann::json::parse(req.body(), nullptr, /*allow_exceptions=*/false);
+		if (!json.is_object())
+		{
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
+		}
+
+		if (!per_user_active)
+		{
+			// Auth off (or no per-user store): historical behaviour — the
+			// whole document goes to the global service, which picks out the
+			// fields it knows (units, ui, alert, ...) and ignores the rest.
+			std::string error;
+			std::string error_code;
+			if (!m_Service->ApplyJson(json, error, error_code))
+			{
+				return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
+			}
+			return MakeJsonResponse(req, HTTP::Status::ok, BuildMergedView(subject, per_user_active));
+		}
+
+		// Split the document: per-user fields go to the caller's slice; any
+		// system/admin field requires the system.admin entitlement.
+		nlohmann::json user_fields = nlohmann::json::object();
+		nlohmann::json system_fields = nlohmann::json::object();
+
+		for (const auto& [key, value] : json.items())
+		{
+			(IsPerUserKey(key) ? user_fields : system_fields)[key] = value;
+		}
+
+		if (!system_fields.empty())
+		{
+			if (!subject.Entitlements.Permits(Auth::Vocabulary::SYSTEM_ADMIN))
+			{
+				return MakeErrorResponse(req, HTTP::Status::forbidden, "admin_required", "system preferences require administrator access");
+			}
+
+			std::string error;
+			std::string error_code;
+			if (!m_Service->ApplyJson(system_fields, error, error_code))
+			{
+				return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
+			}
+		}
+
+		if (!user_fields.empty())
+		{
+			std::string error;
+			if (!m_UserPrefs->Apply(subject.Id, user_fields, error))
+			{
+				return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_preferences", error);
+			}
+		}
+
+		return MakeJsonResponse(req, HTTP::Status::ok, BuildMergedView(subject, per_user_active));
+	}
+
 	HTTP::Response WebRoute_Preferences::OnRequest(const HTTP::Request& req)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("WebRoute_Preferences::OnRequest", std::source_location::current());
@@ -76,92 +158,13 @@ namespace AqualinkAutomate::HTTP
 		// the route behaves exactly as it did historically (all global).
 		const bool per_user_active = Routing::GetSecurityConfig().AuthModeEnabled && (nullptr != m_UserPrefs) && subject.Authenticated;
 
-		const auto merged_view = [&]()
-		{
-			nlohmann::json view = m_Service->ToJson();
-			EnsurePerUserDefaults(view);
-
-			if (per_user_active)
-			{
-				// Overlay the caller's overrides on the LIVE global values.
-				// Bind the returned json to a named local FIRST: Overrides()
-				// returns by value, and iterating `.items()` on the temporary is
-				// a use-after-free — the temporary is destroyed at the end of the
-				// full-expression, before the loop body runs, so the iteration
-				// proxy dangles (a documented nlohmann pitfall).
-				const nlohmann::json overrides = m_UserPrefs->Overrides(subject.Id);
-				for (const auto& [key, value] : overrides.items())
-				{
-					view[key] = value;
-				}
-			}
-
-			return view;
-		};
-
 		switch (req.method())
 		{
 		case HTTP::Verbs::get:
-			return MakeJsonResponse(req, HTTP::Status::ok, merged_view().dump());
+			return MakeJsonResponse(req, HTTP::Status::ok, BuildMergedView(subject, per_user_active));
 
 		case HTTP::Verbs::put:
-		{
-			auto json = nlohmann::json::parse(req.body(), nullptr, /*allow_exceptions=*/false);
-			if (!json.is_object())
-			{
-				return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
-			}
-
-			if (!per_user_active)
-			{
-				// Auth off (or no per-user store): historical behaviour — the
-				// whole document goes to the global service, which picks out the
-				// fields it knows (units, ui, alert, ...) and ignores the rest.
-				std::string error;
-				std::string error_code;
-				if (!m_Service->ApplyJson(json, error, error_code))
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
-				}
-				return MakeJsonResponse(req, HTTP::Status::ok, merged_view().dump());
-			}
-
-			// Split the document: per-user fields go to the caller's slice; any
-			// system/admin field requires the system.admin entitlement.
-			nlohmann::json user_fields = nlohmann::json::object();
-			nlohmann::json system_fields = nlohmann::json::object();
-
-			for (const auto& [key, value] : json.items())
-			{
-				(IsPerUserKey(key) ? user_fields : system_fields)[key] = value;
-			}
-
-			if (!system_fields.empty())
-			{
-				if (!subject.Entitlements.Permits(Auth::Vocabulary::SYSTEM_ADMIN))
-				{
-					return MakeErrorResponse(req, HTTP::Status::forbidden, "admin_required", "system preferences require administrator access");
-				}
-
-				std::string error;
-				std::string error_code;
-				if (!m_Service->ApplyJson(system_fields, error, error_code))
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
-				}
-			}
-
-			if (!user_fields.empty())
-			{
-				std::string error;
-				if (!m_UserPrefs->Apply(subject.Id, user_fields, error))
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_preferences", error);
-				}
-			}
-
-			return MakeJsonResponse(req, HTTP::Status::ok, merged_view().dump());
-		}
+			return HandlePutRequest(req, subject, per_user_active);
 
 		default:
 			return HTTP::Responses::Response_405(req);

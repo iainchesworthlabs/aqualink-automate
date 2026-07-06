@@ -305,6 +305,54 @@ namespace AqualinkAutomate::HTTP::Routing
 			return {};
 		}
 
+		// Bearer-token leg of EvaluateSecurity (legacy shared token). Extracted so the
+		// outer function's cognitive complexity stays within bounds; behaviour is
+		// identical. Returns a rejection response when the request is denied, or
+		// std::nullopt when this leg permits it. Assumes the caller has already
+		// confirmed cfg.AuthToken.has_value() && !cfg.AuthModeEnabled.
+		[[nodiscard]] std::optional<HTTP::Response> EvaluateBearerToken(const HTTP::Request& req, bool is_websocket_upgrade, std::string_view peer_ip, const SecurityConfig& cfg)
+		{
+			// Brute-force throttle: a source that has failed auth too many times
+			// recently is refused with 429 before the token is even examined.
+			if (auth_rate_limiter.IsBanned(peer_ip))
+			{
+				LogWarning(Channel::Web, [&is_websocket_upgrade, &peer_ip] { return std::format("Rejected {} request from rate-limited source '{}'", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP", peer_ip); });
+				auto throttled = MakeSecurityResponse(req, HTTP::Status::too_many_requests, "Too many failed authentication attempts; try again later.");
+				throttled.set(boost::beast::http::field::retry_after, "60");
+				return throttled;
+			}
+
+			static constexpr std::string_view BEARER_PREFIX{ "Bearer " };
+
+			const std::string_view header = HeaderValue(req, boost::beast::http::field::authorization);
+
+			bool authorised = false;
+			if (header.starts_with(BEARER_PREFIX))
+			{
+				const std::string_view presented = header.substr(BEARER_PREFIX.size());
+				authorised = ConstantTimeEquals(presented, *cfg.AuthToken);
+			}
+
+			// Browsers cannot attach an Authorization header to a WebSocket
+			// upgrade, so for upgrades also accept the token carried in the
+			// Sec-WebSocket-Protocol header as a `bearer.<token>` entry.
+			if (!authorised && is_websocket_upgrade)
+			{
+				authorised = WebSocketSubprotocolTokenMatches(req, *cfg.AuthToken);
+			}
+
+			if (!authorised)
+			{
+				auth_rate_limiter.RecordFailure(peer_ip);
+				LogWarning(Channel::Web, [&is_websocket_upgrade] { return std::format("Rejected unauthenticated {} request (missing/invalid bearer token)", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP"); });
+				return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
+			}
+
+			// A genuine success clears any accumulated failures for this source.
+			auth_rate_limiter.RecordSuccess(peer_ip);
+			return std::nullopt;
+		}
+
 		// Evaluate the active SecurityConfig against a parsed request. Returns the
 		// rejection response to send when the request is denied, or std::nullopt when
 		// it is permitted. Shared by the HTTP and WebSocket-upgrade paths so both
@@ -340,44 +388,10 @@ namespace AqualinkAutomate::HTTP::Routing
 			// enforcement happens in EvaluateAccess via the PolicyEngine instead.
 			if (cfg.AuthToken.has_value() && !cfg.AuthModeEnabled)
 			{
-				// Brute-force throttle: a source that has failed auth too many times
-				// recently is refused with 429 before the token is even examined.
-				if (auth_rate_limiter.IsBanned(peer_ip))
+				if (auto rejection = EvaluateBearerToken(req, is_websocket_upgrade, peer_ip, cfg); rejection.has_value())
 				{
-					LogWarning(Channel::Web, [&is_websocket_upgrade, &peer_ip] { return std::format("Rejected {} request from rate-limited source '{}'", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP", peer_ip); });
-					auto throttled = MakeSecurityResponse(req, HTTP::Status::too_many_requests, "Too many failed authentication attempts; try again later.");
-					throttled.set(boost::beast::http::field::retry_after, "60");
-					return throttled;
+					return rejection;
 				}
-
-				static constexpr std::string_view BEARER_PREFIX{ "Bearer " };
-
-				const std::string_view header = HeaderValue(req, boost::beast::http::field::authorization);
-
-				bool authorised = false;
-				if (header.starts_with(BEARER_PREFIX))
-				{
-					const std::string_view presented = header.substr(BEARER_PREFIX.size());
-					authorised = ConstantTimeEquals(presented, *cfg.AuthToken);
-				}
-
-				// Browsers cannot attach an Authorization header to a WebSocket
-				// upgrade, so for upgrades also accept the token carried in the
-				// Sec-WebSocket-Protocol header as a `bearer.<token>` entry.
-				if (!authorised && is_websocket_upgrade)
-				{
-					authorised = WebSocketSubprotocolTokenMatches(req, *cfg.AuthToken);
-				}
-
-				if (!authorised)
-				{
-					auth_rate_limiter.RecordFailure(peer_ip);
-					LogWarning(Channel::Web, [&is_websocket_upgrade] { return std::format("Rejected unauthenticated {} request (missing/invalid bearer token)", is_websocket_upgrade ? "WebSocket upgrade" : "HTTP"); });
-					return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
-				}
-
-				// A genuine success clears any accumulated failures for this source.
-				auth_rate_limiter.RecordSuccess(peer_ip);
 			}
 
 			// --- CSRF mitigation for state-changing requests ---
@@ -443,6 +457,39 @@ namespace AqualinkAutomate::HTTP::Routing
 			}
 
 			return MakeSecurityResponse(req, HTTP::Status::forbidden, "Forbidden: not entitled.");
+		}
+
+		// Build the response for a request that matched no registered route and no
+		// static asset. Extracted from HTTP_OnRequestDispatch to keep that function's
+		// cognitive complexity within bounds; behaviour (including side effects and
+		// their order: security evaluation, subject resolution, profiler message, and
+		// the debug logs) is identical.
+		[[nodiscard]] HTTP::Message BuildUnmatchedPathResponse(const HTTP::Request& req, std::string_view peer_ip)
+		{
+			// Unmatched path -> still enforce security so an unknown path under
+			// /api answers 401 (not 404) when a token is required.
+			if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
+			{
+				return std::move(*rejection);
+			}
+
+			// Same non-leak rule under the identity system: an unauthenticated
+			// subject probing an unknown path under /api gets 401 (not 404) so the
+			// route surface is not enumerable without credentials.
+			if (security_config.AuthModeEnabled)
+			{
+				current_subject = ResolveSubject(req, false);
+
+				if (!current_subject.Authenticated && ToStringView(req.target()).starts_with("/api/"))
+				{
+					return MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized.");
+				}
+			}
+
+			Factory::ProfilerFactory::Instance().Get()->Message("HTTP 404 Not Found");
+			LogDebug(Channel::Web, [&req] { return std::format("Path '{}' was requested but no HTTP handler was available", std::string_view(req.target())); });
+			LogDebug(Channel::Web, "Could not handle request -> returning a 404 NOT FOUND");
+			return HTTP::Responses::Response_404(req);
 		}
 
 	}
@@ -699,32 +746,9 @@ namespace AqualinkAutomate::HTTP::Routing
 			}
 			else
 			{
-				// Unmatched path -> still enforce security so an unknown path under
-				// /api answers 401 (not 404) when a token is required.
-				if (auto rejection = EvaluateSecurity(req, false, peer_ip); rejection.has_value())
-				{
-					respond(std::move(*rejection));
-					return;
-				}
-
-				// Same non-leak rule under the identity system: an unauthenticated
-				// subject probing an unknown path under /api gets 401 (not 404) so the
-				// route surface is not enumerable without credentials.
-				if (security_config.AuthModeEnabled)
-				{
-					current_subject = ResolveSubject(req, false);
-
-					if (!current_subject.Authenticated && ToStringView(req.target()).starts_with("/api/"))
-					{
-						respond(MakeSecurityResponse(req, HTTP::Status::unauthorized, "Unauthorized."));
-						return;
-					}
-				}
-
-				Factory::ProfilerFactory::Instance().Get()->Message("HTTP 404 Not Found");
-				LogDebug(Channel::Web, [&req] { return std::format("Path '{}' was requested but no HTTP handler was available", std::string_view(req.target())); });
-				LogDebug(Channel::Web, "Could not handle request -> returning a 404 NOT FOUND");
-				respond(HTTP::Responses::Response_404(req));
+				// Unmatched path -> security-aware 401/404 selection (extracted to keep
+				// the dispatcher's cognitive complexity within bounds).
+				respond(BuildUnmatchedPathResponse(req, peer_ip));
 				return;
 			}
 		}

@@ -46,6 +46,8 @@
 #include "messages/iaq/iaq_message_title_message.h"
 #include "utility/screen_data_page.h"
 #include "utility/screen_data_page_updater.h"
+#include "kernel/auxillary_devices/heater_status.h"
+#include "kernel/body_of_water_ids.h"
 #include "kernel/hub_locator.h"
 #include "profiling/profiling.h"
 
@@ -199,6 +201,11 @@ namespace AqualinkAutomate::Devices
 	private:
 		void ProcessMainStatus(const Messages::IAQMessage_MainStatus& msg);
 		void ProcessAuxStatus(const Messages::IAQMessage_AuxStatus& msg);
+
+		// Create (if missing) and update a heater device in the DataHub, then emit a
+		// button-state change.  Factored out of ProcessMainStatus so the three heater
+		// updates share one code path.
+		void UpdateHeaterDevice(const std::string& label, Kernel::HeaterStatuses status, Kernel::BodyOfWaterIds body_id);
 
 		// Once home is established, queue the page-survey navigation sequence (built from the
 		// registry) so it drains one command per poll. Emulated + survey-enabled + not-run only.

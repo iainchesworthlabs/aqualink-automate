@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <boost/asio/any_io_executor.hpp>
 #include <boost/beast/http/verb.hpp>
 
@@ -48,6 +50,12 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
+		// Kernel-thread continuation of OnRequestAsync: applies the freshly-hashed
+		// password (re-read → update → tokver bump → session sweep → audit) and
+		// invokes `complete` exactly once. Split out of the OffloadPool completion
+		// lambda; the lambda simply forwards its (moved-in) captures here.
+		void ApplyPasswordChange(unsigned version, bool keep_alive, const std::string& user_id, const std::string& actor_id, const std::string& peer_ip, AsyncCompletion complete, std::string password_hash);
+
 		Auth::UserStore& m_Users;
 		Auth::GroupStore& m_Groups;
 		Auth::SessionStore& m_Sessions;

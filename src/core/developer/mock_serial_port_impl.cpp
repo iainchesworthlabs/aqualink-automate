@@ -437,6 +437,102 @@ namespace AqualinkAutomate::Developer
 		return length_read;
 	}
 
+	namespace
+	{
+		// Outcome of classifying a recorder "[<ts>] <DIR> ..." header prefix.
+		enum class ReplayHeaderResult
+		{
+			Continue,	// header stripped from sv; carry on to the token list
+			Skip,		// line carries no replayable bytes (return true to caller)
+			Error		// line could not be interpreted (return false to caller)
+		};
+
+		// Strip the leading "[<timestamp_ms>] <DIR> " header from a recorder data
+		// line, mutating sv to leave only the bare 0x##|... token list.  Keeps ONLY
+		// R-direction bytes; W-direction bytes are the app's own past output and are
+		// skipped.  Behaviour is identical to the inlined block it replaces.
+		ReplayHeaderResult StripReplayHeader(std::string_view& sv, const std::string& line)
+		{
+			const auto close_bracket = sv.find(']');
+			if (std::string_view::npos == close_bracket)
+			{
+				LogWarning(Channel::Serial, std::format("Replay line has '[' but no closing ']'; skipping -> {}", line));
+				return ReplayHeaderResult::Error;
+			}
+
+			sv.remove_prefix(close_bracket + 1);
+			const auto dir_pos = sv.find_first_not_of(" \t");
+			if (std::string_view::npos == dir_pos)
+			{
+				// "[ts]" with no direction/payload (e.g. a metadata-only line that
+				// happened to start with a timestamp): nothing to replay.
+				return ReplayHeaderResult::Skip;
+			}
+			sv.remove_prefix(dir_pos);
+
+			const char direction = sv.front();
+			if ('W' == direction)
+			{
+				// App output captured during recording: not part of the input stream.
+				return ReplayHeaderResult::Skip;
+			}
+			if ('R' != direction)
+			{
+				LogWarning(Channel::Serial, std::format("Replay line has unknown direction '{}' (expected R or W); skipping -> {}", direction, line));
+				return ReplayHeaderResult::Error;
+			}
+
+			// Advance past the direction char and any following whitespace; the
+			// remainder is the bare 0x##|... token list handled by the caller.
+			sv.remove_prefix(1);
+			const auto bytes_pos = sv.find_first_not_of(" \t");
+			sv = (std::string_view::npos == bytes_pos) ? std::string_view{} : sv.substr(bytes_pos);
+			return ReplayHeaderResult::Continue;
+		}
+
+		// Parse a bare pipe-delimited "0x##|0x##|..." token list into out.  Returns
+		// false if any token was malformed (logged + skipped).  Behaviour is
+		// identical to the inlined loop it replaces.
+		bool DecodeTokenList(std::string_view sv, std::deque<uint8_t>& out, const std::string& line)
+		{
+			bool all_tokens_ok = true;
+			std::size_t token_start = 0;
+			while (token_start <= sv.size())
+			{
+				const auto pipe = sv.find('|', token_start);
+
+				// Expected token format is exactly 0x## (4 chars).
+				if (const std::string_view token = sv.substr(token_start, (std::string_view::npos == pipe) ? std::string_view::npos : (pipe - token_start)); (4 == token.size()) && ('0' == token[0]) && (('x' == token[1]) || ('X' == token[1])))
+				{
+					uint8_t converted_value = 0;
+					auto [p, conv_ec] = std::from_chars(token.data() + 2, token.data() + 4, converted_value, 16);
+					if (std::errc() == conv_ec)
+					{
+						out.push_back(converted_value);
+					}
+					else
+					{
+						all_tokens_ok = false;
+						LogWarning(Channel::Serial, std::format("Could not convert replay token '{}'; skipping token in line -> {}", token, line));
+					}
+				}
+				else if (!token.empty())
+				{
+					all_tokens_ok = false;
+					LogWarning(Channel::Serial, std::format("Replay token not in expected 0x## format ('{}'); skipping token in line -> {}", token, line));
+				}
+
+				if (std::string_view::npos == pipe)
+				{
+					break;
+				}
+				token_start = pipe + 1;
+			}
+
+			return all_tokens_ok;
+		}
+	}
+
 	bool MockSerialPortImpl::DecodeReplayLine(const std::string& line, std::deque<uint8_t>& out)
 	{
 		// Trim leading whitespace so indented lines and the leading '[' / '0x'
@@ -463,40 +559,15 @@ namespace AqualinkAutomate::Developer
 		// input, so a W line decodes to zero bytes (skipped).
 		if ('[' == sv.front())
 		{
-			const auto close_bracket = sv.find(']');
-			if (std::string_view::npos == close_bracket)
+			switch (StripReplayHeader(sv, line))
 			{
-				LogWarning(Channel::Serial, std::format("Replay line has '[' but no closing ']'; skipping -> {}", line));
-				return false;
-			}
-
-			sv.remove_prefix(close_bracket + 1);
-			const auto dir_pos = sv.find_first_not_of(" \t");
-			if (std::string_view::npos == dir_pos)
-			{
-				// "[ts]" with no direction/payload (e.g. a metadata-only line that
-				// happened to start with a timestamp): nothing to replay.
+			case ReplayHeaderResult::Skip:
 				return true;
-			}
-			sv.remove_prefix(dir_pos);
-
-			const char direction = sv.front();
-			if ('W' == direction)
-			{
-				// App output captured during recording: not part of the input stream.
-				return true;
-			}
-			if ('R' != direction)
-			{
-				LogWarning(Channel::Serial, std::format("Replay line has unknown direction '{}' (expected R or W); skipping -> {}", direction, line));
+			case ReplayHeaderResult::Error:
 				return false;
+			case ReplayHeaderResult::Continue:
+				break;
 			}
-
-			// Advance past the direction char and any following whitespace; the
-			// remainder is the bare 0x##|... token list handled below.
-			sv.remove_prefix(1);
-			const auto bytes_pos = sv.find_first_not_of(" \t");
-			sv = (std::string_view::npos == bytes_pos) ? std::string_view{} : sv.substr(bytes_pos);
 		}
 
 		// At this point sv is a (possibly empty) bare pipe-delimited token list:
@@ -513,41 +584,7 @@ namespace AqualinkAutomate::Developer
 			return true;
 		}
 
-		bool all_tokens_ok = true;
-		std::size_t token_start = 0;
-		while (token_start <= sv.size())
-		{
-			const auto pipe = sv.find('|', token_start);
-
-			// Expected token format is exactly 0x## (4 chars).
-			if (const std::string_view token = sv.substr(token_start, (std::string_view::npos == pipe) ? std::string_view::npos : (pipe - token_start)); (4 == token.size()) && ('0' == token[0]) && (('x' == token[1]) || ('X' == token[1])))
-			{
-				uint8_t converted_value = 0;
-				auto [p, conv_ec] = std::from_chars(token.data() + 2, token.data() + 4, converted_value, 16);
-				if (std::errc() == conv_ec)
-				{
-					out.push_back(converted_value);
-				}
-				else
-				{
-					all_tokens_ok = false;
-					LogWarning(Channel::Serial, std::format("Could not convert replay token '{}'; skipping token in line -> {}", token, line));
-				}
-			}
-			else if (!token.empty())
-			{
-				all_tokens_ok = false;
-				LogWarning(Channel::Serial, std::format("Replay token not in expected 0x## format ('{}'); skipping token in line -> {}", token, line));
-			}
-
-			if (std::string_view::npos == pipe)
-			{
-				break;
-			}
-			token_start = pipe + 1;
-		}
-
-		return all_tokens_ok;
+		return DecodeTokenList(sv, out, line);
 	}
 
 	std::expected<std::size_t, boost::system::error_code> MockSerialPortImpl::HandleFileWrite(const boost::asio::const_buffer& buffer)

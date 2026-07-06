@@ -1,3 +1,4 @@
+#include <optional>
 #include <source_location>
 #include <string>
 #include <utility>
@@ -26,6 +27,56 @@ namespace AqualinkAutomate::HTTP
 			resp.body() = body.dump();
 			resp.prepare_payload();
 			return resp;
+		}
+
+		// Parses the POST body into the create-user fields.  Returns std::nullopt on
+		// success (outputs populated); on validation failure returns the error
+		// Response to hand to the completion, leaving outputs unspecified.
+		std::optional<HTTP::Response> ParseCreateUserBody(const HTTP::Request& req, unsigned version, bool keep_alive, std::string& username, std::string& password, std::vector<std::string>& groups, Auth::EntitlementSet& direct_entitlements)
+		{
+			const auto body = nlohmann::json::parse(req.body(), nullptr, false);
+
+			if (body.is_discarded() || !body.contains("username") || !body.contains("password") || !body["username"].is_string() || !body["password"].is_string())
+			{
+				return MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", "Expected JSON body with username and password" } });
+			}
+
+			username = body["username"].get<std::string>();
+			password = body["password"].get<std::string>();
+
+			if (body.contains("groups"))
+			{
+				if (!body["groups"].is_array())
+				{
+					return MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", "Expected groups to be an array of group names" } });
+				}
+
+				for (const auto& entry : body["groups"])
+				{
+					if (!entry.is_string())
+					{
+						return MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", "Expected groups to be an array of group names" } });
+					}
+
+					groups.push_back(entry.get<std::string>());
+				}
+			}
+
+			if (body.contains("direct_entitlements"))
+			{
+				std::string error;
+
+				if (auto parsed = ParseEntitlementsField(body["direct_entitlements"], error); !parsed.has_value())
+				{
+					return MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", error } });
+				}
+				else
+				{
+					direct_entitlements = std::move(*parsed);
+				}
+			}
+
+			return std::nullopt;
 		}
 	}
 	// anonymous namespace
@@ -73,52 +124,10 @@ namespace AqualinkAutomate::HTTP
 		std::vector<std::string> groups;
 		Auth::EntitlementSet direct_entitlements;
 
+		if (auto error_response = ParseCreateUserBody(req, version, keep_alive, username, password, groups, direct_entitlements); error_response.has_value())
 		{
-			const auto body = nlohmann::json::parse(req.body(), nullptr, false);
-
-			if (body.is_discarded() || !body.contains("username") || !body.contains("password") || !body["username"].is_string() || !body["password"].is_string())
-			{
-				complete(MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", "Expected JSON body with username and password" } }));
-				return;
-			}
-
-			username = body["username"].get<std::string>();
-			password = body["password"].get<std::string>();
-
-			if (body.contains("groups"))
-			{
-				if (!body["groups"].is_array())
-				{
-					complete(MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", "Expected groups to be an array of group names" } }));
-					return;
-				}
-
-				for (const auto& entry : body["groups"])
-				{
-					if (!entry.is_string())
-					{
-						complete(MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", "Expected groups to be an array of group names" } }));
-						return;
-					}
-
-					groups.push_back(entry.get<std::string>());
-				}
-			}
-
-			if (body.contains("direct_entitlements"))
-			{
-				std::string error;
-
-				if (auto parsed = ParseEntitlementsField(body["direct_entitlements"], error); !parsed.has_value())
-				{
-					complete(MakeJsonResponse(version, keep_alive, HTTP::Status::bad_request, { { "error", error } }));
-					return;
-				}
-				else
-				{
-					direct_entitlements = std::move(*parsed);
-				}
-			}
+			complete(std::move(*error_response));
+			return;
 		}
 
 		if (username.empty())

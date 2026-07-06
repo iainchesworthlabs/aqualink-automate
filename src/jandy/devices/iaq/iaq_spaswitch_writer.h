@@ -41,6 +41,23 @@ namespace AqualinkAutomate::Devices::IAQ
 			const JandyDeviceType& device_id);
 
 	private:
+		struct Goal;
+
+		// Per-phase handlers for ProcessStep (extracted to keep ProcessStep's cognitive complexity
+		// in check; behaviour is identical to the inlined switch cases). Each services at most one
+		// command per poll and may advance m_Phase / member counters exactly as before.
+		void StepNavigate(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id);
+		void StepSelectRow(const PageModel& page, ICommandSink& sink, const Goal& goal);
+		void StepFindFunction(const PageModel& page, ICommandSink& sink, const Goal& goal,
+			const JandyDeviceType& device_id);
+		void StepVerify(const PageModel& page, ICommandSink& sink, Kernel::DataHub* data_hub,
+			const Goal& goal, const JandyDeviceType& device_id);
+
+		// Issue `cmd` this poll, then dwell IAQ_SPASWITCH_SETTLE_POLLS polls.
+		void IssueAndSettle(ICommandSink& sink, uint8_t cmd);
+		// Tear down the pending goal (reads goal.desc BEFORE resetting -- callers return immediately after).
+		void FinishGoal(ICommandSink& sink, bool ok, const Goal& goal, const JandyDeviceType& device_id);
+
 		enum class Phase
 		{
 			Navigate,     // page-gated walk to the 4-Function detail (0x3b)

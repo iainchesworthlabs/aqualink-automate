@@ -108,37 +108,42 @@ namespace AqualinkAutomate::HTTP
 			[password = std::move(password), params = m_HashParams]() { return Auth::PasswordHasher::Hash(password, params); },
 			[this, version, keep_alive, user_id = *user_id, actor_id = std::move(actor_id), peer_ip = std::move(peer_ip), complete = std::move(complete)](std::string password_hash) mutable
 			{
-				// Re-read: the record may have changed during the hash.
-				auto user = m_Users.FindById(user_id);
-
-				if (!user.has_value())
-				{
-					complete(MakeJsonResponse(version, keep_alive, HTTP::Status::not_found, { { "error", "User not found" } }));
-					return;
-				}
-
-				user->PasswordHash = std::move(password_hash);
-
-				if (std::string error; !m_Users.Update(*user, m_Groups.Registry(), error))
-				{
-					complete(MakeJsonResponse(version, keep_alive, StatusForStoreError(error), { { "error", error } }));
-					return;
-				}
-
-				// A password change invalidates EVERYTHING (§6): tokver bump
-				// kills outstanding access tokens, the session sweep kills
-				// every refresh token.
-				m_Users.BumpTokenVersion(user_id);
-				m_Sessions.RevokeAllForUser(user_id);
-
-				m_Audit.Record(MakeAdminAuditEvent(actor_id, "auth.password_changed", "user", user_id, peer_ip));
-
-				HTTP::Response resp{ HTTP::Status::no_content, version };
-				resp.set(boost::beast::http::field::server, ServerFields::Server());
-				resp.keep_alive(keep_alive);
-				resp.prepare_payload();
-				complete(std::move(resp));
+				ApplyPasswordChange(version, keep_alive, user_id, actor_id, peer_ip, std::move(complete), std::move(password_hash));
 			});
+	}
+
+	void WebRoute_UserPassword::ApplyPasswordChange(unsigned version, bool keep_alive, const std::string& user_id, const std::string& actor_id, const std::string& peer_ip, AsyncCompletion complete, std::string password_hash)
+	{
+		// Re-read: the record may have changed during the hash.
+		auto user = m_Users.FindById(user_id);
+
+		if (!user.has_value())
+		{
+			complete(MakeJsonResponse(version, keep_alive, HTTP::Status::not_found, { { "error", "User not found" } }));
+			return;
+		}
+
+		user->PasswordHash = std::move(password_hash);
+
+		if (std::string error; !m_Users.Update(*user, m_Groups.Registry(), error))
+		{
+			complete(MakeJsonResponse(version, keep_alive, StatusForStoreError(error), { { "error", error } }));
+			return;
+		}
+
+		// A password change invalidates EVERYTHING (§6): tokver bump
+		// kills outstanding access tokens, the session sweep kills
+		// every refresh token.
+		m_Users.BumpTokenVersion(user_id);
+		m_Sessions.RevokeAllForUser(user_id);
+
+		m_Audit.Record(MakeAdminAuditEvent(actor_id, "auth.password_changed", "user", user_id, peer_ip));
+
+		HTTP::Response resp{ HTTP::Status::no_content, version };
+		resp.set(boost::beast::http::field::server, ServerFields::Server());
+		resp.keep_alive(keep_alive);
+		resp.prepare_payload();
+		complete(std::move(resp));
 	}
 
 	HTTP::Response WebRoute_UserPassword::OnRequest(const HTTP::Request& req)

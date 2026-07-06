@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <boost/beast/http/verb.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include "auth/entitlement_vocabulary.h"
 #include "interfaces/icommanddispatcher.h"
@@ -35,6 +36,8 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
+		HTTP::Response HandleHeaterCommand(const HTTP::Request& req, const nlohmann::json& payload);
+
 		std::shared_ptr<Interfaces::ICommandDispatcher> m_CommandDispatcher{ nullptr };
 	};
 

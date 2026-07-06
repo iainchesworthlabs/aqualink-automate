@@ -809,46 +809,37 @@ namespace AqualinkAutomate::Navigation
 		return ExecuteNextStep();
 	}
 
-	void Navigator::HandleUnexpectedPage(PageId actual)
+	bool Navigator::HandleTransientPage(PageId actual, const MenuPage* actual_page)
 	{
-		const MenuPage* actual_page = m_Model.GetPage(actual);
-		const MenuPage* target_page = m_Model.GetPage(m_TargetPage);
-
 		// Transient pages (e.g. the cold-start StartUp splash) auto-advance to a real
 		// page on their own with no keypress. They have no edges, so navigating or
 		// recovering from them is impossible and previously failed the whole startup
 		// crawl. Instead, WAIT for the controller to transition and re-evaluate on the
 		// next page update. Bounded by MAX_TRANSIENT_WAITS so a page that never clears
 		// falls through to normal unexpected-page handling/recovery.
-		if ((actual != PageId::Unknown) && IsTransientPage(actual))
+		if ((actual == PageId::Unknown) || !IsTransientPage(actual))
 		{
-			m_CurrentPage = actual;
-			if (++m_TransientWaitCount <= MAX_TRANSIENT_WAITS)
-			{
-				LogInfo(Channel::Navigation, [&actual, &actual_page, this] { return std::format("Navigator: On transient page {}({}); waiting for controller auto-transition ({}/{})",
-					std::to_underlying(actual), actual_page ? actual_page->name : "Unknown",
-					m_TransientWaitCount, MAX_TRANSIENT_WAITS); });
-				m_State = State::WaitingForPage;
-				m_PendingStatusMessages = 0;
-				return;
-			}
-
-			LogWarning(Channel::Navigation, [&actual, &actual_page] { return std::format("Navigator: Transient page {}({}) did not clear after {} waits; treating as unexpected",
-				std::to_underlying(actual), actual_page ? actual_page->name : "Unknown", MAX_TRANSIENT_WAITS); });
+			return false;
 		}
 
-		LogWarning(Channel::Navigation, [&actual, &actual_page, this, &target_page] { return std::format("Navigator: Handling unexpected page {}({}) while navigating to {}({})",
-			std::to_underlying(actual), actual_page ? actual_page->name : "Unknown",
-			std::to_underlying(m_TargetPage), target_page ? target_page->name : "Unknown"); });
-
-		// Track recomputation attempts to detect potential infinite recompute loops
-		m_RecomputeCount++;
-		if (m_RecomputeCount % 10 == 0)
+		m_CurrentPage = actual;
+		if (++m_TransientWaitCount <= MAX_TRANSIENT_WAITS)
 		{
-			LogWarning(Channel::Navigation, [this] { return std::format("Navigator: Path recomputed {} times - possible navigation loop",
-				m_RecomputeCount); });
+			LogInfo(Channel::Navigation, [&actual, &actual_page, this] { return std::format("Navigator: On transient page {}({}); waiting for controller auto-transition ({}/{})",
+				std::to_underlying(actual), actual_page ? actual_page->name : "Unknown",
+				m_TransientWaitCount, MAX_TRANSIENT_WAITS); });
+			m_State = State::WaitingForPage;
+			m_PendingStatusMessages = 0;
+			return true;
 		}
 
+		LogWarning(Channel::Navigation, [&actual, &actual_page] { return std::format("Navigator: Transient page {}({}) did not clear after {} waits; treating as unexpected",
+			std::to_underlying(actual), actual_page ? actual_page->name : "Unknown", MAX_TRANSIENT_WAITS); });
+		return false;
+	}
+
+	bool Navigator::DetectStuckRecompute(PageId actual, const MenuPage* target_page)
+	{
 		// Fail FAST when a target is unreachable on this model: repeatedly landing on an
 		// unexpected page while navigating to the SAME target means that target's menu item
 		// does not exist on this revision (e.g. an IAQ-only Diagnostics page on a non-iAqualink
@@ -870,7 +861,7 @@ namespace AqualinkAutomate::Navigation
 				m_LastRecomputeActual = PageId::Unknown;
 				m_LastRecomputeTarget = PageId::Unknown;
 				m_State = State::Failed;
-				return;
+				return true;
 			}
 		}
 		else
@@ -879,6 +870,35 @@ namespace AqualinkAutomate::Navigation
 			m_LastRecomputeTarget = m_TargetPage;
 		}
 		m_LastRecomputeActual = actual;
+		return false;
+	}
+
+	void Navigator::HandleUnexpectedPage(PageId actual)
+	{
+		const MenuPage* actual_page = m_Model.GetPage(actual);
+		const MenuPage* target_page = m_Model.GetPage(m_TargetPage);
+
+		if (HandleTransientPage(actual, actual_page))
+		{
+			return;
+		}
+
+		LogWarning(Channel::Navigation, [&actual, &actual_page, this, &target_page] { return std::format("Navigator: Handling unexpected page {}({}) while navigating to {}({})",
+			std::to_underlying(actual), actual_page ? actual_page->name : "Unknown",
+			std::to_underlying(m_TargetPage), target_page ? target_page->name : "Unknown"); });
+
+		// Track recomputation attempts to detect potential infinite recompute loops
+		m_RecomputeCount++;
+		if (m_RecomputeCount % 10 == 0)
+		{
+			LogWarning(Channel::Navigation, [this] { return std::format("Navigator: Path recomputed {} times - possible navigation loop",
+				m_RecomputeCount); });
+		}
+
+		if (DetectStuckRecompute(actual, target_page))
+		{
+			return;
+		}
 
 		// Check for infinite recompute loop
 		if (m_RecomputeCount >= MAX_RECOMPUTE_COUNT)

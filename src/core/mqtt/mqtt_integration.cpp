@@ -76,6 +76,291 @@ namespace AqualinkAutomate::Mqtt
 		using PayloadParsing::ParsePayloadNumber;
 		using PayloadParsing::ParsePayloadString;
 		using PayloadParsing::SanitiseForLog;
+
+		/// Body of the "device" MQTT command handler. Toggles a device by UUID (falling back to
+		/// label) and publishes the outcome on response/device. Extracted from the registered
+		/// lambda; behaviour is identical (the lambda just forwards its captures + payload here).
+		void HandleDeviceCommand(
+			const std::weak_ptr<MqttHub>& weak_hub,
+			const std::weak_ptr<Interfaces::ICommandDispatcher>& weak_dispatcher,
+			const nlohmann::json& payload)
+		{
+			LogDebug(Channel::Mqtt, "Received device command");
+			try
+			{
+				auto dispatcher = weak_dispatcher.lock();
+				if (!dispatcher)
+				{
+					LogWarning(Channel::Mqtt, "Command dispatcher not available");
+
+					auto response = BuildCommandResponse("device", "error", {{"error", "command dispatcher not available"}});
+					if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/device", response); }
+					return;
+				}
+
+				std::string device_id = payload.value("device_id", "");
+				std::string action = payload.value("action", "toggle");
+
+				if (device_id.empty())
+				{
+					LogWarning(Channel::Mqtt, "Device command missing device_id");
+					return;
+				}
+
+				Interfaces::ICommandDispatcher::CommandResult result = Interfaces::ICommandDispatcher::CommandResult::DeviceNotFound;
+
+				// Try parsing as UUID first, fall back to label
+				try
+				{
+					boost::uuids::string_generator gen;
+					auto uuid = gen(device_id);
+					result = dispatcher->ToggleByUuid(uuid);
+				}
+				catch (const std::runtime_error&)
+				{
+					// Not a valid UUID, try as label
+					result = dispatcher->ToggleByLabel(device_id);
+				}
+
+				auto response = BuildCommandResponse("device", CommandResultToString(result),
+					{{"device_id", device_id}, {"action", action}});
+				if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/device", response); }
+			}
+			catch (const std::exception& ex)
+			{
+				LogError(Channel::Mqtt, std::format("Error handling device command: {}", ex.what()));
+			}
+		}
+
+		/// Convert a Celsius setpoint to the system's native wire unit and dispatch it to the
+		/// pool/spa. Logs the dispatch outcome for every setpoint command (Warning on failure,
+		/// Debug on success) so a failed control action is never silently swallowed. Extracted
+		/// verbatim from the dispatch_setpoint lambda in RegisterSetpointCommand().
+		std::string DispatchSetpoint(
+			const std::weak_ptr<Interfaces::ICommandDispatcher>& weak_dispatcher,
+			const std::weak_ptr<Kernel::DataHub>& weak_data_hub,
+			const std::string& target, double celsius_value)
+		{
+			auto dispatcher = weak_dispatcher.lock();
+			if (!dispatcher)
+			{
+				LogWarning(Channel::Mqtt, std::format("Setpoint command for '{}' could not be dispatched: command dispatcher not available", target));
+				return "error";
+			}
+
+			if ((target != "pool") && (target != "spa"))
+			{
+				LogWarning(Channel::Mqtt, std::format("Setpoint command rejected: unknown target '{}'", SanitiseForLog(target)));
+				return "invalid_target";
+			}
+
+			auto data_hub = weak_data_hub.lock();
+
+			// Convert from Celsius to the system's native unit (typically Fahrenheit), then clamp
+			// to the uint8_t wire domain BEFORE the cast so an out-of-range value can never trigger
+			// undefined behaviour on the double->uint8_t conversion.
+			//
+			// NOTE (cross-unit): WU-HTTP-RESPONSE-BUILDER introduces Utility::CelsiusToWireSetpoint
+			// in a new src/core/utility/temperature_conversion.h. That header is owned by another
+			// work unit and is not yet present, so the conversion + clamp are implemented defensively
+			// inline here (mirroring webroute_equipment_setpoints.cpp) and should be routed through
+			// the shared helper once it lands.
+			const bool is_celsius = (data_hub && (data_hub->SystemTemperatureUnits() == Kernel::TemperatureUnits::Celsius));
+			double wire_value = is_celsius
+				? std::round(celsius_value)
+				: std::round(celsius_value * 9.0 / 5.0 + 32.0);
+
+			wire_value = std::isfinite(wire_value) ? std::clamp(wire_value, 0.0, 255.0) : 0.0;
+			const auto temp_value = static_cast<uint8_t>(wire_value);
+
+			const auto result = (target == "pool")
+				? dispatcher->SetPoolSetpoint(temp_value)
+				: dispatcher->SetSpaSetpoint(temp_value);
+
+			const bool succeeded = (result == Interfaces::ICommandDispatcher::CommandResult::Success);
+			const auto wire_setpoint = static_cast<unsigned int>(temp_value);
+			const std::string_view result_name = magic_enum::enum_name(result);
+
+			if (succeeded)
+			{
+				LogDebug(Channel::Mqtt, std::format("Setpoint command for '{}': {}C -> {} (units={}), result={}",
+					target, celsius_value, wire_setpoint, is_celsius ? "C" : "F", result_name));
+			}
+			else
+			{
+				LogWarning(Channel::Mqtt, std::format("Setpoint command for '{}' failed: {}C -> {} (units={}), result={}",
+					target, celsius_value, wire_setpoint, is_celsius ? "C" : "F", result_name));
+			}
+
+			return CommandResultToString(result);
+		}
+
+		/// Body of the JSON "setpoint" command handler: {"target","temperature"(celsius)}.
+		/// Extracted verbatim from the registered lambda.
+		void HandleSetpointCommand(
+			const std::weak_ptr<MqttHub>& weak_hub,
+			const std::weak_ptr<Interfaces::ICommandDispatcher>& weak_dispatcher,
+			const std::weak_ptr<Kernel::DataHub>& weak_data_hub,
+			const nlohmann::json& payload)
+		{
+			LogDebug(Channel::Mqtt, "Received setpoint command");
+			try
+			{
+				std::string target = payload.value("target", "");
+				double temperature = payload.value("temperature", 0.0);
+
+				if (target.empty() || temperature <= 0.0)
+				{
+					LogWarning(Channel::Mqtt, "Setpoint command missing target or temperature");
+					return;
+				}
+
+				auto status_str = DispatchSetpoint(weak_dispatcher, weak_data_hub, target, temperature);
+
+				auto response = BuildCommandResponse("setpoint", status_str,
+					{{"target", target}, {"temperature", temperature}});
+				if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/setpoint", response); }
+			}
+			catch (const std::exception& ex)
+			{
+				LogError(Channel::Mqtt, std::format("Error handling setpoint command: {}", ex.what()));
+			}
+		}
+
+		/// Body of an HA number-entity setpoint handler (setpoint/pool, setpoint/spa). The
+		/// incoming value arrives in whatever unit the discovery config declared (the
+		/// Temperature_DisplayUnits preference) so it is normalised to Celsius before dispatch.
+		/// Extracted verbatim from the make_ha_setpoint_handler lambda.
+		void HandleHaSetpointCommand(
+			const std::weak_ptr<MqttHub>& weak_hub,
+			const std::weak_ptr<Interfaces::ICommandDispatcher>& weak_dispatcher,
+			const std::weak_ptr<Kernel::DataHub>& weak_data_hub,
+			const std::weak_ptr<Kernel::PreferencesHub>& weak_prefs,
+			const std::string& target,
+			const nlohmann::json& payload)
+		{
+			LogDebug(Channel::Mqtt, std::format("Received HA {} setpoint command", target));
+			try
+			{
+				auto temperature = ParsePayloadNumber<double>(payload, 0.0);
+				if (!(temperature > 0.0))
+				{
+					LogWarning(Channel::Mqtt, std::format("HA {} setpoint command rejected: missing or out-of-range value '{}'",
+						target, SanitiseForLog(ParsePayloadString(payload))));
+					return;
+				}
+
+				auto celsius = temperature;
+				if (auto prefs = weak_prefs.lock(); prefs && (prefs->Temperature_DisplayUnits == Kernel::TemperatureUnits::Fahrenheit))
+				{
+					celsius = (temperature - 32.0) * 5.0 / 9.0;
+				}
+
+				auto status_str = DispatchSetpoint(weak_dispatcher, weak_data_hub, target, celsius);
+
+				auto response = BuildCommandResponse("setpoint", status_str,
+					{{"target", target}, {"temperature", temperature}});
+				if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/setpoint", response); }
+			}
+			catch (const std::exception& ex)
+			{
+				LogError(Channel::Mqtt, std::format("Error handling HA {} setpoint command: {}", target, ex.what()));
+			}
+		}
+
+		/// Body of a dynamic device/{slug} command handler. Parses an ON/OFF/Toggle action from
+		/// the payload and dispatches it by device label. Extracted verbatim from the registered
+		/// lambda; the captured device label is passed through as a parameter.
+		void HandleDynamicDeviceCommand(
+			const std::weak_ptr<Interfaces::ICommandDispatcher>& weak_dispatcher,
+			const std::string& label,
+			const nlohmann::json& payload)
+		{
+			LogDebug(Channel::Mqtt, std::format("Received device command for '{}'", label));
+			try
+			{
+				auto dispatcher = weak_dispatcher.lock();
+				if (!dispatcher)
+				{
+					LogWarning(Channel::Mqtt, "Command dispatcher not available for device command");
+					return;
+				}
+
+				// Parse payload: expect "ON" or "OFF" (plain text from HA switch)
+				auto action_str = ParsePayloadString(payload);
+
+				Interfaces::ICommandDispatcher::DeviceAction action = Interfaces::ICommandDispatcher::DeviceAction::Toggle;
+				if (action_str == "ON")
+				{
+					action = Interfaces::ICommandDispatcher::DeviceAction::On;
+				}
+				else if (action_str == "OFF")
+				{
+					action = Interfaces::ICommandDispatcher::DeviceAction::Off;
+				}
+				else
+				{
+					LogWarning(Channel::Mqtt, std::format("Unknown device action payload: '{}'", SanitiseForLog(action_str)));
+					return;
+				}
+
+				auto result = dispatcher->CommandByLabel(label, action);
+
+				LogDebug(Channel::Mqtt, std::format("Device command for '{}': action={}, result={}",
+					label, action_str, static_cast<int>(result)));
+			}
+			catch (const std::exception& ex)
+			{
+				LogError(Channel::Mqtt, std::format("Error handling device command for '{}': {}", label, ex.what()));
+			}
+		}
+
+		/// Body of a dynamic heater/{slug} command handler. Parses an ON/OFF action from the
+		/// payload and dispatches SetHeaterMode for the captured body of water. Extracted verbatim
+		/// from the registered lambda; the captured label + body id are passed through.
+		void HandleHeaterCommand(
+			const std::weak_ptr<Interfaces::ICommandDispatcher>& weak_dispatcher,
+			const std::string& label,
+			Kernel::BodyOfWaterIds body_id,
+			const nlohmann::json& payload)
+		{
+			LogDebug(Channel::Mqtt, std::format("Received heater command for '{}'", label));
+			try
+			{
+				auto dispatcher = weak_dispatcher.lock();
+				if (!dispatcher)
+				{
+					LogWarning(Channel::Mqtt, "Command dispatcher not available for heater command");
+					return;
+				}
+
+				auto action_str = ParsePayloadString(payload);
+
+				bool enable = false;
+				if (action_str == "ON")
+				{
+					enable = true;
+				}
+				else if (action_str == "OFF")
+				{
+					enable = false;
+				}
+				else
+				{
+					LogWarning(Channel::Mqtt, std::format("Unknown heater action payload: '{}'", SanitiseForLog(action_str)));
+					return;
+				}
+
+				auto result = dispatcher->SetHeaterMode(body_id, enable);
+
+				LogDebug(Channel::Mqtt, std::format("Heater command for '{}': action={}, result={}",
+					label, action_str, std::to_underlying(result)));
+			}
+			catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: MQTT command-handler callback; an escaping exception would unwind into the hub's dispatch loop.
+			{
+				LogError(Channel::Mqtt, std::format("Error handling heater command for '{}': {}", label, ex.what()));
+			}
+		}
 	}
 	// anonymous namespace
 
@@ -409,51 +694,7 @@ namespace AqualinkAutomate::Mqtt
 		m_Hub->RegisterCommand("device",
 			[weak_hub, weak_dispatcher](std::string_view /*topic*/, const nlohmann::json& payload)
 			{
-				LogDebug(Channel::Mqtt, "Received device command");
-				try
-				{
-					auto dispatcher = weak_dispatcher.lock();
-					if (!dispatcher)
-					{
-						LogWarning(Channel::Mqtt, "Command dispatcher not available");
-
-						auto response = BuildCommandResponse("device", "error", {{"error", "command dispatcher not available"}});
-						if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/device", response); }
-						return;
-					}
-
-					std::string device_id = payload.value("device_id", "");
-					std::string action = payload.value("action", "toggle");
-
-					if (device_id.empty())
-					{
-						LogWarning(Channel::Mqtt, "Device command missing device_id");
-						return;
-					}
-
-					Interfaces::ICommandDispatcher::CommandResult result = Interfaces::ICommandDispatcher::CommandResult::DeviceNotFound;
-
-					// Try parsing as UUID first, fall back to label
-					try
-					{
-						boost::uuids::string_generator gen;
-						auto uuid = gen(device_id);
-						result = dispatcher->ToggleByUuid(uuid);
-					}
-					catch (const std::runtime_error&)
-					{
-						// Not a valid UUID, try as label
-						result = dispatcher->ToggleByLabel(device_id);
-					}
-
-					auto response = BuildCommandResponse("device", CommandResultToString(result),
-						{{"device_id", device_id}, {"action", action}});
-					if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/device", response); }
-				}
-				catch (const std::exception& ex)
-				{
-					LogError(Channel::Mqtt, std::format("Error handling device command: {}", ex.what()));
-				}
+				HandleDeviceCommand(weak_hub, weak_dispatcher, payload);
 			});
 
 		LogDebug(Channel::Mqtt, "Registered device command handler with dispatcher");
@@ -472,133 +713,27 @@ namespace AqualinkAutomate::Mqtt
 		std::weak_ptr<Interfaces::ICommandDispatcher> weak_dispatcher = m_CommandDispatcher;
 		std::weak_ptr<Kernel::DataHub> weak_data_hub = m_DataHub;
 
-		// Helper lambda to convert Celsius to system unit and dispatch a setpoint command.
-		// Logs the dispatch outcome for every setpoint command (Warning on failure, Debug on
-		// success) so a failed control action is never silently swallowed.
-		auto dispatch_setpoint = [weak_dispatcher, weak_data_hub](const std::string& target, double celsius_value) -> std::string
-		{
-			auto dispatcher = weak_dispatcher.lock();
-			if (!dispatcher)
-			{
-				LogWarning(Channel::Mqtt, std::format("Setpoint command for '{}' could not be dispatched: command dispatcher not available", target));
-				return "error";
-			}
-
-			if ((target != "pool") && (target != "spa"))
-			{
-				LogWarning(Channel::Mqtt, std::format("Setpoint command rejected: unknown target '{}'", SanitiseForLog(target)));
-				return "invalid_target";
-			}
-
-			auto data_hub = weak_data_hub.lock();
-
-			// Convert from Celsius to the system's native unit (typically Fahrenheit), then clamp
-			// to the uint8_t wire domain BEFORE the cast so an out-of-range value can never trigger
-			// undefined behaviour on the double->uint8_t conversion.
-			//
-			// NOTE (cross-unit): WU-HTTP-RESPONSE-BUILDER introduces Utility::CelsiusToWireSetpoint
-			// in a new src/core/utility/temperature_conversion.h. That header is owned by another
-			// work unit and is not yet present, so the conversion + clamp are implemented defensively
-			// inline here (mirroring webroute_equipment_setpoints.cpp) and should be routed through
-			// the shared helper once it lands.
-			const bool is_celsius = (data_hub && (data_hub->SystemTemperatureUnits() == Kernel::TemperatureUnits::Celsius));
-			double wire_value = is_celsius
-				? std::round(celsius_value)
-				: std::round(celsius_value * 9.0 / 5.0 + 32.0);
-
-			wire_value = std::isfinite(wire_value) ? std::clamp(wire_value, 0.0, 255.0) : 0.0;
-			const auto temp_value = static_cast<uint8_t>(wire_value);
-
-			const auto result = (target == "pool")
-				? dispatcher->SetPoolSetpoint(temp_value)
-				: dispatcher->SetSpaSetpoint(temp_value);
-
-			const bool succeeded = (result == Interfaces::ICommandDispatcher::CommandResult::Success);
-			const auto wire_setpoint = static_cast<unsigned int>(temp_value);
-			const std::string_view result_name = magic_enum::enum_name(result);
-
-			if (succeeded)
-			{
-				LogDebug(Channel::Mqtt, std::format("Setpoint command for '{}': {}C -> {} (units={}), result={}",
-					target, celsius_value, wire_setpoint, is_celsius ? "C" : "F", result_name));
-			}
-			else
-			{
-				LogWarning(Channel::Mqtt, std::format("Setpoint command for '{}' failed: {}C -> {} (units={}), result={}",
-					target, celsius_value, wire_setpoint, is_celsius ? "C" : "F", result_name));
-			}
-
-			return CommandResultToString(result);
-		};
-
 		// JSON command handler: {"target": "pool"|"spa", "temperature": <celsius>}
 		m_Hub->RegisterCommand("setpoint",
-			[weak_hub, dispatch_setpoint](std::string_view /*topic*/, const nlohmann::json& payload)
+			[weak_hub, weak_dispatcher, weak_data_hub](std::string_view /*topic*/, const nlohmann::json& payload)
 			{
-				LogDebug(Channel::Mqtt, "Received setpoint command");
-				try
-				{
-					std::string target = payload.value("target", "");
-					double temperature = payload.value("temperature", 0.0);
-
-					if (target.empty() || temperature <= 0.0)
-					{
-						LogWarning(Channel::Mqtt, "Setpoint command missing target or temperature");
-						return;
-					}
-
-					auto status_str = dispatch_setpoint(target, temperature);
-
-					auto response = BuildCommandResponse("setpoint", status_str,
-						{{"target", target}, {"temperature", temperature}});
-					if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/setpoint", response); }
-				}
-				catch (const std::exception& ex)
-				{
-					LogError(Channel::Mqtt, std::format("Error handling setpoint command: {}", ex.what()));
-				}
+				HandleSetpointCommand(weak_hub, weak_dispatcher, weak_data_hub, payload);
 			});
 
 		// HA number entity handlers: plain text number on setpoint/pool and setpoint/spa.
-		// Both capture dispatch_setpoint's result so the outcome is published and never discarded
-		// (dispatch_setpoint itself also logs the CommandResult, escalating to Warning on failure).
+		// Both publish DispatchSetpoint's result so the outcome is never discarded
+		// (DispatchSetpoint itself also logs the CommandResult, escalating to Warning on failure).
 		//
 		// The incoming value arrives in whatever unit the discovery config declared for the
 		// number entity — the Temperature_DisplayUnits preference (see AddSetpointComponents) —
-		// so it is normalised to the Celsius that dispatch_setpoint expects. Read at command
+		// so it is normalised to the Celsius that DispatchSetpoint expects. Read at command
 		// time, matching the discovery config that a preference change republishes.
 		std::weak_ptr<Kernel::PreferencesHub> weak_prefs = m_PreferencesHub;
-		auto make_ha_setpoint_handler = [weak_hub, dispatch_setpoint, weak_prefs](const std::string& target)
+		auto make_ha_setpoint_handler = [weak_hub, weak_dispatcher, weak_data_hub, weak_prefs](const std::string& target)
 		{
-			return [weak_hub, dispatch_setpoint, weak_prefs, target](std::string_view /*topic*/, const nlohmann::json& payload)
+			return [weak_hub, weak_dispatcher, weak_data_hub, weak_prefs, target](std::string_view /*topic*/, const nlohmann::json& payload)
 			{
-				LogDebug(Channel::Mqtt, std::format("Received HA {} setpoint command", target));
-				try
-				{
-					auto temperature = ParsePayloadNumber<double>(payload, 0.0);
-					if (!(temperature > 0.0))
-					{
-						LogWarning(Channel::Mqtt, std::format("HA {} setpoint command rejected: missing or out-of-range value '{}'",
-							target, SanitiseForLog(ParsePayloadString(payload))));
-						return;
-					}
-
-					auto celsius = temperature;
-					if (auto prefs = weak_prefs.lock(); prefs && (prefs->Temperature_DisplayUnits == Kernel::TemperatureUnits::Fahrenheit))
-					{
-						celsius = (temperature - 32.0) * 5.0 / 9.0;
-					}
-
-					auto status_str = dispatch_setpoint(target, celsius);
-
-					auto response = BuildCommandResponse("setpoint", status_str,
-						{{"target", target}, {"temperature", temperature}});
-					if (auto hub = weak_hub.lock()) { hub->PublishCustom("response/setpoint", response); }
-				}
-				catch (const std::exception& ex)
-				{
-					LogError(Channel::Mqtt, std::format("Error handling HA {} setpoint command: {}", target, ex.what()));
-				}
+				HandleHaSetpointCommand(weak_hub, weak_dispatcher, weak_data_hub, weak_prefs, target, payload);
 			};
 		};
 
@@ -671,43 +806,7 @@ namespace AqualinkAutomate::Mqtt
 			m_Hub->RegisterCommand(command_key,
 				[weak_dispatcher, label](std::string_view /*topic*/, const nlohmann::json& payload)
 				{
-					LogDebug(Channel::Mqtt, std::format("Received device command for '{}'", label));
-					try
-					{
-						auto dispatcher = weak_dispatcher.lock();
-						if (!dispatcher)
-						{
-							LogWarning(Channel::Mqtt, "Command dispatcher not available for device command");
-							return;
-						}
-
-						// Parse payload: expect "ON" or "OFF" (plain text from HA switch)
-						auto action_str = ParsePayloadString(payload);
-
-						Interfaces::ICommandDispatcher::DeviceAction action = Interfaces::ICommandDispatcher::DeviceAction::Toggle;
-						if (action_str == "ON")
-						{
-							action = Interfaces::ICommandDispatcher::DeviceAction::On;
-						}
-						else if (action_str == "OFF")
-						{
-							action = Interfaces::ICommandDispatcher::DeviceAction::Off;
-						}
-						else
-						{
-							LogWarning(Channel::Mqtt, std::format("Unknown device action payload: '{}'", SanitiseForLog(action_str)));
-							return;
-						}
-
-						auto result = dispatcher->CommandByLabel(label, action);
-
-						LogDebug(Channel::Mqtt, std::format("Device command for '{}': action={}, result={}",
-							label, action_str, static_cast<int>(result)));
-					}
-					catch (const std::exception& ex)
-					{
-						LogError(Channel::Mqtt, std::format("Error handling device command for '{}': {}", label, ex.what()));
-					}
+					HandleDynamicDeviceCommand(weak_dispatcher, label, payload);
 				});
 		};
 
@@ -758,42 +857,7 @@ namespace AqualinkAutomate::Mqtt
 			m_Hub->RegisterCommand(command_key,
 				[weak_dispatcher, label, body_id](std::string_view /*topic*/, const nlohmann::json& payload)
 				{
-					LogDebug(Channel::Mqtt, std::format("Received heater command for '{}'", label));
-					try
-					{
-						auto dispatcher = weak_dispatcher.lock();
-						if (!dispatcher)
-						{
-							LogWarning(Channel::Mqtt, "Command dispatcher not available for heater command");
-							return;
-						}
-
-						auto action_str = ParsePayloadString(payload);
-
-						bool enable = false;
-						if (action_str == "ON")
-						{
-							enable = true;
-						}
-						else if (action_str == "OFF")
-						{
-							enable = false;
-						}
-						else
-						{
-							LogWarning(Channel::Mqtt, std::format("Unknown heater action payload: '{}'", SanitiseForLog(action_str)));
-							return;
-						}
-
-						auto result = dispatcher->SetHeaterMode(body_id, enable);
-
-						LogDebug(Channel::Mqtt, std::format("Heater command for '{}': action={}, result={}",
-							label, action_str, std::to_underlying(result)));
-					}
-					catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: MQTT command-handler callback; an escaping exception would unwind into the hub's dispatch loop.
-					{
-						LogError(Channel::Mqtt, std::format("Error handling heater command for '{}': {}", label, ex.what()));
-					}
+					HandleHeaterCommand(weak_dispatcher, label, body_id, payload);
 				});
 		};
 

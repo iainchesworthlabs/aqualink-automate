@@ -12,6 +12,20 @@ namespace AqualinkAutomate::Auxillaries
 {
 	namespace
 	{
+		// Resolve a bank letter + 1-based number into the raw JandyAuxillaryIds value,
+		// or std::nullopt when the number is out of range for that bank.
+		std::optional<int> BankValue(char bank, int number)
+		{
+			switch (bank)
+			{
+			case 'A': if (number < 1 || number > 7) { return std::nullopt; } return 0x01 + (number - 1);
+			case 'B': if (number < 1 || number > 8) { return std::nullopt; } return 0x08 + (number - 1);
+			case 'C': if (number < 1 || number > 8) { return std::nullopt; } return 0x10 + (number - 1);
+			case 'D': if (number < 1 || number > 8) { return std::nullopt; } return 0x18 + (number - 1);
+			default: return std::nullopt;
+			}
+		}
+
 		// Trim leading/trailing whitespace and collapse interior runs to a single space.
 		std::string NormaliseWhitespace(std::string_view raw)
 		{
@@ -67,17 +81,10 @@ namespace AqualinkAutomate::Auxillaries
 		if (1 != rest.size() || 0 == std::isdigit(static_cast<unsigned char>(rest.front()))) { return std::nullopt; }
 		const int number = rest.front() - '0';
 
-		int value = 0;
-		switch (bank)
-		{
-		case 'A': if (number < 1 || number > 7) { return std::nullopt; } value = 0x01 + (number - 1); break;
-		case 'B': if (number < 1 || number > 8) { return std::nullopt; } value = 0x08 + (number - 1); break;
-		case 'C': if (number < 1 || number > 8) { return std::nullopt; } value = 0x10 + (number - 1); break;
-		case 'D': if (number < 1 || number > 8) { return std::nullopt; } value = 0x18 + (number - 1); break;
-		default: return std::nullopt;
-		}
+		const auto value = BankValue(bank, number);
+		if (!value) { return std::nullopt; }
 
-		return magic_enum::enum_cast<JandyAuxillaryIds>(value);
+		return magic_enum::enum_cast<JandyAuxillaryIds>(*value);
 	}
 
 	std::string AuxNativeKey(JandyAuxillaryIds id)

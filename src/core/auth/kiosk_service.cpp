@@ -124,32 +124,37 @@ namespace AqualinkAutomate::Auth
 			[raw_pin = std::move(raw_pin), hash]() { return PasswordHasher::Verify(raw_pin, hash); },
 			[this, usable, peer_ip = std::move(peer_ip), user_agent = std::move(user_agent), completion = std::move(completion)](bool verified) mutable
 			{
-				if (!usable || !verified)
-				{
-					RecordFailure();
-					m_Audit.Record(MakeKioskEvent("auth.kiosk_login", "failure", peer_ip, {}, usable ? "wrong PIN" : "kiosk PIN not enabled"));
-
-					LoginResult result;
-					result.Error = "Incorrect PIN";
-
-					completion(std::move(result));
-					return;
-				}
-
-				m_Failure = FailureEntry{};
-
-				const auto now_unix = NowUnix();
-				const auto refresh_expiry = now_unix + m_Config.RefreshTtl.count();
-
-				LoginResult result;
-				result.Success = true;
-				result.AccessToken = MintKioskToken();
-				result.RefreshToken = m_Sessions->Create(std::string{ SubjectId }, refresh_expiry, std::move(user_agent), peer_ip, now_unix, result.SessionId);
-
-				m_Audit.Record(MakeKioskEvent("auth.kiosk_login", "success", peer_ip, {}, std::format("session {}", result.SessionId)));
-
-				completion(std::move(result));
+				HandlePinVerified(verified, usable, std::move(peer_ip), std::move(user_agent), std::move(completion));
 			});
+	}
+
+	void KioskService::HandlePinVerified(bool verified, bool usable, std::string peer_ip, std::string user_agent, LoginCompletion completion)
+	{
+		if (!usable || !verified)
+		{
+			RecordFailure();
+			m_Audit.Record(MakeKioskEvent("auth.kiosk_login", "failure", peer_ip, {}, usable ? "wrong PIN" : "kiosk PIN not enabled"));
+
+			LoginResult result;
+			result.Error = "Incorrect PIN";
+
+			completion(std::move(result));
+			return;
+		}
+
+		m_Failure = FailureEntry{};
+
+		const auto now_unix = NowUnix();
+		const auto refresh_expiry = now_unix + m_Config.RefreshTtl.count();
+
+		LoginResult result;
+		result.Success = true;
+		result.AccessToken = MintKioskToken();
+		result.RefreshToken = m_Sessions->Create(std::string{ SubjectId }, refresh_expiry, std::move(user_agent), peer_ip, now_unix, result.SessionId);
+
+		m_Audit.Record(MakeKioskEvent("auth.kiosk_login", "success", peer_ip, {}, std::format("session {}", result.SessionId)));
+
+		completion(std::move(result));
 	}
 
 	std::string KioskService::MintKioskToken() const

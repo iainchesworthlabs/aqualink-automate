@@ -48,6 +48,30 @@ namespace AqualinkAutomate::Auxillaries
 		{
 			return label.has_value() && !ParseAuxId(label.value()).has_value();
 		}
+
+		// Does this placeholder represent the same physical aux as `keep`? Match on the aux
+		// identity recoverable from its label or hardware label, falling back to a shared label.
+		bool OrphanBelongsToAux(
+			const std::shared_ptr<Kernel::AuxillaryDevice>& orphan,
+			const std::optional<std::string>& orphan_label,
+			const std::optional<std::string>& keep_label,
+			JandyAuxillaryIds aux_id)
+		{
+			if (orphan_label.has_value() && ParseAuxId(orphan_label.value()) == aux_id)
+			{
+				return true;
+			}
+			if (auto hw = orphan->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::HardwareLabelTrait{});
+				hw.has_value() && ParseAuxId(std::string_view{ hw.value() }) == aux_id)
+			{
+				return true;
+			}
+			if (keep_label.has_value() && orphan_label == keep_label)
+			{
+				return true;
+			}
+			return false;
+		}
 	}
 	// unnamed namespace
 
@@ -56,7 +80,6 @@ namespace AqualinkAutomate::Auxillaries
 		using Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait;
 		using Kernel::AuxillaryTraitsTypes::AuxillaryTypes;
 		using Kernel::AuxillaryTraitsTypes::BodyOfWaterTrait;
-		using Kernel::AuxillaryTraitsTypes::HardwareLabelTrait;
 		using Kernel::AuxillaryTraitsTypes::LabelTrait;
 
 		if (nullptr == keep)
@@ -80,23 +103,8 @@ namespace AqualinkAutomate::Auxillaries
 				continue;
 			}
 
-			// Does this placeholder represent the same physical aux as `keep`? Match on the aux
-			// identity recoverable from its label or hardware label, falling back to a shared label.
 			const auto orphan_label = LabelOf(orphan);
-			bool belongs = (orphan_label.has_value() && ParseAuxId(orphan_label.value()) == aux_id);
-			if (!belongs)
-			{
-				if (auto hw = orphan->AuxillaryTraits.TryGet(HardwareLabelTrait{});
-					hw.has_value() && ParseAuxId(std::string_view{ hw.value() }) == aux_id)
-				{
-					belongs = true;
-				}
-			}
-			if (!belongs && keep_label.has_value() && orphan_label == keep_label)
-			{
-				belongs = true;
-			}
-			if (!belongs)
+			if (!OrphanBelongsToAux(orphan, orphan_label, keep_label, aux_id))
 			{
 				continue;
 			}

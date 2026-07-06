@@ -430,41 +430,6 @@ namespace AqualinkAutomate::Mqtt
 
 			if (auto data_hub = m_DataHub.lock())
 			{
-				auto publish_device = [&](TopicScheme::DeviceCategory category, const std::shared_ptr<Kernel::AuxillaryDevice>& device)
-				{
-					if (!device)
-					{
-						return;
-					}
-
-					const std::string type{ TopicScheme::CategoryName(category) };
-
-					auto label = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{});
-					if (!label.has_value())
-					{
-						LogDebug(Channel::Mqtt, [&type] { return std::format("Skipping {} device with no label trait", type); });
-						return;
-					}
-
-					auto slug = Slugify(label.value());
-
-					nlohmann::json j;
-					Kernel::to_json(j, *device);
-					j["type"] = type;
-
-					if (auto body_opt = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::BodyOfWaterTrait{}); body_opt.has_value())
-					{
-						j["body_of_water"] = std::string{ magic_enum::enum_name(body_opt.value()) };
-					}
-
-					auto payload = j.dump();
-					total_size += payload.size();
-					auto topic = m_Client->BuildTopic(TopicScheme::DeviceJsonSubtopic(slug));
-					m_Client->Publish(topic, payload, /*retain=*/true);
-					current_topics.insert(std::move(topic));
-					++device_count;
-				};
-
 				auto auxillaries = data_hub->Auxillaries();
 				auto heaters = data_hub->Heaters();
 				auto pumps = data_hub->Pumps();
@@ -475,22 +440,22 @@ namespace AqualinkAutomate::Mqtt
 
 				for (const auto& device : auxillaries)
 				{
-					publish_device(TopicScheme::DeviceCategory::Auxillary, device);
+					PublishOneDevice(TopicScheme::DeviceCategory::Auxillary, device, total_size, device_count, current_topics);
 				}
 
 				for (const auto& device : heaters)
 				{
-					publish_device(TopicScheme::DeviceCategory::Heater, device);
+					PublishOneDevice(TopicScheme::DeviceCategory::Heater, device, total_size, device_count, current_topics);
 				}
 
 				for (const auto& device : pumps)
 				{
-					publish_device(TopicScheme::DeviceCategory::Pump, device);
+					PublishOneDevice(TopicScheme::DeviceCategory::Pump, device, total_size, device_count, current_topics);
 				}
 
 				for (const auto& device : chlorinators)
 				{
-					publish_device(TopicScheme::DeviceCategory::Chlorinator, device);
+					PublishOneDevice(TopicScheme::DeviceCategory::Chlorinator, device, total_size, device_count, current_topics);
 				}
 			}
 
@@ -515,6 +480,42 @@ namespace AqualinkAutomate::Mqtt
 		{
 			LogError(Channel::Mqtt, std::format("Failed to publish device status: {}", ex.what()));
 		}
+	}
+
+	void MqttHub::PublishOneDevice(TopicScheme::DeviceCategory category, const std::shared_ptr<Kernel::AuxillaryDevice>& device,
+		std::size_t& total_size, std::size_t& device_count, std::unordered_set<std::string>& current_topics)
+	{
+		if (!device)
+		{
+			return;
+		}
+
+		const std::string type{ TopicScheme::CategoryName(category) };
+
+		auto label = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{});
+		if (!label.has_value())
+		{
+			LogDebug(Channel::Mqtt, [&type] { return std::format("Skipping {} device with no label trait", type); });
+			return;
+		}
+
+		auto slug = Slugify(label.value());
+
+		nlohmann::json j;
+		Kernel::to_json(j, *device);
+		j["type"] = type;
+
+		if (auto body_opt = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::BodyOfWaterTrait{}); body_opt.has_value())
+		{
+			j["body_of_water"] = std::string{ magic_enum::enum_name(body_opt.value()) };
+		}
+
+		auto payload = j.dump();
+		total_size += payload.size();
+		auto topic = m_Client->BuildTopic(TopicScheme::DeviceJsonSubtopic(slug));
+		m_Client->Publish(topic, payload, /*retain=*/true);
+		current_topics.insert(std::move(topic));
+		++device_count;
 	}
 
 	std::unordered_set<std::string> MqttHub::ComputeOwnedDeviceTopics() const

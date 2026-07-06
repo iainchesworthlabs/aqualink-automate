@@ -1,6 +1,10 @@
 #pragma once
 
+#include <cstdint>
+#include <map>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include <boost/beast/http/verb.hpp>
 #include <nlohmann/json.hpp>
@@ -47,6 +51,21 @@ namespace AqualinkAutomate::HTTP
 	private:
 		HTTP::Response HandleGet(const HTTP::Request& req) const;
 		HTTP::Response HandlePost(const HTTP::Request& req) const;
+
+		// POST action handlers, split out of HandlePost. Each receives the already-parsed request
+		// body and returns the response for its action (validation errors, the controller-result
+		// mapping, and -- on success -- the freshly rebuilt envelope). m_Controller is guaranteed
+		// non-null by HandlePost before these are called.
+		HTTP::Response HandlePressAction(const HTTP::Request& req, const nlohmann::json& body) const;
+		HTTP::Response HandleAssignAction(const HTTP::Request& req, const nlohmann::json& body) const;
+
+		// BuildEnvelope helpers. ParseRequestedAssignments decodes the persisted "<switch>:<button>"
+		// -> function map from PreferencesHub (skipping malformed keys); BuildRemotesJson assembles
+		// the per-remote array, joining each button to the live and requested functions.
+		std::map<std::pair<std::uint8_t, std::uint8_t>, std::string> ParseRequestedAssignments() const;
+		nlohmann::json BuildRemotesJson(
+			const std::map<std::pair<std::uint8_t, std::uint8_t>, std::string>& live,
+			const std::map<std::pair<std::uint8_t, std::uint8_t>, std::string>& requested_map) const;
 
 		// Build the full GET/command response envelope: every remote (with its per-key `buttons`
 		// joined to the live decoded function, the requested function and a pending flag), the flat

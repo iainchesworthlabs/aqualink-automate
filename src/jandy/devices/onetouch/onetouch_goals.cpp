@@ -172,6 +172,73 @@ namespace AqualinkAutomate::Devices::OneTouch
 	{
 	}
 
+	bool BoostGoal::BoostIsRunning(const KeypadContext& ctx)
+	{
+		// The Boost Pool page shows "Time Remaining" while a boost is running and "Operate ... at
+		// 100%" when idle - used to decide whether an action is actually needed.
+		for (std::size_t i = 0; i < ctx.page.Size(); ++i)
+		{
+			if (ctx.page[i].Text.contains("Time Remaining"))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	std::optional<GoalStatus> BoostGoal::HandleNavigating(KeypadContext& ctx)
+	{
+		// Drive to the Boost Pool page (no in-place Select yet - we decide the action from the
+		// page state once there).
+		if (!m_Started)
+		{
+			LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Boost Pool to {} boost", ctx.DeviceId(), m_Start ? "start" : "stop"));
+			ctx.navigator.NavigateTo(Navigation::PageId::Boost);
+			m_Started = true;
+			m_StepCount = 0;
+		}
+
+		if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
+		{
+			ctx.Emit(nav_cmd.value());
+		}
+
+		if (ctx.navigator.IsComplete())
+		{
+			if (!ctx.navigator.IsSuccess())
+			{
+				return GoalStatus::Failed;
+			}
+
+			const bool running = BoostIsRunning(ctx);
+			if (m_Start && running)
+			{
+				LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already running - nothing to do", ctx.DeviceId()));
+				return GoalStatus::Done;
+			}
+			else if (!m_Start && !running)
+			{
+				LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already stopped - nothing to do", ctx.DeviceId()));
+				return GoalStatus::Done;
+			}
+			else if (m_Start)
+			{
+				// Idle page ("Operate the chlorinator at 100%"): a single Select starts boost.
+				LogDebug(Channel::Devices, std::format("OneTouch ({}): Select to start boost", ctx.DeviceId()));
+				ctx.Emit(Navigation::NavKeyCommand::Select);
+				m_Phase = Phase::Settle;
+			}
+			else
+			{
+				// Running page: navigate to the "Stop" submenu item and Select it in place.
+				LogDebug(Channel::Devices, std::format("OneTouch ({}): Navigating to 'Stop' to stop boost", ctx.DeviceId()));
+				ctx.navigator.NavigateToItem(Navigation::PageId::Boost, 0, "Stop", Navigation::PageId::Boost);
+				m_Phase = Phase::Acting;
+			}
+		}
+		return std::nullopt;
+	}
+
 	GoalStatus BoostGoal::Step(KeypadContext& ctx)
 	{
 		if (m_Started)
@@ -185,71 +252,13 @@ namespace AqualinkAutomate::Devices::OneTouch
 			return GoalStatus::Failed;
 		}
 
-		// The Boost Pool page shows "Time Remaining" while a boost is running and "Operate ... at
-		// 100%" when idle - used to decide whether an action is actually needed.
-		auto boost_is_running = [&ctx]()
-		{
-			for (std::size_t i = 0; i < ctx.page.Size(); ++i)
-			{
-				if (ctx.page[i].Text.contains("Time Remaining"))
-				{
-					return true;
-				}
-			}
-			return false;
-		};
-
 		switch (m_Phase)
 		{
 		case Phase::Navigating:
 		{
-			// Drive to the Boost Pool page (no in-place Select yet - we decide the action from the
-			// page state once there).
-			if (!m_Started)
+			if (auto s = HandleNavigating(ctx); s.has_value())
 			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Boost Pool to {} boost", ctx.DeviceId(), m_Start ? "start" : "stop"));
-				ctx.navigator.NavigateTo(Navigation::PageId::Boost);
-				m_Started = true;
-				m_StepCount = 0;
-			}
-
-			if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
-			{
-				ctx.Emit(nav_cmd.value());
-			}
-
-			if (ctx.navigator.IsComplete())
-			{
-				if (!ctx.navigator.IsSuccess())
-				{
-					return GoalStatus::Failed;
-				}
-
-				const bool running = boost_is_running();
-				if (m_Start && running)
-				{
-					LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already running - nothing to do", ctx.DeviceId()));
-					return GoalStatus::Done;
-				}
-				else if (!m_Start && !running)
-				{
-					LogInfo(Channel::Devices, std::format("OneTouch ({}): boost already stopped - nothing to do", ctx.DeviceId()));
-					return GoalStatus::Done;
-				}
-				else if (m_Start)
-				{
-					// Idle page ("Operate the chlorinator at 100%"): a single Select starts boost.
-					LogDebug(Channel::Devices, std::format("OneTouch ({}): Select to start boost", ctx.DeviceId()));
-					ctx.Emit(Navigation::NavKeyCommand::Select);
-					m_Phase = Phase::Settle;
-				}
-				else
-				{
-					// Running page: navigate to the "Stop" submenu item and Select it in place.
-					LogDebug(Channel::Devices, std::format("OneTouch ({}): Navigating to 'Stop' to stop boost", ctx.DeviceId()));
-					ctx.navigator.NavigateToItem(Navigation::PageId::Boost, 0, "Stop", Navigation::PageId::Boost);
-					m_Phase = Phase::Acting;
-				}
+				return s.value();
 			}
 			break;
 		}
@@ -287,6 +296,142 @@ namespace AqualinkAutomate::Devices::OneTouch
 	{
 	}
 
+	std::optional<GoalStatus> SpaSwitchGoal::HandleToSystemSetup(KeypadContext& ctx)
+	{
+		// Reuse the proven navigator to reach System Setup, then hand off to the screen-driven
+		// walk (the Spa Switch sub-pages -- especially the number-of-switches page -- need bare
+		// Selects without cursor moves, which the navigator's edge model does not express).
+		if (!m_Started)
+		{
+			LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to System Setup for {}", ctx.DeviceId(), m_Desc));
+			ctx.navigator.NavigateTo(Navigation::PageId::SystemSetup);
+			m_Started = true;
+			m_StepCount = 0;
+		}
+
+		if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
+		{
+			ctx.Emit(nav_cmd.value());
+		}
+
+		if (ctx.navigator.IsComplete())
+		{
+			if (ctx.navigator.IsSuccess())
+			{
+				ctx.navigator.Reset();   // navigation done; the rest is screen-driven
+				m_CursorStuck = 0;
+				m_Phase = Phase::SelectSpaSwitch;
+			}
+			else
+			{
+				return GoalStatus::Failed;
+			}
+		}
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> SpaSwitchGoal::HandleSelectSpaSwitch(KeypadContext& ctx)
+	{
+		// On the System Setup menu: find the "Spa Switch" item (scrolling if below the fold),
+		// move the cursor onto it, then Select to open the Spa Switch number page.
+		if (auto line = FindLineStartingWith(ctx.page, "Spa Switch"); line.has_value())
+		{
+			m_CursorStuck = 0;
+			if (ctx.MoveCursorToward(line.value()))
+			{
+				ctx.Emit(Navigation::NavKeyCommand::Select);
+				m_Phase = Phase::PassNumberPage;
+			}
+		}
+		else
+		{
+			ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll the list to reveal it
+			if (++m_CursorStuck > MAX_SCROLL)
+			{
+				LogWarning(Channel::Devices, std::format("OneTouch ({}): 'Spa Switch' menu item not found", ctx.DeviceId()));
+				return GoalStatus::Failed;
+			}
+		}
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> SpaSwitchGoal::HandlePassNumberPage(KeypadContext& ctx)
+	{
+		// The "Spa Switch / Setup" number-of-switches page (line 1 == "Setup"). Press a BARE
+		// Select to advance to the Button Setup list WITHOUT moving the cursor -- moving it
+		// would change the configured switch count.
+		if (LineText(ctx.page, 1) == "Setup")
+		{
+			ctx.Emit(Navigation::NavKeyCommand::Select);
+			m_Phase = Phase::ToRow;
+			m_CursorStuck = 0;
+		}
+		return std::nullopt;   // else: still transitioning -- wait for the page
+	}
+
+	std::optional<GoalStatus> SpaSwitchGoal::HandleToRow(KeypadContext& ctx)
+	{
+		// The "Button Setup" list (line 1 contains "Button Setup"). Find the "S:B" row, move
+		// the cursor onto it, Select to open that button's function picker.
+		if (LineText(ctx.page, 1).contains("Button Setup"))
+		{
+			if (auto line = FindLineStartingWith(ctx.page, m_RowTag); line.has_value())
+			{
+				m_CursorStuck = 0;
+				if (ctx.MoveCursorToward(line.value()))
+				{
+					ctx.Emit(Navigation::NavKeyCommand::Select);
+					m_PickerFirstSeen.reset();
+					m_Phase = Phase::CyclePicker;
+				}
+			}
+			else
+			{
+				ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll to reveal the row
+				if (++m_CursorStuck > MAX_SCROLL)
+				{
+					LogWarning(Channel::Devices, std::format("OneTouch ({}): button row '{}' not found", ctx.DeviceId(), m_RowTag));
+					return GoalStatus::Failed;
+				}
+			}
+		}
+		return std::nullopt;   // else: still transitioning -- wait
+	}
+
+	std::optional<GoalStatus> SpaSwitchGoal::HandleCyclePicker(KeypadContext& ctx)
+	{
+		// The per-button picker (line 1 == "Button <S:B>"). Cycle (LineUp) until the selected
+		// function (line 3) matches the target, then commit. Wrap-detect to bail if the target
+		// is not offered by this controller.
+		if (LineText(ctx.page, 1).contains("Button") && LineText(ctx.page, 1).contains(m_RowTag))
+		{
+			auto current = DisplayedFunctionOnRow(ctx.page, PICKER_FUNCTION_LINE);
+			if (!current.has_value())
+			{
+				return std::nullopt;   // not rendered yet -- wait
+			}
+
+			if (EqualsCaseInsensitive(current.value(), m_Function))
+			{
+				m_Phase = Phase::Commit;
+				return std::nullopt;
+			}
+
+			if (!m_PickerFirstSeen.has_value())
+			{
+				m_PickerFirstSeen = current;
+			}
+			else if (EqualsCaseInsensitive(current.value(), m_PickerFirstSeen.value()))
+			{
+				LogWarning(Channel::Devices, std::format("OneTouch ({}): function '{}' not offered by the picker for {}", ctx.DeviceId(), m_Function, m_RowTag));
+				return GoalStatus::Failed;
+			}
+
+			ctx.Emit(Navigation::NavKeyCommand::LineUp);   // cycle to the next function
+		}
+		return std::nullopt;   // else: not on the picker yet -- wait
+	}
+
 	GoalStatus SpaSwitchGoal::Step(KeypadContext& ctx)
 	{
 		if (m_Started)
@@ -303,140 +448,24 @@ namespace AqualinkAutomate::Devices::OneTouch
 		switch (m_Phase)
 		{
 		case Phase::ToSystemSetup:
-		{
-			// Reuse the proven navigator to reach System Setup, then hand off to the screen-driven
-			// walk (the Spa Switch sub-pages -- especially the number-of-switches page -- need bare
-			// Selects without cursor moves, which the navigator's edge model does not express).
-			if (!m_Started)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to System Setup for {}", ctx.DeviceId(), m_Desc));
-				ctx.navigator.NavigateTo(Navigation::PageId::SystemSetup);
-				m_Started = true;
-				m_StepCount = 0;
-			}
-
-			if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
-			{
-				ctx.Emit(nav_cmd.value());
-			}
-
-			if (ctx.navigator.IsComplete())
-			{
-				if (ctx.navigator.IsSuccess())
-				{
-					ctx.navigator.Reset();   // navigation done; the rest is screen-driven
-					m_CursorStuck = 0;
-					m_Phase = Phase::SelectSpaSwitch;
-				}
-				else
-				{
-					return GoalStatus::Failed;
-				}
-			}
+			if (auto s = HandleToSystemSetup(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 
 		case Phase::SelectSpaSwitch:
-		{
-			// On the System Setup menu: find the "Spa Switch" item (scrolling if below the fold),
-			// move the cursor onto it, then Select to open the Spa Switch number page.
-			if (auto line = FindLineStartingWith(ctx.page, "Spa Switch"); line.has_value())
-			{
-				m_CursorStuck = 0;
-				if (ctx.MoveCursorToward(line.value()))
-				{
-					ctx.Emit(Navigation::NavKeyCommand::Select);
-					m_Phase = Phase::PassNumberPage;
-				}
-			}
-			else
-			{
-				ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll the list to reveal it
-				if (++m_CursorStuck > MAX_SCROLL)
-				{
-					LogWarning(Channel::Devices, std::format("OneTouch ({}): 'Spa Switch' menu item not found", ctx.DeviceId()));
-					return GoalStatus::Failed;
-				}
-			}
+			if (auto s = HandleSelectSpaSwitch(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 
 		case Phase::PassNumberPage:
-		{
-			// The "Spa Switch / Setup" number-of-switches page (line 1 == "Setup"). Press a BARE
-			// Select to advance to the Button Setup list WITHOUT moving the cursor -- moving it
-			// would change the configured switch count.
-			if (LineText(ctx.page, 1) == "Setup")
-			{
-				ctx.Emit(Navigation::NavKeyCommand::Select);
-				m_Phase = Phase::ToRow;
-				m_CursorStuck = 0;
-			}
-			break;   // else: still transitioning -- wait for the page
-		}
+			if (auto s = HandlePassNumberPage(ctx); s.has_value()) { return s.value(); }
+			break;
 
 		case Phase::ToRow:
-		{
-			// The "Button Setup" list (line 1 contains "Button Setup"). Find the "S:B" row, move
-			// the cursor onto it, Select to open that button's function picker.
-			if (LineText(ctx.page, 1).contains("Button Setup"))
-			{
-				if (auto line = FindLineStartingWith(ctx.page, m_RowTag); line.has_value())
-				{
-					m_CursorStuck = 0;
-					if (ctx.MoveCursorToward(line.value()))
-					{
-						ctx.Emit(Navigation::NavKeyCommand::Select);
-						m_PickerFirstSeen.reset();
-						m_Phase = Phase::CyclePicker;
-					}
-				}
-				else
-				{
-					ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll to reveal the row
-					if (++m_CursorStuck > MAX_SCROLL)
-					{
-						LogWarning(Channel::Devices, std::format("OneTouch ({}): button row '{}' not found", ctx.DeviceId(), m_RowTag));
-						return GoalStatus::Failed;
-					}
-				}
-			}
-			break;   // else: still transitioning -- wait
-		}
+			if (auto s = HandleToRow(ctx); s.has_value()) { return s.value(); }
+			break;
 
 		case Phase::CyclePicker:
-		{
-			// The per-button picker (line 1 == "Button <S:B>"). Cycle (LineUp) until the selected
-			// function (line 3) matches the target, then commit. Wrap-detect to bail if the target
-			// is not offered by this controller.
-			if (LineText(ctx.page, 1).contains("Button") && LineText(ctx.page, 1).contains(m_RowTag))
-			{
-				auto current = DisplayedFunctionOnRow(ctx.page, PICKER_FUNCTION_LINE);
-				if (!current.has_value())
-				{
-					break;   // not rendered yet -- wait
-				}
-
-				if (EqualsCaseInsensitive(current.value(), m_Function))
-				{
-					m_Phase = Phase::Commit;
-					break;
-				}
-
-				if (!m_PickerFirstSeen.has_value())
-				{
-					m_PickerFirstSeen = current;
-				}
-				else if (EqualsCaseInsensitive(current.value(), m_PickerFirstSeen.value()))
-				{
-					LogWarning(Channel::Devices, std::format("OneTouch ({}): function '{}' not offered by the picker for {}", ctx.DeviceId(), m_Function, m_RowTag));
-					return GoalStatus::Failed;
-				}
-
-				ctx.Emit(Navigation::NavKeyCommand::LineUp);   // cycle to the next function
-			}
-			break;   // else: not on the picker yet -- wait
-		}
+			if (auto s = HandleCyclePicker(ctx); s.has_value()) { return s.value(); }
+			break;
 
 		case Phase::Commit:
 		{
@@ -553,6 +582,156 @@ namespace AqualinkAutomate::Devices::OneTouch
 		return std::nullopt;
 	}
 
+	std::optional<GoalStatus> ScheduleWriteGoal::HandleToProgramMenu(KeypadContext& ctx)
+	{
+		// Reuse the proven navigator to reach the Program equipment-list page, then hand off to
+		// the screen-driven walk (the list scroll + detail + editor need bare content-driven
+		// cursoring the navigator's edge model does not express).
+		if (!m_Started)
+		{
+			LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Program menu for {}", ctx.DeviceId(), m_Desc));
+			ctx.navigator.NavigateTo(Navigation::PageId::Program);
+			m_Started = true;
+			m_StepCount = 0;
+		}
+
+		if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
+		{
+			ctx.Emit(nav_cmd.value());
+		}
+
+		if (ctx.navigator.IsComplete())
+		{
+			if (ctx.navigator.IsSuccess())
+			{
+				ctx.navigator.Reset();   // navigation done; the rest is screen-driven
+				m_FieldStep = 0;
+				m_Phase = Phase::SelectEquipment;
+			}
+			else
+			{
+				return GoalStatus::Failed;
+			}
+		}
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> ScheduleWriteGoal::HandleSelectEquipment(KeypadContext& ctx)
+	{
+		// On the Program equipment LIST: find the target equipment row (scrolling if below the
+		// fold), move the cursor onto it, Select -> its detail page. Guard against acting once
+		// the detail page has already rendered (a fast transition).
+		if (OnDetailPage(ctx))
+		{
+			m_FieldStep = 0;
+			m_Phase = Phase::ChooseAction;
+			return GoalStatus::Running;
+		}
+		if (auto line = FindLineStartingWith(ctx.page, m_Program.target); line.has_value() && (line.value() != 0))
+		{
+			m_FieldStep = 0;
+			if (ctx.MoveCursorToward(line.value()))
+			{
+				ctx.Emit(Navigation::NavKeyCommand::Select);
+				m_Phase = Phase::ChooseAction;
+			}
+		}
+		else
+		{
+			ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll the list to reveal the equipment
+			if (++m_FieldStep > MAX_STEP)
+			{
+				LogWarning(Channel::Devices, std::format("OneTouch ({}): equipment '{}' not found in the Program list", ctx.DeviceId(), m_Program.target));
+				return GoalStatus::Failed;
+			}
+		}
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> ScheduleWriteGoal::HandleChooseAction(KeypadContext& ctx)
+	{
+		// On the per-equipment detail page. Delete: cursor to the Delete row and Select ->
+		// immediate removal (NO confirm). Create: cursor to Add; Edit: cursor to Change -> editor.
+		if (!OnDetailPage(ctx)) { return std::nullopt; }   // still transitioning -- wait
+
+		if (m_Op == ScheduleWriteOp::Delete)
+		{
+			if (LineText(ctx.page, 4).contains("No Programs"))
+			{
+				return GoalStatus::Done;   // nothing to delete -- treat as done
+			}
+			if (ctx.MoveCursorToward(DELETE_ROW))
+			{
+				ctx.Emit(Navigation::NavKeyCommand::Select);   // immediate delete, no confirm
+				m_Phase = Phase::VerifyGone;
+			}
+			return std::nullopt;
+		}
+
+		if (const uint8_t action_row = (m_Op == ScheduleWriteOp::Edit) ? CHANGE_ROW : ADD_ROW; ctx.MoveCursorToward(action_row))
+		{
+			ctx.Emit(Navigation::NavKeyCommand::Select);   // -> the editor
+			m_FieldStep = 0;
+			m_Phase = Phase::EnterEditor;
+		}
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> ScheduleWriteGoal::HandleSetDays(KeypadContext& ctx)
+	{
+		// Step the days wheel to the target selection, then Select -> the program SAVES and the
+		// panel returns to the detail page. Closed-loop on the echoed days row; a validated
+		// candidate (CheckControllerCandidate) is always reachable.
+		if (!OnEditorPage(ctx)) { return std::nullopt; }
+		auto cur = DisplayedDays(ctx, DAYS_LINE);
+		if (!cur.has_value()) { return std::nullopt; }   // days row blanked mid-render; wait
+		if (cur.value() == (m_Program.days_of_week & DayMask::AllDays))
+		{
+			ctx.Emit(Navigation::NavKeyCommand::Select);   // commit days -> SAVE -> detail page
+			m_Phase = Phase::Verify;
+			m_FieldStep = 0;
+			return std::nullopt;
+		}
+		if (++m_FieldStep > MAX_STEP) { return GoalStatus::Failed; }
+		ctx.Emit(Navigation::NavKeyCommand::LineUp);   // cycle the days wheel (bounded)
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> ScheduleWriteGoal::HandleVerify(KeypadContext& ctx)
+	{
+		// The program saved and the panel returned to the detail page. Re-parse it and confirm it
+		// now carries the target program (target + on/off + days). Dwell until it renders.
+		if (!OnDetailPage(ctx)) { return std::nullopt; }
+		int idx = 0;
+		int count = 0;
+		if (const auto parsed = ParseProgramDetailPage(ctx.page, &idx, &count);
+			parsed.has_value()
+			&& EqualsCaseInsensitive(parsed->target, m_Program.target)
+			&& parsed->days_of_week == (m_Program.days_of_week & DayMask::AllDays)
+			&& parsed->on_hour == m_Program.on_hour && parsed->on_minute == m_Program.on_minute
+			&& parsed->off_hour == m_Program.off_hour && parsed->off_minute == m_Program.off_minute)
+		{
+			return GoalStatus::Done;
+		}
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> ScheduleWriteGoal::HandleVerifyGone(KeypadContext& ctx)
+	{
+		// Delete complete once the detail page shows "No Programs" (or no longer parses as a
+		// program-detail). Dwell until the panel re-renders.
+		if (!OnDetailPage(ctx)) { return std::nullopt; }
+		if (LineText(ctx.page, 4).contains("No Programs"))
+		{
+			return GoalStatus::Done;
+		}
+		if (const auto parsed = ParseProgramDetailPage(ctx.page); !parsed.has_value())
+		{
+			return GoalStatus::Done;
+		}
+		return std::nullopt;
+	}
+
 	GoalStatus ScheduleWriteGoal::Step(KeypadContext& ctx)
 	{
 		// Frame backstop so a mis-detected page can never wedge NormalOperation.
@@ -570,99 +749,16 @@ namespace AqualinkAutomate::Devices::OneTouch
 		switch (m_Phase)
 		{
 		case Phase::ToProgramMenu:
-		{
-			// Reuse the proven navigator to reach the Program equipment-list page, then hand off to
-			// the screen-driven walk (the list scroll + detail + editor need bare content-driven
-			// cursoring the navigator's edge model does not express).
-			if (!m_Started)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Program menu for {}", ctx.DeviceId(), m_Desc));
-				ctx.navigator.NavigateTo(Navigation::PageId::Program);
-				m_Started = true;
-				m_StepCount = 0;
-			}
-
-			if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
-			{
-				ctx.Emit(nav_cmd.value());
-			}
-
-			if (ctx.navigator.IsComplete())
-			{
-				if (ctx.navigator.IsSuccess())
-				{
-					ctx.navigator.Reset();   // navigation done; the rest is screen-driven
-					m_FieldStep = 0;
-					m_Phase = Phase::SelectEquipment;
-				}
-				else
-				{
-					return GoalStatus::Failed;
-				}
-			}
+			if (auto s = HandleToProgramMenu(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 
 		case Phase::SelectEquipment:
-		{
-			// On the Program equipment LIST: find the target equipment row (scrolling if below the
-			// fold), move the cursor onto it, Select -> its detail page. Guard against acting once
-			// the detail page has already rendered (a fast transition).
-			if (OnDetailPage(ctx))
-			{
-				m_FieldStep = 0;
-				m_Phase = Phase::ChooseAction;
-				return GoalStatus::Running;
-			}
-			if (auto line = FindLineStartingWith(ctx.page, m_Program.target); line.has_value() && (line.value() != 0))
-			{
-				m_FieldStep = 0;
-				if (ctx.MoveCursorToward(line.value()))
-				{
-					ctx.Emit(Navigation::NavKeyCommand::Select);
-					m_Phase = Phase::ChooseAction;
-				}
-			}
-			else
-			{
-				ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll the list to reveal the equipment
-				if (++m_FieldStep > MAX_STEP)
-				{
-					LogWarning(Channel::Devices, std::format("OneTouch ({}): equipment '{}' not found in the Program list", ctx.DeviceId(), m_Program.target));
-					return GoalStatus::Failed;
-				}
-			}
+			if (auto s = HandleSelectEquipment(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 
 		case Phase::ChooseAction:
-		{
-			// On the per-equipment detail page. Delete: cursor to the Delete row and Select ->
-			// immediate removal (NO confirm). Create: cursor to Add; Edit: cursor to Change -> editor.
-			if (!OnDetailPage(ctx)) { break; }   // still transitioning -- wait
-
-			if (m_Op == ScheduleWriteOp::Delete)
-			{
-				if (LineText(ctx.page, 4).contains("No Programs"))
-				{
-					return GoalStatus::Done;   // nothing to delete -- treat as done
-				}
-				if (ctx.MoveCursorToward(DELETE_ROW))
-				{
-					ctx.Emit(Navigation::NavKeyCommand::Select);   // immediate delete, no confirm
-					m_Phase = Phase::VerifyGone;
-				}
-				break;
-			}
-
-			if (const uint8_t action_row = (m_Op == ScheduleWriteOp::Edit) ? CHANGE_ROW : ADD_ROW; ctx.MoveCursorToward(action_row))
-			{
-				ctx.Emit(Navigation::NavKeyCommand::Select);   // -> the editor
-				m_FieldStep = 0;
-				m_Phase = Phase::EnterEditor;
-			}
+			if (auto s = HandleChooseAction(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 
 		case Phase::EnterEditor:
 		{
@@ -693,59 +789,16 @@ namespace AqualinkAutomate::Devices::OneTouch
 			break;
 
 		case Phase::SetDays:
-		{
-			// Step the days wheel to the target selection, then Select -> the program SAVES and the
-			// panel returns to the detail page. Closed-loop on the echoed days row; a validated
-			// candidate (CheckControllerCandidate) is always reachable.
-			if (!OnEditorPage(ctx)) { break; }
-			auto cur = DisplayedDays(ctx, DAYS_LINE);
-			if (!cur.has_value()) { break; }   // days row blanked mid-render; wait
-			if (cur.value() == (m_Program.days_of_week & DayMask::AllDays))
-			{
-				ctx.Emit(Navigation::NavKeyCommand::Select);   // commit days -> SAVE -> detail page
-				m_Phase = Phase::Verify;
-				m_FieldStep = 0;
-				break;
-			}
-			if (++m_FieldStep > MAX_STEP) { return GoalStatus::Failed; }
-			ctx.Emit(Navigation::NavKeyCommand::LineUp);   // cycle the days wheel (bounded)
+			if (auto s = HandleSetDays(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 
 		case Phase::Verify:
-		{
-			// The program saved and the panel returned to the detail page. Re-parse it and confirm it
-			// now carries the target program (target + on/off + days). Dwell until it renders.
-			if (!OnDetailPage(ctx)) { break; }
-			int idx = 0;
-			int count = 0;
-			if (const auto parsed = ParseProgramDetailPage(ctx.page, &idx, &count);
-				parsed.has_value()
-				&& EqualsCaseInsensitive(parsed->target, m_Program.target)
-				&& parsed->days_of_week == (m_Program.days_of_week & DayMask::AllDays)
-				&& parsed->on_hour == m_Program.on_hour && parsed->on_minute == m_Program.on_minute
-				&& parsed->off_hour == m_Program.off_hour && parsed->off_minute == m_Program.off_minute)
-			{
-				return GoalStatus::Done;
-			}
+			if (auto s = HandleVerify(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 
 		case Phase::VerifyGone:
-		{
-			// Delete complete once the detail page shows "No Programs" (or no longer parses as a
-			// program-detail). Dwell until the panel re-renders.
-			if (!OnDetailPage(ctx)) { break; }
-			if (LineText(ctx.page, 4).contains("No Programs"))
-			{
-				return GoalStatus::Done;
-			}
-			if (const auto parsed = ParseProgramDetailPage(ctx.page); !parsed.has_value())
-			{
-				return GoalStatus::Done;
-			}
+			if (auto s = HandleVerifyGone(ctx); s.has_value()) { return s.value(); }
 			break;
-		}
 		}
 
 		return GoalStatus::Running;

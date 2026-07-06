@@ -53,6 +53,12 @@ namespace AqualinkAutomate::Messages
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
+		// Parse the status/temperature fields for each wire format. Both consume the
+		// payload starting at pos (advancing it) and return false on a short payload.
+		bool DeserializeLegacyStatus(const std::vector<uint8_t>& payload, std::size_t& pos);
+		bool DeserializeCurrentStatus(const std::vector<uint8_t>& payload, std::size_t& pos);
+
+	private:
 		std::vector<uint8_t> m_RawPayload;
 		bool m_PumpOn{false};
 		bool m_SpaMode{false};
