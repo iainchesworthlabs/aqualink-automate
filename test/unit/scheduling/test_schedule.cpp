@@ -102,4 +102,47 @@ BOOST_AUTO_TEST_CASE(Schedule_RejectsButtonWithoutTarget)
 	BOOST_CHECK(!FromJson(json, error).has_value());
 }
 
+// Regression (found by the schedule-JSON fuzz harness): a present-but-wrong-typed
+// OPTIONAL field must NOT throw. FromJson previously read "name"/"enabled" via
+// nlohmann json.value(key, default), which throws type_error.302 when the key is
+// present with a mismatched type — violating the documented "return nullopt / set
+// error" contract and, since ParseScheduleBody (POST/PUT /api/schedules) parses with
+// allow_exceptions=false and then calls FromJson with no try/catch, escaping as an
+// uncaught exception on an untrusted request body. Wrong-typed optional fields are
+// now ignored (matching ControllerScheduleFromJson), so an otherwise-valid body parses.
+BOOST_AUTO_TEST_CASE(Schedule_WrongTypedOptionalFields_DoNotThrow)
+{
+	nlohmann::json json = {
+		{ "name", 5 },            // number, not string
+		{ "enabled", "yes" },     // string, not bool
+		{ "days_of_week", 1 },
+		{ "time_local", "08:00" },
+		{ "action", { { "type", "button_toggle" }, { "target", "Pool Pump" } } },
+	};
+	std::string error;
+	std::optional<Schedule> parsed;
+	BOOST_REQUIRE_NO_THROW(parsed = FromJson(json, error));
+	BOOST_REQUIRE_MESSAGE(parsed.has_value(), error);
+	BOOST_CHECK(parsed->name.empty());   // wrong-typed name ignored
+	BOOST_CHECK(parsed->enabled);        // wrong-typed enabled falls back to default
+}
+
+// Regression: a present-but-wrong-typed REQUIRED action field must be REJECTED with
+// nullopt, never thrown (same root cause — action_json.value("type"/"target", ...)).
+BOOST_AUTO_TEST_CASE(Schedule_WrongTypedActionFields_RejectedNotThrown)
+{
+	std::string error;
+	std::optional<Schedule> parsed;
+
+	// action.type as a number -> rejected (unknown action), not thrown.
+	nlohmann::json bad_type = { { "days_of_week", 1 }, { "time_local", "08:00" }, { "action", { { "type", 7 } } } };
+	BOOST_REQUIRE_NO_THROW(parsed = FromJson(bad_type, error));
+	BOOST_CHECK(!parsed.has_value());
+
+	// action.target as a number on a button action -> rejected, not thrown.
+	nlohmann::json bad_target = { { "days_of_week", 1 }, { "time_local", "08:00" }, { "action", { { "type", "button_on" }, { "target", 9 } } } };
+	BOOST_REQUIRE_NO_THROW(parsed = FromJson(bad_target, error));
+	BOOST_CHECK(!parsed.has_value());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
