@@ -17,6 +17,7 @@
 #include "devices/onetouch/onetouch_goals.h"
 #include "devices/onetouch/onetouch_keypad.h"
 #include "devices/onetouch/onetouch_screen_reader.h"
+#include "devices/onetouch/onetouch_startup_survey.h"
 #include "devices/capabilities/chlorinator_controller.h"
 #include "devices/capabilities/command_history.h"
 #include "devices/capabilities/controller_schedule_writer.h"
@@ -68,18 +69,6 @@ namespace AqualinkAutomate::Devices
 			FaultHasOccurred
 		};
 
-		// Health summary of the startup menu crawl: which pages were reached, and which the
-		// crawl could not reach -- split into capability-gated pages whose absence is EXPECTED
-		// on this model (e.g. the iAqualink or chlorinator pages) versus NOTABLE failures that
-		// every panel should have. Surfaced via DescribeDiagnostics.
-		struct MenuSurveyResult
-		{
-			uint32_t PagesReached{ 0 };
-			std::vector<std::string> ExpectedAbsent;    // failed but capability-gated (benign)
-			std::vector<std::string> NotableFailures;   // failed and expected on every model
-			bool EquipmentPageReached{ false };          // the critical Equipment ON/OFF page
-		};
-
 	public:
 		enum class KeyCommands : uint8_t
 		{
@@ -98,12 +87,6 @@ namespace AqualinkAutomate::Devices
 		~OneTouchDevice() override;
 
 		nlohmann::json DescribeDiagnostics() const override;
-
-		// True when the DataHub already carries one or more aux devices with a
-		// non-empty label (e.g. seeded passively by a real iAqualink2 on the bus).
-		// When so, the emulated OneTouch skips the slow "Label Aux" menu crawl at
-		// startup. Exposed for diagnostics and for validating the skip decision.
-		bool DataHubHasSeededAuxLabels() const;
 
 		// Configure proactive re-acquisition of the configured chlorinator setpoint by
 		// periodically (+ on comms-recovery) scraping the Set AquaPure menu (0 = disabled).
@@ -240,18 +223,11 @@ namespace AqualinkAutomate::Devices
 		// scraper (m_Scraper) and registers its processors into the Screen capability.
 
 	private:
-		// Navigation-based scraping
+		// Navigation-based scraping op-state drivers. The crawl analysis (survey / equipment
+		// validation / seeded-label check) lives as free functions in
+		// devices/onetouch/onetouch_startup_survey.h.
 		void Scraping_ProcessStep_StartUp();
 		void Scraping_ProcessStep();
-
-		// Cross-check the discovered equipment set against the model's expected aux/power-centre
-		// layout once scraping ends; records the outcome on the DataHub and logs any anomalies.
-		void ValidateDiscoveredEquipment();
-
-		// Summarise the menu crawl once it completes: record reached/failed pages, classify
-		// failures as expected-absent (capability-gated) vs notable, and warn if a core page
-		// (Equipment ON/OFF) was missed. Result stored in m_MenuSurveyResult for diagnostics.
-		void ReportMenuSurvey();
 
 		// Service the in-flight on-demand keypad goal (toggle / value-edit / ... - whatever the
 		// GoalRunner holds) one Status cycle: build the KeypadContext view of the shared keypad,
@@ -307,7 +283,7 @@ namespace AqualinkAutomate::Devices
 		uint32_t m_ScrapingStallCounter{ 0 };
 		uint32_t m_FaultRecoveryStatusCount{ 0 };  // consecutive recognised-page Status frames seen during the current faulted dwell (drives AttemptFaultRecovery's hysteresis)
 		uint8_t m_HighlightedLine{ 0 };
-		std::optional<MenuSurveyResult> m_MenuSurveyResult;  // populated when the startup crawl completes
+		std::optional<OneTouch::MenuSurveyResult> m_MenuSurveyResult;  // populated when the startup crawl completes
 
 	private:
 		// The on-demand keypad goals (toggle / value-edit / boost / spa-switch / schedule-write)

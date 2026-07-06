@@ -215,7 +215,7 @@ namespace AqualinkAutomate::Devices
 			// scraping sequence and fall through to normal (passive) operation
 			// so the device is at least partially functional.
 			LogWarning(Channel::Devices, std::format("OneTouch({}) : Abandoning scraping due to watchdog timeout -> entering NormalOperation", DeviceId()));
-			ValidateDiscoveredEquipment();
+			if (m_DataHub) { OneTouch::ValidateDiscoveredEquipment(*m_DataHub, DeviceId()); }
 			// Startup discovery is over (degraded): allow periodic refresh, but do NOT seed the
 			// timer - the timed-out crawl may never have reached Set AquaPure, so let the first
 			// periodic re-scrape happen promptly to recover the configured setpoint.
@@ -279,7 +279,7 @@ namespace AqualinkAutomate::Devices
 		LogWarning(Channel::Devices, std::format("OneTouch ({}): controller resumed comms (page '{}') - recovering from {} to NormalOperation",
 			DeviceId(), magic_enum::enum_name(detected), magic_enum::enum_name(m_OpState)));
 
-		ValidateDiscoveredEquipment();
+		if (m_DataHub) { OneTouch::ValidateDiscoveredEquipment(*m_DataHub, DeviceId()); }
 		m_RefreshState.MarkStartupComplete();
 		if (m_Navigator)
 		{
@@ -312,38 +312,6 @@ namespace AqualinkAutomate::Devices
 		default:
 			return KeyCommands::NoKeyCommand;
 		}
-	}
-
-	bool OneTouchDevice::DataHubHasSeededAuxLabels() const
-	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::DataHubHasSeededAuxLabels", std::source_location::current());
-
-		if (nullptr == JandyController::m_DataHub)
-		{
-			return false;
-		}
-
-		// A real iAqualink2 (AqualinkTouch 0x33) decodes aux NAMES from its AuxStatus
-		// (0x72) frames and sets LabelTrait on the matching DataHub aux devices
-		// passively. We treat any aux device carrying a non-empty label as evidence
-		// the labels are already known, so the emulated OneTouch can skip scraping
-		// them. Devices are keyed by JandyAuxillaryId so only Jandy auxes are
-		// considered (matching what the Label Aux crawl would have populated).
-		for (const auto& device : JandyController::m_DataHub->Devices.FindByTrait(Auxillaries::JandyAuxillaryId{}))
-		{
-			if (nullptr == device)
-			{
-				continue;
-			}
-
-			if (auto label = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{});
-				label.has_value() && !Utility::TrimWhitespace(label.value()).empty())
-			{
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	Capabilities::ActuationResult OneTouchDevice::ActuateDevice(const std::shared_ptr<Kernel::AuxillaryDevice>& device, Capabilities::ActuationAction action)
@@ -779,7 +747,7 @@ namespace AqualinkAutomate::Devices
 			// skip the slow "Label Aux" crawl (~36 pages under a 30s watchdog) and
 			// reuse those labels. Otherwise fall back to the full scrape so non-IAQ
 			// systems still discover their aux labels.
-			const bool skip_label_pages = DataHubHasSeededAuxLabels();
+			const bool skip_label_pages = (m_DataHub && OneTouch::DataHubHasSeededAuxLabels(*m_DataHub));
 			if (skip_label_pages)
 			{
 				LogInfo(Channel::Scraping, std::format("OneTouch ({}): IAQ-seeded aux labels present on DataHub - skipping Label Aux scrape", DeviceId()));
@@ -833,8 +801,8 @@ namespace AqualinkAutomate::Devices
 		{
 			LogInfo(Channel::Scraping, std::format("OneTouch ({}): Startup scrape complete ({} pages visited) - entering NormalOperation",
 				DeviceId(), m_SpiderEngine->GetVisitedPages().size()));
-			ReportMenuSurvey();
-			ValidateDiscoveredEquipment();
+			if (m_SpiderEngine) { m_MenuSurveyResult = OneTouch::BuildMenuSurvey(*m_SpiderEngine, m_MenuModel, DeviceId()); }
+			if (m_DataHub) { OneTouch::ValidateDiscoveredEquipment(*m_DataHub, DeviceId()); }
 
 			// The startup crawl already visited Set AquaPure (its page processor scraped the
 			// configured %), so mark startup complete and seed the refresh timer from now - the
@@ -907,109 +875,6 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchDevice::ValidateDiscoveredEquipment()
-	{
-		if (!m_DataHub)
-		{
-			return;
-		}
-
-		// Gather the Jandy ids of every numbered auxillary that was discovered.
-		std::vector<Auxillaries::JandyAuxillaryIds> discovered_aux_ids;
-		for (const auto& aux : m_DataHub->Auxillaries())
-		{
-			if (aux && aux->AuxillaryTraits.Has(Auxillaries::JandyAuxillaryId{}))
-			{
-				discovered_aux_ids.push_back(aux->AuxillaryTraits[Auxillaries::JandyAuxillaryId{}]);
-			}
-		}
-
-		// Equipment occupying an aux relay that is NOT a numbered aux because an IO-board DIP
-		// switch repurposed the relay (cleaner / spillover / sprinkler). Counted toward the
-		// relay total so a DIP-repurposed panel still validates against the model's aux count.
-		const auto reconfigured_aux_relays = static_cast<uint8_t>(
-			m_DataHub->CountOfType(Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Cleaner)
-			+ m_DataHub->CountOfType(Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Spillover)
-			+ m_DataHub->CountOfType(Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Sprinkler));
-
-		auto result = Utility::ValidateDiscoveredEquipment(
-			m_DataHub->ExpectedAuxillaryCount,
-			m_DataHub->ExpectedPowerCenterCount,
-			discovered_aux_ids,
-			reconfigured_aux_relays);
-
-		if (result.ExpectedAuxillaries == 0)
-		{
-			// The version page was never scraped (no model decoded) - nothing to validate against.
-			LogDebug(Channel::Devices, std::format("OneTouch ({}): Skipping equipment validation - model not yet decoded", DeviceId()));
-		}
-		else if (result.Passed())
-		{
-			LogInfo(Channel::Devices, std::format("OneTouch ({}): Equipment validated - {} aux relay(s) across {} power center(s) match the model",
-				DeviceId(), result.DiscoveredAuxillaries, result.DiscoveredPowerCenters));
-		}
-		else
-		{
-			for (const auto& anomaly : result.Anomalies)
-			{
-				LogWarning(Channel::Devices, std::format("OneTouch ({}): Equipment validation anomaly - {}", DeviceId(), anomaly));
-			}
-		}
-
-		m_DataHub->EquipmentValidationResult = std::move(result);
-	}
-
-	void OneTouchDevice::ReportMenuSurvey()
-	{
-		if (!m_SpiderEngine)
-		{
-			return;
-		}
-
-		const auto& visited = m_SpiderEngine->GetVisitedPages();
-		const auto& failed = m_SpiderEngine->GetFailedPages();
-
-		MenuSurveyResult survey;
-		survey.PagesReached = static_cast<uint32_t>(visited.size() - failed.size());
-		survey.EquipmentPageReached = visited.contains(Navigation::PageId::EquipmentOnOff)
-			&& !failed.contains(Navigation::PageId::EquipmentOnOff);
-
-		for (const auto page : failed)
-		{
-			const auto* page_info = m_MenuModel.GetPage(page);
-			const std::string name = page_info ? page_info->name : std::format("page {}", std::to_underlying(page));
-
-			if (auto requirement = Navigation::OneTouchPageCapabilityRequirement(page); requirement.has_value())
-			{
-				survey.ExpectedAbsent.push_back(std::format("{} ({})", name, requirement.value()));
-			}
-			else
-			{
-				survey.NotableFailures.push_back(name);
-			}
-		}
-
-		LogInfo(Channel::Scraping, std::format("OneTouch ({}): Menu survey - {} page(s) reached, {} expected-absent, {} notable failure(s)",
-			DeviceId(), survey.PagesReached, survey.ExpectedAbsent.size(), survey.NotableFailures.size()));
-
-		if (!survey.EquipmentPageReached)
-		{
-			LogWarning(Channel::Scraping, std::format("OneTouch ({}): Menu survey - the Equipment ON/OFF page was not reached; the discovered equipment set may be incomplete", DeviceId()));
-		}
-
-		for (const auto& notable : survey.NotableFailures)
-		{
-			LogWarning(Channel::Scraping, std::format("OneTouch ({}): Menu survey - unexpected failure to reach '{}'", DeviceId(), notable));
-		}
-
-		for (const auto& expected : survey.ExpectedAbsent)
-		{
-			LogDebug(Channel::Scraping, std::format("OneTouch ({}): Menu survey - expected-absent page skipped: {}", DeviceId(), expected));
-		}
-
-		m_MenuSurveyResult = std::move(survey);
-	}
-
 	nlohmann::json OneTouchDevice::DescribeDiagnostics() const
 	{
 		nlohmann::json j;
@@ -1039,7 +904,7 @@ namespace AqualinkAutomate::Devices
 			spider["state"] = std::string(magic_enum::enum_name(m_SpiderEngine->GetState()));
 			spider["visited_count"] = static_cast<uint32_t>(m_SpiderEngine->GetVisitedPages().size());
 			spider["current_target"] = std::string(magic_enum::enum_name(m_SpiderEngine->GetCurrentTarget()));
-			spider["label_scrape_skipped"] = DataHubHasSeededAuxLabels();
+			spider["label_scrape_skipped"] = (m_DataHub && OneTouch::DataHubHasSeededAuxLabels(*m_DataHub));
 			j["spider_engine"] = spider;
 		}
 

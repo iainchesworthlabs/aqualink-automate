@@ -100,11 +100,11 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_NoLabels_PlansFullScrape)
 	OneTouchDevice device(device_type, *this, true);
 
 	// Nothing seeded yet.
-	BOOST_CHECK(!device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(!Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 
 	// An aux that exists but carries no label is not evidence of seeded labels.
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_1, "");
-	BOOST_CHECK(!device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(!Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // POSITIVE: when a real iAqualink2 has seeded an aux label onto the DataHub, the
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_LabelPresent_SkipsScrape)
 	OneTouchDevice device(device_type, *this, true);
 
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_1, "Pool Light");
-	BOOST_CHECK(device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // A whitespace-only label is treated as no label (not a real seeded name).
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_WhitespaceLabel_PlansFullScrape)
 	OneTouchDevice device(device_type, *this, true);
 
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_2, "   ");
-	BOOST_CHECK(!device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(!Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // One labelled aux among several unlabelled ones is enough to trigger the skip.
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(TestSeededLabels_OneOfManyLabelled_SkipsScrape)
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_1, "");
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_2, "");
 	SeedAux(Auxillaries::JandyAuxillaryIds::Aux_3, "Waterfall");
-	BOOST_CHECK(device.DataHubHasSeededAuxLabels());
+	BOOST_CHECK(Devices::OneTouch::DataHubHasSeededAuxLabels(*data_hub));
 }
 
 // =============================================================================
