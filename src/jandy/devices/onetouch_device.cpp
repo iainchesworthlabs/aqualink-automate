@@ -57,20 +57,20 @@ namespace AqualinkAutomate::Devices
 		LogTrace(Channel::Devices, std::format("OneTouch ({}): Registered {} page processors for OneTouchDevice", DeviceId(), PageProcessors().size()));
 
 		LogDebug(Channel::Devices, std::format("OneTouch ({}): Registering OneTouchDevice message slot handlers", DeviceId()));
-		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_MessageLong>(std::bind(&OneTouchDevice::Slot_OneTouch_MessageLong, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Probe>(std::bind(&OneTouchDevice::Slot_OneTouch_Probe, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Status>(std::bind(&OneTouchDevice::Slot_OneTouch_Status, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_Clear>(std::bind(&OneTouchDevice::Slot_OneTouch_Clear, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_Highlight>(std::bind(&OneTouchDevice::Slot_OneTouch_Highlight, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_HighlightChars>(std::bind(&OneTouchDevice::Slot_OneTouch_HighlightChars, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_ShiftLines>(std::bind(&OneTouchDevice::Slot_OneTouch_ShiftLines, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_DisplayUpdate>(std::bind(&OneTouchDevice::Slot_OneTouch_DisplayUpdate, this, std::placeholders::_1), (*device_id)());
-		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Unknown>(std::bind(&OneTouchDevice::Slot_OneTouch_Unknown, this, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_MessageLong>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_MessageLong, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Probe>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_Probe, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Status>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_Status, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_Clear>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_Clear, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_Highlight>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_Highlight, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_HighlightChars>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_HighlightChars, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<PDAMessage_ShiftLines>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_ShiftLines, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_DisplayUpdate>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_DisplayUpdate, &m_Router, std::placeholders::_1), (*device_id)());
+		m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Unknown>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_Unknown, &m_Router, std::placeholders::_1), (*device_id)());
 
 		if (!IsEmulated())
 		{
 			LogTrace(Channel::Devices, std::format("OneTouch ({}): Registering ACK handler for non-emulated device", DeviceId()));
-			m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Ack>(std::bind(&OneTouchDevice::Slot_OneTouch_Ack, this, std::placeholders::_1), (*device_id)());
+			m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Ack>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_Ack, &m_Router, std::placeholders::_1), (*device_id)());
 		}
 
 		LogInfo(Channel::Devices, std::format("OneTouch ({}): OneTouchDevice construction complete - device ready", DeviceId()));

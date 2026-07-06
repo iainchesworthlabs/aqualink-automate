@@ -16,6 +16,7 @@
 #include "devices/chlorinator_setpoint_refresh.h"
 #include "devices/onetouch/onetouch_goals.h"
 #include "devices/onetouch/onetouch_keypad.h"
+#include "devices/onetouch/onetouch_message_router.h"
 #include "devices/onetouch/onetouch_screen_reader.h"
 #include "devices/onetouch/onetouch_startup_survey.h"
 #include "devices/capabilities/chlorinator_controller.h"
@@ -206,16 +207,10 @@ namespace AqualinkAutomate::Devices
 		void AttemptFaultRecovery(bool is_status_message);
 
 	private:
-		void Slot_OneTouch_Ack(const Messages::JandyMessage_Ack& msg);
-		void Slot_OneTouch_MessageLong(const Messages::JandyMessage_MessageLong& msg);
-		void Slot_OneTouch_Probe(const Messages::JandyMessage_Probe& msg);
-		void Slot_OneTouch_Status(const Messages::JandyMessage_Status& msg);
-		void Slot_OneTouch_Clear(const Messages::PDAMessage_Clear& msg);
-		void Slot_OneTouch_Highlight(const Messages::PDAMessage_Highlight& msg);
-		void Slot_OneTouch_HighlightChars(const Messages::PDAMessage_HighlightChars& msg);
-		void Slot_OneTouch_ShiftLines(const Messages::PDAMessage_ShiftLines& msg);
-		void Slot_OneTouch_DisplayUpdate(const Messages::JandyMessage_DisplayUpdate& msg);
-		void Slot_OneTouch_Unknown(const Messages::JandyMessage_Unknown& msg);
+		// The RS-485 message-ingest slot handlers live in the OneTouchMessageRouter collaborator
+		// (devices/onetouch/onetouch_message_router.h), which drives this device's Screen capability,
+		// controller tick and watchdog - hence the friendship below.
+		friend class OneTouchMessageRouter;
 
 		// The page processors (screen -> DataHub), the Equipment-Status line processors, the
 		// panel-config decode and the controller-schedule accumulation have moved to the
@@ -328,6 +323,10 @@ namespace AqualinkAutomate::Devices
 		// processors are registered into the Screen capability. Destroyed after the Screen base's
 		// processor closures are torn down (bases destruct last), which never invoke them.
 		std::unique_ptr<OneTouchScraper> m_Scraper;
+
+		// Wire-message ingest: the boost::signals2 slot handlers, registered (bound to this router)
+		// in the constructor. Holds a reference back to this device (see friend declaration above).
+		OneTouchMessageRouter m_Router{ *this };
 
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;
 	};

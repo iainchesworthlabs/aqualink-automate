@@ -40,7 +40,7 @@ target_sources(
 	devices/spaside_remote_controller.cpp
 	devices/spaside_remote_device.cpp
 	devices/keypad/keypad_messageprocessors.cpp 
-	devices/onetouch/onetouch_messageprocessors.cpp
+	devices/onetouch/onetouch_message_router.cpp
 	devices/onetouch/onetouch_goals.cpp
 	devices/onetouch/onetouch_keypad.cpp
 	devices/onetouch/onetouch_pageprocessors.cpp
