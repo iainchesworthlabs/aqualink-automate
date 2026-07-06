@@ -24,7 +24,7 @@ namespace AqualinkAutomate::Devices
 
 	namespace
 	{
-		Kernel::ChlorinatorHealth ConvertToChlorinatorHealthStatus(Messages::AquariteStatuses status)
+		constexpr Kernel::ChlorinatorHealth ConvertToChlorinatorHealthStatus(Messages::AquariteStatuses status)
 		{
 			switch (status)
 			{
@@ -47,7 +47,7 @@ namespace AqualinkAutomate::Devices
 		// A "concerning" health is a warning or fault the user should keep seeing;
 		// Ok and the transient TurningOff are benign.  Used to make clearing a
 		// warning slow (sticky) while raising one stays fast.
-		bool IsConcerningHealth(Kernel::ChlorinatorHealth health)
+		constexpr bool IsConcerningHealth(Kernel::ChlorinatorHealth health)
 		{
 			return !(health == Kernel::ChlorinatorHealth::Ok || health == Kernel::ChlorinatorHealth::TurningOff);
 		}

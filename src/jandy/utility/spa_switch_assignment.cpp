@@ -16,7 +16,7 @@ namespace AqualinkAutomate::Utility
 		// (0x09) between "switch:button" and the function -- but the message layer sanitises any
 		// non-printable byte (tab, and the trailing NUL terminator) to '?', so we accept '?' as a
 		// separator too. Function names are alphanumeric + spaces, so this never eats real text.
-		bool IsSep(char c)
+		constexpr bool IsSep(char c)
 		{
 			return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '?';
 		}

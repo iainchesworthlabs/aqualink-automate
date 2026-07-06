@@ -30,7 +30,7 @@ namespace AqualinkAutomate::Pentair::Messages
 	}
 
 	// Advertised DATA length for the frame (the LEN header byte).
-	[[nodiscard]] inline uint8_t DataLengthOf(std::span<const uint8_t> message_bytes)
+	[[nodiscard]] inline constexpr uint8_t DataLengthOf(std::span<const uint8_t> message_bytes)
 	{
 		return message_bytes[Offset_Length];
 	}

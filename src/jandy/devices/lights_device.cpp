@@ -23,7 +23,7 @@ namespace AqualinkAutomate::Devices
 			return std::format("Light 0x{:02x}", device_id);
 		}
 
-		Kernel::AuxillaryStatuses ConvertToAuxillaryStatus(Messages::LightStates state)
+		constexpr Kernel::AuxillaryStatuses ConvertToAuxillaryStatus(Messages::LightStates state)
 		{
 			switch (state)
 			{

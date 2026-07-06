@@ -62,7 +62,7 @@ namespace AqualinkAutomate::Jandy::Startup
 		//   Serial Adapter -> Rev I, OneTouch -> Rev I, AqualinkTouch page protocol -> Rev Q,
 		//   SpaLink RS (spa-side remote) -> Rev G. (The PDA predates the table and has no
 		//   published minimum, so it is not gated.) Returns nullopt when there is no minimum.
-		std::optional<char> MinRevisionForEmulatedType(Devices::JandyEmulatedDeviceTypes type)
+		constexpr std::optional<char> MinRevisionForEmulatedType(Devices::JandyEmulatedDeviceTypes type)
 		{
 			using enum Devices::JandyEmulatedDeviceTypes;
 			switch (type)

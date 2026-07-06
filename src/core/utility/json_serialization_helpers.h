@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Utility
 {
 
 	/// Convert nanoseconds to microseconds for JSON output.
-	inline double NanosToMicros(std::chrono::nanoseconds ns) noexcept
+	inline constexpr double NanosToMicros(std::chrono::nanoseconds ns) noexcept
 	{
 		return static_cast<double>(ns.count()) / 1000.0;
 	}

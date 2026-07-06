@@ -14,7 +14,7 @@ namespace AqualinkAutomate::Auxillaries
 	// (0x00) is a dedicated shared relay that belongs to no numbered centre, so it returns
 	// nullopt. Driving attribution off the id (i.e. the scraped label) rather than a count
 	// is what makes it correct for dual-equipment models and DIP-repurposed relays.
-	inline std::optional<Kernel::PowerCenterIds> PowerCenterForAuxId(JandyAuxillaryIds id)
+	inline constexpr std::optional<Kernel::PowerCenterIds> PowerCenterForAuxId(JandyAuxillaryIds id)
 	{
 		if (const auto value = static_cast<uint8_t>(id); value == static_cast<uint8_t>(JandyAuxillaryIds::ExtraAux))
 		{

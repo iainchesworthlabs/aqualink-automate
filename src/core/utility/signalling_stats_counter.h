@@ -125,7 +125,7 @@ namespace AqualinkAutomate::Utility
 		{
 			using is_transparent = void;
 
-			static std::size_t Mix(std::size_t type_hash, std::size_t value_hash) noexcept
+			static constexpr std::size_t Mix(std::size_t type_hash, std::size_t value_hash) noexcept
 			{
 				return type_hash ^ (value_hash + 0x9e3779b9 + (type_hash << 6) + (type_hash >> 2));
 			}

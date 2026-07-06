@@ -35,7 +35,7 @@ namespace AqualinkAutomate::Alerting
 		// A genuine chlorinator FAULT (not a transient warning).  This condition
 		// latches only on the hard-fault states; transient warnings are surfaced
 		// by the separate chlorinator_warning condition below.
-		bool IsChlorinatorFault(Kernel::ChlorinatorHealth health)
+		constexpr bool IsChlorinatorFault(Kernel::ChlorinatorHealth health)
 		{
 			return health == Kernel::ChlorinatorHealth::Error_CheckPCB
 				|| health == Kernel::ChlorinatorHealth::GeneralFault;
@@ -43,7 +43,7 @@ namespace AqualinkAutomate::Alerting
 
 		// Human-readable label for a hard-fault health state (used in the alert
 		// detail so the log line / UI toast names the specific fault).
-		std::string_view ChlorinatorFaultLabel(Kernel::ChlorinatorHealth health)
+		constexpr std::string_view ChlorinatorFaultLabel(Kernel::ChlorinatorHealth health)
 		{
 			switch (health)
 			{
@@ -58,7 +58,7 @@ namespace AqualinkAutomate::Alerting
 		// fault / Unknown).  This is the chlorinator-agnostic catalogue of the
 		// cell warnings the AlertMonitor surfaces — every warning the device layer
 		// can report, not just low salt.
-		std::optional<std::string_view> ChlorinatorWarningLabel(Kernel::ChlorinatorHealth health)
+		constexpr std::optional<std::string_view> ChlorinatorWarningLabel(Kernel::ChlorinatorHealth health)
 		{
 			using enum Kernel::ChlorinatorHealth;
 			switch (health)

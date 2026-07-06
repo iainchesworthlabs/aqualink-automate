@@ -26,13 +26,13 @@ namespace AqualinkAutomate::Scheduling
 			{ ActionType::CirculationMode, "circulation_mode" },
 		} };
 
-		bool IsButtonAction(ActionType type)
+		constexpr bool IsButtonAction(ActionType type)
 		{
 			using enum ActionType;
 			return type == ButtonOn || type == ButtonOff || type == ButtonToggle;
 		}
 
-		bool IsSetpointAction(ActionType type)
+		constexpr bool IsSetpointAction(ActionType type)
 		{
 			return type == ActionType::PoolSetpoint || type == ActionType::SpaSetpoint;
 		}

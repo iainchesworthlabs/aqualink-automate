@@ -8,7 +8,7 @@ namespace AqualinkAutomate::Auth
 
 	namespace
 	{
-		bool IsValidActionChar(char ch)
+		constexpr bool IsValidActionChar(char ch)
 		{
 			return (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ('_' == ch) || ('-' == ch);
 		}

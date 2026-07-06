@@ -34,7 +34,7 @@ namespace AqualinkAutomate::Devices
 		// Configure the periodic interval.  interval == 0 disables periodic refresh entirely
 		// (the comms-recovery and startup triggers are also suppressed when disabled, since a
 		// 0 interval is the operator's way of saying "never proactively navigate").
-		void Configure(std::chrono::seconds interval)
+		constexpr void Configure(std::chrono::seconds interval)
 		{
 			m_Interval = interval;
 			m_Enabled = (interval > std::chrono::seconds::zero());
@@ -42,21 +42,21 @@ namespace AqualinkAutomate::Devices
 
 		// Permanently disable refreshing (e.g. the startup crawl proved there is no chlorinator
 		// / Set AquaPure page on this panel, so periodic navigation would only ever fail).
-		void Disable()
+		constexpr void Disable()
 		{
 			m_Enabled = false;
 		}
 
 		// The startup menu crawl has finished (it already visits Set AquaPure, so the setpoint
 		// is freshly known); periodic refresh becomes eligible from here.
-		void MarkStartupComplete()
+		constexpr void MarkStartupComplete()
 		{
 			m_StartupComplete = true;
 		}
 
 		// A refresh visit has just been kicked off: consume the one-shot recovery flag and seed
 		// the interval timer from now so the next periodic scrape is a full interval away.
-		void NotifyScrapeStarted(TimePoint now)
+		constexpr void NotifyScrapeStarted(TimePoint now)
 		{
 			m_RecoveryPending = false;
 			m_LastScrape = now;
@@ -64,7 +64,7 @@ namespace AqualinkAutomate::Devices
 
 		// A refresh visit finished (success OR failure): reset the interval timer so the next
 		// attempt is a full interval away (a failed scrape therefore backs off, never spams).
-		void NotifyScrapeFinished(TimePoint now)
+		constexpr void NotifyScrapeFinished(TimePoint now)
 		{
 			m_LastScrape = now;
 		}
@@ -100,10 +100,10 @@ namespace AqualinkAutomate::Devices
 		}
 
 		// Accessors (primarily for tests / diagnostics).
-		bool IsEnabled() const { return m_Enabled; }
-		std::chrono::seconds Interval() const { return m_Interval; }
-		bool StartupComplete() const { return m_StartupComplete; }
-		bool RecoveryPending() const { return m_RecoveryPending; }
+		constexpr bool IsEnabled() const { return m_Enabled; }
+		constexpr std::chrono::seconds Interval() const { return m_Interval; }
+		constexpr bool StartupComplete() const { return m_StartupComplete; }
+		constexpr bool RecoveryPending() const { return m_RecoveryPending; }
 
 	private:
 		bool m_Enabled{ false };

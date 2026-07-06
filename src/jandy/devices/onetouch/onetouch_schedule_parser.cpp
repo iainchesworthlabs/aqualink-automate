@@ -10,7 +10,7 @@ namespace AqualinkAutomate::Devices::OneTouch
 	namespace
 	{
 
-		std::string_view Trim(std::string_view s)
+		constexpr std::string_view Trim(std::string_view s)
 		{
 			while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) { s.remove_prefix(1); }
 			while (!s.empty() && (s.back()  == ' ' || s.back()  == '\t')) { s.remove_suffix(1); }

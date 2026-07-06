@@ -72,7 +72,7 @@ namespace AqualinkAutomate::Devices::IAQ
 		// day touch-cell command. The caller only ever passes a selection the controller can represent
 		// (guaranteed by Scheduling::CheckControllerCandidate): all / weekdays / weekends / a single day.
 		// Single days are consecutive from Monday (0x18) in Mon..Sun order.
-		uint8_t DayCommandFor(uint8_t days_of_week)
+		constexpr uint8_t DayCommandFor(uint8_t days_of_week)
 		{
 			const uint8_t days = days_of_week & 0x7f;
 			if (days == 0x7f) { return IAQ_CMD_DAY_ALL; }

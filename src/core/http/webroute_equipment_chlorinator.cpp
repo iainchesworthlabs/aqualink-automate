@@ -21,7 +21,7 @@ namespace AqualinkAutomate::HTTP
 	{
 		using CommandResult = Interfaces::ICommandDispatcher::CommandResult;
 
-		HTTP::Status StatusFor(CommandResult result)
+		constexpr HTTP::Status StatusFor(CommandResult result)
 		{
 			using enum CommandResult;
 			using enum HTTP::Status;

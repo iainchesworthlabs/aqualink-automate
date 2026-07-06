@@ -26,9 +26,9 @@ namespace AqualinkAutomate::Devices
 
 	class PDADevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Scrapeable, public Capabilities::Emulated, public Capabilities::Describable
 	{
-		inline static const uint8_t PDA_PAGE_LINES{ 10 };
-		inline static const Scrapeable::ScrapeId PDA_CONFIG_INIT_SCRAPER{ 1 };
-		inline static const std::chrono::seconds PDA_TIMEOUT_DURATION{ std::chrono::seconds(30) };
+		inline static constexpr uint8_t PDA_PAGE_LINES{ 10 };
+		inline static constexpr Scrapeable::ScrapeId PDA_CONFIG_INIT_SCRAPER{ 1 };
+		inline static constexpr std::chrono::seconds PDA_TIMEOUT_DURATION{ std::chrono::seconds(30) };
 
 		enum class KeyCommands : uint8_t
 		{
