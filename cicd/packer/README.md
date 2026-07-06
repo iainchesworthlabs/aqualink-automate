@@ -7,12 +7,12 @@ Packer templates for building self-hosted GitHub Actions runner VMs on VMware vS
 | Runner | Base OS | CPUs | RAM | OS disk | Data disk | Total | Pre-installed toolchain |
 |--------|---------|------|-----|---------|-----------|-------|------------------------|
 | Linux | Ubuntu 26.04 LTS | 32 | 48 GB | 12 GB | 18 GB | **30 GB** | GCC 15, Clang/LLVM 21, CMake, Ninja, Docker, ccache, SonarCloud build-wrapper |
-| Windows | Windows Server 2022 | 32 | 48 GB | 30 GB | 16 GB | **46 GB** | VS 2022 Build Tools (MSVC v143), CMake, Ninja, NSIS, ccache |
+| Windows | Windows Server 2022 | 32 | 48 GB | 30 GB | 16 GB | **46 GB** | VS 2026 Build Tools (MSVC 14.5x), CMake, Ninja, NSIS, ccache |
 
 Disk sizes are deliberately small and **tunable** — they are single `disk_size` lines in
 the `.pkr.hcl` templates, and the cache caps are `Environment=` overridable on the
 supervisor. Linux lands at a tight 30 GB (the cache caps are set low to fit the work tree +
-Docker images on the 18 GB data disk). Windows can't reach 30 GB: Windows Server + VS 2022
+Docker images on the 18 GB data disk). Windows can't reach 30 GB: Windows Server + VS 2026
 Build Tools alone is ~30 GB, so its OS disk floors there — bump the data disk if a build
 runs short of space.
 
@@ -259,7 +259,7 @@ Workflows automatically use self-hosted runners when these variables are set. Re
 |--------|----------|
 | `00-data-volume.ps1` | Initializes/formats the data disk as `D:`, creates `D:\work` + `D:\cache`, junctions `C:\Users\runner\.cache` → `D:\cache` |
 | `01-base-config.ps1` | TLS 1.2, Chocolatey, Git |
-| `02-vs-buildtools.ps1` | VS 2022 Build Tools (MSVC v143, Windows SDK 22621, MSBuild, ASan) |
+| `02-vs-buildtools.ps1` | VS 2026 Build Tools (MSVC 14.5x, Windows SDK 22621, MSBuild, ASan) — installs from the `aka.ms/vs/18/stable` channel to match the C++23 toolset developers build with locally |
 | `03-cmake-ninja.ps1` | CMake + Ninja via Chocolatey |
 | `04-choco-packages.ps1` | NSIS, 7zip, ccache (4 GB max on `D:\cache\ccache`, compression enabled) |
 | `05-github-runner.ps1` | GitHub Actions runner agent + **ephemeral supervisor** (`GitHubRunnerEphemeral` task) |
