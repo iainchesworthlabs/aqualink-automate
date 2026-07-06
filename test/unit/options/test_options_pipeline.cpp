@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(Test_Pipeline_MqttDefaults)
 	BOOST_CHECK(!s.enabled);
 	BOOST_CHECK_EQUAL(s.broker_host, "localhost");
 	BOOST_CHECK_EQUAL(s.broker_port, 1883);
-	BOOST_CHECK(!s.use_tls);
+	BOOST_CHECK(!s.tls.use_tls);
 	BOOST_CHECK_EQUAL(s.topic_prefix, "aqualink");
 }
 
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(Test_Pipeline_MqttArgs_TlsAutoPort)
 	auto mqtt = result.value().Get<Options::Mqtt::MqttSettings>();
 	BOOST_REQUIRE(mqtt.has_value());
 
-	BOOST_CHECK(mqtt.value().get().use_tls);
+	BOOST_CHECK(mqtt.value().get().tls.use_tls);
 	BOOST_CHECK_EQUAL(mqtt.value().get().broker_port, 8883);
 }
 
@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE(Test_Pipeline_MqttArgs_TlsExplicitPort)
 	auto mqtt = result.value().Get<Options::Mqtt::MqttSettings>();
 	BOOST_REQUIRE(mqtt.has_value());
 
-	BOOST_CHECK(mqtt.value().get().use_tls);
+	BOOST_CHECK(mqtt.value().get().tls.use_tls);
 	BOOST_CHECK_EQUAL(mqtt.value().get().broker_port, 9883);
 }
 

@@ -206,7 +206,8 @@ namespace AqualinkAutomate::HTTP::Routing
 			}
 
 			// Iterate nodes from the root
-			if (auto p = try_match(path.begin(), path.end(), &nodes_.front(), 0, matches, ids, matches_end, ids_end); nullptr != p)
+			MatchCursors cursors{ matches, ids, matches_end, ids_end };
+			if (auto p = try_match(path.begin(), path.end(), &nodes_.front(), 0, cursors); nullptr != p)
 			{
 				return p->resource;
 			}
@@ -215,6 +216,21 @@ namespace AqualinkAutomate::HTTP::Routing
 		}
 
 	private:
+		// Cohesive bundle of the capture / id output cursors and their end-bounds
+		// threaded through matching. matches / ids are in/out cursors that advance
+		// (and rewind) as replacement fields are captured; matches_end / ids_end are
+		// the const one-past-the-last writable slots of the caller's fixed-size
+		// arrays (see matches.h). Because matches / ids are reference members, a
+		// single MatchCursors instance binds to the caller's local cursor pointers
+		// and propagates every advance / rewind back through the recursion.
+		struct MatchCursors
+		{
+			std::string_view*& matches;
+			std::string_view*& ids;
+			std::string_view* matches_end;
+			std::string_view* ids_end;
+		};
+
 		// Bounded capture write: assert in debug, and never dereference past the
 		// caller's array end. When end is nullptr the caller opted out of bound
 		// checking (legacy callers) and the historical unchecked behaviour is kept.
@@ -241,8 +257,16 @@ namespace AqualinkAutomate::HTTP::Routing
 			}
 		}
 
-		node<HANDLER_TYPE> const* try_match(boost::urls::segments_encoded_view::const_iterator it, boost::urls::segments_encoded_view::const_iterator end, node<HANDLER_TYPE> const* cur, int level, std::string_view*& matches, std::string_view*& ids, std::string_view* matches_end, std::string_view* ids_end) const
+		node<HANDLER_TYPE> const* try_match(boost::urls::segments_encoded_view::const_iterator it, boost::urls::segments_encoded_view::const_iterator end, node<HANDLER_TYPE> const* cur, int level, MatchCursors cursors) const
 		{
+			// Alias the bundled cursors so the body below reads exactly as before.
+			// matches / ids are references into the caller's cursor pointers (via the
+			// struct's reference members), so advances / rewinds still propagate.
+			std::string_view*& matches = cursors.matches;
+			std::string_view*& ids = cursors.ids;
+			std::string_view* const matches_end = cursors.matches_end;
+			std::string_view* const ids_end = cursors.ids_end;
+
 			while (it != end)
 			{
 				boost::urls::pct_string_view s = *it;
@@ -335,7 +359,7 @@ namespace AqualinkAutomate::HTTP::Routing
 							// next segment
 							if (branch)
 							{
-								r = try_match(std::next(it), end, &c, level, matches, ids, matches_end, ids_end);
+								r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
 								if (r)
 								{
 									break;
@@ -358,7 +382,7 @@ namespace AqualinkAutomate::HTTP::Routing
 								auto ids0 = ids;
 								WriteCapture(matches, matches_end, *it);
 								WriteCapture(ids, ids_end, c.seg.id());
-								r = try_match(std::next(it), end, &c, level, matches, ids, matches_end, ids_end);
+								r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
 								if (r)
 								{
 									break;
@@ -393,7 +417,7 @@ namespace AqualinkAutomate::HTTP::Routing
 							auto ids0 = ids;
 							WriteCapture(matches, matches_end, *it);
 							WriteCapture(ids, ids_end, c.seg.id());
-							r = try_match(std::next(it), end, &c, level, matches, ids, matches_end, ids_end);
+							r = try_match(std::next(it), end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
 							if (r)
 							{
 								break;
@@ -405,7 +429,7 @@ namespace AqualinkAutomate::HTTP::Routing
 							// consuming no segment
 							WriteCapture(matches, matches_end, {});
 							WriteCapture(ids, ids_end, c.seg.id());
-							r = try_match(it, end, &c, level, matches, ids, matches_end, ids_end);
+							r = try_match(it, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
 							if (r)
 								break;
 							// rewind
@@ -469,7 +493,7 @@ namespace AqualinkAutomate::HTTP::Routing
 							auto start = end;
 							while (start != first)
 							{
-								r = try_match(start, end, &c, level, matches, ids, matches_end, ids_end);
+								r = try_match(start, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
 								if (r)
 								{
 									// matches0 was claimed by the WriteCapture above; only
@@ -495,7 +519,7 @@ namespace AqualinkAutomate::HTTP::Routing
 							// start == first
 							matches = matches0 + 1;
 							ids = ids0 + 1;
-							r = try_match(start, end, &c, level, matches, ids, matches_end, ids_end);
+							r = try_match(start, end, &c, level, MatchCursors{ matches, ids, matches_end, ids_end });
 							if (r)
 							{
 								if (!c.seg.is_plus())

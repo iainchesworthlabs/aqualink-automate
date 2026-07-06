@@ -97,11 +97,6 @@ namespace AqualinkAutomate::Devices
 		void QueueHeaterCommand(Messages::SerialAdapter_SystemTemperatureCommands heater, bool enable);
 
 	private:
-		// Append a single ACK to the pending FIFO without clearing earlier entries
-		// (QueueCommand clears first; this is used by multi-step writes).
-		void EnqueueCommand(uint8_t ack_type, uint8_t ack_data_value);
-
-	private:
 		void ProcessControllerUpdates() override;
 
 		// Emit the next queued command in response to an RSSA_DEV_READY (0x07) poll.

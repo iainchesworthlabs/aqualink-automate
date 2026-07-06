@@ -111,10 +111,10 @@ namespace AqualinkAutomate::Options::Mqtt
 
 		if (OPTION_USE_TLS->IsPresent(vm))
 		{
-			settings.use_tls = OPTION_USE_TLS->As<bool>(vm);
+			settings.tls.use_tls = OPTION_USE_TLS->As<bool>(vm);
 
 			// If TLS is enabled and port wasn't explicitly set, use default TLS port
-			if (settings.use_tls && !OPTION_BROKER_PORT->IsPresentAndNotJustDefaulted(vm))
+			if (settings.tls.use_tls && !OPTION_BROKER_PORT->IsPresentAndNotJustDefaulted(vm))
 			{
 				settings.broker_port = 8883;
 			}
@@ -122,22 +122,22 @@ namespace AqualinkAutomate::Options::Mqtt
 
 		if (OPTION_TLS_CA_CERT->IsPresent(vm))
 		{
-			settings.tls_ca_cert = OPTION_TLS_CA_CERT->As<std::string>(vm);
+			settings.tls.tls_ca_cert = OPTION_TLS_CA_CERT->As<std::string>(vm);
 		}
 
 		if (OPTION_TLS_CLIENT_CERT->IsPresent(vm))
 		{
-			settings.tls_client_cert = OPTION_TLS_CLIENT_CERT->As<std::string>(vm);
+			settings.tls.tls_client_cert = OPTION_TLS_CLIENT_CERT->As<std::string>(vm);
 		}
 
 		if (OPTION_TLS_CLIENT_KEY->IsPresent(vm))
 		{
-			settings.tls_client_key = OPTION_TLS_CLIENT_KEY->As<std::string>(vm);
+			settings.tls.tls_client_key = OPTION_TLS_CLIENT_KEY->As<std::string>(vm);
 		}
 
 		if (OPTION_TLS_SKIP_VERIFY->IsPresent(vm))
 		{
-			settings.tls_skip_verify = OPTION_TLS_SKIP_VERIFY->As<bool>(vm);
+			settings.tls.tls_skip_verify = OPTION_TLS_SKIP_VERIFY->As<bool>(vm);
 		}
 
 		// Authentication
@@ -221,7 +221,7 @@ namespace AqualinkAutomate::Options::Mqtt
 		}
 
 		LogInfo(Channel::Options, std::format("MQTT settings: enabled={}, broker={}:{}, tls={}, protocol={}, ha={}",
-			settings.enabled, settings.broker_host, settings.broker_port, settings.use_tls, ToString(settings.protocol_version), settings.home_assistant_enabled));
+			settings.enabled, settings.broker_host, settings.broker_port, settings.tls.use_tls, ToString(settings.protocol_version), settings.home_assistant_enabled));
 
 		return settings;
 	}

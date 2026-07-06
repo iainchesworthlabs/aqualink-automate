@@ -229,9 +229,13 @@ namespace AqualinkAutomate::Mqtt
 		// grace window elapses (retained delivery is complete) clear any not owned by the current
 		// device set. This heals ghosts left by a PRIOR process (which the per-sweep diff above,
 		// seeded empty each start, cannot see). Re-armed on every (re)connect.
-		bool m_RetainedReconcilePending{ false };
-		std::chrono::steady_clock::time_point m_RetainedReconcileDeadline;
-		std::unordered_set<std::string> m_SeenRetainedTopics;
+		struct RetainedReconcileState
+		{
+			bool Pending{ false };
+			std::chrono::steady_clock::time_point Deadline;
+			std::unordered_set<std::string> SeenTopics;
+		};
+		RetainedReconcileState m_RetainedReconcile;
 		std::string m_DeviceTopicPrefix;   // "{prefix}/device/"
 		std::string m_HaStateTopicPrefix;  // "{prefix}/ha/"
 		static constexpr std::chrono::seconds RETAINED_RECONCILE_GRACE{ 10 };
@@ -245,14 +249,18 @@ namespace AqualinkAutomate::Mqtt
 		// SetSteadyClock(). Production uses the real steady_clock.
 		SteadyClockFn m_SteadyNow{ [] { return std::chrono::steady_clock::now(); } };
 
-		// Periodic publish timers (using steady_clock comparisons)
-		std::chrono::steady_clock::time_point m_NextStatusPublish;
-		std::chrono::steady_clock::time_point m_NextStatsPublish;
-
-		// On-change publishing (debounced). A hub-change signal sets m_OnChangePending
-		// and records the earliest time the deferred publish may fire; Poll() flushes it.
-		bool m_OnChangePending{ false };
-		std::chrono::steady_clock::time_point m_OnChangeDeadline;
+		// Publish scheduling/timing state (using steady_clock comparisons). NextStatusPublish
+		// and NextStatsPublish are the periodic publish deadlines; OnChangePending/OnChangeDeadline
+		// track the debounced on-change publish: a hub-change signal sets OnChangePending and
+		// records the earliest time the deferred publish may fire, and Poll() flushes it.
+		struct PublishScheduleState
+		{
+			std::chrono::steady_clock::time_point NextStatusPublish;
+			std::chrono::steady_clock::time_point NextStatsPublish;
+			bool OnChangePending{ false };
+			std::chrono::steady_clock::time_point OnChangeDeadline;
+		};
+		PublishScheduleState m_PublishSchedule;
 
 		// Minimum spacing between two on-change publishes, so a burst of hub changes
 		// during protocol decode coalesces into a single publish rather than flooding

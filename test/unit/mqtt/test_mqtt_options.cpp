@@ -40,11 +40,11 @@ BOOST_AUTO_TEST_CASE(Test_MqttOptions_DefaultSettings)
 	BOOST_CHECK_EQUAL(settings.enabled, false);
 	BOOST_CHECK_EQUAL(settings.broker_host, "localhost");
 	BOOST_CHECK_EQUAL(settings.broker_port, 1883);
-	BOOST_CHECK_EQUAL(settings.use_tls, false);
-	BOOST_CHECK(settings.tls_ca_cert.empty());
-	BOOST_CHECK(settings.tls_client_cert.empty());
-	BOOST_CHECK(settings.tls_client_key.empty());
-	BOOST_CHECK_EQUAL(settings.tls_skip_verify, false);
+	BOOST_CHECK_EQUAL(settings.tls.use_tls, false);
+	BOOST_CHECK(settings.tls.tls_ca_cert.empty());
+	BOOST_CHECK(settings.tls.tls_client_cert.empty());
+	BOOST_CHECK(settings.tls.tls_client_key.empty());
+	BOOST_CHECK_EQUAL(settings.tls.tls_skip_verify, false);
 	BOOST_CHECK(settings.client_id.empty());
 	BOOST_CHECK(settings.username.empty());
 	BOOST_CHECK(settings.password.empty());
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(Test_MqttOptions_ProcessDefaults)
 	BOOST_CHECK_EQUAL(settings.enabled, false);
 	BOOST_CHECK_EQUAL(settings.broker_host, "localhost");
 	BOOST_CHECK_EQUAL(settings.broker_port, 1883);
-	BOOST_CHECK_EQUAL(settings.use_tls, false);
+	BOOST_CHECK_EQUAL(settings.tls.use_tls, false);
 	BOOST_CHECK_EQUAL(settings.topic_prefix, "aqualink");
 	BOOST_CHECK_EQUAL(settings.home_assistant_enabled, false);
 	BOOST_CHECK_EQUAL(settings.ha_discovery_prefix, "homeassistant");
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(Test_MqttOptions_TlsEnabled)
 	auto result = processor.Process(vm);
 	BOOST_REQUIRE(result.has_value());
 
-	BOOST_CHECK_EQUAL(result.value().use_tls, true);
+	BOOST_CHECK_EQUAL(result.value().tls.use_tls, true);
 	// When TLS is enabled and port is not explicitly set, should auto-switch to 8883
 	BOOST_CHECK_EQUAL(result.value().broker_port, 8883);
 }
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(Test_MqttOptions_TlsWithExplicitPort)
 	auto result = processor.Process(vm);
 	BOOST_REQUIRE(result.has_value());
 
-	BOOST_CHECK_EQUAL(result.value().use_tls, true);
+	BOOST_CHECK_EQUAL(result.value().tls.use_tls, true);
 	// Explicitly set port should be kept
 	BOOST_CHECK_EQUAL(result.value().broker_port, 9883);
 }
@@ -209,9 +209,9 @@ BOOST_AUTO_TEST_CASE(Test_MqttOptions_TlsCertificates)
 	auto result = processor.Process(vm);
 	BOOST_REQUIRE(result.has_value());
 
-	BOOST_CHECK_EQUAL(result.value().tls_ca_cert, "/path/to/ca.pem");
-	BOOST_CHECK_EQUAL(result.value().tls_client_cert, "/path/to/cert.pem");
-	BOOST_CHECK_EQUAL(result.value().tls_client_key, "/path/to/key.pem");
+	BOOST_CHECK_EQUAL(result.value().tls.tls_ca_cert, "/path/to/ca.pem");
+	BOOST_CHECK_EQUAL(result.value().tls.tls_client_cert, "/path/to/cert.pem");
+	BOOST_CHECK_EQUAL(result.value().tls.tls_client_key, "/path/to/key.pem");
 }
 
 BOOST_AUTO_TEST_CASE(Test_MqttOptions_TlsSkipVerify)
@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE(Test_MqttOptions_TlsSkipVerify)
 	auto result = processor.Process(vm);
 	BOOST_REQUIRE(result.has_value());
 
-	BOOST_CHECK_EQUAL(result.value().tls_skip_verify, true);
+	BOOST_CHECK_EQUAL(result.value().tls.tls_skip_verify, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -389,10 +389,10 @@ BOOST_AUTO_TEST_CASE(Test_MqttOptions_CompleteConfiguration)
 	BOOST_CHECK_EQUAL(settings.enabled, true);
 	BOOST_CHECK_EQUAL(settings.broker_host, "secure.broker.com");
 	BOOST_CHECK_EQUAL(settings.broker_port, 8883);
-	BOOST_CHECK_EQUAL(settings.use_tls, true);
-	BOOST_CHECK_EQUAL(settings.tls_ca_cert, "/etc/ssl/certs/ca.pem");
-	BOOST_CHECK_EQUAL(settings.tls_client_cert, "/etc/ssl/certs/client.pem");
-	BOOST_CHECK_EQUAL(settings.tls_client_key, "/etc/ssl/private/client.key");
+	BOOST_CHECK_EQUAL(settings.tls.use_tls, true);
+	BOOST_CHECK_EQUAL(settings.tls.tls_ca_cert, "/etc/ssl/certs/ca.pem");
+	BOOST_CHECK_EQUAL(settings.tls.tls_client_cert, "/etc/ssl/certs/client.pem");
+	BOOST_CHECK_EQUAL(settings.tls.tls_client_key, "/etc/ssl/private/client.key");
 	BOOST_CHECK_EQUAL(settings.client_id, "pool-controller-001");
 	BOOST_CHECK_EQUAL(settings.username, "pool_user");
 	BOOST_CHECK_EQUAL(settings.password, "secure_password");
