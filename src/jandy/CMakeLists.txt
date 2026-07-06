@@ -24,6 +24,7 @@ target_sources(
 	devices/iaq/iaq_page_model.cpp
 	devices/iaq/iaq_page_registry.cpp
 	devices/iaq/iaq_schedule_parser.cpp
+	devices/iaq/iaq_spaswitch_writer.cpp
 	devices/jandy_controller.cpp
 	devices/jandy_device.cpp 
 	devices/jandy_device_id.cpp 

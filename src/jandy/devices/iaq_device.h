@@ -20,9 +20,11 @@
 #include "devices/capabilities/screen.h"
 #include "devices/capabilities/setpoint_controller.h"
 #include "devices/capabilities/spa_switch_configurator.h"
+#include "devices/iaq/iaq_command_sink.h"
 #include "devices/iaq/iaq_page_model.h"
 #include "devices/iaq/iaq_page_registry.h"
 #include "devices/iaq/iaq_schedule_parser.h"
+#include "devices/iaq/iaq_spaswitch_writer.h"
 #include "scheduling/controller_schedule.h"
 #include "messages/jandy_message_probe.h"
 #include "messages/iaq/iaq_message_aux_status.h"
@@ -49,7 +51,7 @@
 namespace AqualinkAutomate::Devices
 {
 
-	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
+	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter, public IAQ::ICommandSink
 	{
 		inline static const uint8_t IAQ_STATUS_PAGE_LINES = 18;
 		inline static const uint8_t IAQ_MESSAGE_TABLE_LINES = 18;
@@ -114,8 +116,8 @@ namespace AqualinkAutomate::Devices
 		Capabilities::ActuationResult SetSpaSetpoint(uint8_t temperature) override;
 
 		// SpaSwitchConfigurator: program a spa-side switch button's function over the bus by driving
-		// the AqualinkTouch "4 Function Spa Switch" detail (queues a goal serviced by
-		// SpaSwitchWrite_ProcessStep, page-gated on PageId): navigate -> Spa Remotes -> open detail ->
+		// the AqualinkTouch "4 Function Spa Switch" detail (queues a goal on m_SpaSwitchWriter,
+		// serviced per-poll, page-gated on PageId): navigate -> Spa Remotes -> open detail ->
 		// select the S:B row -> scroll the device picker to the target function -> commit. RE'd +
 		// cross-validated from captures/iaq_spaswitch_edit{,2}.cap. On-screen rows 1-7 are supported;
 		// row 8 (2:4) / switch>2 need an undecoded assignment-list scroll, so those return
@@ -249,41 +251,17 @@ namespace AqualinkAutomate::Devices
 		// active program group. A no-op when the store is absent.
 		void PublishSchedulePage() const;
 
-		// On-demand spa-switch button-assignment WRITE goal (one at a time). Set by
-		// SetSpaSwitchAssignment, serviced by SpaSwitchWrite_ProcessStep on each poll. Drives the
-		// AqualinkTouch (0x33) UI: navigate Home -> menu -> Setup -> Spa Remotes -> open the
-		// 4-Function detail, select the S:B row, scroll the picker to the target function and commit.
-		// RE'd + cross-validated from captures/iaq_spaswitch_edit{,2}.cap; see
-		// docs/alwin32/spaside-remotes.md.
-		enum class SpaSwitchWritePhase
-		{
-			Navigate,    // page-gated walk to the 4-Function detail (0x3b)
-			SelectRow,   // press the S:B assignment row (page-button (ordinal-1) + IAQ_SPASWITCH_ROW_BASE)
-			FindFunction,// read the picker; scroll (0x15) until F is visible, then commit at slot+commit-base
-			Verify,      // confirm the DataHub assignment now reads F
-			Done,
-			Failed
-		};
-		struct SpaSwitchWriteGoal
-		{
-			uint8_t switch_number{ 0 };
-			uint8_t button_number{ 0 };
-			std::string function;     // target function as the picker lists it
-			std::string row_tag;      // "<switch>:<button>" e.g. "1:2"
-			std::string desc;
-		};
-		std::optional<SpaSwitchWriteGoal> m_PendingSpaSwitchWrite;
-		SpaSwitchWritePhase m_SpaSwitchWritePhase{ SpaSwitchWritePhase::Navigate };
-		bool m_SpaSwitchRowSelected{ false };       // the S:B row-select has been issued
-		uint32_t m_SpaSwitchWritePollCount{ 0 };    // overall backstop
-		uint32_t m_SpaSwitchScrollCount{ 0 };       // picker pages scrolled so far
-		uint32_t m_SpaSwitchSettleCount{ 0 };       // polls waited for a page/picker to settle after a command
-		std::optional<std::string> m_SpaSwitchFirstPickerSeen;  // wrap-detection while scrolling the picker
+		// The spa-switch button-assignment WRITE state machine (extracted; SonarCloud S1820; see
+		// docs/iaq_device_decomposition.md). SetSpaSwitchAssignment arms it via Queue();
+		// ProcessControllerUpdates services it one command per poll through this (as ICommandSink).
+		IAQ::SpaSwitchWriter m_SpaSwitchWriter;
 
-		// Service the pending spa-switch write goal: examine the current page + decoded picker rows
-		// and emit at most one command (into m_PendingCommand) per poll. Gated on m_PageModel.PageId()
-		// so a navigation miss can never issue a row-select/commit on the wrong page.
-		void SpaSwitchWrite_ProcessStep();
+	private:
+		// ICommandSink: the write state machines emit their per-poll command through these. IssueCommand
+		// sets the single pending poll-ACK byte (no logging -- it fires every poll); IsBusy reports the
+		// command channel occupied so a new write goal is not armed on top of a draining sequence.
+		void IssueCommand(uint8_t command) override { m_PendingCommand = command; }
+		bool IsBusy() const override { return !m_CommandQueue.empty() || m_AwaitingControlReady; }
 
 	private:
 		// On-demand controller-schedule WRITE goal (one at a time), serviced per-poll by
