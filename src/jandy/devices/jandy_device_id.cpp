@@ -1,32 +1,4 @@
+// JandyDeviceId is now a fully-constexpr literal-type wrapper: its constructors and operators are
+// defined inline in devices/jandy_device_id.h. This translation unit is intentionally left with no
+// out-of-line definitions (they would clash with the header's inline definitions).
 #include "devices/jandy_device_id.h"
-
-namespace AqualinkAutomate::Devices
-{
-
-	JandyDeviceId::JandyDeviceId() :
-		m_DeviceId(0)
-	{
-	}
-
-	JandyDeviceId::JandyDeviceId(value_type device_id) :
-		m_DeviceId(device_id)
-	{
-	}
-
-	JandyDeviceId::value_type JandyDeviceId::operator()() const
-	{
-		return m_DeviceId;
-	}
-
-	bool JandyDeviceId::operator==(const JandyDeviceId& other) const
-	{
-		return (m_DeviceId == other.m_DeviceId);
-	}
-
-	bool JandyDeviceId::operator!=(const JandyDeviceId& other) const
-	{
-		return !operator==(other);
-	}
-
-}
-// namespace AqualinkAutomate::Devices;

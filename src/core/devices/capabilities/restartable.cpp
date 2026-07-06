@@ -9,7 +9,8 @@ using namespace AqualinkAutomate::Logging;
 
 namespace AqualinkAutomate::Devices::Capabilities
 {
-	const std::chrono::seconds Restartable::DEFAULT_WATCHDOG_TIMEOUT{ std::chrono::seconds(30) };
+	// DEFAULT_WATCHDOG_TIMEOUT is a `static constexpr` member defined inline in the header, so it
+	// needs no (and must not have an) out-of-line definition here.
 
 	std::vector<Restartable*> Restartable::s_Instances;
 

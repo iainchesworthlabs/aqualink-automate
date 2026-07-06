@@ -15,7 +15,7 @@ namespace AqualinkAutomate::Devices::Capabilities
 	// protocol-specific one.
 	class Restartable
 	{
-		static const std::chrono::seconds DEFAULT_WATCHDOG_TIMEOUT;
+		static constexpr std::chrono::seconds DEFAULT_WATCHDOG_TIMEOUT{ std::chrono::seconds(30) };
 
 	protected:
 		Restartable(std::chrono::seconds timeout_in_seconds = DEFAULT_WATCHDOG_TIMEOUT, bool delayed_start = false);
