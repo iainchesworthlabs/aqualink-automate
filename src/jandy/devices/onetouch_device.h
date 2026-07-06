@@ -14,6 +14,7 @@
 #include "devices/jandy_controller.h"
 #include "devices/jandy_device_types.h"
 #include "devices/chlorinator_setpoint_refresh.h"
+#include "devices/onetouch/onetouch_keypad.h"
 #include "devices/onetouch/onetouch_screen_reader.h"
 #include "devices/capabilities/chlorinator_controller.h"
 #include "devices/capabilities/command_history.h"
@@ -53,7 +54,6 @@ namespace AqualinkAutomate::Devices
 		inline static const uint8_t ONETOUCH_PAGE_LINES = 12;
 		inline static const std::chrono::seconds ONETOUCH_TIMEOUT_DURATION{ std::chrono::seconds(30) };
 		inline static const uint32_t ONETOUCH_SCRAPING_STALL_LIMIT{ 10 };
-		inline static const uint32_t ONETOUCH_ACTUATION_STEP_LIMIT{ 500 };  // frame backstop so a toggle goal can never wedge NormalOperation (the Navigator's own timeouts normally end it first)
 		inline static const uint32_t ONETOUCH_VALUEEDIT_STEP_LIMIT{ 500 };  // frame backstop for a value-edit goal (navigation + the value-step loop)
 		inline static const uint32_t ONETOUCH_BOOST_STEP_LIMIT{ 500 };      // frame backstop for a chlorinator-boost goal
 		inline static const uint32_t ONETOUCH_SETPOINT_REFRESH_STEP_LIMIT{ 500 };  // frame backstop for a read-only setpoint re-scrape crawl
@@ -254,10 +254,13 @@ namespace AqualinkAutomate::Devices
 		// (Equipment ON/OFF) was missed. Result stored in m_MenuSurveyResult for diagnostics.
 		void ReportMenuSurvey();
 
-		// On-demand actuation (DeviceActuator): service a single pending toggle goal in
-		// NormalOperation by driving the Navigator, and read a device's current on/off
-		// state so an explicit On/Off only acts when the state actually differs.
-		void Actuation_ProcessStep();
+		// Service the in-flight on-demand keypad goal (toggle / value-edit / ... - whatever the
+		// GoalRunner holds) one Status cycle: build the KeypadContext view of the shared keypad,
+		// drive the active goal, and translate the key it emits into m_KeyCommand_ToSend.
+		void ServiceActiveGoal();
+
+		// Read a device's current on/off state so an explicit On/Off only acts when the state
+		// actually differs (DeviceActuator).
 		std::optional<bool> CurrentOnState(const std::shared_ptr<Kernel::AuxillaryDevice>& device) const;
 
 		// On-demand on-screen VALUE EDITOR (SetpointController + chlorinator %): service a
@@ -339,12 +342,10 @@ namespace AqualinkAutomate::Devices
 		std::optional<MenuSurveyResult> m_MenuSurveyResult;  // populated when the startup crawl completes
 
 	private:
-		// On-demand equipment actuation goal (a single toggle at a time). Set by
-		// ActuateDevice (DeviceActuator), serviced by Actuation_ProcessStep in
-		// NormalOperation; the Navigator drives the keypad to the row and Selects it.
-		std::optional<std::string> m_PendingActuationLabel;
-		bool m_ActuationInProgress{ false };
-		uint32_t m_ActuationStepCount{ 0 };
+		// The on-demand keypad goals (toggle / value-edit / boost / spa-switch / schedule-write)
+		// serialise through one GoalRunner: at most one is in flight, serviced each Status cycle by
+		// ServiceActiveGoal. Replaces the per-goal m_PendingX / m_XInProgress / m_XStepCount fields.
+		OneTouch::OneTouchGoalRunner m_Runner;
 
 		// On-demand on-screen value-edit goal (a single edit at a time). Set by the
 		// SetpointController / ChlorinatorController-% methods, serviced by

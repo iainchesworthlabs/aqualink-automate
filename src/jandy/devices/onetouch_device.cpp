@@ -8,6 +8,7 @@
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "devices/device_status.h"
 #include "devices/onetouch_device.h"
+#include "devices/onetouch/onetouch_goals.h"
 #include "devices/onetouch/onetouch_schedule_parser.h"
 #include "devices/onetouch/onetouch_scraper.h"
 #include "kernel/auxillary_devices/auxillary_device.h"
@@ -156,7 +157,7 @@ namespace AqualinkAutomate::Devices
 		{
 			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> normal_operation", std::source_location::current());
 			LogTrace(Channel::Devices, std::format("OneTouch ({}): Processing NormalOperation state", DeviceId()));
-			Actuation_ProcessStep();
+			ServiceActiveGoal();
 			ValueEdit_ProcessStep();
 			Boost_ProcessStep();
 			SpaSwitchEdit_ProcessStep();
@@ -393,7 +394,7 @@ namespace AqualinkAutomate::Devices
 			return Capabilities::ActuationResult::NotSupported;
 		}
 
-		m_PendingActuationLabel = target_label;
+		m_Runner.TryStart(std::make_unique<OneTouch::ToggleGoal>(target_label));
 		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued toggle of '{}'", DeviceId(), target_label));
 		return Capabilities::ActuationResult::Accepted;
 	}
@@ -423,65 +424,29 @@ namespace AqualinkAutomate::Devices
 		return std::nullopt;
 	}
 
-	void OneTouchDevice::Actuation_ProcessStep()
+	void OneTouchDevice::ServiceActiveGoal()
 	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Actuation_ProcessStep", std::source_location::current());
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ServiceActiveGoal", std::source_location::current());
 
-		if (!m_PendingActuationLabel.has_value() || !m_Navigator)
+		if (!m_Navigator || !m_Runner.HasActiveGoal())
 		{
 			return;
 		}
 
-		// Kick off the navigation goal once: drive to the Equipment ON/OFF page, find the
-		// row whose label matches the target device, and Select it. The select_target is
-		// the Equipment ON/OFF page itself because an in-place toggle keeps us on that
-		// page (the row re-renders) rather than transitioning elsewhere.
-		if (!m_ActuationInProgress)
+		// A per-cycle view of the single shared keypad: the current screen, the cursor line and the
+		// shared Navigator. The goal drives it and emits at most one key, which we translate into the
+		// wire KeyCommands (actually sent on the next Status message by ProcessControllerUpdates).
+		OneTouch::KeypadContext ctx{ DeviceId(), DisplayedPage(), m_HighlightedLine, *m_Navigator };
+		m_Runner.Service(ctx);
+		if (ctx.emitted_key.has_value())
 		{
-			LogInfo(Channel::Devices, std::format("OneTouch ({}): Beginning toggle navigation for '{}'", DeviceId(), m_PendingActuationLabel.value()));
-			m_Navigator->NavigateToItem(Navigation::PageId::EquipmentOnOff, 0, m_PendingActuationLabel.value(), Navigation::PageId::EquipmentOnOff);
-			m_ActuationInProgress = true;
-			m_ActuationStepCount = 0;
-		}
-
-		// Advance the navigator against the current screen and queue any key it asks for
-		// (actually emitted on the next Status message by ProcessControllerUpdates).
-		if (auto nav_cmd = m_Navigator->OnPageUpdate(DisplayedPage(), m_HighlightedLine); nav_cmd.has_value())
-		{
-			m_KeyCommand_ToSend = ConvertNavKeyCommand(nav_cmd.value());
-		}
-
-		// Frame backstop so a mis-detected page can never wedge NormalOperation (the
-		// Navigator's own timeouts normally drive it to Failed first).
-		if (++m_ActuationStepCount > ONETOUCH_ACTUATION_STEP_LIMIT)
-		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Toggle of '{}' exceeded {} steps - abandoning", DeviceId(), m_PendingActuationLabel.value(), ONETOUCH_ACTUATION_STEP_LIMIT));
-			m_Navigator->Reset();
-			m_PendingActuationLabel.reset();
-			m_ActuationInProgress = false;
-			return;
-		}
-
-		if (m_Navigator->IsComplete())
-		{
-			if (m_Navigator->IsSuccess())
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Toggle of '{}' completed", DeviceId(), m_PendingActuationLabel.value()));
-			}
-			else
-			{
-				LogWarning(Channel::Devices, std::format("OneTouch ({}): Toggle of '{}' failed during navigation", DeviceId(), m_PendingActuationLabel.value()));
-			}
-			m_Navigator->Reset();
-			m_PendingActuationLabel.reset();
-			m_ActuationInProgress = false;
+			m_KeyCommand_ToSend = ConvertNavKeyCommand(ctx.emitted_key.value());
 		}
 	}
 
 	bool OneTouchDevice::GoalInProgress() const
 	{
-		return m_ActuationInProgress
-			|| m_PendingActuationLabel.has_value()
+		return m_Runner.HasActiveGoal()
 			|| m_ValueEditInProgress
 			|| m_PendingValueEdit.has_value()
 			|| m_BoostInProgress
