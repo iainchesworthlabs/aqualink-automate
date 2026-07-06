@@ -44,7 +44,7 @@ namespace AqualinkAutomate::HTTP::Routing
             return str_.empty();
         }
 
-        bool is_literal() const
+        constexpr bool is_literal() const
         {
             return is_literal_;
         }
