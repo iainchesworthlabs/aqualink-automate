@@ -368,7 +368,7 @@ namespace AqualinkAutomate::Mqtt
 		const auto prefs = m_PreferencesHub.lock();
 		const bool fahrenheit = prefs && (prefs->Temperature_DisplayUnits == Kernel::TemperatureUnits::Fahrenheit);
 		const char* setpoint_unit_field = fahrenheit ? "fahrenheit" : "celsius";
-		const char* setpoint_unit_symbol = fahrenheit ? "\u{B0}F" : "\u{B0}C";
+		const char* setpoint_unit_symbol = fahrenheit ? "°F" : "°C";
 		const double setpoint_min = fahrenheit ? 59.0 : 15.0;   // 15\u201341 \u00B0C \u2259 59\u2013105.8 \u00B0F
 		const double setpoint_max = fahrenheit ? 106.0 : 41.0;
 		const double setpoint_step = fahrenheit ? 1.0 : 0.5;
@@ -406,7 +406,7 @@ namespace AqualinkAutomate::Mqtt
 			{"unique_id", UniqueId("pool_setpoint_2")},
 			{"state_topic", temperatures_topic},
 			{"value_template", "{{ value_json.pool_setpoint_2.celsius if value_json.pool_setpoint_2 else '' }}"},
-			{"unit_of_measurement", "\u{B0}C"},
+			{"unit_of_measurement", "°C"},
 			{"device_class", "temperature"},
 			{"state_class", "measurement"}
 		};
