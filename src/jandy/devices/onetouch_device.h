@@ -272,6 +272,13 @@ namespace AqualinkAutomate::Devices
 		void PageProcessor_SpaSwitch(const Utility::ScreenDataPage& page);
 		void PageProcessor_StartUp(const Utility::ScreenDataPage& page);
 
+		// Shared decode for the two pages that carry the panel identity + pool configuration
+		// (the cold-start splash handled by PageProcessor_StartUp and the REV page handled by
+		// PageProcessor_Version). Extracts model/type/revision, runs the PoolConfigurationDecoder,
+		// records SystemBoard / expected aux + power-centre counts / EquipmentVersions, and builds
+		// the bodies of water via DataHub::ApplyPoolConfiguration so every call site is consistent.
+		void DecodePanelConfiguration(const Utility::ScreenDataPage& page);
+
 	private:
 		static const uint32_t HINT_COUNT{ 2 };
 		using HintArrayType = std::array<unsigned char, HINT_COUNT>;

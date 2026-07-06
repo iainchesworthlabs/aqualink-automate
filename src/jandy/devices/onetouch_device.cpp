@@ -1924,44 +1924,9 @@ namespace AqualinkAutomate::Devices
 
 		LogDebug(Channel::Devices, std::format("OneTouch ({}): Processing cold start splash screen", DeviceId()));
 
-		const auto model_number = Utility::TrimWhitespace(page[4].Text);
-		const auto panel_type = Utility::TrimWhitespace(page[5].Text);
-		const auto fw_revision = Utility::TrimWhitespace(page[7].Text);
-
-		Utility::PoolConfigurationDecoder pool_config_decoder(panel_type);
-
-		// Handle autodetect vs user-specified configuration.
-		if (JandyController::m_DataHub->PoolConfigurationSource == Kernel::ConfigurationSource::UserSpecified
-			&& pool_config_decoder.Configuration() != JandyController::m_DataHub->PoolConfiguration)
-		{
-			LogWarning(Channel::Equipment, std::format("Autodetected pool configuration '{}' disagrees with user-specified '{}'",
-				magic_enum::enum_name(pool_config_decoder.Configuration()),
-				magic_enum::enum_name(JandyController::m_DataHub->PoolConfiguration)));
-			// User specification takes precedence; do not override.
-		}
-		else
-		{
-			JandyController::m_DataHub->PoolConfiguration = pool_config_decoder.Configuration();
-		}
-
-		JandyController::m_DataHub->SystemBoard = pool_config_decoder.SystemBoard();
-		JandyController::m_DataHub->ExpectedAuxillaryCount = pool_config_decoder.AuxillaryCount();
-		JandyController::m_DataHub->ExpectedPowerCenterCount = pool_config_decoder.PowerCenterCount();
-		JandyController::m_DataHub->EquipmentVersions.Set("Model", model_number);
-		JandyController::m_DataHub->EquipmentVersions.Set("Type", panel_type);
-		JandyController::m_DataHub->EquipmentVersions.Set("Revision", fw_revision);
-
-		// Populate bodies if not already present (user config may have done this at startup).
-		// Reaching here with no bodies means the user did NOT specify a configuration (otherwise
-		// startup would have built them), so this is the auto-detected path: source is Auto and a
-		// SingleBody is treated as pool-only (spa-only is user-signalled only). Body-building lives
-		// in ApplyPoolConfiguration so all three call sites stay consistent.
-		if (JandyController::m_DataHub->Bodies().empty())
-		{
-			JandyController::m_DataHub->ApplyPoolConfiguration(JandyController::m_DataHub->PoolConfiguration, Kernel::ConfigurationSource::Auto);
-		}
-
-		LogInfo(Channel::Devices, std::format("Aqualink Power Center - Model: {}, Type: {}, Rev: {}", model_number, panel_type, fw_revision));
+		// The splash carries the same model/type/revision + pool configuration as the REV page, so
+		// the decode (and body-of-water build) is shared with PageProcessor_Version.
+		DecodePanelConfiguration(page);
 	}
 
 	nlohmann::json OneTouchDevice::DescribeDiagnostics() const
