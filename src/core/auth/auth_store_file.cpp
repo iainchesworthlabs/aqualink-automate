@@ -7,6 +7,7 @@
 #include <openssl/sha.h>
 
 #include "auth/auth_store_file.h"
+#include "exceptions/exception_auth_storeerror.h"
 
 namespace AqualinkAutomate::Auth
 {
@@ -29,7 +30,7 @@ namespace AqualinkAutomate::Auth
 		}
 		catch (const nlohmann::json::parse_error& ex)
 		{
-			throw std::runtime_error(std::format("Auth store {} is unreadable ({}); refusing to continue with partial identity data", file.string(), ex.what()));
+			throw Exceptions::Auth_StoreError(std::format("Auth store {} is unreadable ({}); refusing to continue with partial identity data", file.string(), ex.what()));
 		}
 
 		if (const auto schema_version = document.value("schema_version", std::uint32_t{ 0 }); schema_version != AUTH_STORE_SCHEMA_VERSION)
@@ -37,7 +38,7 @@ namespace AqualinkAutomate::Auth
 			// The migration hook: when the schema evolves, migrate here (and only
 			// here) before returning.  An UNKNOWN (newer) version is fatal — a
 			// downgrade must not silently discard fields it does not understand.
-			throw std::runtime_error(std::format("Auth store {} has schema version {} (expected {})", file.string(), schema_version, AUTH_STORE_SCHEMA_VERSION));
+			throw Exceptions::Auth_StoreError(std::format("Auth store {} has schema version {} (expected {})", file.string(), schema_version, AUTH_STORE_SCHEMA_VERSION));
 		}
 
 		return document;
@@ -56,7 +57,7 @@ namespace AqualinkAutomate::Auth
 
 			if (!stream.is_open())
 			{
-				throw std::runtime_error(std::format("Could not write auth store {}", temp_file.string()));
+				throw Exceptions::Auth_StoreError(std::format("Could not write auth store {}", temp_file.string()));
 			}
 
 			stream << document.dump(2);

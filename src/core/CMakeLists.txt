@@ -41,18 +41,21 @@ target_sources(
 	developer/recording_serial_port_impl.cpp
 	errors/message_errors.cpp
 	errors/protocol_errors.cpp
-	exceptions/exception_certificate_invalidformat.cpp 
-	exceptions/exception_certificate_notfound.cpp 
+	exceptions/exception_auth_storeerror.cpp
+	exceptions/exception_certificate_invalidformat.cpp
+	exceptions/exception_certificate_notfound.cpp
 	exceptions/exception_developer_optionkeyhasnovalue.cpp
 	exceptions/exception_developer_optionkeyinvalidtype.cpp
 	exceptions/exception_developer_optionkeynotprovided.cpp
 	exceptions/exception_genericaqualinkexception.cpp
-	exceptions/exception_http_duplicateroute.cpp 
+	exceptions/exception_history_databaseerror.cpp
+	exceptions/exception_http_duplicateroute.cpp
 	exceptions/exception_hubnotfound.cpp 
 	exceptions/exception_notimplemented.cpp
 	exceptions/exception_optionparsingfailed.cpp
-	exceptions/exception_optionshelporversion.cpp 
-	exceptions/exception_options_conflictingoptions.cpp 
+	exceptions/exception_optionshelporversion.cpp
+	exceptions/exception_options_conflictingoptions.cpp
+	exceptions/exception_preferences_storeerror.cpp
 	exceptions/exception_options_missingdependency.cpp 	 
 	exceptions/exception_signallingstatscounter_badaccess.cpp 
 	exceptions/exception_traits_doesnotexist.cpp 

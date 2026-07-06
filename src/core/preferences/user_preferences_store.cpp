@@ -7,6 +7,7 @@
 #include <system_error>
 
 #include "preferences/user_preferences_store.h"
+#include "exceptions/exception_preferences_storeerror.h"
 
 namespace AqualinkAutomate::Preferences
 {
@@ -102,12 +103,12 @@ namespace AqualinkAutomate::Preferences
 		}
 		catch (const nlohmann::json::parse_error& ex)
 		{
-			throw std::runtime_error(std::format("User preferences file {} is unreadable ({}); refusing to continue and drop everyone's settings", file.string(), ex.what()));
+			throw Exceptions::Preferences_StoreError(std::format("User preferences file {} is unreadable ({}); refusing to continue and drop everyone's settings", file.string(), ex.what()));
 		}
 
 		if (document.value("schema_version", std::uint32_t{ 0 }) != SCHEMA_VERSION)
 		{
-			throw std::runtime_error(std::format("User preferences file {} has an unsupported schema version", file.string()));
+			throw Exceptions::Preferences_StoreError(std::format("User preferences file {} has an unsupported schema version", file.string()));
 		}
 
 		if (const auto users = document.find("users"); (users != document.end()) && users->is_object())
@@ -232,7 +233,7 @@ namespace AqualinkAutomate::Preferences
 
 			if (!out.is_open())
 			{
-				throw std::runtime_error(std::format("Could not write user preferences file {}", temp_file.string()));
+				throw Exceptions::Preferences_StoreError(std::format("Could not write user preferences file {}", temp_file.string()));
 			}
 
 			out << document.dump(2);

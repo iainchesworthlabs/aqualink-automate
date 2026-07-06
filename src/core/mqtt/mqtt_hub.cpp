@@ -69,9 +69,9 @@ namespace AqualinkAutomate::Mqtt
 			m_HaStateTopicPrefix = m_Client->BuildTopic("ha/");
 			m_Client->Subscribe(m_DeviceTopicPrefix + "#", 0);
 			m_Client->Subscribe(m_HaStateTopicPrefix + "#", 0);
-			m_SeenRetainedTopics.clear();
-			m_RetainedReconcilePending = true;
-			m_RetainedReconcileDeadline = m_SteadyNow() + RETAINED_RECONCILE_GRACE;
+			m_RetainedReconcile.SeenTopics.clear();
+			m_RetainedReconcile.Pending = true;
+			m_RetainedReconcile.Deadline = m_SteadyNow() + RETAINED_RECONCILE_GRACE;
 
 			// Publish initial status on connect
 			PublishAllStatus();
@@ -89,8 +89,8 @@ namespace AqualinkAutomate::Mqtt
 
 		// Initialize periodic publish timers
 		auto now = m_SteadyNow();
-		m_NextStatusPublish = now + m_Settings.status_publish_interval;
-		m_NextStatsPublish = now + m_Settings.statistics_publish_interval;
+		m_PublishSchedule.NextStatusPublish = now + m_Settings.status_publish_interval;
+		m_PublishSchedule.NextStatsPublish = now + m_Settings.statistics_publish_interval;
 
 		LogInfo(Channel::Mqtt, "MQTT Hub started successfully");
 	}
@@ -136,40 +136,40 @@ namespace AqualinkAutomate::Mqtt
 		auto now = m_SteadyNow();
 
 		// One-shot startup broker reconciliation, once retained delivery has had time to complete.
-		if (m_RetainedReconcilePending && now >= m_RetainedReconcileDeadline)
+		if (m_RetainedReconcile.Pending && now >= m_RetainedReconcile.Deadline)
 		{
-			m_RetainedReconcilePending = false;
+			m_RetainedReconcile.Pending = false;
 			ReconcileRetainedTopics();
 		}
 
 		// On-change publish (debounced). A hub change during protocol decode flags a
 		// pending publish; here we flush it once the debounce window has elapsed,
 		// coalescing a burst of changes into a single publish.
-		if (m_OnChangePending && now >= m_OnChangeDeadline)
+		if (m_PublishSchedule.OnChangePending && now >= m_PublishSchedule.OnChangeDeadline)
 		{
-			m_OnChangePending = false;
+			m_PublishSchedule.OnChangePending = false;
 			PublishSystemStatus();
 			PublishPoolStatus();
 			PublishDeviceStatus();
 			// Re-arm the periodic timer so the change-driven publish also satisfies the
 			// next scheduled interval (avoids a redundant publish moments later).
-			m_NextStatusPublish = now + m_Settings.status_publish_interval;
+			m_PublishSchedule.NextStatusPublish = now + m_Settings.status_publish_interval;
 		}
 
 		// Periodic status publish
-		if (now >= m_NextStatusPublish)
+		if (now >= m_PublishSchedule.NextStatusPublish)
 		{
 			PublishSystemStatus();
 			PublishPoolStatus();
 			PublishDeviceStatus();
-			m_NextStatusPublish = now + m_Settings.status_publish_interval;
+			m_PublishSchedule.NextStatusPublish = now + m_Settings.status_publish_interval;
 		}
 
 		// Periodic statistics publish
-		if (now >= m_NextStatsPublish)
+		if (now >= m_PublishSchedule.NextStatsPublish)
 		{
 			PublishStatistics();
-			m_NextStatsPublish = now + m_Settings.statistics_publish_interval;
+			m_PublishSchedule.NextStatsPublish = now + m_Settings.statistics_publish_interval;
 		}
 	}
 
@@ -297,10 +297,10 @@ namespace AqualinkAutomate::Mqtt
 		// Debounce: the first change in a quiet window arms the deadline; subsequent
 		// changes within the window keep the existing (earlier) deadline so a burst
 		// coalesces into a single deferred publish flushed by Poll().
-		if (!m_OnChangePending)
+		if (!m_PublishSchedule.OnChangePending)
 		{
-			m_OnChangePending = true;
-			m_OnChangeDeadline = m_SteadyNow() + ON_CHANGE_DEBOUNCE;
+			m_PublishSchedule.OnChangePending = true;
+			m_PublishSchedule.OnChangeDeadline = m_SteadyNow() + ON_CHANGE_DEBOUNCE;
 		}
 	}
 
@@ -561,7 +561,7 @@ namespace AqualinkAutomate::Mqtt
 		const auto owned = ComputeOwnedDeviceTopics();
 
 		std::size_t cleared = 0;
-		for (const auto& seen_topic : m_SeenRetainedTopics)
+		for (const auto& seen_topic : m_RetainedReconcile.SeenTopics)
 		{
 			if (!owned.contains(seen_topic))
 			{
@@ -576,7 +576,7 @@ namespace AqualinkAutomate::Mqtt
 			LogInfo(Channel::Mqtt, std::format("Startup broker reconciliation cleared {} stale retained device topic(s)", cleared));
 		}
 
-		m_SeenRetainedTopics.clear();
+		m_RetainedReconcile.SeenTopics.clear();
 	}
 
 	void MqttHub::PublishStatistics()
@@ -614,10 +614,10 @@ namespace AqualinkAutomate::Mqtt
 
 		// While the startup reconciliation window is open, record retained device/HA-state topics
 		// the broker replays so ReconcileRetainedTopics() can clear any the current set no longer owns.
-		if (m_RetainedReconcilePending && !payload.empty()
+		if (m_RetainedReconcile.Pending && !payload.empty()
 			&& (topic.starts_with(m_DeviceTopicPrefix) || topic.starts_with(m_HaStateTopicPrefix)))
 		{
-			m_SeenRetainedTopics.insert(topic);
+			m_RetainedReconcile.SeenTopics.insert(topic);
 		}
 
 		if (!IsCommandTopic(topic))

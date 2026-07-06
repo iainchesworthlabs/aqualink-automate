@@ -11,6 +11,7 @@
 #include "auth/api_key_store.h"
 #include "auth/group_store.h"
 #include "auth/user_store.h"
+#include "exceptions/exception_auth_storeerror.h"
 
 using namespace AqualinkAutomate;
 
@@ -150,7 +151,7 @@ BOOST_FIXTURE_TEST_CASE(Test_UserStore_CorruptFileThrows, TempDirFixture)
 		stream << "not json";
 	}
 
-	BOOST_CHECK_THROW(Auth::UserStore::Load(file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::UserStore::Load(file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 //-----------------------------------------------------------------------------
@@ -310,7 +311,7 @@ BOOST_FIXTURE_TEST_CASE(Test_AuthStore_UnknownSchemaVersionThrows, TempDirFixtur
 		stream << R"({"schema_version":999999,"keys":[]})";
 	}
 
-	BOOST_CHECK_THROW(Auth::ApiKeyStore::Load(file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::ApiKeyStore::Load(file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_ApiKeyStore_BootstrapLegacyTokenFoldIn, TempDirFixture)

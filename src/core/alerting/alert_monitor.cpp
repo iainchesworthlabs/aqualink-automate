@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <exception>
 #include <format>
 #include <optional>
 #include <string_view>
@@ -104,7 +105,21 @@ namespace AqualinkAutomate::Alerting
 
 	AlertMonitor::~AlertMonitor()
 	{
-		Stop();
+		// Stop() cancels the asio timer, whose no-throw contract is not guaranteed
+		// (steady_timer::cancel() can throw boost::system::system_error). A throwing
+		// destructor would terminate, so swallow any failure here after logging.
+		try
+		{
+			Stop();
+		}
+		catch (const std::exception& ex)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
+		{
+			LogDebug(Channel::Equipment, [&ex] { return std::format("AlertMonitor destructor: Stop() threw and was swallowed: {}", ex.what()); });
+		}
+		catch (...)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
+		{
+			LogDebug(Channel::Equipment, "AlertMonitor destructor: Stop() threw a non-std exception and was swallowed");
+		}
 	}
 
 	void AlertMonitor::AddSink(Sink sink)

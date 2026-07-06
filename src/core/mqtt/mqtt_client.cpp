@@ -133,7 +133,7 @@ namespace AqualinkAutomate::Mqtt
 				{
 					LogWarning(Channel::Mqtt, "Failed to set SNI hostname");
 				}
-				if (!m_Owner.m_Settings.tls_skip_verify)
+				if (!m_Owner.m_Settings.tls.tls_skip_verify)
 				{
 					boost::system::error_code verify_ec;
 					ssl_stream.set_verify_callback(as::ssl::host_name_verification(m_Owner.m_Settings.broker_host), verify_ec);
@@ -259,7 +259,7 @@ namespace AqualinkAutomate::Mqtt
 
 					LogInfo(Channel::Mqtt, [this] { return std::format("Connected to MQTT broker at {}:{}{} (MQTT {})",
 						m_Owner.m_Settings.broker_host, m_Owner.m_Settings.broker_port,
-						m_Owner.m_Settings.use_tls ? " (TLS)" : "",
+						m_Owner.m_Settings.tls.use_tls ? " (TLS)" : "",
 						Options::Mqtt::ToString(m_Owner.m_Settings.protocol_version)); });
 					Factory::ProfilerFactory::Instance().Get()->Message("MQTT: Connected", static_cast<uint32_t>(UnitColours::Green));
 
@@ -478,28 +478,28 @@ namespace AqualinkAutomate::Mqtt
 
 			boost::system::error_code ec;
 
-			if (!m_Owner.m_Settings.tls_ca_cert.empty())
+			if (!m_Owner.m_Settings.tls.tls_ca_cert.empty())
 			{
-				if (std::filesystem::exists(m_Owner.m_Settings.tls_ca_cert))
+				if (std::filesystem::exists(m_Owner.m_Settings.tls.tls_ca_cert))
 				{
-					m_SslContext->load_verify_file(m_Owner.m_Settings.tls_ca_cert, ec);
+					m_SslContext->load_verify_file(m_Owner.m_Settings.tls.tls_ca_cert, ec);
 					if (ec) { LogError(Channel::Mqtt, [msg = ec.message()] { return std::format("Failed to load CA certificate: {}", msg); }); }
 				}
 				else
 				{
-					LogError(Channel::Mqtt, [this] { return std::format("CA certificate file not found: {}", m_Owner.m_Settings.tls_ca_cert); });
+					LogError(Channel::Mqtt, [this] { return std::format("CA certificate file not found: {}", m_Owner.m_Settings.tls.tls_ca_cert); });
 				}
 			}
 
-			if (!m_Owner.m_Settings.tls_client_cert.empty() && !m_Owner.m_Settings.tls_client_key.empty())
+			if (!m_Owner.m_Settings.tls.tls_client_cert.empty() && !m_Owner.m_Settings.tls.tls_client_key.empty())
 			{
-				if (std::filesystem::exists(m_Owner.m_Settings.tls_client_cert) && std::filesystem::exists(m_Owner.m_Settings.tls_client_key))
+				if (std::filesystem::exists(m_Owner.m_Settings.tls.tls_client_cert) && std::filesystem::exists(m_Owner.m_Settings.tls.tls_client_key))
 				{
-					m_SslContext->use_certificate_file(m_Owner.m_Settings.tls_client_cert, as::ssl::context::pem, ec);
+					m_SslContext->use_certificate_file(m_Owner.m_Settings.tls.tls_client_cert, as::ssl::context::pem, ec);
 					if (ec) { LogError(Channel::Mqtt, [msg = ec.message()] { return std::format("Failed to load client certificate: {}", msg); }); }
 					else
 					{
-						m_SslContext->use_private_key_file(m_Owner.m_Settings.tls_client_key, as::ssl::context::pem, ec);
+						m_SslContext->use_private_key_file(m_Owner.m_Settings.tls.tls_client_key, as::ssl::context::pem, ec);
 						if (ec) { LogError(Channel::Mqtt, [msg = ec.message()] { return std::format("Failed to load client private key: {}", msg); }); }
 					}
 				}
@@ -509,7 +509,7 @@ namespace AqualinkAutomate::Mqtt
 				}
 			}
 
-			if (m_Owner.m_Settings.tls_skip_verify)
+			if (m_Owner.m_Settings.tls.tls_skip_verify)
 			{
 				LogWarning(Channel::Mqtt, "TLS certificate verification DISABLED - not recommended for production");
 				m_SslContext->set_verify_mode(as::ssl::verify_none);
@@ -536,7 +536,7 @@ namespace AqualinkAutomate::Mqtt
 		m_ClientId = settings.client_id.empty() ? GenerateClientId() : settings.client_id;
 		LogDebug(Channel::Mqtt, [this, &settings] { return std::format("MQTT client created with client ID: {} (MQTT {})", m_ClientId, Options::Mqtt::ToString(settings.protocol_version)); });
 
-		if (!m_Settings.password.empty() && !m_Settings.use_tls)
+		if (!m_Settings.password.empty() && !m_Settings.tls.use_tls)
 		{
 			LogWarning(Channel::Mqtt, "MQTT credentials configured without TLS - password will be sent in cleartext; enable --mqtt-tls");
 		}
@@ -565,7 +565,7 @@ namespace AqualinkAutomate::Mqtt
 		m_ReconnectAttempts = 0;
 		m_State = State::Connecting;
 
-		m_Impl->m_Tls = m_Settings.use_tls;
+		m_Impl->m_Tls = m_Settings.tls.use_tls;
 		m_Impl->m_Version = (m_Settings.protocol_version == Options::Mqtt::ProtocolVersion::v5)
 			? am::protocol_version::v5
 			: am::protocol_version::v3_1_1;

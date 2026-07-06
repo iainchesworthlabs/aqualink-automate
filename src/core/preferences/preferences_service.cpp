@@ -315,8 +315,10 @@ namespace AqualinkAutomate::Preferences
 				LogWarning(Channel::Main, [&error] { return std::format("Preferences file rejected ({}); using seeded/default values", error); });
 			}
 		}
-		catch (const std::exception& ex)
+		catch (const nlohmann::json::exception& ex)
 		{
+			// nlohmann::json::parse (malformed JSON) and the typed accessors reached
+			// through ApplyJson are the only domain throwers on this path.
 			LogError(Channel::Main, [&ex] { return std::format("Failed to load preferences file: {}", ex.what()); });
 		}
 	}
@@ -338,8 +340,14 @@ namespace AqualinkAutomate::Preferences
 			}
 			std::filesystem::rename(tmp, target);
 		}
-		catch (const std::exception& ex)
+		catch (const std::filesystem::filesystem_error& ex)
 		{
+			// std::filesystem::rename fails (target locked, cross-device, missing dir).
+			LogError(Channel::Main, [&ex] { return std::format("Failed to save preferences file: {}", ex.what()); });
+		}
+		catch (const nlohmann::json::exception& ex)
+		{
+			// ToJson().dump() rejects e.g. invalid UTF-8 in a stored string value.
 			LogError(Channel::Main, [&ex] { return std::format("Failed to save preferences file: {}", ex.what()); });
 		}
 	}

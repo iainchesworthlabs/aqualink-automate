@@ -20,7 +20,16 @@ namespace AqualinkAutomate::Devices::Capabilities
 
 		if (!delayed_start)
 		{
-			Start();
+			m_IsRunning = true;
+
+			// Construction-order: a subclass override of the virtual Now() seam is not
+			// yet active during this base constructor, so read the real clock directly
+			// instead of dispatching through Start() -> Kick() -> Now().  This is
+			// behaviour-identical to the old eager Start() (production devices never
+			// override Now(); clock-injecting test doubles use delayed_start=true and
+			// call Start() after construction) while avoiding a virtual call from a
+			// constructor (cpp:S1699).
+			m_LastKick = std::chrono::steady_clock::now();
 		}
 	}
 

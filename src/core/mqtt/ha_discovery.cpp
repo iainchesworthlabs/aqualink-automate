@@ -91,7 +91,7 @@ namespace AqualinkAutomate::Mqtt
 
 			LogDebug(Channel::Mqtt, "Home Assistant device discovery payload published");
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: batch guard invoked from signals2/poll; one bad device must not abort the whole discovery sweep nor escape into the emitter.
 		{
 			LogError(Channel::Mqtt, [&ex] { return std::format("Failed to publish HA discovery configs: {}", ex.what()); });
 		}
@@ -177,7 +177,7 @@ namespace AqualinkAutomate::Mqtt
 
 			LogTrace(Channel::Mqtt, [&device_count] { return std::format("Published HA device states ({} devices)", device_count); });
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: batch guard invoked from signals2/poll; one malformed device must not abort the whole state sweep nor escape into the emitter.
 		{
 			LogError(Channel::Mqtt, [&ex] { return std::format("Failed to publish HA device states: {}", ex.what()); });
 		}
@@ -210,8 +210,11 @@ namespace AqualinkAutomate::Mqtt
 
 			LogDebug(Channel::Mqtt, [&adopted] { return std::format("Adopted {} component(s) from the retained HA discovery config", adopted); });
 		}
-		catch (const std::exception& ex)
+		catch (const nlohmann::json::exception& ex)
 		{
+			// The retained payload is untrusted broker data: a malformed / wrong-typed
+			// document surfaces here as a parse_error / type_error. Narrowed from a
+			// generic catch (cpp:S1181) — a json exception is the only realistic failure.
 			LogError(Channel::Mqtt, [&ex] { return std::format("Failed to adopt retained HA discovery config: {}", ex.what()); });
 		}
 	}

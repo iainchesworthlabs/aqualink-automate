@@ -50,7 +50,7 @@ namespace AqualinkAutomate::HTTP
 			json["state"] = std::string{ magic_enum::enum_name(client->GetState()) };
 			json["broker_host"] = s.broker_host;
 			json["broker_port"] = s.broker_port;
-			json["tls"] = s.use_tls;
+			json["tls"] = s.tls.use_tls;
 			json["protocol_version"] = std::string{ Options::Mqtt::ToString(s.protocol_version) };
 			json["topic_prefix"] = s.topic_prefix;
 			json["client_id"] = client->ClientId();

@@ -73,7 +73,7 @@ public:
 	/// Seed the set of retained topics "seen" on the broker during the startup window.
 	static void SeedSeenRetainedTopics(Mqtt::MqttHub& hub, const std::unordered_set<std::string>& topics)
 	{
-		hub.m_SeenRetainedTopics = topics;
+		hub.m_RetainedReconcile.SeenTopics = topics;
 	}
 
 	/// Invoke the reconciliation pass directly (clears seen topics not owned by the device set).
@@ -92,8 +92,8 @@ public:
 	/// (with the window still pending) runs the one-shot reconcile without a real 10s wait.
 	static void ExpireRetainedReconcileDeadline(Mqtt::MqttHub& hub)
 	{
-		hub.m_RetainedReconcilePending = true;
-		hub.m_RetainedReconcileDeadline = std::chrono::steady_clock::now() - std::chrono::seconds(1);
+		hub.m_RetainedReconcile.Pending = true;
+		hub.m_RetainedReconcile.Deadline = std::chrono::steady_clock::now() - std::chrono::seconds(1);
 	}
 };
 

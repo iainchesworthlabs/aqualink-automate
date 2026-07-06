@@ -49,7 +49,20 @@ namespace AqualinkAutomate::Scheduling
 
 	SchedulerService::~SchedulerService()
 	{
-		Stop();
+		// Stop() cancels the asio timer, whose throwing overload can raise
+		// boost::system::system_error. A destructor must not let that escape (cpp:S1048).
+		try
+		{
+			Stop();
+		}
+		catch (const std::exception& ex)
+		{
+			LogError(Channel::Main, [&ex] { return std::format("Scheduler: error during shutdown: {}", ex.what()); });
+		}
+		catch (...)
+		{
+			// Swallow anything else — nothing may escape a destructor.
+		}
 	}
 
 	void SchedulerService::Start()
@@ -204,8 +217,11 @@ namespace AqualinkAutomate::Scheduling
 				}
 			}
 		}
-		catch (const std::exception& ex)
+		catch (const nlohmann::json::exception& ex)
 		{
+			// Narrowed from a generic catch (cpp:S1181): parsing the schedules file and
+			// converting its entries can only fail with an nlohmann json exception
+			// (parse_error on malformed input, type_error on a bad field).
 			LogError(Channel::Main, [&ex] { return std::format("Scheduler: failed to load schedules file: {}", ex.what()); });
 		}
 	}
@@ -234,8 +250,15 @@ namespace AqualinkAutomate::Scheduling
 			}
 			std::filesystem::rename(tmp, target);
 		}
-		catch (const std::exception& ex)
+		catch (const std::filesystem::filesystem_error& ex)
 		{
+			// The atomic rename (or temp-file open) can fail with a filesystem_error
+			// (permission denied, cross-device, missing directory).
+			LogError(Channel::Main, [&ex] { return std::format("Scheduler: failed to save schedules file: {}", ex.what()); });
+		}
+		catch (const nlohmann::json::exception& ex)
+		{
+			// Serialising the schedules (array.dump) can raise a json type_error.
 			LogError(Channel::Main, [&ex] { return std::format("Scheduler: failed to save schedules file: {}", ex.what()); });
 		}
 	}

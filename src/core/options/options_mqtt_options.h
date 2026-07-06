@@ -91,20 +91,27 @@ namespace AqualinkAutomate::Options::Mqtt
 		/// MQTT broker port (default: 1883 for TCP, 8883 for TLS)
 		uint16_t broker_port{ 1883 };
 
-		/// Enable TLS/SSL encryption
-		bool use_tls{ false };
+		/// TLS/SSL encryption settings for the broker connection. Grouped into a
+		/// cohesive sub-struct so the outer settings struct stays within the
+		/// field-count limit; access as settings.tls.use_tls, etc.
+		struct TlsSettings
+		{
+			/// Enable TLS/SSL encryption
+			bool use_tls{ false };
 
-		/// TLS CA certificate file path (for server verification)
-		std::string tls_ca_cert;
+			/// TLS CA certificate file path (for server verification)
+			std::string tls_ca_cert;
 
-		/// TLS client certificate file path (for client authentication)
-		std::string tls_client_cert;
+			/// TLS client certificate file path (for client authentication)
+			std::string tls_client_cert;
 
-		/// TLS client key file path
-		std::string tls_client_key;
+			/// TLS client key file path
+			std::string tls_client_key;
 
-		/// Skip TLS certificate verification (not recommended for production)
-		bool tls_skip_verify{ false };
+			/// Skip TLS certificate verification (not recommended for production)
+			bool tls_skip_verify{ false };
+		}
+		tls;
 
 		//---------------------------------------------------------------------
 		// AUTHENTICATION

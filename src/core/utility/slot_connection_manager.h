@@ -43,6 +43,17 @@ namespace AqualinkAutomate::Utility
 		SlotConnectionManager();
 		virtual ~SlotConnectionManager();
 
+		// This type is a unique RAII owner of live signal-slot connections: its
+		// destructor disconnects every owned connection.  Copying would duplicate
+		// the connection handles so a copy's destruction would tear down the
+		// original's live connections; moving is likewise not needed because the
+		// manager is embedded by value in a (non-movable) device.  Delete both to
+		// keep the special-member set regular and prevent an unsafe duplicate.
+		SlotConnectionManager(const SlotConnectionManager&) = delete;
+		SlotConnectionManager& operator=(const SlotConnectionManager&) = delete;
+		SlotConnectionManager(SlotConnectionManager&&) = delete;
+		SlotConnectionManager& operator=(SlotConnectionManager&&) = delete;
+
 		// Connect handler to MESSAGE_TYPE's static receive-signal.  Every message
 		// of that type (regardless of source/destination) is delivered.
 		template<typename MESSAGE_TYPE>

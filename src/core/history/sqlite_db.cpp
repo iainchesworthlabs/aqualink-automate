@@ -4,6 +4,7 @@
 #include <sqlite3.h>
 
 #include "history/sqlite_db.h"
+#include "exceptions/exception_history_databaseerror.h"
 
 namespace AqualinkAutomate::History
 {
@@ -12,7 +13,7 @@ namespace AqualinkAutomate::History
 		[[noreturn]] void Throw(sqlite3* db, const std::string& context)
 		{
 			const char* msg = (db != nullptr) ? sqlite3_errmsg(db) : "no database handle";
-			throw std::runtime_error(std::format("{}: {}", context, msg ? msg : "unknown error"));
+			throw Exceptions::History_DatabaseError(std::format("{}: {}", context, msg ? msg : "unknown error"));
 		}
 	}
 
@@ -24,7 +25,7 @@ namespace AqualinkAutomate::History
 			// message then close it.
 			const std::string message = (m_Db != nullptr) ? sqlite3_errmsg(m_Db) : "out of memory";
 			if (m_Db != nullptr) { sqlite3_close(m_Db); m_Db = nullptr; }
-			throw std::runtime_error(std::format("Failed to open SQLite database '{}': {}", path, message));
+			throw Exceptions::History_DatabaseError(std::format("Failed to open SQLite database '{}': {}", path, message));
 		}
 	}
 
@@ -44,7 +45,7 @@ namespace AqualinkAutomate::History
 		{
 			const std::string message = (err != nullptr) ? err : "unknown error";
 			sqlite3_free(err);
-			throw std::runtime_error(std::format("SQLite exec failed: {}", message));
+			throw Exceptions::History_DatabaseError(std::format("SQLite exec failed: {}", message));
 		}
 	}
 

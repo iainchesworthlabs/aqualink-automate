@@ -11,6 +11,7 @@
 
 #include "auth/jwt_codec.h"
 #include "auth/jwt_key_store.h"
+#include "exceptions/exception_auth_storeerror.h"
 
 using namespace AqualinkAutomate;
 using namespace std::chrono_literals;
@@ -114,7 +115,7 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_MalformedFileThrowsRatherThanRegenerati
 
 	// Silent regeneration would invalidate every outstanding session; the
 	// store must surface the problem instead.
-	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_OddLengthHexSecretThrows, TempDirFixture)
@@ -128,7 +129,7 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_OddLengthHexSecretThrows, TempDirFixtur
 		file << R"({"schema_version":1,"active":"deadbeef","keys":[{"kid":"deadbeef","secret_hex":"abc","created":1}]})";
 	}
 
-	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_NonHexSecretThrows, TempDirFixture)
@@ -141,7 +142,7 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_NonHexSecretThrows, TempDirFixture)
 		file << R"({"schema_version":1,"active":"deadbeef","keys":[{"kid":"deadbeef","secret_hex":"zz","created":1}]})";
 	}
 
-	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_EmptyKidThrows, TempDirFixture)
@@ -154,7 +155,7 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_EmptyKidThrows, TempDirFixture)
 		file << R"({"schema_version":1,"active":"","keys":[{"kid":"","secret_hex":"aabb","created":1}]})";
 	}
 
-	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_EmptyKeysArrayThrows, TempDirFixture)
@@ -167,7 +168,7 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_EmptyKeysArrayThrows, TempDirFixture)
 		file << R"({"schema_version":1,"active":"","keys":[]})";
 	}
 
-	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_UppercaseHexSecretLoads, TempDirFixture)
@@ -197,7 +198,7 @@ BOOST_FIXTURE_TEST_CASE(Test_JwtKeyStore_UnwritableKeyFileThrows, TempDirFixture
 	const auto key_file = Dir / "missing-subdir" / "jwt-signing.key";
 
 	BOOST_CHECK(!fs::exists(key_file.parent_path()));
-	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), std::runtime_error);
+	BOOST_CHECK_THROW(Auth::JwtKeyStore::LoadOrCreate(key_file), AqualinkAutomate::Exceptions::Auth_StoreError);
 }
 
 //-----------------------------------------------------------------------------

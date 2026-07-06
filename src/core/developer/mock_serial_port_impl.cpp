@@ -31,7 +31,11 @@ namespace AqualinkAutomate::Developer
 	MockSerialPortImpl::~MockSerialPortImpl()
 	{
 		boost::system::error_code ec;
-		close(ec);
+		// Qualify to select this class's own close explicitly: a virtual dispatch
+		// from a destructor already resolves to MockSerialPortImpl::close, and that
+		// base implementation (which tears down this class's own m_File/m_IsOpen) is
+		// the intended target regardless of any future subclass.
+		MockSerialPortImpl::close(ec);
 	}
 
 	void MockSerialPortImpl::open(const std::string& device_name)
@@ -129,7 +133,7 @@ namespace AqualinkAutomate::Developer
 		{
 			if (m_File && m_File.is_open()) m_File.close();
 		}
-		catch (const std::exception&)
+		catch (...) // NOSONAR(cpp:S1181) — boundary: the error_code overload must never throw (its no-throw contract is relied on by the destructor); any close failure is reported via ec.
 		{
 			ec = boost::asio::error::operation_aborted;
 		}

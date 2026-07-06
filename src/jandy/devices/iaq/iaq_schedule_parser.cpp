@@ -70,7 +70,7 @@ namespace AqualinkAutomate::Devices::IAQ
 			if (std::from_chars(m.data(), m.data() + m.size(), minute).ec != std::errc{}) { return false; }
 			if (hour < 1 || hour > 12 || minute < 0 || minute > 59) { return false; }
 
-			bool is_pm;
+			bool is_pm = false;
 			if (meridiem == "PM" || meridiem == "pm") { is_pm = true; }
 			else if (meridiem == "AM" || meridiem == "am") { is_pm = false; }
 			else { return false; }

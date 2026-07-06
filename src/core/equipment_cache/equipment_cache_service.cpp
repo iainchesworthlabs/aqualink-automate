@@ -132,9 +132,10 @@ namespace AqualinkAutomate::EquipmentCache
 					boost::uuids::string_generator gen;
 					id = gen(d["id"].get<std::string>());
 				}
-				catch (const std::exception&)
+				catch (const std::runtime_error& ex)
 				{
 					// Malformed id: treat as no-id (dedup by label, fresh random id).
+					LogTrace(Channel::Main, std::format("Ignoring malformed cached device id '{}': {}", d["id"].get<std::string>(), ex.what()));
 				}
 			}
 
@@ -195,7 +196,7 @@ namespace AqualinkAutomate::EquipmentCache
 			ApplySnapshot(json);
 			m_LastFingerprint = Fingerprint();
 		}
-		catch (const std::exception& ex)
+		catch (const nlohmann::json::exception& ex)
 		{
 			LogError(Channel::Main, [&ex] { return std::format("Failed to load equipment cache: {}", ex.what()); });
 		}
@@ -215,7 +216,11 @@ namespace AqualinkAutomate::EquipmentCache
 			}
 			std::filesystem::rename(tmp, target);
 		}
-		catch (const std::exception& ex)
+		catch (const std::filesystem::filesystem_error& ex)
+		{
+			LogError(Channel::Main, [&ex] { return std::format("Failed to save equipment cache: {}", ex.what()); });
+		}
+		catch (const nlohmann::json::exception& ex)
 		{
 			LogError(Channel::Main, [&ex] { return std::format("Failed to save equipment cache: {}", ex.what()); });
 		}

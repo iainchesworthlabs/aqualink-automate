@@ -133,7 +133,7 @@ namespace AqualinkAutomate::Alerting
 					}
 					co_return;
 				}
-				catch (const std::exception& ex)
+				catch (const std::exception& ex)   // NOSONAR(cpp:S1181) — boundary: runs in a detached co_spawn coroutine; ANY escaping exception would reach asio::detached and terminate. Retries, then logs and drops so an unreachable webhook never affects the main loop.
 				{
 					if (attempt == 2)
 					{

@@ -8,6 +8,7 @@
 #include <openssl/rand.h>
 
 #include "auth/api_key_store.h"
+#include "exceptions/exception_auth_storeerror.h"
 #include "auth/auth_store_file.h"
 #include "auth/entitlement_vocabulary.h"
 
@@ -97,7 +98,7 @@ namespace AqualinkAutomate::Auth
 
 		if (1 != RAND_bytes(random_bytes.data(), static_cast<int>(random_bytes.size())))
 		{
-			throw std::runtime_error("OpenSSL RAND_bytes failed while generating an API key");
+			throw Exceptions::Auth_StoreError("OpenSSL RAND_bytes failed while generating an API key");
 		}
 
 		// Hex keeps the secret URL/header-safe without a base64url helper.

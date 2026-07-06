@@ -764,7 +764,7 @@ BOOST_AUTO_TEST_CASE(Test_OnConnected_RepublishesStaticTopicsAndArmsReconcile)
 BOOST_AUTO_TEST_CASE(Test_HandleMessage_DuringReconcileWindow_CollectsRetainedTopics)
 {
 	// While the startup reconciliation window is open (armed by OnConnected), a retained device or
-	// HA-state topic replayed by the broker is recorded in m_SeenRetainedTopics. A subsequent
+	// HA-state topic replayed by the broker is recorded in m_RetainedReconcile.SeenTopics. A subsequent
 	// ReconcileRetainedTopics() then clears any collected topic the current device set does not own.
 	boost::asio::io_context ioc;
 	auto settings = MakeHubTestSettings();
@@ -989,7 +989,7 @@ BOOST_AUTO_TEST_SUITE(TestSuite_MqttHub_PollPublishing)
 namespace
 {
 	// A hub whose periodic publish intervals are zero, so the very first Poll() sees
-	// now >= m_NextStatusPublish / m_NextStatsPublish and runs both periodic branches.
+	// now >= m_PublishSchedule.NextStatusPublish / NextStatsPublish and runs both periodic branches.
 	Options::Mqtt::MqttSettings MakeZeroIntervalSettings()
 	{
 		auto s = Test::MakeMqttSettings();

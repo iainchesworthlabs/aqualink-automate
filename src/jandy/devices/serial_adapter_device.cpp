@@ -223,24 +223,10 @@ namespace AqualinkAutomate::Devices
 
 		// Single-command semantics: a freshly issued command supersedes any earlier
 		// still-pending command (last-write-wins), so we clear before queuing. The
-		// multi-step write path uses EnqueueCommand() to append without clobbering.
+		// multi-step write path appends its follow-up step inline (see
+		// QueueSetpointWrite_TwoStep) to avoid clobbering the first step.
 		LogDebug(Channel::Devices, std::format("SerialAdapterDevice: Queuing command (ack_type=0x{:02x}, ack_data_value=0x{:02x})", ack_type, ack_data_value));
 		m_PendingCommands.clear();
-		m_PendingCommands.emplace_back(PendingCommand{ ack_type, ack_data_value });
-	}
-
-	void SerialAdapterDevice::EnqueueCommand(uint8_t ack_type, uint8_t ack_data_value)
-	{
-		if (IsEmulated() && IsEmulationSuppressed())
-		{
-			// Presence gating: a real adapter owns this address; stay passive.
-			LogWarning(Channel::Devices, std::format("SerialAdapterDevice: Ignoring enqueued command (ack_type=0x{:02x}, ack_data_value=0x{:02x}) -- emulation is suppressed (a real adapter is present).", ack_type, ack_data_value));
-			return;
-		}
-
-		// Append (FIFO) -- used by multi-step writes that must emit several ACKs in
-		// a specific order, one per master poll, without discarding earlier steps.
-		LogDebug(Channel::Devices, std::format("SerialAdapterDevice: Enqueuing command (ack_type=0x{:02x}, ack_data_value=0x{:02x})", ack_type, ack_data_value));
 		m_PendingCommands.emplace_back(PendingCommand{ ack_type, ack_data_value });
 	}
 
@@ -543,9 +529,20 @@ namespace AqualinkAutomate::Devices
 
 		// Supersede any earlier pending command, then append both steps in order so the
 		// readySP drains on the CMD_STATUS poll and the setSP on the DEV_READY poll. The
-		// second QueueCommand must NOT be used (it would clear the first step) -- EnqueueCommand appends.
+		// second step is APPENDED inline (a second QueueCommand must NOT be used -- it would
+		// clear the first step).
 		QueueCommand(magic_enum::enum_integer(setpoint), magic_enum::enum_integer(Messages::SerialAdapter_CommandTypes::ReadySetpoint));
-		EnqueueCommand(0x00, temperature);
+
+		if (IsEmulated() && IsEmulationSuppressed())
+		{
+			// Presence gating: a real adapter owns this address; stay passive.
+			LogWarning(Channel::Devices, std::format("SerialAdapterDevice: Ignoring enqueued command (ack_type=0x{:02x}, ack_data_value=0x{:02x}) -- emulation is suppressed (a real adapter is present).", 0x00, temperature));
+			return;
+		}
+
+		// Append (FIFO) the setSP step without discarding the readySP queued just above.
+		LogDebug(Channel::Devices, std::format("SerialAdapterDevice: Enqueuing command (ack_type=0x{:02x}, ack_data_value=0x{:02x})", 0x00, temperature));
+		m_PendingCommands.emplace_back(PendingCommand{ 0x00, temperature });
 	}
 
 	void SerialAdapterDevice::QueueAuxToggleWrite(Auxillaries::JandyAuxillaryIds aux_id, bool turn_on)
