@@ -20,8 +20,12 @@
 #include "devices/capabilities/screen.h"
 #include "devices/capabilities/setpoint_controller.h"
 #include "devices/capabilities/spa_switch_configurator.h"
+#include "devices/iaq/iaq_command_sink.h"
+#include "devices/iaq/iaq_page_model.h"
 #include "devices/iaq/iaq_page_registry.h"
 #include "devices/iaq/iaq_schedule_parser.h"
+#include "devices/iaq/iaq_schedule_writer.h"
+#include "devices/iaq/iaq_spaswitch_writer.h"
 #include "scheduling/controller_schedule.h"
 #include "messages/jandy_message_probe.h"
 #include "messages/iaq/iaq_message_aux_status.h"
@@ -48,7 +52,7 @@
 namespace AqualinkAutomate::Devices
 {
 
-	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
+	class IAQDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::ChlorinatorController, public Capabilities::PageNavigator, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter, public IAQ::ICommandSink
 	{
 		inline static const uint8_t IAQ_STATUS_PAGE_LINES = 18;
 		inline static const uint8_t IAQ_MESSAGE_TABLE_LINES = 18;
@@ -113,8 +117,8 @@ namespace AqualinkAutomate::Devices
 		Capabilities::ActuationResult SetSpaSetpoint(uint8_t temperature) override;
 
 		// SpaSwitchConfigurator: program a spa-side switch button's function over the bus by driving
-		// the AqualinkTouch "4 Function Spa Switch" detail (queues a goal serviced by
-		// SpaSwitchWrite_ProcessStep, page-gated on PageId): navigate -> Spa Remotes -> open detail ->
+		// the AqualinkTouch "4 Function Spa Switch" detail (queues a goal on m_SpaSwitchWriter,
+		// serviced per-poll, page-gated on PageId): navigate -> Spa Remotes -> open detail ->
 		// select the S:B row -> scroll the device picker to the target function -> commit. RE'd +
 		// cross-validated from captures/iaq_spaswitch_edit{,2}.cap. On-screen rows 1-7 are supported;
 		// row 8 (2:4) / switch>2 need an undecoded assignment-list scroll, so those return
@@ -143,7 +147,7 @@ namespace AqualinkAutomate::Devices
 
 		// WRITE a new program into the controller's active schedule group by driving the
 		// AqualinkTouch Program pages (see docs/iaq_schedule_protocol.md, write path). Queues a
-		// goal serviced per-poll by ControllerScheduleWrite_ProcessStep: navigate to the Schedule
+		// goal on m_ScheduleWriter serviced per-poll: navigate to the Schedule
 		// list (0x28) -> Add Program (0x11) -> select the target device on the picker (0x38) ->
 		// set the ON/OFF times (0x21/0x22 -> time picker -> submit) and day (0x17-0x20).
 		// Rejects (InvalidValue) any program the controller cannot represent -- the feasibility is
@@ -231,150 +235,44 @@ namespace AqualinkAutomate::Devices
 		// control-data response ("1" + value).
 		Capabilities::ActuationResult QueueSetpoint(uint8_t select_field_command, uint8_t temperature, const char* body_name);
 
-		// Find the index of the on-screen PageButton whose name matches `label` (prefix match,
-		// since home-page button names carry a trailing status suffix e.g. "Pool LightON").
-		std::optional<uint8_t> FindPageButtonByLabel(const std::string& label) const;
-
 	private:
-		// The live on-screen PageButton table for the CURRENT page (index -> name + status),
-		// rebuilt from the master's IAQMessage_PageButton frames. DeviceActuator looks an aux
-		// up here by name to get its (dynamic) button index. Button indices shift as the page's
-		// device list changes, so always resolve by name rather than caching an index.
-		struct PageButtonInfo
-		{
-			std::string name;
-			Messages::ButtonStatuses status{ Messages::ButtonStatuses::Unknown };
-		};
-		std::map<uint8_t, PageButtonInfo> m_PageButtons;
-
-		// The page identifier of the page the master is currently pushing (IAQ_PageStart's first
-		// payload byte: 0x01 home, 0x0f menu, 0x14 Setup, 0x3a Spa Remotes, 0x3b the 4-Function
-		// detail). Used to page-GATE the spa-switch writer so it never issues a row-select/commit
-		// off the detail page.
-		uint8_t m_CurrentPageId{ 0x00 };
-
-		// Accumulators for reading the controller's internal schedules off the Schedule
-		// list page (IAQ_SCHEDULE_PAGE_ID). The page title carries the program group
-		// ("Schedule Group A"/"B" or a custom label); each schedule row arrives as a
-		// TableMessage (0x26) keyed by its Attribute byte (the 1-based entry ordinal;
-		// LineId is a constant 0 across rows so cannot distinguish them). Both are reset
-		// on PageStart and, when the completed page is the Schedule list, parsed into the
-		// ControllerScheduleStore on PageEnd.
-		std::string m_CurrentPageTitle;
-		std::map<uint8_t, std::string> m_ScheduleRows;
+		// The decoded live-page UI state: current page id, title, on-screen PageButton table, and
+		// the schedule / device-picker / spa-switch-picker row accumulators. Written by the IAQ
+		// message slots and read by the actuators + the write state machines. Extracted from this
+		// class (SonarCloud S1448/S1820); see docs/iaq_device_decomposition.md.
+		IAQ::PageModel m_PageModel;
 
 		// Resolved from the HubLocator: the read-only snapshot of the controller's own
 		// internal schedules that the /api/controller/schedules route serves. Null-safe
 		// (a passive/test rig may not register one). Populated by PublishSchedulePage().
 		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore{ nullptr };
 
-		// Parse the just-completed Schedule list page (m_ScheduleRows + m_CurrentPageTitle)
+		// Parse the just-completed Schedule list page (m_PageModel's schedule rows + title)
 		// into ControllerSchedule spans and swap them into the store, tagged with the
 		// active program group. A no-op when the store is absent.
 		void PublishSchedulePage() const;
 
-		// The 4-Function detail page's device/function PICKER (group-0x01 TableMessages): the live
-		// slot(attr) -> function rows, rebuilt each time the picker page renders. The writer scrolls
-		// this until the target function appears, then commits at (slot + IAQ_SPASWITCH_COMMIT_BASE).
-		std::map<uint8_t, std::string> m_SpaSwitchPickerRows;
+		// The spa-switch button-assignment WRITE state machine (extracted; SonarCloud S1820; see
+		// docs/iaq_device_decomposition.md). SetSpaSwitchAssignment arms it via Queue();
+		// ProcessControllerUpdates services it one command per poll through this (as ICommandSink).
+		IAQ::SpaSwitchWriter m_SpaSwitchWriter;
 
-		// On-demand spa-switch button-assignment WRITE goal (one at a time). Set by
-		// SetSpaSwitchAssignment, serviced by SpaSwitchWrite_ProcessStep on each poll. Drives the
-		// AqualinkTouch (0x33) UI: navigate Home -> menu -> Setup -> Spa Remotes -> open the
-		// 4-Function detail, select the S:B row, scroll the picker to the target function and commit.
-		// RE'd + cross-validated from captures/iaq_spaswitch_edit{,2}.cap; see
-		// docs/alwin32/spaside-remotes.md.
-		enum class SpaSwitchWritePhase
-		{
-			Navigate,    // page-gated walk to the 4-Function detail (0x3b)
-			SelectRow,   // press the S:B assignment row (page-button (ordinal-1) + IAQ_SPASWITCH_ROW_BASE)
-			FindFunction,// read the picker; scroll (0x15) until F is visible, then commit at slot+commit-base
-			Verify,      // confirm the DataHub assignment now reads F
-			Done,
-			Failed
-		};
-		struct SpaSwitchWriteGoal
-		{
-			uint8_t switch_number{ 0 };
-			uint8_t button_number{ 0 };
-			std::string function;     // target function as the picker lists it
-			std::string row_tag;      // "<switch>:<button>" e.g. "1:2"
-			std::string desc;
-		};
-		std::optional<SpaSwitchWriteGoal> m_PendingSpaSwitchWrite;
-		SpaSwitchWritePhase m_SpaSwitchWritePhase{ SpaSwitchWritePhase::Navigate };
-		bool m_SpaSwitchRowSelected{ false };       // the S:B row-select has been issued
-		uint32_t m_SpaSwitchWritePollCount{ 0 };    // overall backstop
-		uint32_t m_SpaSwitchScrollCount{ 0 };       // picker pages scrolled so far
-		uint32_t m_SpaSwitchSettleCount{ 0 };       // polls waited for a page/picker to settle after a command
-		std::optional<std::string> m_SpaSwitchFirstPickerSeen;  // wrap-detection while scrolling the picker
-
-		// Service the pending spa-switch write goal: examine the current page + decoded picker rows
-		// and emit at most one command (into m_PendingCommand) per poll. Gated on m_CurrentPageId so
-		// a navigation miss can never issue a row-select/commit on the wrong page.
-		void SpaSwitchWrite_ProcessStep();
+		// The controller-schedule WRITE state machine (create/delete/edit; extracted; SonarCloud
+		// S1820; see docs/iaq_device_decomposition.md). Create/Delete/EditControllerProgram arm it
+		// via Queue*(); ProcessControllerUpdates services it one command per poll through this
+		// (as ICommandSink), passing m_PageModel + m_StatusPage (for the time picker's AM/PM line).
+		IAQ::ScheduleWriter m_ScheduleWriter;
 
 	private:
-		// On-demand controller-schedule WRITE goal (one at a time), serviced per-poll by
-		// ControllerScheduleWrite_ProcessStep. Drives the AqualinkTouch Program pages to create a
-		// program in the active schedule group. RE'd from captures/iaq_schedule_{session,clean}.cap;
-		// see docs/iaq_schedule_protocol.md (write path).
-		// Full CREATE flow (RE'd from captures/iaq_schedule_{session,clean,picker}.cap; see
-		// docs/iaq_schedule_protocol.md). The device picker is a scrolling touchscreen list: click a
-		// visible row R with command (IAQ_SCHEDULE_PICK_ROW_BASE + R), scroll with 0x12, confirm with
-		// 0x13. Times (SetOnTime/SetOffTime via 0x21/0x22 + the value-submit handshake) are decoded
-		// and land as the final increment; this build completes device selection + the day.
-		enum class ScheduleWriteOp
-		{
-			Create,   // add a new program (device -> times -> day)
-			Delete,   // remove an existing program (click its row -> Delete -> Ok)
-			Edit,     // change an existing program (click its row -> Edit -> times -> day)
-		};
-		enum class ScheduleWritePhase
-		{
-			NavigateToList,  // page-gated walk to the Schedule list (0x28)
-			AddProgram,      // press Add Program (0x11) -> device picker (0x38)
-			SelectDevice,    // scroll the picker until the target device is visible, click its row, confirm
-			SetOnTime,       // open the ON field (0x21) -> time picker -> AM/PM toggle + submit "1"+HH:MM
-			SetOffTime,      // open the OFF field (0x22) -> time picker -> AM/PM toggle + submit
-			SetDay,          // on the list, press the day key (0x17-0x20) for the desired selection
-			Verify,          // confirm the new program is present in the parsed list
-			SelectRow,       // (delete/edit) click the target program's row (0x22 + ordinal) to highlight it
-			PressDelete,     // (delete) press Delete (0x13) -> the confirm dialog
-			ConfirmDelete,   // (delete) press Ok (0x01) on the confirm dialog
-			VerifyGone,      // (delete) confirm the program is no longer in the parsed list
-			PressEdit,       // (edit) press Edit (0x12) -> enter the highlighted row's edit mode
-			Done,
-			Failed,
-		};
-		struct ScheduleWriteGoal
-		{
-			ScheduleWriteOp op{ ScheduleWriteOp::Create };
-			Scheduling::ControllerSchedule program;  // desired device + on/off + day mask to write (create/edit)
-			Scheduling::ControllerSchedule match;    // the existing program to locate (delete/edit): its row is clicked
-			std::string desc;
-		};
-		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;
-		ScheduleWritePhase m_ScheduleWritePhase{ ScheduleWritePhase::NavigateToList };
-		uint32_t m_ScheduleWritePollCount{ 0 };   // overall backstop
-		uint32_t m_ScheduleWriteSettleCount{ 0 }; // polls to let the master render after a command
-		uint32_t m_ScheduleWriteScrollCount{ 0 }; // bound the device-picker scroll search
-		bool m_ScheduleProgramAdded{ false };     // the Add-Program press has been issued
-		bool m_ScheduleDeviceClicked{ false };    // the target device row has been clicked (awaiting the OK confirm)
-		bool m_ScheduleTimeFieldOpened{ false };  // the current time field's open press (0x21/0x22) has been issued
+		// ICommandSink: the write state machines emit their per-poll command through these. IssueCommand
+		// sets the single pending poll-ACK byte (no logging -- it fires every poll); ArmControlValue
+		// primes the control-data handshake (value + awaiting flag); IsBusy reports the command channel
+		// occupied so a new write goal is not armed on top of a draining sequence.
+		void IssueCommand(uint8_t command) override { m_PendingCommand = command; }
+		void ArmControlValue(std::string value) override { m_ControlDataValue = std::move(value); m_AwaitingControlReady = true; }
+		bool IsBusy() const override { return !m_CommandQueue.empty() || m_AwaitingControlReady; }
 
-		// The device/target rows on the schedule editor's device picker (page 0x38), rebuilt each
-		// render from its group-0x00 TableMessages (attribute -> device label). Used to decide
-		// whether the target device is visible (else scroll).
-		std::map<uint8_t, std::string> m_DevicePickerRows;
-
-		// Arm a schedule-write goal (create or delete) and reset the per-goal state.
-		void QueueScheduleWrite(ScheduleWriteGoal goal);
-
-		// Service the pending schedule-write goal: examine the current page + decoded state and emit
-		// at most one command (into m_PendingCommand) per poll, page-gated on m_CurrentPageId.
-		void ControllerScheduleWrite_ProcessStep();
-
+	private:
 		OperatingStates m_OpState{ OperatingStates::StartUp };
 		bool m_HasReceivedData{ false };       // has any traffic ever been addressed to this id? (distinguishes "not present" from "went silent")
 		bool m_HasReceivedMainStatus{ false }; // has a MainStatus ever decoded? (a 0x33 renders System Status; a heartbeat-only 0xA3 renders Cloud Link)
@@ -383,9 +281,9 @@ namespace AqualinkAutomate::Devices
 		bool m_AwaitingControlReady{ false };
 		std::string m_ControlDataValue;
 
-		bool m_PageSurveyEnabled{ false };       // arm a start-up data-page survey (auto-startup page-push)
-		bool m_PageSurveyDone{ false };          // the survey runs once, after home is established
-		IAQ::PageRegistry m_PageSurveyRegistry;  // the declarative pages to visit
+		// Start-up page-survey state (extracted; SonarCloud S1820). EnablePageSurvey arms it;
+		// MaybeStartPageSurvey (emulated + home established) consumes it once into the command queue.
+		IAQ::PageSurvey m_PageSurvey;
 
 	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;
