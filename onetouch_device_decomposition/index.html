@@ -1,0 +1,1762 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.">
+      
+      
+        <meta name="author" content="Iain Chesworth">
+      
+      
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/onetouch_device_decomposition/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/brand/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Decomposing OneTouchDevice — a composable, testable, SOLID target - Aqualink Automate</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/aqualink.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Decomposing OneTouchDevice — a composable, testable, SOLID target - Aqualink Automate" />
+<meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
+<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/onetouch_device_decomposition.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/onetouch_device_decomposition/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="Decomposing OneTouchDevice — a composable, testable, SOLID target - Aqualink Automate" />
+<meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
+<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/onetouch_device_decomposition.png" />
+</head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#decomposing-onetouchdevice--a-composable-testable-solid-target" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Aqualink Automate" class="md-header__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  <img src="../assets/brand/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Aqualink Automate
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Decomposing OneTouchDevice — a composable, testable, SOLID target
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../INSTALL/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../CONTRIBUTING/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Aqualink Automate" class="md-nav__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  <img src="../assets/brand/favicon.svg" alt="logo">
+
+    </a>
+    Aqualink Automate
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage-and-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage, HTTP API & WebSocket
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mqtt-home-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MQTT & Home Assistant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MATTER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matter (smart home)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberry-pi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Raspberry Pi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-rs485-connectivity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RS-485 wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-server-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server & hosting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECURITY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../worktrees/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git worktrees
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RECORD_REPLAY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Record / replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-status-as-landed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation status (as landed)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-current-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Current responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-good-patterns-already-in-the-tree-extend-these-dont-invent-new-ones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The good patterns already in the tree (extend these, don't invent new ones)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-implicit-state-that-should-become-explicit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Implicit state that should become explicit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-dry-targets-duplication-to-remove-beforewhile-extracting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. DRY targets (duplication to remove before/while extracting)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-target-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Target decomposition
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Target decomposition">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-collaborators-and-their-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Collaborators and their contracts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-what-stays-on-onetouchdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 What stays on OneTouchDevice
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-phased-migration-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Phased migration plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-genuinely-inherent-complexity--leave-it-alone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Genuinely inherent complexity — leave it alone
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+  
+  
+                  
+
+
+  
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/onetouch_device_decomposition.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="decomposing-onetouchdevice--a-composable-testable-solid-target">Decomposing <code>OneTouchDevice</code> — a composable, testable, SOLID target<a class="headerlink" href="#decomposing-onetouchdevice--a-composable-testable-solid-target" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> ✅ <strong>Implemented</strong> (2026-07-06) on branch <code>refactor/onetouch-decomposition</code>.
+Originally written as a recommendation snapshot; the plan below was then carried out in full.
+See <strong>"Implementation status"</strong> immediately below for what actually landed.
+<strong>Scope:</strong> <code>src/jandy/devices/onetouch_device.{h,cpp}</code>, its sibling translation units
+under <code>src/jandy/devices/onetouch/</code>, and the navigation stack it drives
+(<code>src/jandy/navigation/</code>).</p>
+<p>SonarCloud flagged the header with <strong>cpp:S1448</strong> (107 methods, limit 35) and
+<strong>cpp:S1820</strong> (39 fields, limit 20) — it was the largest class in the codebase. This
+document maps the class's responsibilities, proposes a delegation-based
+decomposition into injected collaborators, calls out the DRY / implicit-state
+cleanups, and gives a phased, behaviour-preserving migration plan with the
+per-step risk and blast radius.</p>
+<hr />
+<h2 id="implementation-status-as-landed">Implementation status (as landed)<a class="headerlink" href="#implementation-status-as-landed" title="Permanent link">&para;</a></h2>
+<p>All phases below were implemented, each a separately-shippable commit that left <strong>build +
+the full 2628-case / 11043-assertion suite green</strong>. Behaviour is preserved end to end
+(toggle / setpoint / chlorinator / spa-switch / schedule read+write replay flows all pass
+unchanged).</p>
+<p><strong>Result vs the Sonar findings:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>Before</th>
+<th>After</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cpp:S1820 (≤20 fields)</td>
+<td>39</td>
+<td><strong>17</strong></td>
+<td>✅ resolved</td>
+</tr>
+<tr>
+<td>cpp:S1448 (≤35 methods)</td>
+<td>107</td>
+<td><strong>~29</strong></td>
+<td>✅ resolved</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What landed, by phase:</strong></p>
+<ul>
+<li><strong>0 — <code>ScreenReader</code></strong> (<code>onetouch_screen_reader.{h,cpp}</code>): pure row-scraping primitives
+  (<code>SanitiseFunctionText</code>, <code>FirstNumber</code>, <code>DisplayedValue</code>, <code>DisplayedFunctionOnRow</code>,
+  <code>FindLineStartingWith</code>, later <code>LineText</code>, <code>EqualsCaseInsensitive</code>).</li>
+<li><strong>1 — DRY</strong>: collapsed the duplicated <code>line_text</code> / <code>equals_ci</code> / <code>move_cursor_to</code> lambdas
+  and the 4× emulation+fault queue-guard into <code>ReasonCannotActuate</code> + a <code>MoveCursorToward</code>
+  helper. <em>(A drive-by fix — <code>SetSpaSwitchAssignment</code> now shares the fault guard — shipped with
+  a regression test.)</em></li>
+<li><strong>2 — <code>OneTouchScraper</code></strong> (<code>onetouch_scraper.{h,cpp}</code>): the entire read path — 35 page
+  processors + 9 status processors + panel-config decode + controller-schedule accumulation.</li>
+<li><strong>3 — keypad goals</strong> (<code>onetouch_keypad.{h,cpp}</code> + <code>onetouch_goals.{h,cpp}</code>): <code>KeypadContext</code></li>
+<li><code>IKeypadGoal</code> + <code>OneTouchGoalRunner</code>, then the five state machines as goal classes
+  (<code>ToggleGoal</code>, <code>ValueEditGoal</code>, <code>BoostGoal</code>, <code>SpaSwitchGoal</code>, <code>ScheduleWriteGoal</code>), one
+  commit each. The ~24 per-goal fields collapsed to one <code>m_Runner</code>.</li>
+<li><strong>4 — startup survey</strong> (<code>onetouch_startup_survey.{h,cpp}</code>): the crawl-analysis helpers
+  (<code>DataHubHasSeededAuxLabels</code>, <code>ValidateDiscoveredEquipment</code>, <code>BuildMenuSurvey</code>,
+  <code>DataHubChlorinatorOnline</code>) as pure free functions; the op-state machine stayed on the device.</li>
+<li><strong>5 — <code>OneTouchMessageRouter</code></strong> (<code>onetouch_message_router.{h,cpp}</code>): the ten RS-485 slot
+  handlers, isolating message ingest (friend of the device, as the handlers drive its Screen +
+  op-state + watchdog).</li>
+<li><strong>test-seam relocation</strong>: the <code>*ForTest</code> seams moved to a shared test-only subclass
+  <code>Test::SeamedOneTouchDevice</code> (<code>test/unit/support/onetouch_test_device.h</code>); the production
+  class exposes <code>m_OpState</code> / <code>m_HighlightedLine</code> / <code>OperatingStates</code> as <code>protected</code> instead of
+  carrying test-only methods.</li>
+</ul>
+<p><strong>Deviations from the original plan:</strong> <code>SetpointRefresh</code> stayed a device method rather than
+becoming the 6th goal — it drives the <code>SpiderEngine</code> crawl (a read-only GET), not the
+Navigator/keypad, so forcing it into <code>IKeypadGoal</code> would have leaked the SpiderEngine into
+<code>KeypadContext</code>; its policy (<code>ChlorinatorSetpointRefresh</code>) was already cleanly extracted.</p>
+<hr />
+<blockquote>
+<p><strong>Read this first — the one constraint that shapes everything.</strong>
+<code>CommandDispatcher::DispatchToCapable</code> (see <code>command_dispatcher.h</code>) discovers
+actuation capabilities by <code>dynamic_cast&lt;Cap*&gt;(&amp;device)</code> over the <em>registered</em>
+<code>Interfaces::IDevice</code> objects in the <code>EquipmentHub</code>. The capability mixins
+(<code>DeviceActuator</code>, <code>SetpointController</code>, <code>ChlorinatorController</code>,
+<code>SpaSwitchConfigurator</code>, <code>ControllerScheduleWriter</code>, <code>CommandHistory</code>) <strong>must
+stay implemented on the single registered <code>OneTouchDevice</code> object</strong>, or the
+dispatcher stops finding them. Therefore the decomposition is <strong>delegation-based</strong>:
+<code>OneTouchDevice</code> remains the thin capability <em>façade</em> and <code>IDevice</code>, and forwards
+the real work to collaborators. We do <strong>not</strong> move the capability inheritance onto
+a helper (that would require registering the helper too — a larger, riskier change,
+out of scope here).</p>
+</blockquote>
+<p>A second enabling fact: the kernel is <strong>single-threaded and cooperative</strong> (see the
+kernel-architecture notes). Every <code>*_ProcessStep</code> runs on the <code>poll()</code> loop. So
+collaborators can hold plain references/back-pointers and there is <strong>no locking to
+reason about</strong> — extraction is a pure structural move, not a concurrency change.</p>
+<hr />
+<h2 id="1-current-responsibilities">1. Current responsibilities<a class="headerlink" href="#1-current-responsibilities" title="Permanent link">&para;</a></h2>
+<p>The class already lives in <strong>four</strong> translation units, but they are all members of
+<strong>one</strong> class — which is exactly why Sonar still counts 107 methods and 39 fields
+against the single header. The physical file split has been done; the <em>type</em> split
+has not.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Responsibility cluster</th>
+<th>Where it lives today</th>
+<th>Representative members</th>
+<th>State it owns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A</strong></td>
+<td><strong>Wire-message ingest</strong> (RS-485 → screen updates → tick)</td>
+<td><code>onetouch_messageprocessors.cpp</code></td>
+<td><code>Slot_OneTouch_{Ack,MessageLong,Probe,Status,Clear,Highlight,HighlightChars,ShiftLines,DisplayUpdate,Unknown}</code> (10)</td>
+<td><code>m_HighlightedLine</code>, <code>m_AckType_ToSend</code>, <code>ScreenMode</code></td>
+</tr>
+<tr>
+<td><strong>B</strong></td>
+<td><strong>Operating-state machine / tick dispatch</strong></td>
+<td><code>onetouch_device.cpp</code></td>
+<td><code>ProcessControllerUpdates()</code> ×2, <code>WatchdogTimeoutOccurred</code>, <code>AttemptFaultRecovery</code>, <code>ConvertNavKeyCommand</code></td>
+<td><code>m_OpState</code>, <code>m_ScrapingStallCounter</code>, <code>m_FaultRecoveryStatusCount</code>, <code>m_KeyCommand_ToSend</code>, <code>m_AckType_ToSend</code></td>
+</tr>
+<tr>
+<td><strong>C</strong></td>
+<td><strong>Startup discovery / menu crawl</strong></td>
+<td><code>onetouch_device.cpp</code></td>
+<td><code>Scraping_ProcessStep_StartUp</code>, <code>Scraping_ProcessStep</code>, <code>ReportMenuSurvey</code>, <code>ValidateDiscoveredEquipment</code>, <code>DataHubHasSeededAuxLabels</code></td>
+<td><code>m_SpiderEngine</code> (crawl), <code>m_MenuSurveyResult</code>, <code>m_ScrapingStallCounter</code></td>
+</tr>
+<tr>
+<td><strong>D</strong></td>
+<td><strong>Page processors</strong> (screen → DataHub, read path)</td>
+<td><code>onetouch_pageprocessors.cpp</code></td>
+<td>35 × <code>PageProcessor_*</code>, <code>PublishControllerSchedules</code></td>
+<td><code>m_ControllerSchedules</code>, <code>m_ControllerScheduleGroup</code>, <code>m_ControllerScheduleStore</code></td>
+</tr>
+<tr>
+<td><strong>E</strong></td>
+<td><strong>Status-line processors</strong> (Equipment Status page)</td>
+<td><code>onetouch_statusprocessors.cpp</code></td>
+<td>9 × <code>StatusProcessor_*</code>, <code>StatusProcessor_ShouldSkipLineProcessing</code></td>
+<td>none (pure → DataHub)</td>
+</tr>
+<tr>
+<td><strong>F</strong></td>
+<td><strong>Actuation goals</strong> (keypad write path — the bloat centre)</td>
+<td><code>onetouch_device.cpp</code></td>
+<td><code>ActuateDevice</code>/<code>Actuation_ProcessStep</code>, <code>SetPool/SpaSetpoint</code>+<code>QueueValueEdit</code>+<code>ValueEdit_ProcessStep</code>, <code>SetChlorinatorBoost</code>+<code>Boost_ProcessStep</code>, <code>SetSpaSwitchAssignment</code>+<code>SpaSwitchEdit_ProcessStep</code>, <code>Create/Delete/EditControllerProgram</code>+<code>QueueScheduleWrite</code>+<code>ControllerScheduleWrite_ProcessStep</code>, <code>SetpointRefresh_ProcessStep</code></td>
+<td><strong>~24 fields</strong> (see §3) + 6 phase enums + 3 goal structs</td>
+</tr>
+<tr>
+<td><strong>G</strong></td>
+<td><strong>Screen-reading helpers</strong> (shared by F)</td>
+<td><code>onetouch_device.cpp</code></td>
+<td><code>DisplayedValue</code>, <code>DisplayedFunctionOnRow</code>, <code>FindLineStartingWith</code>, <code>SanitiseFunctionText</code>, <code>DisplayedTime</code>, <code>DisplayedDays</code></td>
+<td>none (pure functions of the page)</td>
+</tr>
+<tr>
+<td><strong>H</strong></td>
+<td><strong>Identity / diagnostics / test seams</strong></td>
+<td><code>onetouch_device.cpp</code></td>
+<td>ctor, dtor, <code>DescribeDiagnostics</code>, <code>EnableChlorinatorSetpointRefresh</code>, <code>AvailableFunctions</code>, 7 × <code>*ForTest</code></td>
+<td><code>m_ProfilingDomain</code></td>
+</tr>
+</tbody>
+</table>
+<p>Cluster <strong>F</strong> is the reason the class is a god-class: <strong>six near-identical per-tick
+phase machines</strong>, each carrying its own <code>m_XInProgress</code> + <code>m_PendingX</code> +
+<code>m_XStepCount</code> (+ <code>m_XPhase</code>) quartet of fields, all serialising on the <strong>single
+shared <code>Navigator</code> / cursor / screen / one-key-per-tick output</strong>.</p>
+<hr />
+<h2 id="2-the-good-patterns-already-in-the-tree-extend-these-dont-invent-new-ones">2. The good patterns already in the tree (extend these, don't invent new ones)<a class="headerlink" href="#2-the-good-patterns-already-in-the-tree-extend-these-dont-invent-new-ones" title="Permanent link">&para;</a></h2>
+<p>The maintainer has already demonstrated the target style twice. The decomposition
+should look like more of the same, not a new paradigm:</p>
+<ul>
+<li><strong><code>ChlorinatorSetpointRefresh</code></strong> (<code>chlorinator_setpoint_refresh.h</code>) — the <em>policy</em>
+  ("when should we re-scrape") is extracted into a header-only, device-free struct
+  with a pure <code>Evaluate(...)</code> taking the gating booleans + a clock, unit-testable in
+  isolation. The <em>mechanism</em> (the menu walk) stays in the device. <strong>This is the model
+  for every goal below.</strong></li>
+<li><strong><code>onetouch_schedule_parser</code></strong> (<code>Devices::OneTouch::Parse*</code>) — the read-path decode
+  is a set of free functions over a <code>ScreenDataPage</code> (or raw lines), tested without a
+  device (<code>test_jandy_onetouch_schedule_parser.cpp</code>).</li>
+<li><strong><code>Navigator</code> / <code>SpiderEngine</code> / <code>MenuModel</code> / <code>VisitPolicy</code></strong> — already injected
+  collaborators with clean seams and their own unit tests.</li>
+</ul>
+<hr />
+<h2 id="3-implicit-state-that-should-become-explicit">3. Implicit state that should become explicit<a class="headerlink" href="#3-implicit-state-that-should-become-explicit" title="Permanent link">&para;</a></h2>
+<p>The field count (39) is dominated by <strong>six parallel copies of the same goal
+bookkeeping</strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Toggle       : m_PendingActuationLabel, m_ActuationInProgress, m_ActuationStepCount
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>ValueEdit    : m_PendingValueEdit, m_ValueEditPhase, m_ValueEditInProgress, m_ValueEditStepCount
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Boost        : m_PendingBoost, m_BoostPhase, m_BoostInProgress, m_BoostStepCount
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>SpaSwitch    : m_PendingSpaSwitchEdit, m_SpaSwitchEditPhase, m_SpaSwitchEditInProgress,
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>               m_SpaSwitchEditStepCount, m_PickerFirstSeenFunction, m_SpaSwitchCursorStuck
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>ScheduleWrite: m_PendingScheduleWrite, m_ScheduleWritePhase, m_ScheduleWriteInProgress,
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>               m_ScheduleWriteStepCount, m_ScheduleWriteFieldStep
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>Refresh      : m_RefreshState, m_RefreshInProgress, m_RefreshStepCount
+</code></pre></div>
+<p>Two invariants are enforced <em>implicitly</em> over these fields:</p>
+<ol>
+<li><strong>"One goal at a time on the shared keypad."</strong> Today this is a hand-maintained
+   OR of <strong>eleven</strong> booleans in <code>GoalInProgress()</code>. There is no single "active goal"
+   object — the mutual exclusion is a convention that every new goal must remember to
+   join (miss a term and two cursor walks interleave and corrupt each other).</li>
+<li><strong>"Who drives the keypad this tick."</strong> <code>m_KeyCommand_ToSend</code> is written as a
+   side-effect from <strong>35 sites</strong> across the file; arbitration is purely the call
+   order inside <code>ProcessControllerUpdates</code>'s <code>NormalOperation</code> arm.</li>
+</ol>
+<p><strong>Make both explicit:</strong> a single <code>std::unique_ptr&lt;IKeypadGoal&gt; m_ActiveGoal</code> (or a
+<code>std::variant</code>) owned by a coordinator, so <code>GoalInProgress() == (m_ActiveGoal !=
+nullptr)</code> by construction, and the "one key per tick" output is a single sink handed
+to the active goal. This collapses ~24 fields to ~2 and makes the invariant
+impossible to violate by omission.</p>
+<hr />
+<h2 id="4-dry-targets-duplication-to-remove-beforewhile-extracting">4. DRY targets (duplication to remove <em>before/while</em> extracting)<a class="headerlink" href="#4-dry-targets-duplication-to-remove-beforewhile-extracting" title="Permanent link">&para;</a></h2>
+<p>Verified duplication across cluster F (and one read-path case):</p>
+<table>
+<thead>
+<tr>
+<th>Duplicated thing</th>
+<th>Copies</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>finish(bool ok)</code> lambda (reset navigator + clear pending + reset phase/in-progress)</td>
+<td>5 (<code>ValueEdit</code>, <code>Boost</code>, <code>SpaSwitchEdit</code>, <code>ScheduleWrite</code>, + inline in <code>Actuation</code>)</td>
+<td>Becomes <code>IKeypadGoal</code> teardown (one place).</td>
+</tr>
+<tr>
+<td><code>move_cursor_to(target_line)</code> lambda</td>
+<td>2 (<code>SpaSwitchEdit</code>, <code>ScheduleWrite</code>) — <strong>byte-identical</strong></td>
+<td>Move to the shared keypad context / screen helper.</td>
+</tr>
+<tr>
+<td><code>line_text(i)</code> lambda (<code>i&lt;Size() ? Sanitise(page[i]) : ""</code>)</td>
+<td>2</td>
+<td>Same.</td>
+</tr>
+<tr>
+<td><code>equals_ci(a,b)</code> lambda</td>
+<td>2 (+ ad-hoc <code>to_lower</code> in <code>FindLineStartingWith</code>, <code>DisplayedFunctionOnRow</code>)</td>
+<td>One case-insensitive compare in the screen helper.</td>
+</tr>
+<tr>
+<td>Step-limit backstop <code>if (++m_XStepCount &gt; LIMIT) finish(false)</code></td>
+<td>6</td>
+<td>Becomes a base-<code>IKeypadGoal</code> counter.</td>
+</tr>
+<tr>
+<td><strong>Queue guard</strong> <code>!IsEmulationActive() → NotSupported; fault-state → NotSupported; GoalInProgress() → NotSupported</code></td>
+<td>5 (<code>ActuateDevice</code>, <code>QueueValueEdit</code>, <code>SetChlorinatorBoost</code>, <code>SetSpaSwitchAssignment</code>, <code>QueueScheduleWrite</code>)</td>
+<td>Collapse to one <code>TryQueue(goal, desc)</code> on the coordinator.</td>
+</tr>
+<tr>
+<td>Digit-run percent/int parse</td>
+<td>2 (<code>DisplayedValue</code> vs <code>PageProcessor_SetAquapure</code>'s <code>parse_percent</code>)</td>
+<td>One <code>ScreenReader::FirstNumber(...)</code>.</td>
+</tr>
+<tr>
+<td><strong>Pool-config decode + body build</strong></td>
+<td>2 (<code>PageProcessor_Version</code> vs <code>PageProcessor_StartUp</code>) — <strong>divergent!</strong> <code>StartUp</code> calls <code>ApplyPoolConfiguration</code>; <code>Version</code> uses an older inline <code>switch</code>.</td>
+<td>This is a latent inconsistency, not just duplication. Unify on <code>ApplyPoolConfiguration</code> — but as its <strong>own tested commit</strong> (it is a behaviour change, unlike the rest).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-target-decomposition">5. Target decomposition<a class="headerlink" href="#5-target-decomposition" title="Permanent link">&para;</a></h2>
+<p>The organising idea: <strong>there is exactly one physical keypad, one cursor, one screen,
+and one key-per-tick output.</strong> Model that resource honestly as a <code>KeypadContext</code>, run
+one <code>IKeypadGoal</code> against it at a time, and split the read path (screen → DataHub)
+from the write path (goal → keypad).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>                         ┌─────────────────────────────────────────────┐
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>                         │  OneTouchDevice  (IDevice + capability façade)│
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>                         │  — stays registered so dynamic_cast finds it  │
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>                         │                                               │
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>   RS-485 slots ───────► │  A. MessageRouter (thin; may stay inline)     │
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>                         │  B. OperatingState machine + watchdog + tick  │
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>                         │  H. DescribeDiagnostics (aggregates below)    │
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>                         │  10 capability methods → forward to Runner    │
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>                         └───────┬───────────────┬──────────────┬────────┘
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>                                 │               │              │
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>              read path ◄────────┘        write path           │ startup
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>                                 │               │              │
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>                 ┌───────────────▼──┐   ┌────────▼───────────┐  ┌▼──────────────────┐
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>                 │ OneTouchScraper  │   │ OneTouchGoalRunner │  │ OneTouchStartupCrawl│
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>                 │ (D + E)          │   │ (F coordinator)    │  │ (C)                 │
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>                 │  35 PageProc     │   │  m_ActiveGoal:     │  │  SpiderEngine crawl │
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>                 │  9  StatusProc   │   │   unique_ptr&lt;      │  │  MenuSurvey         │
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>                 │  schedule pub.   │   │     IKeypadGoal&gt;   │  │  ValidateEquipment  │
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>                 │  → DataHub       │   │  TryQueue() guard  │  │  → DataHub          │
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>                 └──────────────────┘   └───────┬────────────┘  └─────────────────────┘
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>                                                │ Step(KeypadContext&amp;)
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>                       ┌──────────────┬─────────┼──────────┬──────────────┬───────────┐
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>                       ▼              ▼         ▼          ▼              ▼           ▼
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>                  ToggleGoal   ValueEditGoal BoostGoal SpaSwitchGoal ScheduleWrite  SetpointRefresh
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>                                                                        Goal          Task(read-only)
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>   Shared seams (injected, pure):
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>     • KeypadContext  — { const ScreenDataPage&amp; page; uint8_t highlightedLine;
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>                          Navigator&amp; nav; void QueueKey(KeyCommands); }
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>     • ScreenReader   — pure fns over ScreenDataPage (cluster G): FirstNumber,
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>                          FunctionOnRow, FindLineStartingWith, Sanitise, Time, Days,
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>                          MoveCursorToward(cursor,target)-&gt;KeyCommand
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>     • Navigator / SpiderEngine / MenuModel — UNCHANGED existing collaborators
+</code></pre></div>
+<h3 id="51-collaborators-and-their-contracts">5.1 Collaborators and their contracts<a class="headerlink" href="#51-collaborators-and-their-contracts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Collaborator</th>
+<th>Owns</th>
+<th>Interface (sketch)</th>
+<th>Testable in isolation via</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>ScreenReader</code></strong> (cluster G) — free functions or a stateless struct in <code>Devices::OneTouch</code></td>
+<td>nothing</td>
+<td><code>FirstNumber(page,line)</code>, <code>FunctionOnRow(page,line)</code>, <code>FindLineStartingWith(page,prefix)</code>, <code>Sanitise(raw)</code>, <code>Time(page,line)</code>, <code>Days(page,line)</code>, <code>MoveCursorToward(cursor,target)→optional&lt;KeyCommands&gt;</code></td>
+<td>a hand-built <code>ScreenDataPage</code> — no device, no bus</td>
+</tr>
+<tr>
+<td><strong><code>KeypadContext</code></strong> — the shared-resource seam</td>
+<td>nothing (borrows)</td>
+<td>value passed to <code>Step()</code>: current page, highlighted line, <code>Navigator&amp;</code>, a <code>QueueKey(KeyCommands)</code> sink</td>
+<td>a fake context struct in a Boost.Test case</td>
+</tr>
+<tr>
+<td><strong><code>IKeypadGoal</code></strong> + concrete <code>ToggleGoal / ValueEditGoal / BoostGoal / SpaSwitchGoal / ScheduleWriteGoal</code></td>
+<td>its own phase enum + params + step counter (fields lifted off the device)</td>
+<td><code>Step(KeypadContext&amp;) → {Running, Done, Failed}</code></td>
+<td>drive <code>Step()</code> against a fake context + scripted pages</td>
+</tr>
+<tr>
+<td><strong><code>SetpointRefreshTask</code></strong> (read-only GET)</td>
+<td><code>ChlorinatorSetpointRefresh</code> (policy, already extracted) + in-flight crawl</td>
+<td><code>Evaluate(...)</code> (exists) + <code>Step(KeypadContext&amp;)</code></td>
+<td>policy already unit-tested; mechanism via fake context</td>
+</tr>
+<tr>
+<td><strong><code>OneTouchGoalRunner</code></strong> (cluster F coordinator)</td>
+<td><code>unique_ptr&lt;IKeypadGoal&gt; m_ActiveGoal</code></td>
+<td><code>TryQueue(make_goal, desc) → ActuationResult</code> (the <em>one</em> queue guard), <code>Service(KeypadContext&amp;)</code> (drives active goal, clears on Done/Failed), <code>Busy()</code></td>
+<td>inject fake goals; assert one-at-a-time + guard</td>
+</tr>
+<tr>
+<td><strong><code>OneTouchScraper</code></strong> (clusters D + E)</td>
+<td><code>DataHub&amp;</code>, <code>ControllerScheduleStore</code>, <code>m_ControllerSchedules</code>, <code>m_ControllerScheduleGroup</code></td>
+<td>the 35 <code>PageProcessor_*</code> + 9 <code>StatusProcessor_*</code>, registered into the <code>Screen</code> processor list (bound to <em>this</em> collaborator, not the device)</td>
+<td>fixture pages → assert DataHub mutations (existing <code>test_devices_onetouch_pageprocessors</code>)</td>
+</tr>
+<tr>
+<td><strong><code>OneTouchStartupCrawl</code></strong> (cluster C)</td>
+<td><code>SpiderEngine</code> crawl, <code>m_MenuSurveyResult</code></td>
+<td><code>Step()</code> returning a crawl outcome the op-state machine consumes; <code>Survey()</code> for diagnostics</td>
+<td>replay fixtures via <code>MockReplayHarness</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-what-stays-on-onetouchdevice">5.2 What stays on <code>OneTouchDevice</code><a class="headerlink" href="#52-what-stays-on-onetouchdevice" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Construction / destruction, profiling domain, slot registration.</li>
+<li>The <strong>10 capability methods</strong> — now thin: build the concrete goal and hand it to
+  <code>m_Runner.TryQueue(...)</code> (or forward to the scraper/refresh). They must remain here
+  for <code>dynamic_cast</code> discovery.</li>
+<li>The <strong>operating-state machine</strong>: <code>ProcessControllerUpdates</code>, <code>WatchdogTimeoutOccurred</code>,
+  <code>AttemptFaultRecovery</code>, <code>ConvertNavKeyCommand</code>, and the <code>m_OpState</code> field + counters.
+  In <code>NormalOperation</code> the arm becomes <code>m_Runner.Service(ctx)</code> + <code>m_Refresh.Step(ctx)</code>;
+  in <code>Scraping</code> it delegates to <code>m_StartupCrawl.Step()</code>.</li>
+<li><code>DescribeDiagnostics</code> — aggregates JSON from the collaborators.</li>
+<li>The <code>*ForTest</code> seams (some migrate to the collaborators they now belong to).</li>
+</ul>
+<p>After Phases 0–4 this is roughly <strong>~22 methods / ~11 fields</strong> (op-state + counters,
+the three/four collaborator handles, <code>m_Navigator</code>/<code>m_SpiderEngine</code>/<code>m_MenuModel</code>,
+<code>m_AckType_ToSend</code>/<code>m_KeyCommand_ToSend</code>, <code>m_HighlightedLine</code>, <code>m_ProfilingDomain</code>) —
+comfortably under both Sonar thresholds.</p>
+<hr />
+<h2 id="6-phased-migration-plan">6. Phased migration plan<a class="headerlink" href="#6-phased-migration-plan" title="Permanent link">&para;</a></h2>
+<p>Each phase is independently shippable and must leave <strong>build + unit + integration
+tests green</strong>. Ordered lowest→highest blast radius. The existing fixtures are the
+safety net: <code>onetouch_equipment_toggle.cap</code>, <code>onetouch_setpoint_edit.cap</code>,
+<code>onetouch_chlorinator.cap</code>, <code>iaq_onetouch_startup.cap</code>, and the flow tests
+(<code>test_flow_onetouch_{toggle,setpoint,chlorinator}.cpp</code>), plus
+<code>test_devices_onetouch*</code>, <code>test_jandy_onetouch_schedule_*</code>, <code>test_spider_engine</code>,
+<code>test_navigation_navigator_edgecases</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Move</th>
+<th>Risk</th>
+<th>Wire / Nav?</th>
+<th>Blast radius</th>
+<th>Net effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0. ScreenReader</strong></td>
+<td>Cluster G → pure <code>ScreenReader</code> fns; device methods become forwarders; fold <code>parse_percent</code> into <code>FirstNumber</code></td>
+<td><strong>Low</strong></td>
+<td>No</td>
+<td>Read helpers only</td>
+<td>Pure fns unit-tested for the first time; 1 DRY win</td>
+</tr>
+<tr>
+<td><strong>1. DRY the state machines</strong></td>
+<td>Introduce <code>move_cursor_to</code> / <code>line_text</code> / <code>equals_ci</code> (via ScreenReader) and a single <code>TryQueue</code> guard; collapse the 5 queue guards + duplicated lambdas. <em>No extraction yet.</em></td>
+<td><strong>Low–Med</strong></td>
+<td>Touches write path (mechanical only)</td>
+<td>Cluster F internals</td>
+<td>Uniform goals → de-risks Phase 3; −a few methods</td>
+</tr>
+<tr>
+<td><strong>2. OneTouchScraper</strong></td>
+<td>Clusters D + E → collaborator holding <code>DataHub&amp;</code>; re-bind page/status processors to it</td>
+<td><strong>Med</strong></td>
+<td>No (read path)</td>
+<td>DataHub publish only</td>
+<td><strong>Biggest S1448 win (~45 methods gone)</strong> + 3 fields</td>
+</tr>
+<tr>
+<td><strong>2b. Pool-config unify</strong></td>
+<td>Make <code>PageProcessor_Version</code> call <code>ApplyPoolConfiguration</code> like <code>StartUp</code></td>
+<td><strong>Med</strong></td>
+<td>No</td>
+<td>Body-building</td>
+<td>Fixes a real divergence; separate tested commit</td>
+</tr>
+<tr>
+<td><strong>3a–3f. Extract goals</strong></td>
+<td><code>KeypadContext</code> + <code>IKeypadGoal</code> + <code>OneTouchGoalRunner</code>; migrate <strong>one goal per commit</strong>: 3a Toggle → 3b ValueEdit → 3c Boost → 3d SpaSwitch → 3e ScheduleWrite → 3f SetpointRefresh</td>
+<td><strong>Med–High</strong></td>
+<td><strong>YES — keypad write + navigation</strong></td>
+<td>Actuation per goal</td>
+<td>Removes ~24 fields + 6 enums + 3 structs; each goal unit-testable in isolation for the first time</td>
+</tr>
+<tr>
+<td><strong>4. OneTouchStartupCrawl</strong></td>
+<td>Cluster C → collaborator; op-state machine calls <code>Step()</code></td>
+<td><strong>Med–High</strong></td>
+<td><strong>YES — SpiderEngine crawl + op-state</strong></td>
+<td>Startup/discovery</td>
+<td>Last: entangled with <code>m_OpState</code> transitions</td>
+</tr>
+<tr>
+<td><strong>5. MessageRouter</strong> <em>(optional)</em></td>
+<td>Cluster A → thin router</td>
+<td><strong>Low</strong></td>
+<td>Ingest only</td>
+<td>—</td>
+<td>Skip unless still over the limit after 0–4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase-3 safety technique:</strong> move each phase-machine <code>switch</code> body <strong>verbatim</strong> into
+its goal's <code>Step()</code>; the <em>only</em> change is that field access
+(<code>m_ValueEditPhase</code>, <code>m_HighlightedLine</code>, <code>m_KeyCommand_ToSend = …</code>,
+<code>DisplayedPage()</code>) is rerouted through the goal's own members and the injected
+<code>KeypadContext</code>. Behaviour is byte-for-byte identical; the flow fixture for that goal
+proves it before the commit lands. Do <strong>not</strong> combine goals in one commit — the whole
+point is per-goal revertibility on the highest-risk path.</p>
+<p><strong>Highest-risk steps are 3a–3f and 4</strong> (they touch the RS-485 keypad write path and
+the Navigator/SpiderEngine). Phases 0–2 are safe structural/read-path moves and should
+land first to shrink the header and build confidence in the seams.</p>
+<hr />
+<h2 id="7-genuinely-inherent-complexity--leave-it-alone">7. Genuinely inherent complexity — leave it alone<a class="headerlink" href="#7-genuinely-inherent-complexity--leave-it-alone" title="Permanent link">&para;</a></h2>
+<p>Splitting these would add indirection without buying testability or clarity:</p>
+<ul>
+<li><strong>The operating-state machine</strong> (<code>ColdStart → StartUp → Scraping → NormalOperation</code></li>
+<li><code>ScrapingFaulted</code> / <code>FaultHasOccurred</code>, watchdog degrade, fault-recovery
+  hysteresis). This <em>is</em> the device's essence and must stay on the device; the
+  <code>AttemptFaultRecovery</code> hysteresis and the "key only in a Status ACK, V1→V2 handshake"
+  wire subtlety are inextricable from <code>ProcessControllerUpdates</code>. Keep them glued.</li>
+<li><strong>The single-keypad serialization.</strong> The goals are mutually exclusive by <em>physical
+  necessity</em> — one cursor, one screen. <code>KeypadContext</code> + one <code>m_ActiveGoal</code> models that
+  honestly; do not try to make goals "independent" or concurrent.</li>
+<li><strong>Empty/log-only page processors</strong> (<code>PageProcessor_MenuHelp</code>, <code>_SetTime</code>, …). They
+  exist because a page must be <em>registered</em> to be detectable/navigable even when nothing
+  is scraped from it. Move them with the scraper; don't delete them.</li>
+<li><strong><code>Navigator</code>, <code>SpiderEngine</code>, <code>MenuModel</code></strong> are already well-bounded collaborators
+  (and large in their own right). They are <strong>not</strong> part of this refactor.</li>
+</ul>
+<hr />
+<h2 id="8-summary">8. Summary<a class="headerlink" href="#8-summary" title="Permanent link">&para;</a></h2>
+<p><code>OneTouchDevice</code> is a god-class because six structurally-identical keypad phase
+machines and two screen-scraping families all live as members of the one type that
+must stay registered for capability discovery. The fix is <strong>delegation, not
+re-inheritance</strong>: keep the capability façade on the device, and lift</p>
+<ol>
+<li>the read path into an <strong><code>OneTouchScraper</code></strong>,</li>
+<li>the write path into <strong><code>IKeypadGoal</code> goals behind an <code>OneTouchGoalRunner</code></strong> over a
+   shared <strong><code>KeypadContext</code></strong>,</li>
+<li>the screen-reading primitives into a pure <strong><code>ScreenReader</code></strong>, and</li>
+<li>startup discovery into an <strong><code>OneTouchStartupCrawl</code></strong>,</li>
+</ol>
+<p>each mirroring the already-proven <code>ChlorinatorSetpointRefresh</code> / schedule-parser
+style. The phased plan lands the safe read-path and DRY work first (Phases 0–2), then
+migrates the high-risk keypad goals one revertible commit at a time (Phase 3), with the
+existing replay fixtures as the behaviour-preserving guard. The result drops the class
+under both Sonar limits and makes every previously-untestable phase machine
+unit-testable in isolation for the first time.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "navigation.indexes", "toc.follow", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight", "search.share"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

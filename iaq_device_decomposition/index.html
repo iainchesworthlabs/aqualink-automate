@@ -1,0 +1,1911 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.">
+      
+      
+        <meta name="author" content="Iain Chesworth">
+      
+      
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/iaq_device_decomposition/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/brand/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>IAQDevice Decomposition — Recommendation - Aqualink Automate</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/aqualink.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="IAQDevice Decomposition — Recommendation - Aqualink Automate" />
+<meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
+<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/iaq_device_decomposition.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/iaq_device_decomposition/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="IAQDevice Decomposition — Recommendation - Aqualink Automate" />
+<meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
+<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/iaq_device_decomposition.png" />
+</head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#iaqdevice-decomposition--recommendation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Aqualink Automate" class="md-header__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  <img src="../assets/brand/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Aqualink Automate
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              IAQDevice Decomposition — Recommendation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../INSTALL/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../CONTRIBUTING/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Aqualink Automate" class="md-nav__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+      
+  <img src="../assets/brand/favicon.svg" alt="logo">
+
+    </a>
+    Aqualink Automate
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iainchesworth/aqualink-automate
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage-and-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage, HTTP API & WebSocket
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mqtt-home-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MQTT & Home Assistant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MATTER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matter (smart home)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberry-pi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Raspberry Pi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-rs485-connectivity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RS-485 wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware-server-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server & hosting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECURITY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../i18n/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../worktrees/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git worktrees
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RECORD_REPLAY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Record / replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-sinks-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-status-2026-07-06-branch-claudeiaq-device-decomp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation status (2026-07-06, branch claude/iaq-device-decomp)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-why-the-class-is-over-the-threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Why the class is over the threshold
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-current-responsibilities--clustered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Current responsibilities — clustered
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Current responsibilities — clustered">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-device-shell--identity-lifecycle-operating-state-keep-on-iaqdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Device shell — identity, lifecycle, operating state (keep on IAQDevice)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-message-slot-ingest-keep-as-thin-adapters-delegate-bodies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Message-slot ingest (keep as thin adapters; delegate bodies)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-live-page-ui-model-extract--iaqpagemodel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. Live-page UI model (extract → IAQPageModel)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d-status-ingest--datahub--screen-extract--iaqstatuspublisher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D. Status ingest → DataHub / Screen (extract → IAQStatusPublisher)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e-direct-command-actuation-extract--iaqactuator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E. Direct-command actuation (extract → IAQActuator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f-command-channel--control-data-handshake-extract--iaqcommandchannel--iaqcommandsink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F. Command channel + control-data handshake (extract → IAQCommandChannel / IAQCommandSink)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g-controller-schedule-read-extract--iaqschedulereader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G. Controller-schedule read (extract → IAQScheduleReader)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h-controller-schedule-write-state-machine-extract--iaqcontrollerschedulewriter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H. Controller-schedule write state machine (extract → IAQControllerScheduleWriter)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i-spa-switch-write-state-machine-extract--iaqspaswitchwriter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        I. Spa-switch write state machine (extract → IAQSpaSwitchWriter)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#j-start-up-page-survey-extract--iaqpagesurvey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        J. Start-up page survey (extract → IAQPageSurvey)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-target-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Target decomposition
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Target decomposition">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-seams-the-di-friendly-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key seams (the DI-friendly interfaces)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collaborator-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collaborator contracts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-duplication-to-dry-up-and-implicit-state-to-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Duplication to DRY up (and implicit state to surface)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Duplication to DRY up (and implicit state to surface)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-two-near-identical-goal-servicer-harnesses-inside-iaqdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Two near-identical goal-servicer harnesses inside IAQDevice
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-cross-device-duplication-with-onetouchdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Cross-device duplication with OneTouchDevice
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-implicit-state-to-make-explicit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Implicit state to make explicit
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-inherent-complexity--where-not-to-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Inherent complexity — where NOT to split
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-phased-migration-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Phased migration plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Phased migration plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ordering-rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ordering rationale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-phase-gate-each-pr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-phase gate (each PR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-expected-outcome-against-the-sonar-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Expected outcome against the Sonar rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+  
+  
+                  
+
+
+  
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/iaq_device_decomposition.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="iaqdevice-decomposition--recommendation">IAQDevice Decomposition — Recommendation<a class="headerlink" href="#iaqdevice-decomposition--recommendation" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> Analysis / recommendation only (dated 2026-07-06). No refactor performed.
+<strong>Subject:</strong> <code>src/jandy/devices/iaq_device.h</code> + <code>iaq_device.cpp</code> and the collaborators under
+<code>src/jandy/devices/iaq/</code>.
+<strong>Trigger:</strong> SonarCloud <code>cpp:S1448</code> (55 methods &gt; 35) and <code>cpp:S1820</code> (37 non-static data
+members &gt; 20) on <code>IAQDevice</code>.</p>
+<blockquote>
+<p>This is a design snapshot. Anchors are symbols/URLs, not line numbers (per <code>CLAUDE.md</code>).
+Verify against the code before relying on any claim; the write-path clusters especially are
+capture-gated and must not be changed by guesswork.</p>
+</blockquote>
+<hr />
+<h2 id="implementation-status-2026-07-06-branch-claudeiaq-device-decomp">Implementation status (2026-07-06, branch <code>claude/iaq-device-decomp</code>)<a class="headerlink" href="#implementation-status-2026-07-06-branch-claudeiaq-device-decomp" title="Permanent link">&para;</a></h2>
+<p>Landed, each an independently green + committed step (full test suite <code>*** No errors detected</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>What</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td><code>Utility::EqualsCaseInsensitive</code> added; writers' <code>eq_ci</code> lambdas migrated to it</td>
+<td>done</td>
+</tr>
+<tr>
+<td>1</td>
+<td><strong><code>IAQ::PageModel</code></strong> extracted (<code>iaq_page_model.{h,cpp}</code>) — page id/title/button table + schedule/device-picker/spa-switch-picker rows + <code>FindButtonByLabel</code>; new unit test</td>
+<td>done</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong><code>IAQ::PageSurvey</code></strong> extracted (header-only in <code>iaq_page_registry.h</code>) — the 3 survey fields → 1</td>
+<td>done</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong><code>IAQ::SpaSwitchWriter</code></strong> extracted over a new <strong><code>IAQ::ICommandSink</code></strong> seam that <code>IAQDevice</code> implements</td>
+<td>done</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong><code>IAQ::ScheduleWriter</code></strong> (create/delete/edit) extracted over <code>ICommandSink</code> (extended with <code>ArmControlValue</code>)</td>
+<td>done</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Outcome vs the Sonar rules:</strong>
+- <strong><code>cpp:S1820</code> (fields) — SATISFIED.</strong> <code>IAQDevice</code> went from <strong>37 → 17</strong> non-static data members (the two write state machines + survey + page clusters collapsed into <code>m_PageModel</code>, <code>m_SpaSwitchWriter</code>, <code>m_ScheduleWriter</code>, <code>m_PageSurvey</code>). Under the limit of 20, with margin.
+- <strong><code>cpp:S1448</code> (methods) — improved but still above 35, as predicted in §5/§6.</strong> The private helpers that could leave did (<code>FindPageButtonByLabel</code>, <code>SpaSwitchWrite_ProcessStep</code>, <code>QueueScheduleWrite</code>, <code>ControllerScheduleWrite_ProcessStep</code>), but the 17 <code>signals2</code> slots + ~17 capability overrides + ctor/dtor/state-queries are all methods that <em>must</em> stay on <code>IAQDevice</code>. Driving it ≤35 needs the separate <strong>data-driven slot-registration table</strong> (out of scope here — a deliberate, individually-reviewed follow-up).</p>
+<p><strong>Not yet done (optional / lower value):</strong> phase 2 (status publisher), phase 4 (schedule reader), phase 5b (relocate the command-channel fields into an <code>IAQCommandChannel</code>), phase 6 (actuator), phase 9 (cross-device <code>PollGoalRunner</code> shared with OneTouch). None are needed for S1820; they are cpp-complexity / DRY / testability improvements. The <code>ICommandSink</code> seam now exists, so the actuator and a full command-channel extraction are straightforward follow-ups.</p>
+<hr />
+<h2 id="1-why-the-class-is-over-the-threshold">1. Why the class is over the threshold<a class="headerlink" href="#1-why-the-class-is-over-the-threshold" title="Permanent link">&para;</a></h2>
+<p><code>IAQDevice</code> is the 0x33 (AqualinkTouch) / 0xA3 (iAqualink2 cloud) virtual-device handler. It
+simultaneously plays <strong>eleven</strong> capability roles (its base list: <code>JandyController</code>,
+<code>Restartable</code>, <code>Screen</code>, <code>Emulated</code>, <code>Describable</code>, <code>ChlorinatorController</code>, <code>PageNavigator</code>,
+<code>DeviceActuator</code>, <code>SetpointController</code>, <code>SpaSwitchConfigurator</code>, <code>CommandHistory</code>,
+<code>ControllerScheduleWriter</code>) <strong>and</strong> owns the mutable state for six unrelated concerns:</p>
+<ul>
+<li>decoded live-page UI state (page id, title, on-screen button table, table rows),</li>
+<li>a poll-ACK command channel + control-data handshake,</li>
+<li>status ingest → DataHub publishing,</li>
+<li>a spa-switch-assignment write state machine,</li>
+<li>a controller-schedule read path,</li>
+<li>a controller-schedule write state machine (create/delete/edit),</li>
+<li>a one-shot start-up page survey.</li>
+</ul>
+<p><strong>Important:</strong> the files already under <code>src/jandy/devices/iaq/</code> do <em>not</em> reduce the count. Only
+<code>iaq_schedule_parser.{h,cpp}</code> and <code>iaq_page_registry.{h,cpp}</code> are genuine collaborators (free
+functions in namespace <code>Devices::IAQ</code>, and both already have standalone unit tests —
+<code>test_jandy_iaq_schedule_parser.cpp</code>, <code>test_jandy_iaq_page_registry.cpp</code>). By contrast
+<code>iaq_messageprocessors.cpp</code> and <code>iaq_statusprocessors.cpp</code> are <strong>partial-class file splits</strong>:
+they define <code>IAQDevice::</code> member functions in separate translation units. Every method and field
+there still belongs to <code>IAQDevice</code>, so Sonar still counts them. Reducing the metric requires
+moving state and behaviour onto <em>new types</em>, not into new <code>.cpp</code> files.</p>
+<hr />
+<h2 id="2-current-responsibilities--clustered">2. Current responsibilities — clustered<a class="headerlink" href="#2-current-responsibilities--clustered" title="Permanent link">&para;</a></h2>
+<p>The 55 methods and 37 fields group into nine cohesive clusters. "Method / field" names are the
+actual symbols in <code>iaq_device.h</code>.</p>
+<h3 id="a-device-shell--identity-lifecycle-operating-state-keep-on-iaqdevice">A. Device shell — identity, lifecycle, operating state <em>(keep on IAQDevice)</em><a class="headerlink" href="#a-device-shell--identity-lifecycle-operating-state-keep-on-iaqdevice" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> ctor, dtor, <code>ProcessControllerUpdates()</code>, <code>ProcessControllerUpdates(bool)</code> (the
+  dispatch spine), <code>WatchdogTimeoutOccurred</code>, <code>IsInNormalOperation</code>, <code>IsFaulted</code>,
+  <code>IsNotPresent</code>, <code>DescribeDiagnostics</code>.</li>
+<li><strong>Fields:</strong> <code>m_OpState</code>, <code>m_HasReceivedData</code>, <code>m_HasReceivedMainStatus</code>, <code>m_ProfilingDomain</code>.</li>
+<li>The irreducible core: the capability facade, the <code>OperatingStates</code> machine, slot registration,
+  and the per-poll orchestration that fans out to every other collaborator.</li>
+</ul>
+<h3 id="b-message-slot-ingest-keep-as-thin-adapters-delegate-bodies">B. Message-slot ingest <em>(keep as thin adapters; delegate bodies)</em><a class="headerlink" href="#b-message-slot-ingest-keep-as-thin-adapters-delegate-bodies" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> the 17 <code>Slot_IAQ_*</code> handlers (<code>AuxStatus</code>, <code>CommandReady</code>, <code>ControlReady</code>,
+  <code>Heartbeat</code>, <code>MainStatus</code>, <code>MessageLong</code>, <code>OneTouchStatus</code>, <code>PageButton</code>, <code>PageContinue</code>,
+  <code>PageEnd</code>, <code>PageMessage</code>, <code>PageStart</code>, <code>Poll</code>, <code>Probe</code>, <code>StartUp</code>, <code>TableMessage</code>,
+  <code>TitleMessage</code>).</li>
+<li>Each is a <code>boost::signals2</code> slot registered in the ctor via <code>m_SlotManager</code>. They must remain
+  on <code>IAQDevice</code> (the <code>SlotManager</code> binds <code>this</code>), but their <em>bodies</em> should shrink to: update the
+  relevant collaborator, then <code>ProcessControllerUpdates(); Restartable::Kick();</code>. The 17 slots are
+  the single biggest contributor to the method count and the hardest to remove — see §6.</li>
+</ul>
+<h3 id="c-live-page-ui-model-extract--iaqpagemodel">C. Live-page UI model <em>(extract → <code>IAQPageModel</code>)</em><a class="headerlink" href="#c-live-page-ui-model-extract--iaqpagemodel" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>FindPageButtonByLabel</code>.</li>
+<li><strong>Fields:</strong> <code>m_CurrentPageId</code>, <code>m_CurrentPageTitle</code>, <code>m_PageButtons</code> (+ <code>PageButtonInfo</code>),
+  <code>m_ScheduleRows</code>, <code>m_DevicePickerRows</code>, <code>m_SpaSwitchPickerRows</code>, <code>m_StatusPage</code>, <code>m_TableInfo</code>,
+  <code>m_SM_PageUpdate</code>, <code>m_SM_TableUpdate</code>.</li>
+<li>The decoded "what is on screen right now" blackboard. Written by cluster B, read by clusters
+  E/F/G/H. This is the shared mutable state that makes the writers untestable in isolation today.</li>
+</ul>
+<h3 id="d-status-ingest--datahub--screen-extract--iaqstatuspublisher">D. Status ingest → DataHub / Screen <em>(extract → <code>IAQStatusPublisher</code>)</em><a class="headerlink" href="#d-status-ingest--datahub--screen-extract--iaqstatuspublisher" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>ProcessMainStatus</code>, <code>ProcessAuxStatus</code>, <code>RenderStatusScreen</code>,
+  <code>RenderCloudLinkScreen</code>.</li>
+<li>Already file-isolated in <code>iaq_statusprocessors.cpp</code>. Pure read-path: decodes a message and
+  writes bodies/temps/setpoints/heaters/auxes into the <code>DataHub</code>, then renders the <code>Screen</code>.</li>
+</ul>
+<h3 id="e-direct-command-actuation-extract--iaqactuator">E. Direct-command actuation <em>(extract → <code>IAQActuator</code>)</em><a class="headerlink" href="#e-direct-command-actuation-extract--iaqactuator" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>QueueChlorinatorPercentage</code>, <code>QueueChlorinatorBoost</code>, <code>SetChlorinatorPercentage</code>,
+  <code>SetChlorinatorBoost</code>, <code>ActuatePageButton</code>, <code>SelectPageButton</code>, <code>ActuateDevice</code>,
+  <code>SetPoolSetpoint</code>, <code>SetSpaSetpoint</code>, <code>QueueSetpoint</code>, <code>AvailableFunctions</code>.</li>
+<li>The capability implementations that translate a request into a fixed poll-ACK command sequence
+  (<code>m_CommandQueue</code>) + optional control-data value. Depend on cluster C (button lookup) and F/C
+  command channel, not on the write state machines.</li>
+</ul>
+<h3 id="f-command-channel--control-data-handshake-extract--iaqcommandchannel--iaqcommandsink">F. Command channel + control-data handshake <em>(extract → <code>IAQCommandChannel</code> / <code>IAQCommandSink</code>)</em><a class="headerlink" href="#f-command-channel--control-data-handshake-extract--iaqcommandchannel--iaqcommandsink" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>QueueCommand</code>, <code>Signal_ControlDataResponse</code>, and the send block inside
+  <code>ProcessControllerUpdates(bool)</code>.</li>
+<li><strong>Fields:</strong> <code>m_PendingCommand</code>, <code>m_CommandQueue</code>, <code>m_AwaitingControlReady</code>, <code>m_ControlDataValue</code>.</li>
+<li>The single wire-write seam: whatever ends up here is what rides the <code>Signal_AckMessage</code> poll
+  ACK. Every actuator and both writers poke these fields directly today.</li>
+</ul>
+<h3 id="g-controller-schedule-read-extract--iaqschedulereader">G. Controller-schedule read <em>(extract → <code>IAQScheduleReader</code>)</em><a class="headerlink" href="#g-controller-schedule-read-extract--iaqschedulereader" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>PublishSchedulePage</code>.</li>
+<li><strong>Fields:</strong> <code>m_ControllerScheduleStore</code>, <code>m_ScheduleRows</code> (shared with C), <code>m_CurrentPageTitle</code>
+  (shared with C).</li>
+<li>On <code>PageEnd</code> of page <code>0x28</code>, parse accumulated <code>m_ScheduleRows</code> (via <code>IAQ::ParseScheduleRow</code>)
+  into <code>ControllerScheduleStore</code>. Read-only; already backed by <code>test_jandy_iaq_schedule_read.cpp</code>.</li>
+</ul>
+<h3 id="h-controller-schedule-write-state-machine-extract--iaqcontrollerschedulewriter">H. Controller-schedule write state machine <em>(extract → <code>IAQControllerScheduleWriter</code>)</em><a class="headerlink" href="#h-controller-schedule-write-state-machine-extract--iaqcontrollerschedulewriter" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>CreateControllerProgram</code>, <code>DeleteControllerProgram</code>, <code>EditControllerProgram</code>,
+  <code>QueueScheduleWrite</code>, <code>ControllerScheduleWrite_ProcessStep</code>.</li>
+<li><strong>Fields:</strong> <code>m_PendingScheduleWrite</code> (+ <code>ScheduleWriteGoal</code>/<code>ScheduleWriteOp</code>/
+  <code>ScheduleWritePhase</code>), <code>m_ScheduleWritePhase</code>, <code>m_ScheduleWritePollCount</code>,
+  <code>m_ScheduleWriteSettleCount</code>, <code>m_ScheduleWriteScrollCount</code>, <code>m_ScheduleProgramAdded</code>,
+  <code>m_ScheduleDeviceClicked</code>, <code>m_ScheduleTimeFieldOpened</code>, <code>m_DevicePickerRows</code> (shared with C).</li>
+<li>A per-poll goal servicer that drives the Program pages. Backed by
+  <code>test_jandy_iaq_schedule_write.cpp</code>. <strong>Highest risk</strong> (wire + schedule write path).</li>
+</ul>
+<h3 id="i-spa-switch-write-state-machine-extract--iaqspaswitchwriter">I. Spa-switch write state machine <em>(extract → <code>IAQSpaSwitchWriter</code>)</em><a class="headerlink" href="#i-spa-switch-write-state-machine-extract--iaqspaswitchwriter" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>SetSpaSwitchAssignment</code>, <code>SpaSwitchWrite_ProcessStep</code>.</li>
+<li><strong>Fields:</strong> <code>m_PendingSpaSwitchWrite</code> (+ <code>SpaSwitchWriteGoal</code>/<code>SpaSwitchWritePhase</code>),
+  <code>m_SpaSwitchWritePhase</code>, <code>m_SpaSwitchRowSelected</code>, <code>m_SpaSwitchWritePollCount</code>,
+  <code>m_SpaSwitchScrollCount</code>, <code>m_SpaSwitchSettleCount</code>, <code>m_SpaSwitchFirstPickerSeen</code>,
+  <code>m_SpaSwitchPickerRows</code> (shared with C).</li>
+<li>Structurally a twin of cluster H. Backed by <code>test_devices_iaq_spaswitch_config.cpp</code>. <strong>High
+  risk</strong> (wire).</li>
+</ul>
+<h3 id="j-start-up-page-survey-extract--iaqpagesurvey">J. Start-up page survey <em>(extract → <code>IAQPageSurvey</code>)</em><a class="headerlink" href="#j-start-up-page-survey-extract--iaqpagesurvey" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Methods:</strong> <code>EnablePageSurvey</code>, <code>MaybeStartPageSurvey</code>.</li>
+<li><strong>Fields:</strong> <code>m_PageSurveyEnabled</code>, <code>m_PageSurveyDone</code>, <code>m_PageSurveyRegistry</code>.</li>
+<li>Small, self-contained, emulated-only; already uses <code>IAQ::BuildSurveyCommandSequence</code>.</li>
+</ul>
+<hr />
+<h2 id="3-target-decomposition">3. Target decomposition<a class="headerlink" href="#3-target-decomposition" title="Permanent link">&para;</a></h2>
+<p>Composition over inheritance: <code>IAQDevice</code> keeps clusters A + B (it <em>must</em> — capability facade and
+<code>SlotManager</code>-bound slots), and <strong>holds</strong> the rest as member collaborators. The two moving pieces
+that make everything else testable are a shared <strong>page model</strong> (data) and a <strong>command sink</strong>
+(interface).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>                         ┌────────────────────────────────────────────┐
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                         │ IAQDevice  (clusters A + B)                 │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                         │  - capability facade (11 mixins)            │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                         │  - OperatingStates machine, watchdog        │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                         │  - 17 Slot_IAQ_* adapters                   │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                         │  - implements IAQCommandSink                │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                         └───┬───────────┬───────────┬───────────┬─────┘
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>             writes │        │ owns       │ owns      │ owns      │ owns
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        ┌───────────▼──┐  ┌──▼─────────┐ ┌▼────────┐ ┌▼────────┐ ┌▼──────────────┐
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        │ IAQPageModel │  │IAQStatus   │ │IAQActu- │ │IAQSpa   │ │IAQController  │
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        │ (cluster C)  │  │Publisher(D)│ │ator (E) │ │Switch   │ │ScheduleWriter │
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        │  page id,    │  │            │ │         │ │Writer(I)│ │ (H)           │
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        │  title,      │  └─────┬──────┘ └────┬────┘ └────┬────┘ └──────┬────────┘
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        │  buttons,    │        │ DataHub&amp;    │ sink      │ model&amp;      │ model&amp;
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        │  rows,       │◀───────┴─────────────┴───────────┴─ read ──────┘
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        │  screen SMs  │        ┌──────────────┐   ┌──────────────────┐
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        └──────────────┘        │IAQSchedule   │   │ IAQPageSurvey (J)│
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>              ▲ read            │Reader (G)    │   └──────────────────┘
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>              └─────────────────┴──────────────┘
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                          write → CommandSink → Signal_AckMessage (poll ACK)
+</code></pre></div>
+<h3 id="key-seams-the-di-friendly-interfaces">Key seams (the DI-friendly interfaces)<a class="headerlink" href="#key-seams-the-di-friendly-interfaces" title="Permanent link">&para;</a></h3>
+<p><strong><code>IAQCommandSink</code> — the wire-write boundary.</strong> Both writers and the actuator currently mutate
+<code>m_PendingCommand</code>, <code>m_AwaitingControlReady</code>, <code>m_ControlDataValue</code> directly. Replace with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">IAQCommandSink</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">public</span><span class="o">:</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">IAQCommandSink</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">IssueCommand</span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">         </span><span class="c1">// set the next poll-ACK command</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ArmControlValue</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// &quot;1&quot;+HH:MM / &quot;1&quot;+percent handshake</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">QueueSequence</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// multi-step command queue</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">};</span>
+</code></pre></div>
+<p><code>IAQDevice</code> (or a small <code>IAQCommandChannel</code> it owns) implements it. A <strong>fake sink</strong> in tests
+records the emitted bytes — so a writer's <code>ProcessStep</code> becomes a pure function of
+<code>(IAQPageModel, IAQCommandSink&amp;, DataHub*)</code> and is unit-testable with a hand-built page model,
+<strong>no bus and no MockReplayHarness required for the state-machine logic</strong>.</p>
+<p><strong><code>IAQPageModel</code> — the decoded-page blackboard.</strong> A plain value type owning cluster C's fields
+plus <code>FindPageButtonByLabel</code>. Cluster B writes it (<code>SetPageId</code>, <code>SetTitle</code>, <code>UpsertButton</code>,
+<code>SetScheduleRow</code>, <code>SetDevicePickerRow</code>, <code>SetSpaSwitchPickerRow</code>, <code>Clear</code>); clusters E/F/G/H/I read
+it. This is the single change that unlocks isolation of the writers.</p>
+<h3 id="collaborator-contracts">Collaborator contracts<a class="headerlink" href="#collaborator-contracts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>New type</th>
+<th>Owns (fields from)</th>
+<th>Public surface</th>
+<th>Depends on</th>
+<th>Testability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IAQPageModel</code></td>
+<td>C</td>
+<td>page id/title getters, button table, row maps, <code>FindPageButtonByLabel</code></td>
+<td>—</td>
+<td>Pure data; direct unit tests</td>
+</tr>
+<tr>
+<td><code>IAQStatusPublisher</code></td>
+<td>D</td>
+<td><code>ProcessMainStatus(msg)</code>, <code>ProcessAuxStatus(msg)</code></td>
+<td><code>DataHub&amp;</code>, <code>Screen&amp;</code> (or a render callback)</td>
+<td>MockReplayHarness + DataHub asserts</td>
+</tr>
+<tr>
+<td><code>IAQActuator</code></td>
+<td>E</td>
+<td>the capability methods (chlorinator/setpoint/aux/page-button)</td>
+<td><code>IAQCommandSink&amp;</code>, <code>const IAQPageModel&amp;</code></td>
+<td>Fake sink + fake page model</td>
+</tr>
+<tr>
+<td><code>IAQCommandChannel</code></td>
+<td>F</td>
+<td><code>IAQCommandSink</code> impl + <code>Drain(is_poll) → Signal_AckMessage</code></td>
+<td><code>Signal_AckMessage</code> callback</td>
+<td>Fake ack callback</td>
+</tr>
+<tr>
+<td><code>IAQScheduleReader</code></td>
+<td>G</td>
+<td><code>OnPageEnd(model, store)</code> / <code>Publish()</code></td>
+<td><code>const IAQPageModel&amp;</code>, <code>ControllerScheduleStore*</code></td>
+<td>Existing <code>..._schedule_read</code> test</td>
+</tr>
+<tr>
+<td><code>IAQControllerScheduleWriter</code></td>
+<td>H</td>
+<td><code>Create/Delete/Edit(...)</code>, <code>Active()</code>, <code>ProcessStep(model, sink, hub)</code></td>
+<td>model, sink, <code>DataHub*</code></td>
+<td>Fake sink; existing <code>..._schedule_write</code> test + captures</td>
+</tr>
+<tr>
+<td><code>IAQSpaSwitchWriter</code></td>
+<td>I</td>
+<td><code>Queue(...)</code>, <code>Active()</code>, <code>ProcessStep(model, sink, hub)</code></td>
+<td>model, sink, <code>DataHub*</code></td>
+<td>Fake sink; <code>..._spaswitch_config</code> test + captures</td>
+</tr>
+<tr>
+<td><code>IAQPageSurvey</code></td>
+<td>J</td>
+<td><code>Enable(registry)</code>, <code>MaybeStart(model, sink)</code></td>
+<td><code>IAQCommandSink&amp;</code></td>
+<td>Pure; direct unit tests</td>
+</tr>
+</tbody>
+</table>
+<p>After this, <code>IAQDevice</code> retains ~clusters A+B (the ctor, dtor, 17 slots, op-state queries,
+<code>ProcessControllerUpdates</code>, <code>WatchdogTimeoutOccurred</code>, <code>DescribeDiagnostics</code>) and <strong>~8 member
+collaborators + 4 op-state fields</strong> — comfortably under both Sonar thresholds, and every extracted
+unit is independently testable.</p>
+<hr />
+<h2 id="4-duplication-to-dry-up-and-implicit-state-to-surface">4. Duplication to DRY up (and implicit state to surface)<a class="headerlink" href="#4-duplication-to-dry-up-and-implicit-state-to-surface" title="Permanent link">&para;</a></h2>
+<h3 id="41-two-near-identical-goal-servicer-harnesses-inside-iaqdevice">4.1 Two near-identical goal-servicer harnesses <em>inside</em> IAQDevice<a class="headerlink" href="#41-two-near-identical-goal-servicer-harnesses-inside-iaqdevice" title="Permanent link">&para;</a></h3>
+<p><code>SpaSwitchWrite_ProcessStep</code> and <code>ControllerScheduleWrite_ProcessStep</code> each hand-roll the same
+scaffolding:</p>
+<ul>
+<li>an overall poll backstop (<code>m_*WritePollCount &gt; *_POLL_LIMIT → finish(false)</code>),</li>
+<li>a settle counter (<code>m_*SettleCount</code> dwell after each command),</li>
+<li>a local <code>issue(cmd)</code> lambda (set pending + reset settle),</li>
+<li>a local <code>finish(ok)</code> teardown (reset phase + counters + pending),</li>
+<li>a local <code>eq_ci</code> case-insensitive compare,</li>
+<li>a "one goal at a time" busy/passive guard (<code>!IsEmulationActive()</code> / <code>!IsEmulated()</code> +
+  <code>m_Pending*.has_value() || !m_CommandQueue.empty() || m_AwaitingControlReady</code>).</li>
+</ul>
+<p>Factor the mechanical part into a small reusable <strong><code>PollGoalRunner</code></strong> (settle/backstop/<code>issue</code>/
+<code>finish</code> over an <code>IAQCommandSink</code>). The <em>navigation policy</em> (which command advances which phase)
+stays per-writer — that is the genuinely different, capture-derived part. Do <strong>not</strong> try to unify
+the phase enums themselves.</p>
+<h3 id="42-cross-device-duplication-with-onetouchdevice">4.2 Cross-device duplication with OneTouchDevice<a class="headerlink" href="#42-cross-device-duplication-with-onetouchdevice" title="Permanent link">&para;</a></h3>
+<p><code>OneTouchDevice</code> (<code>onetouch_device.{h,cpp}</code>, ~2150 LOC, the sibling god-class being analysed
+separately) has the <strong>same</strong> shape: <code>Actuation_ProcessStep</code>, <code>ValueEdit_ProcessStep</code>,
+<code>Boost_ProcessStep</code>, <code>SpaSwitchEdit_ProcessStep</code>, <code>ControllerScheduleWrite_ProcessStep</code>,
+<code>SetpointRefresh_ProcessStep</code>, each with its own <code>finish()</code>, <code>m_PendingScheduleWrite</code>,
+<code>ScheduleWritePhase</code>, and a duplicated case-insensitive compare (3 occurrences confirmed).</p>
+<p>Shared abstractions that could serve both, ordered by confidence:</p>
+<ol>
+<li><strong><code>Utility::EqualsCaseInsensitive</code> (or <code>std::ranges</code> helper)</strong> — replace every <code>eq_ci</code> in both
+   devices. <em>(First confirm one doesn't already exist in <code>utility/string_manipulation.*</code>; if not,
+   add + unit-test it.)</em> Lowest-risk, highest-frequency win.</li>
+<li><strong><code>PollGoalRunner</code></strong> (settle/backstop/issue/finish) — shared by all IAQ <strong>and</strong> OneTouch
+   per-poll goals. Medium confidence: the IAQ gates on a raw page id; OneTouch gates on the
+   <code>Navigator</code>/<code>SpiderEngine</code>. The <em>runner</em> is the thin common part; the gating is not.</li>
+<li><strong>A busy/passive precondition object</strong> (<code>RejectIfBusyOrPassive</code>) — the guard repeated across
+   <code>Create</code>/<code>Delete</code>/<code>Edit</code>/<code>SetSpaSwitchAssignment</code> on both devices.</li>
+</ol>
+<p>⚠️ <strong>Do the cross-device abstraction LAST</strong>, after both decompositions land independently.
+Generalising a navigation abstraction across the page-id world (IAQ) and the menu-crawl world
+(OneTouch) prematurely is a classic over-abstraction trap — see §5.</p>
+<h3 id="43-implicit-state-to-make-explicit">4.3 Implicit state to make explicit<a class="headerlink" href="#43-implicit-state-to-make-explicit" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The "busy" predicate is an ad-hoc boolean expression evaluated in four places. Promote to a
+  single <code>bool IsPanelBusy() const</code> on the command channel.</li>
+<li><code>m_CurrentPageTitle</code> / <code>m_ScheduleRows</code> are cleared on <code>PageStart</code> <strong>and</strong> read by both the
+  reader and the writer — an implicit lifetime coupling. <code>IAQPageModel::Clear()</code> makes the
+  invalidation point explicit and single-sourced.</li>
+<li>The write goals encode "which sub-step already fired" as scattered booleans
+  (<code>m_ScheduleProgramAdded</code>, <code>m_ScheduleDeviceClicked</code>, <code>m_ScheduleTimeFieldOpened</code>,
+  <code>m_SpaSwitchRowSelected</code>). These are really sub-phases; folding them into the phase enum (or a
+  small per-phase struct owned by the writer) removes cross-cutting flags from the class.</li>
+</ul>
+<hr />
+<h2 id="5-inherent-complexity--where-not-to-split">5. Inherent complexity — where NOT to split<a class="headerlink" href="#5-inherent-complexity--where-not-to-split" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>The 17 <code>Slot_IAQ_*</code> handlers cannot leave <code>IAQDevice</code>.</strong> They are <code>signals2</code> slots bound to
+  <code>this</code> in the ctor via <code>m_SlotManager.RegisterSlot_FilterByDeviceId</code>. They <em>dominate</em> the method
+  count but represent irreducible protocol surface. The win is shrinking their bodies to
+  one-line delegations, not relocating them. Sonar's method count will still include them; accept
+  that the class lands near — not far below — 35 unless slot registration itself is
+  data-driven (a table of <code>{MessageType → handler}</code>), which is a larger, riskier change best left
+  out of this pass.</li>
+<li><strong>Spa-switch vs schedule writers look mergeable but aren't.</strong> They share <em>scaffolding</em> (§4.1)
+  but their phase graphs, page ids, command bytes, and verification predicates are distinct and
+  capture-derived. Merge the runner, keep the policies separate.</li>
+<li><strong>IAQ page-id gating vs OneTouch Navigator crawl are different domains.</strong> A unified
+  "page navigation" interface across both devices would leak one model into the other. Keep the
+  shared piece to the mechanical <code>PollGoalRunner</code>.</li>
+<li><strong><code>ProcessMainStatus</code> body-inference heuristic</strong> (auto-detect <code>DualBody_SharedEquipment</code> from
+  <code>SpaMode</code>, create filter pump / heaters) is genuinely coupled to DataHub semantics. It belongs
+  whole inside <code>IAQStatusPublisher</code>; do not shred it into micro-helpers for their own sake.</li>
+</ul>
+<hr />
+<h2 id="6-phased-migration-plan">6. Phased migration plan<a class="headerlink" href="#6-phased-migration-plan" title="Permanent link">&para;</a></h2>
+<p>Every phase is independently shippable and behaviour-preserving, ordered <strong>risk-ascending</strong>. The
+existing suite is the safety net: <code>test_devices_iaq.cpp</code>, <code>test_devices_iaq_spaswitch_config.cpp</code>,
+<code>test_jandy_iaq_page_registry.cpp</code>, <code>test_jandy_iaq_schedule_parser.cpp</code>,
+<code>test_jandy_iaq_schedule_read.cpp</code>, <code>test_jandy_iaq_schedule_write.cpp</code>. Run the full IAQ suite
+green <strong>and</strong> the MockReplayHarness fixtures after each phase. Do <strong>not</strong> delete or weaken a test
+to make a phase pass.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Change</th>
+<th>Risk</th>
+<th>Blast radius</th>
+<th>Wire/chlor/schedule-write?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Hoist pure helpers: <code>eq_ci → Utility::EqualsCaseInsensitive</code> (add if absent); move <code>DayCommandFor</code>/<code>ScheduleTimeValue</code> into the <code>IAQ</code> schedule module with unit tests</td>
+<td>Very low</td>
+<td>file-local</td>
+<td>No</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Extract <strong><code>IAQPageModel</code></strong> (cluster C). Slots write it; keep bodies otherwise identical. Mechanical field move</td>
+<td>Low–med</td>
+<td>slots + writers read sites</td>
+<td>No (state relocation only)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Extract <strong><code>IAQStatusPublisher</code></strong> (cluster D) from <code>iaq_statusprocessors.cpp</code>; inject <code>DataHub&amp;</code> + render seam</td>
+<td>Low–med</td>
+<td>read path only</td>
+<td>No</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Extract <strong><code>IAQPageSurvey</code></strong> (cluster J)</td>
+<td>Low</td>
+<td>3 fields, 2 methods</td>
+<td>No (emulated survey nav — mild)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Extract <strong><code>IAQScheduleReader</code></strong> (cluster G): <code>PublishSchedulePage</code> + 0x28 accumulation</td>
+<td>Med</td>
+<td><code>PageEnd</code>/<code>TableMessage</code></td>
+<td>No (read path)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Introduce <strong><code>IAQCommandSink</code></strong> + extract <strong><code>IAQCommandChannel</code></strong> (cluster F). Wrapper first (delegate), then move fields</td>
+<td><strong>High</strong></td>
+<td>wire-write path</td>
+<td><strong>Yes — wire</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Extract <strong><code>IAQActuator</code></strong> (cluster E) over the sink + page model</td>
+<td>Med–high</td>
+<td>capability entry points</td>
+<td>Yes — chlorinator/setpoint/aux</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Extract <strong><code>IAQSpaSwitchWriter</code></strong> (cluster I) as <code>ProcessStep(model, sink, hub)</code></td>
+<td><strong>High</strong></td>
+<td>spa-switch write</td>
+<td><strong>Yes — wire + spa-switch</strong></td>
+</tr>
+<tr>
+<td>8</td>
+<td>Extract <strong><code>IAQControllerScheduleWriter</code></strong> (cluster H) — create/delete/edit</td>
+<td><strong>Highest</strong></td>
+<td>schedule write path</td>
+<td><strong>Yes — wire + schedule write</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td><em>(optional, cross-device)</em> Factor <code>PollGoalRunner</code> + busy/passive precondition; adopt in IAQ <strong>and</strong> OneTouch</td>
+<td>Med</td>
+<td>both god-classes</td>
+<td>Yes — behaviour-preserving refactor of both</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ordering-rationale">Ordering rationale<a class="headerlink" href="#ordering-rationale" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Data before behaviour.</strong> Phase 1 (<code>IAQPageModel</code>) and the <code>IAQCommandSink</code> seam (phase 5) are
+  the enablers; the writers (phases 6–8) can only become isolated once both exist. Read-path
+  extractions (2, 3, 4) are sequenced early because they touch no wire writes and give quick,
+  safe metric relief.</li>
+<li><strong>Highest-risk last, alone.</strong> Phases 5, 7, 8 each touch the RS-485 write path. Ship them as
+  <strong>separate PRs</strong>, each validated against its capture fixtures
+  (<code>iaq_spaswitch_edit{,2}.cap</code>, <code>iaq_schedule_{session,clean,picker}.cap</code>, <code>iaq_editdelete.cap</code>,
+  <code>iaq_aux_setpoint.cap</code>) via MockReplayHarness — never batch two write-path extractions together.</li>
+<li><strong>Cross-device DRY (phase 9) is optional and last</strong> so the shared abstraction is extracted from
+  two <em>already-clean</em> call sites, not guessed up front.</li>
+</ul>
+<h3 id="per-phase-gate-each-pr">Per-phase gate (each PR)<a class="headerlink" href="#per-phase-gate-each-pr" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Build green on <code>config-windows-msvc-debug</code> (and the Linux toolchains).</li>
+<li>Full IAQ unit suite green; add new unit tests for each extracted collaborator (fake sink +
+   hand-built <code>IAQPageModel</code>).</li>
+<li>For phases 5–8: MockReplayHarness replay of the relevant <code>.cap</code> fixtures shows byte-identical
+   emitted commands vs the pre-refactor baseline.</li>
+<li>No behaviour change asserted in the PR description; Sonar method/field delta reported.</li>
+</ol>
+<hr />
+<h2 id="7-expected-outcome-against-the-sonar-rules">7. Expected outcome against the Sonar rules<a class="headerlink" href="#7-expected-outcome-against-the-sonar-rules" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>cpp:S1820</code> (fields):</strong> <code>IAQDevice</code> drops from 37 to ~12 (4 op-state + ~8 collaborator
+  members). Under the 20 limit. Each collaborator holds well under 20.</li>
+<li><strong><code>cpp:S1448</code> (methods):</strong> falls to cluster A (~9) + the 17 slots ≈ 26, under 35. If the
+  reviewer wants deeper headroom, the optional data-driven slot-registration table (§5) removes
+  the slots from the count — but that is out of scope for a behaviour-preserving pass and should
+  be a separate, explicitly-scoped decision.</li>
+</ul>
+<p>Both metrics are satisfied by phases 1–8 without the slot-table change; phase 9 is purely about
+DRY/quality shared with <code>OneTouchDevice</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "navigation.indexes", "toc.follow", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight", "search.share"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
