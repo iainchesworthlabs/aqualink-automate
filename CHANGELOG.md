@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [Unreleased]
+
+### Added
+
+- **Verifiable release provenance.** Every release package and the Docker image now ships with a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (SLSA provenance, signed via Sigstore using the release workflow's OIDC identity) and an SPDX SBOM attestation, so anyone can confirm a download was built by this repository from a specific commit — not swapped for a poisoned build. Verify with `gh attestation verify <file> --repo iainchesworth/aqualink-automate` (or `oci://…` for the image). Release binaries are additionally GPG-signed (detached `.asc` per file plus a signed `SHA512SUMS`) when the project signing key is configured. See [SECURITY.md > Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity).
+
 ## [0.12.0-beta.3] - 2026-07-06
 
 A robustness and supply-chain hardening release: the protocol and input parsers are now continuously fuzz-tested, a scheduling API crash on malformed input is fixed, and the CI/build posture is tightened. No new features, and no configuration changes.

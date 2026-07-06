@@ -164,20 +164,25 @@ resolve-version ──> build-packages (_build.yml) ──> docker-publish ─�
 
 ### docker-publish
 
-This job runs only on Linux when not a dry run, with `packages: write` permission.
+This job runs only on Linux when not a dry run, with `packages: write` (GHCR push) plus `id-token: write` + `attestations: write` (attestation signing).
 
 1. Logs in to GHCR, and to Docker Hub only if `DOCKERHUB_USERNAME` is set (so fork PRs and credential-less runs still build anonymously).
 2. Derives tags from `docker/metadata-action`: `type=sha`, the full semver, `major.minor`, and a raw `latest` tag enabled **only when the release is not a prerelease**.
-3. Builds and pushes the `runtime` target to GHCR (and Docker Hub when credentials are present), wrapped in a bounded retry (up to 3 attempts) so a transient Docker Hub CDN timeout does not fail the release.
-4. Runs a post-push smoke test: pulls the GHCR image and asserts `--version` contains the resolved version. Because `buildx build --push` pushes straight to the registry, this genuinely exercises the published artifact rather than a local cache.
+3. Builds and pushes the `runtime` target to GHCR (and Docker Hub when credentials are present), wrapped in a bounded retry (up to 3 attempts) so a transient Docker Hub CDN timeout does not fail the release. `--metadata-file` records the pushed image-index digest.
+4. **Attests the image by digest:** a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (`actions/attest-build-provenance`, Sigstore/OIDC) and an SPDX **SBOM** attestation (`anchore/sbom-action` → `actions/attest-sbom`), both `push-to-registry: true` so they attach to the image in GHCR. Attesting by digest (not tag) binds the proof to the exact bytes pushed.
+5. Runs a post-push smoke test: pulls the GHCR image and asserts `--version` contains the resolved version. Because `buildx build --push` pushes straight to the registry, this genuinely exercises the published artifact rather than a local cache.
 
 ### github-release
 
-This job runs only when not a dry run, with `contents: write` permission.
+This job runs only when not a dry run, with `contents: write` (tag + release) plus `id-token: write` + `attestations: write` (attestation signing).
 
 1. For a `workflow_dispatch` build, it pushes the resolved tag to `origin` at the end — the tag is created here, not at the start.
 2. Downloads every `packages-*` artifact from `build-packages` (`merge-multiple: true`).
-3. Runs `gh release create <tag> --generate-notes`, adding `--prerelease` when the release is a prerelease, and attaches the downloaded package files.
+3. **GPG-signs the artifacts** (gated on `REPO_GPG_PRIVATE_KEY`, the repo-signing key): a detached `.asc` per binary, a signed `SHA512SUMS` manifest, and the exported public key, all added to the release. No-ops if the key is unset.
+4. **Attests the packages:** a keyless build-provenance attestation and an SPDX SBOM attestation over the shipped binaries (the SBOM is also uploaded as a release asset). Verified by consumers with `gh attestation verify <file> --repo iainchesworth/aqualink-automate`.
+5. Runs `gh release create <tag> --generate-notes`, adding `--prerelease` when the release is a prerelease, and attaches the downloaded package files, signatures, checksums, and SBOM.
+
+Both attestation mechanisms are described end-to-end for consumers in [SECURITY.md > Verifying build authenticity](SECURITY.md#verifying-build-authenticity).
 
 See [docs/releasing.md](releasing.md) for the operator-facing release walkthrough.
 

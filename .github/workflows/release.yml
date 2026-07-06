@@ -27,8 +27,10 @@ concurrency:
 
 # Least-privilege default: jobs inherit read-only access to the repo contents and
 # must opt in to anything more. Each job below grants only the extra scope it needs
-# (docker-publish: packages:write for GHCR; github-release / cleanup: contents:write
-# to push tags + create releases). The reusable publish-repos.yml declares its own.
+# (docker-publish: packages:write for GHCR + id-token/attestations:write to sign the
+# image provenance + SBOM attestations; github-release: contents:write to push tags +
+# create releases, plus id-token/attestations:write for the package attestations;
+# cleanup: contents:write). The reusable publish-repos.yml declares its own.
 permissions:
   contents: read
 
@@ -151,8 +153,10 @@ jobs:
     if: needs.resolve-version.outputs.is_dry_run != 'true'
     runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
     permissions:
-      contents: read    # checkout the source
-      packages: write   # push the runtime image to GHCR
+      contents: read      # checkout the source
+      packages: write     # push the runtime image to GHCR
+      id-token: write     # OIDC token for keyless Sigstore attestation signing
+      attestations: write # write the build-provenance + SBOM attestations
     # Surfaced so the "Login to Docker Hub" step's `if:` can gate on the optional
     # secret being present (the `secrets` context is not usable in step-level
     # `if`). Only the username is exposed; the token is referenced directly in the
@@ -252,12 +256,56 @@ jobs:
           retry_wait_seconds: 30
           retry_on: error
           command: |
-            cmd=(docker buildx build --target runtime-assembled --platform linux/amd64,linux/arm64 --push)
+            cmd=(docker buildx build --target runtime-assembled --platform linux/amd64,linux/arm64 --push --metadata-file "$RUNNER_TEMP/docker-meta.json")
             while IFS= read -r tag;   do [ -n "$tag" ]   && cmd+=(--tag   "$tag");   done <<< "${IMAGE_TAGS}"
             while IFS= read -r label; do [ -n "$label" ] && cmd+=(--label "$label"); done <<< "${IMAGE_LABELS}"
             cmd+=(.)
             printf 'Running:'; printf ' %q' "${cmd[@]}"; echo
             "${cmd[@]}"
+
+      # Read the image-index digest buildx recorded in --metadata-file. Attesting by
+      # digest (not tag) binds the provenance to the exact bytes that were pushed, so
+      # a later tag move can't silently re-point at an unattested image. Parsed with
+      # grep (not jq) so this also works on a self-hosted runner without jq.
+      - name: Capture pushed image digest
+        id: digest
+        run: |
+          set -euo pipefail
+          DIGEST="$(grep -oE '"containerimage.digest"[[:space:]]*:[[:space:]]*"sha256:[0-9a-f]+"' "$RUNNER_TEMP/docker-meta.json" | grep -oE 'sha256:[0-9a-f]+' | head -1)"
+          case "$DIGEST" in
+            sha256:*) : ;;
+            *) echo "::error::Could not read the image digest from buildx metadata"; cat "$RUNNER_TEMP/docker-meta.json"; exit 1 ;;
+          esac
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Published image digest: $DIGEST"
+
+      # Keyless SLSA build-provenance attestation, signed via Sigstore/Fulcio using
+      # the job's OIDC identity (no private key to manage). `push-to-registry` attaches
+      # the attestation to the image in GHCR so `gh attestation verify oci://...` and
+      # `cosign`-style tooling can find it. See docs/SECURITY.md > Verifying builds.
+      - name: Attest image build provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true
+
+      # SBOM of the published multi-arch image (scans the image by digest → SPDX).
+      - name: Generate image SBOM (SPDX)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ghcr.io/${{ github.repository }}@${{ steps.digest.outputs.digest }}
+          format: spdx-json
+          output-file: ${{ runner.temp }}/image.spdx.json
+          upload-artifact: false
+
+      - name: Attest image SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          sbom-path: ${{ runner.temp }}/image.spdx.json
+          push-to-registry: true
 
       # Verify the image we just published is actually pullable from GHCR and
       # runs. `buildx build --push` pushes straight to the registry without loading
@@ -302,7 +350,14 @@ jobs:
     if: needs.resolve-version.outputs.is_dry_run != 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write      # push the tag + create the release
+      id-token: write      # OIDC token for keyless Sigstore attestation signing
+      attestations: write  # write the build-provenance + SBOM attestations
+    # Surface the signing key's presence so the GPG-sign step can gate on it (the
+    # `secrets` context is not usable in a step-level `if`). Same key/pattern the
+    # publish-repos workflow uses; the step no-ops if the secret is unset.
+    env:
+      HAVE_GPG_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY != '' && 'true' || 'false' }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -321,6 +376,82 @@ jobs:
           path: release-artifacts
           pattern: packages-*
           merge-multiple: true
+
+      # GPG-sign every shipped artifact with the project key (the same
+      # REPO_GPG_PRIVATE_KEY that signs the APT/DNF repos). Produces a detached
+      # armored `.asc` beside each binary, plus a signed SHA512SUMS manifest, and
+      # exports the public key as a release asset so users can verify offline without
+      # trusting GitHub. No-ops if the key is unset (safe before the secret exists).
+      # This is the pin-to-a-human-identity complement to the keyless attestations
+      # below; see docs/SECURITY.md > Verifying builds.
+      - name: GPG-sign release artifacts
+        if: env.HAVE_GPG_KEY == 'true'
+        env:
+          GPG_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+          REPO_GPG_PASSPHRASE: ${{ secrets.REPO_GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          echo "$GPG_KEY" | gpg --batch --import
+          KEYID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec:/ {print $5; exit}')
+          # Allow loopback pinentry so a passphrase-protected key signs non-interactively.
+          mkdir -p "$HOME/.gnupg"; chmod 700 "$HOME/.gnupg"
+          grep -qxF 'allow-loopback-pinentry' "$HOME/.gnupg/gpg-agent.conf" 2>/dev/null \
+            || echo 'allow-loopback-pinentry' >> "$HOME/.gnupg/gpg-agent.conf"
+          gpgconf --kill gpg-agent || true
+          gpg --armor --export "$KEYID" > release-artifacts/aqualink-automate-signing-key.asc
+          cd release-artifacts
+          shopt -s nullglob
+          artifacts=( *.deb *.rpm *.tar.gz *.zip *.exe *.dmg )
+          if [ ${#artifacts[@]} -eq 0 ]; then echo "::error::No release artifacts to sign"; exit 1; fi
+          # Aggregate SHA-512 manifest over every shipped binary, then one detached
+          # signature that covers all of them (standard release practice), plus a
+          # per-binary detached signature for direct verification.
+          : > SHA512SUMS
+          for f in "${artifacts[@]}"; do sha512sum "$f" >> SHA512SUMS; done
+          sign() { gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --armor --detach-sign "$1" 3<<<"$REPO_GPG_PASSPHRASE"; }
+          sign SHA512SUMS
+          for f in "${artifacts[@]}"; do sign "$f"; done
+          # Fail the release if the manifest signature does not verify.
+          gpg --verify SHA512SUMS.asc SHA512SUMS
+          echo "Signed ${#artifacts[@]} artifacts + SHA512SUMS with key $KEYID"
+
+      # Keyless SLSA build-provenance attestation over the shipped binaries (NOT the
+      # .asc/.sha512/SBOM sidecars). Signed via Sigstore/Fulcio using the job's OIDC
+      # identity; verified with `gh attestation verify <file> --repo <owner>/<repo>`.
+      - name: Attest package build provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-path: |
+            release-artifacts/*.deb
+            release-artifacts/*.rpm
+            release-artifacts/*.tar.gz
+            release-artifacts/*.zip
+            release-artifacts/*.exe
+            release-artifacts/*.dmg
+
+      # One aggregate SPDX SBOM over the release artifact set, shipped as a release
+      # asset and attested to each package subject. (The per-image SBOM produced in
+      # docker-publish is the authoritative one for the container; this covers the
+      # loose downloads.)
+      - name: Generate release SBOM (SPDX)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: release-artifacts
+          format: spdx-json
+          output-file: release-artifacts/aqualink-automate-${{ needs.resolve-version.outputs.version }}.spdx.json
+          upload-artifact: false
+
+      - name: Attest package SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
+        with:
+          subject-path: |
+            release-artifacts/*.deb
+            release-artifacts/*.rpm
+            release-artifacts/*.tar.gz
+            release-artifacts/*.zip
+            release-artifacts/*.exe
+            release-artifacts/*.dmg
+          sbom-path: release-artifacts/aqualink-automate-${{ needs.resolve-version.outputs.version }}.spdx.json
 
       - name: Create GitHub Release
         env:

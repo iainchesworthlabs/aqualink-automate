@@ -63,7 +63,16 @@ from the [GitHub Releases](https://github.com/iainchesworth/aqualink-automate/re
 | Linux    | `.deb`, `.rpm`, `.tgz` | Built for **`amd64`** and **`arm64`** (Raspberry Pi 3/4/5 and other aarch64 hosts on a 64-bit OS). Pick the package matching your architecture (`dpkg --print-architecture` / `uname -m`), then install the `.deb`/`.rpm` with your package manager or unpack the `.tgz`. |
 | macOS    | `.dmg`, `.tgz` | Open the disk image and drag the app across, or unpack the `.tgz`. |
 
-Every release artifact ships with a matching `.sha512` checksum file. Verify the download before installing.
+Every release artifact ships with a matching `.sha512` checksum file, a keyless
+build-provenance attestation, and (when the signing key is configured) a GPG
+signature. **Verify the download before installing** so you know it came from this
+project's pipeline and not a tampered build:
+
+```bash
+gh attestation verify <downloaded-file> --repo iainchesworth/aqualink-automate
+```
+
+See [SECURITY.md > Verifying build authenticity](SECURITY.md#verifying-build-authenticity) for GPG and container-image verification.
 
 After installing, head to [Configuration reference](configuration.md) for every CLI flag and config-file key, and [Usage and API](usage-and-api.md) for what to do next.
 

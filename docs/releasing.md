@@ -160,7 +160,10 @@ Each release includes:
 | macOS    | `.tgz`, `.dmg`               |
 
 Additionally:
-- **Checksums**: `.sha512` files for every package (`CPACK_PACKAGE_CHECKSUM SHA512`).
+- **Checksums**: `.sha512` files for every package (`CPACK_PACKAGE_CHECKSUM SHA512`), plus an aggregate `SHA512SUMS` manifest.
+- **GPG signatures**: a detached armored `.asc` beside every binary, a signed `SHA512SUMS.asc`, and the exported public key `aqualink-automate-signing-key.asc` — produced with the same `REPO_GPG_PRIVATE_KEY` that signs the APT/DNF repos. Skipped if that secret is unset.
+- **Build-provenance attestations**: keyless SLSA provenance (Sigstore/OIDC) for every package and the Docker image, proving they were built by this repo's release workflow from this commit. See [Verifying a download](#verifying-a-download).
+- **SBOM**: an SPDX SBOM for the release artifacts and one for the Docker image, each attached as a signed SBOM attestation (the image SBOM is also pushed to GHCR).
 - **Bundled runtime libraries**: the vcpkg-provided shared libraries ship inside each package (private lib dir with RPATH/loader-path), so the binary runs without a separate dependency install.
 - **Example configs**: the `examples/*.conf` files are bundled in each package.
 - **Docker image**: Published to `ghcr.io/<owner>/aqualink-automate`. Each release publishes:
@@ -178,6 +181,42 @@ Additionally:
 These packages are produced by CPack via the matching `pack-*` presets. `pack-*` presets exist only for the **Release** configure presets (those with no `-debug`/`-coverage` suffix), so swap the `config-` prefix for `pack-` only on a Release preset — for example `config-linux-gcc` → `pack-linux-gcc`. See [INSTALL.md](INSTALL.md) for the local pack-* preset workflow.
 
 The Docker image is **multi-arch** (`linux/amd64` + `linux/arm64`) — a single tag serves both, so a Raspberry Pi pulls the arm64 variant automatically.
+
+## Verifying a download
+
+Every release artifact carries two independent proofs of origin, so a user can
+confirm a download really came from this project's pipeline and was not swapped
+for a poisoned build. See [SECURITY.md > Verifying build authenticity](SECURITY.md#verifying-build-authenticity)
+for the user-facing walkthrough; in short:
+
+- **Build provenance (keyless, always on).** Attested with Sigstore via the
+  workflow's GitHub OIDC identity — no key to leak. Verify with the GitHub CLI:
+
+  ```bash
+  # A downloaded package (offline bytes on disk)
+  gh attestation verify aqualink-automate_<version>_amd64.deb \
+    --repo iainchesworth/aqualink-automate
+
+  # The container image (by tag or digest)
+  gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:<version> \
+    --repo iainchesworth/aqualink-automate
+  ```
+
+  A pass prints the workflow, commit and repository that produced the artifact.
+
+- **GPG signature (human identity).** Present only when `REPO_GPG_PRIVATE_KEY`
+  is configured. Import the release public key once, then verify the manifest (or
+  any single binary):
+
+  ```bash
+  gpg --import aqualink-automate-signing-key.asc
+  gpg --verify SHA512SUMS.asc SHA512SUMS && sha512sum -c SHA512SUMS
+  # or a single file:
+  gpg --verify aqualink-automate_<version>_amd64.deb.asc aqualink-automate_<version>_amd64.deb
+  ```
+
+The two are complementary: provenance ties the bytes to *this repository and
+build*, the GPG signature ties them to *the maintainer's key*.
 
 ## Package repositories (APT + DNF)
 

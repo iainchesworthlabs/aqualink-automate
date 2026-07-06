@@ -63,6 +63,15 @@ cd aqualink-automate
 
 For pre-built binaries, dev containers, Docker deployment, and the full build-from-source walkthrough, see [INSTALL.md](docs/INSTALL.md).
 
+Every release binary and container image carries a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (and a GPG signature), so you can confirm a download really came from this pipeline and not a tampered build:
+
+```bash
+gh attestation verify <downloaded-file> --repo iainchesworth/aqualink-automate
+gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:<version> --repo iainchesworth/aqualink-automate
+```
+
+See [SECURITY.md > Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity) for the full walkthrough.
+
 ## Documentation
 
 📖 **[Read the documentation online](https://iainchesworth.github.io/aqualink-automate/)** — the same guides below, rendered and searchable.
