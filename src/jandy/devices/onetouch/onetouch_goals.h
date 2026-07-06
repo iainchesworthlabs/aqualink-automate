@@ -4,9 +4,11 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "devices/onetouch/onetouch_keypad.h"
 #include "navigation/menu_model.h"
+#include "scheduling/controller_schedule.h"
 
 namespace AqualinkAutomate::Devices::OneTouch
 {
@@ -135,6 +137,76 @@ namespace AqualinkAutomate::Devices::OneTouch
 		uint32_t m_StepCount{ 0 };
 		uint32_t m_CursorStuck{ 0 };
 		std::optional<std::string> m_PickerFirstSeen;   // wrap detection while cycling the picker
+	};
+
+	// Which controller-schedule write a ScheduleWriteGoal performs.
+	enum class ScheduleWriteOp
+	{
+		Create,   // add a new program on an equipment (Add Program -> editor)
+		Delete,   // remove an equipment's program (Delete Program row -> immediate, no confirm)
+		Edit,     // change an equipment's program (Change Program -> editor, pre-filled)
+	};
+
+	// Controller-schedule WRITE (ControllerScheduleWriter): walk the Program menu to the target
+	// equipment's detail page, then drive the Add/Change editor (closed-loop field stepping, the
+	// active field tracked by the phase progression since the editor has NO field cursor) or Select
+	// the Delete row, and finally re-parse the returned detail page to Verify. Screen-driven after
+	// the Program menu. RE'd from captures/onetouch_program.cap; see docs/onetouch_schedule_protocol.md.
+	class ScheduleWriteGoal : public IKeypadGoal
+	{
+	public:
+		ScheduleWriteGoal(ScheduleWriteOp op, Scheduling::ControllerSchedule program, std::string desc);
+
+		GoalStatus Step(KeypadContext& ctx) override;
+		std::string_view Description() const override { return m_Desc; }
+
+	private:
+		enum class Phase
+		{
+			ToProgramMenu,   // Navigator drives to the Program equipment-list page
+			SelectEquipment, // scroll the list to the target equipment, cursor onto it, Select
+			ChooseAction,    // on the detail page, cursor onto Add/Change and Select, or Delete row
+			EnterEditor,     // wait for the editor to render, then begin field entry
+			SetOnHour,       // closed-loop step the ON hour, Select to advance
+			SetOnMinute,     // closed-loop step the ON minute, Select to advance
+			SetOffHour,      // closed-loop step the OFF hour, Select to advance
+			SetOffMinute,    // closed-loop step the OFF minute, Select to advance
+			SetDays,         // step the days wheel, Select -> SAVES + returns to detail
+			Verify,          // re-parse the returned detail page; confirm the program is present
+			VerifyGone,      // (delete) confirm the detail page now shows "No Programs"
+		};
+
+		static constexpr uint32_t STEP_LIMIT{ 900 };   // menu walk + list scroll + full field entry
+		static constexpr uint32_t MAX_STEP{ 40 };      // per-field wheel-step / list-scroll bound
+		// Editor line layout (verified vs captures/onetouch_program.cap): title on 1, ON on 3, OFF
+		// on 4, days on 5. Detail-page action rows: Add on 9, Delete on 10, Change on 11.
+		static constexpr uint8_t TITLE_LINE{ 1 };
+		static constexpr uint8_t ON_LINE{ 3 };
+		static constexpr uint8_t OFF_LINE{ 4 };
+		static constexpr uint8_t DAYS_LINE{ 5 };
+		static constexpr uint8_t ADD_ROW{ 9 };
+		static constexpr uint8_t DELETE_ROW{ 10 };
+		static constexpr uint8_t CHANGE_ROW{ 11 };
+
+		// True when the current page is the per-equipment Program detail page (vs the equipment LIST).
+		bool OnDetailPage(const KeypadContext& ctx) const;
+		// True when the current page is the Add/Change editor.
+		bool OnEditorPage(const KeypadContext& ctx) const;
+		// Read the on-screen ON/OFF time row into 24-hour (hour, minute); reuses the read-path parser.
+		std::optional<std::pair<int, int>> DisplayedTime(const KeypadContext& ctx, uint8_t line) const;
+		// Read the on-screen days row into a DayMask value; reuses the read-path parser.
+		std::optional<uint8_t> DisplayedDays(const KeypadContext& ctx, uint8_t line) const;
+		// Closed-loop hour/minute wheel steppers: nullopt = keep running, Failed = abandon.
+		std::optional<GoalStatus> StepHour(KeypadContext& ctx, uint8_t line, int target_hour, Phase next);
+		std::optional<GoalStatus> StepMinute(KeypadContext& ctx, uint8_t line, int target_minute, Phase next);
+
+		ScheduleWriteOp m_Op;
+		Scheduling::ControllerSchedule m_Program;   // the program to write (create/edit) / locate (delete)
+		std::string m_Desc;
+		Phase m_Phase{ Phase::ToProgramMenu };
+		bool m_Started{ false };
+		uint32_t m_StepCount{ 0 };   // overall frame backstop
+		uint32_t m_FieldStep{ 0 };   // per-field wheel-step / list-scroll bound
 	};
 
 }

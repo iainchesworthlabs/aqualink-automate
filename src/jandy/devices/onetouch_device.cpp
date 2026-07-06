@@ -158,7 +158,6 @@ namespace AqualinkAutomate::Devices
 			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> normal_operation", std::source_location::current());
 			LogTrace(Channel::Devices, std::format("OneTouch ({}): Processing NormalOperation state", DeviceId()));
 			ServiceActiveGoal();
-			ControllerScheduleWrite_ProcessStep();
 			SetpointRefresh_ProcessStep();
 			break;
 		}
@@ -444,21 +443,7 @@ namespace AqualinkAutomate::Devices
 	bool OneTouchDevice::GoalInProgress() const
 	{
 		return m_Runner.HasActiveGoal()
-			|| m_ScheduleWriteInProgress
-			|| m_PendingScheduleWrite.has_value()
 			|| m_RefreshInProgress;
-	}
-
-	bool OneTouchDevice::MoveCursorToward(uint8_t target_line)
-	{
-		if (m_HighlightedLine == target_line) { return true; }
-		if (m_HighlightedLine == Navigation::Navigator::CURSOR_LINE_NONE)
-		{
-			m_KeyCommand_ToSend = KeyCommands::LineDown;   // establish a cursor first
-			return false;
-		}
-		m_KeyCommand_ToSend = (m_HighlightedLine < target_line) ? KeyCommands::LineDown : KeyCommands::LineUp;
-		return false;
 	}
 
 	std::optional<Capabilities::ActuationResult> OneTouchDevice::ReasonCannotActuate(std::string_view what) const
@@ -696,51 +681,11 @@ namespace AqualinkAutomate::Devices
 	// captures/onetouch_program.cap; see docs/onetouch_schedule_protocol.md.
 	//=========================================================================
 
-	std::optional<std::pair<int, int>> OneTouchDevice::DisplayedTime(uint8_t line_id) const
-	{
-		const auto& page = DisplayedPage();
-		if (line_id >= page.Size())
-		{
-			return std::nullopt;
-		}
-
-		// The read-path parser already knows how to turn an "ON  11:00 AM" / "OFF  2:00 PM" row into a
-		// 24-hour (hour, minute). Reuse it by handing the line to ParseProgramDetailLines shaped as a
-		// minimal detail page (target on 0, ON on 3, OFF on 4, All Days on 5) and reading back the
-		// field we asked for. This keeps ONE 12h->24h decode (no duplicate meridiem logic here).
-		std::vector<std::string> lines(6, std::string{});
-		lines[0] = "X";              // non-empty target so the parse is not rejected
-		lines[3] = "ON  1:00 AM";    // placeholder for the row we are NOT reading
-		lines[4] = "OFF 1:00 AM";
-		lines[5] = "All Days";
-		const uint8_t slot = (line_id == ONETOUCH_SCHEDULE_OFF_LINE) ? 4 : 3;
-		lines[slot] = page[line_id].Text;
-
-		const auto parsed = OneTouch::ParseProgramDetailLines(lines);
-		if (!parsed.has_value())
-		{
-			return std::nullopt;
-		}
-		return (slot == 4)
-			? std::pair<int, int>{ parsed->off_hour, parsed->off_minute }
-			: std::pair<int, int>{ parsed->on_hour, parsed->on_minute };
-	}
-
-	std::optional<uint8_t> OneTouchDevice::DisplayedDays(uint8_t line_id) const
-	{
-		const auto& page = DisplayedPage();
-		if (line_id >= page.Size())
-		{
-			return std::nullopt;
-		}
-		return OneTouch::ParseDaysRow(page[line_id].Text);
-	}
-
-	Capabilities::ActuationResult OneTouchDevice::QueueScheduleWrite(ScheduleWriteGoal goal)
+	Capabilities::ActuationResult OneTouchDevice::QueueScheduleWrite(OneTouch::ScheduleWriteOp op, const Scheduling::ControllerSchedule& program, std::string desc)
 	{
 		// Passive/suppressed or in a dead-end fault state: refuse honestly (a queued goal would be
 		// stranded) so the dispatcher can fall back to another writer.
-		if (auto reason = ReasonCannotActuate(goal.desc); reason.has_value())
+		if (auto reason = ReasonCannotActuate(desc); reason.has_value())
 		{
 			return reason.value();
 		}
@@ -748,16 +693,12 @@ namespace AqualinkAutomate::Devices
 		// One goal at a time on the single shared keypad.
 		if (GoalInProgress())
 		{
-			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting {}", DeviceId(), goal.desc));
+			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting {}", DeviceId(), desc));
 			return Capabilities::ActuationResult::NotSupported;
 		}
 
-		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued {}", DeviceId(), goal.desc));
-		m_PendingScheduleWrite = std::move(goal);
-		m_ScheduleWritePhase = ScheduleWritePhase::ToProgramMenu;
-		m_ScheduleWriteInProgress = false;
-		m_ScheduleWriteStepCount = 0;
-		m_ScheduleWriteFieldStep = 0;
+		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued {}", DeviceId(), desc));
+		m_Runner.TryStart(std::make_unique<OneTouch::ScheduleWriteGoal>(op, program, std::move(desc)));
 		return Capabilities::ActuationResult::Accepted;
 	}
 
@@ -778,11 +719,7 @@ namespace AqualinkAutomate::Devices
 			return Capabilities::ActuationResult::InvalidValue;
 		}
 
-		ScheduleWriteGoal goal;
-		goal.op = ScheduleWriteOp::Create;
-		goal.program = program;
-		goal.desc = std::format("create controller program '{}'", program.target);
-		return QueueScheduleWrite(std::move(goal));
+		return QueueScheduleWrite(OneTouch::ScheduleWriteOp::Create, program, std::format("create controller program '{}'", program.target));
 	}
 
 	Capabilities::ActuationResult OneTouchDevice::DeleteControllerProgram(const Scheduling::ControllerSchedule& program)
@@ -799,12 +736,7 @@ namespace AqualinkAutomate::Devices
 			return Capabilities::ActuationResult::InvalidValue;
 		}
 
-		ScheduleWriteGoal goal;
-		goal.op = ScheduleWriteOp::Delete;
-		goal.program = program;
-		goal.match = program;   // SelectEquipment locates the equipment by target
-		goal.desc = std::format("delete controller program '{}'", program.target);
-		return QueueScheduleWrite(std::move(goal));
+		return QueueScheduleWrite(OneTouch::ScheduleWriteOp::Delete, program, std::format("delete controller program '{}'", program.target));
 	}
 
 	Capabilities::ActuationResult OneTouchDevice::EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired)
@@ -827,292 +759,10 @@ namespace AqualinkAutomate::Devices
 			return Capabilities::ActuationResult::InvalidValue;
 		}
 
-		ScheduleWriteGoal goal;
-		goal.op = ScheduleWriteOp::Edit;
-		goal.program = desired;    // the field phases set from goal.program; Verify matches it
-		goal.match = existing;     // SelectEquipment locates the equipment by target
-		goal.desc = std::format("edit controller program '{}'", existing.target);
-		return QueueScheduleWrite(std::move(goal));
+		// The field phases + Verify use the desired program; it locates the same equipment by target.
+		return QueueScheduleWrite(OneTouch::ScheduleWriteOp::Edit, desired, std::format("edit controller program '{}'", existing.target));
 	}
 
-	void OneTouchDevice::ControllerScheduleWrite_ProcessStep()
-	{
-		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ControllerScheduleWrite_ProcessStep", std::source_location::current());
-
-		if (!m_PendingScheduleWrite.has_value() || !m_Navigator)
-		{
-			return;
-		}
-		const ScheduleWriteGoal& goal = m_PendingScheduleWrite.value();
-
-		auto finish = [&](bool ok)
-		{
-			if (ok) { LogInfo(Channel::Devices, std::format("OneTouch ({}): {} completed", DeviceId(), goal.desc)); }
-			else    { LogWarning(Channel::Devices, std::format("OneTouch ({}): {} abandoned", DeviceId(), goal.desc)); }
-			m_Navigator->Reset();
-			m_PendingScheduleWrite.reset();
-			m_ScheduleWritePhase = ScheduleWritePhase::ToProgramMenu;
-			m_ScheduleWriteInProgress = false;
-			m_ScheduleWriteFieldStep = 0;
-		};
-
-		// Frame backstop so a mis-detected page can never wedge NormalOperation.
-		if (m_ScheduleWriteInProgress)
-		{
-			if (++m_ScheduleWriteStepCount > ONETOUCH_SCHEDULE_STEP_LIMIT)
-			{
-				LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", DeviceId(), goal.desc, ONETOUCH_SCHEDULE_STEP_LIMIT));
-				finish(false);
-				return;
-			}
-		}
-
-		const auto& page = DisplayedPage();
-		// Row-text read, case-insensitive compare and cursor stepping are shared helpers now:
-		// OneTouch::LineText / OneTouch::EqualsCaseInsensitive (onetouch_screen_reader.h) and the
-		// MoveCursorToward member.
-		// True when the current page is the per-equipment Program detail page rather than the Program
-		// equipment LIST. The LIST's line 0 is the "Program" title; the detail page's line 0 is the
-		// equipment name and it carries either "Pgm N of M" (line 2) or "No Programs" (line 4).
-		auto on_detail_page = [&]()
-		{
-			if (OneTouch::LineText(page,0).contains("Program")) { return false; }   // the LIST title
-			return OneTouch::LineText(page,2).contains("Pgm ")
-				|| OneTouch::LineText(page,4).contains("No Programs")
-				|| OneTouch::LineText(page,ONETOUCH_SCHEDULE_CHANGE_ROW).contains("Change");
-		};
-		// True when the current page is the Add/Change editor (title line 1 + the arrow-keys prompt).
-		auto on_editor_page = [&]()
-		{
-			const std::string title = OneTouch::LineText(page,ONETOUCH_SCHEDULE_TITLE_LINE);
-			return title.contains("New Program") || title.contains("Change Program");
-		};
-
-		// Step a 12h+meridiem hour wheel (24 positions) toward `target_hour` closed-loop: read the
-		// echoed value, emit ONE key the shorter way round, Select once matched. Advances to `next`.
-		auto step_hour = [&](uint8_t line, int target_hour, int target_minute, ScheduleWritePhase next)
-		{
-			if (!on_editor_page()) { return; }   // page mid-transition; wait
-			auto cur = DisplayedTime(line);
-			if (!cur.has_value()) { return; }    // value blanked mid-render; wait
-			if (cur->first == target_hour)
-			{
-				m_KeyCommand_ToSend = KeyCommands::Select;   // commit the hour, advance to the minute
-				m_ScheduleWritePhase = next;
-				m_ScheduleWriteFieldStep = 0;
-				(void)target_minute;
-				return;
-			}
-			if (++m_ScheduleWriteFieldStep > ONETOUCH_SCHEDULE_MAX_STEP) { finish(false); return; }
-			const int forward = ((target_hour - cur->first) + 24) % 24;   // steps if we go LineUp (+1/step)
-			m_KeyCommand_ToSend = (forward <= 12) ? KeyCommands::LineUp : KeyCommands::LineDown;
-		};
-		// Step a 0-59 minute wheel toward `target_minute` closed-loop, then Select to advance.
-		auto step_minute = [&](uint8_t line, int target_minute, ScheduleWritePhase next)
-		{
-			if (!on_editor_page()) { return; }
-			auto cur = DisplayedTime(line);
-			if (!cur.has_value()) { return; }
-			if (cur->second == target_minute)
-			{
-				m_KeyCommand_ToSend = KeyCommands::Select;
-				m_ScheduleWritePhase = next;
-				m_ScheduleWriteFieldStep = 0;
-				return;
-			}
-			if (++m_ScheduleWriteFieldStep > ONETOUCH_SCHEDULE_MAX_STEP) { finish(false); return; }
-			const int forward = ((target_minute - cur->second) + 60) % 60;
-			m_KeyCommand_ToSend = (forward <= 30) ? KeyCommands::LineUp : KeyCommands::LineDown;
-		};
-
-		switch (m_ScheduleWritePhase)
-		{
-		case ScheduleWritePhase::ToProgramMenu:
-		{
-			// Reuse the proven navigator to reach the Program equipment-list page (Menu/Help ->
-			// Program), then hand off to the screen-driven walk (the list scroll + detail + editor
-			// need bare content-driven cursoring the navigator's edge model does not express).
-			if (!m_ScheduleWriteInProgress)
-			{
-				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Program menu for {}", DeviceId(), goal.desc));
-				m_Navigator->NavigateTo(Navigation::PageId::Program);
-				m_ScheduleWriteInProgress = true;
-				m_ScheduleWriteStepCount = 0;
-			}
-
-			if (auto nav_cmd = m_Navigator->OnPageUpdate(page, m_HighlightedLine); nav_cmd.has_value())
-			{
-				m_KeyCommand_ToSend = ConvertNavKeyCommand(nav_cmd.value());
-			}
-
-			if (m_Navigator->IsComplete())
-			{
-				if (m_Navigator->IsSuccess())
-				{
-					m_Navigator->Reset();   // navigation done; the rest is screen-driven
-					m_ScheduleWriteFieldStep = 0;
-					m_ScheduleWritePhase = ScheduleWritePhase::SelectEquipment;
-				}
-				else
-				{
-					finish(false);
-				}
-			}
-			break;
-		}
-
-		case ScheduleWritePhase::SelectEquipment:
-		{
-			// On the Program equipment LIST (line 0 == "Program"): find the target equipment row
-			// (scrolling if below the fold), move the cursor onto it, Select -> its detail page.
-			// Guard against acting once the detail page has already rendered (a fast transition).
-			if (on_detail_page())
-			{
-				m_ScheduleWriteFieldStep = 0;
-				m_ScheduleWritePhase = ScheduleWritePhase::ChooseAction;
-				return;
-			}
-			if (auto line = OneTouch::FindLineStartingWith(page, goal.program.target); line.has_value() && line.value() != 0)
-			{
-				m_ScheduleWriteFieldStep = 0;
-				if (MoveCursorToward(line.value()))
-				{
-					m_KeyCommand_ToSend = KeyCommands::Select;
-					m_ScheduleWritePhase = ScheduleWritePhase::ChooseAction;
-				}
-			}
-			else
-			{
-				m_KeyCommand_ToSend = KeyCommands::LineDown;   // scroll the list to reveal the equipment
-				if (++m_ScheduleWriteFieldStep > ONETOUCH_SCHEDULE_MAX_STEP)
-				{
-					LogWarning(Channel::Devices, std::format("OneTouch ({}): equipment '{}' not found in the Program list", DeviceId(), goal.program.target));
-					finish(false);
-				}
-			}
-			break;
-		}
-
-		case ScheduleWritePhase::ChooseAction:
-		{
-			// On the per-equipment detail page. Delete: cursor to the Delete row (10) and Select ->
-			// immediate removal (NO confirm dialog). Create: cursor to Add (9); Edit: cursor to Change
-			// (11) -> the editor. An equipment with no program shows only Add, so Edit/Delete of a
-			// missing program simply can't find its row and the step backstop ends the goal cleanly.
-			if (!on_detail_page()) { break; }   // still transitioning -- wait
-
-			if (goal.op == ScheduleWriteOp::Delete)
-			{
-				// "No Programs" already? Nothing to delete -- treat as done.
-				if (OneTouch::LineText(page,4).contains("No Programs"))
-				{
-					finish(true);
-					break;
-				}
-				if (MoveCursorToward(ONETOUCH_SCHEDULE_DELETE_ROW))
-				{
-					m_KeyCommand_ToSend = KeyCommands::Select;   // immediate delete, no confirm
-					m_ScheduleWritePhase = ScheduleWritePhase::VerifyGone;
-				}
-				break;
-			}
-
-			if (const uint8_t action_row = (goal.op == ScheduleWriteOp::Edit) ? ONETOUCH_SCHEDULE_CHANGE_ROW : ONETOUCH_SCHEDULE_ADD_ROW; MoveCursorToward(action_row))
-			{
-				m_KeyCommand_ToSend = KeyCommands::Select;   // -> the editor
-				m_ScheduleWriteFieldStep = 0;
-				m_ScheduleWritePhase = ScheduleWritePhase::EnterEditor;
-			}
-			break;
-		}
-
-		case ScheduleWritePhase::EnterEditor:
-		{
-			// Wait for the Add/Change editor to render, then begin field entry at ON-hour. The panel
-			// reports NO field highlight in the editor, so the active field is tracked purely by the
-			// phase progression (each field's Select advances the phase).
-			if (on_editor_page())
-			{
-				m_ScheduleWriteFieldStep = 0;
-				m_ScheduleWritePhase = ScheduleWritePhase::SetOnHour;
-			}
-			break;
-		}
-
-		case ScheduleWritePhase::SetOnHour:
-			step_hour(ONETOUCH_SCHEDULE_ON_LINE, goal.program.on_hour, goal.program.on_minute, ScheduleWritePhase::SetOnMinute);
-			break;
-
-		case ScheduleWritePhase::SetOnMinute:
-			step_minute(ONETOUCH_SCHEDULE_ON_LINE, goal.program.on_minute, ScheduleWritePhase::SetOffHour);
-			break;
-
-		case ScheduleWritePhase::SetOffHour:
-			step_hour(ONETOUCH_SCHEDULE_OFF_LINE, goal.program.off_hour, goal.program.off_minute, ScheduleWritePhase::SetOffMinute);
-			break;
-
-		case ScheduleWritePhase::SetOffMinute:
-			step_minute(ONETOUCH_SCHEDULE_OFF_LINE, goal.program.off_minute, ScheduleWritePhase::SetDays);
-			break;
-
-		case ScheduleWritePhase::SetDays:
-		{
-			// Step the days wheel to the target selection, then Select -> the program SAVES and the
-			// panel returns to the detail page (there is no separate save opcode). Closed-loop on the
-			// echoed days row; the wheel is the controller-allowed set only, so a validated candidate
-			// (guaranteed by CheckControllerCandidate) is always reachable.
-			if (!on_editor_page()) { break; }
-			auto cur = DisplayedDays(ONETOUCH_SCHEDULE_DAYS_LINE);
-			if (!cur.has_value()) { break; }   // days row blanked mid-render; wait
-			if (cur.value() == (goal.program.days_of_week & OneTouch::DayMask::AllDays))
-			{
-				m_KeyCommand_ToSend = KeyCommands::Select;   // commit days -> SAVE -> detail page
-				m_ScheduleWritePhase = ScheduleWritePhase::Verify;   // Create/Edit only reach SetDays
-				m_ScheduleWriteFieldStep = 0;
-				break;
-			}
-			if (++m_ScheduleWriteFieldStep > ONETOUCH_SCHEDULE_MAX_STEP) { finish(false); break; }
-			m_KeyCommand_ToSend = KeyCommands::LineUp;   // cycle the days wheel (bounded)
-			break;
-		}
-
-		case ScheduleWritePhase::Verify:
-		{
-			// The program saved and the panel returned to the detail page. Re-parse it and confirm it
-			// now carries the target program (target + on/off + days). Dwell until it renders.
-			if (!on_detail_page()) { break; }
-			int idx = 0;
-			int count = 0;
-			if (const auto parsed = OneTouch::ParseProgramDetailPage(page, &idx, &count);
-				parsed.has_value()
-				&& OneTouch::EqualsCaseInsensitive(parsed->target, goal.program.target)
-				&& parsed->days_of_week == (goal.program.days_of_week & OneTouch::DayMask::AllDays)
-				&& parsed->on_hour == goal.program.on_hour && parsed->on_minute == goal.program.on_minute
-				&& parsed->off_hour == goal.program.off_hour && parsed->off_minute == goal.program.off_minute)
-			{
-				finish(true);
-			}
-			break;
-		}
-
-		case ScheduleWritePhase::VerifyGone:
-		{
-			// Delete complete once the detail page shows "No Programs" (or no longer parses as a
-			// program-detail with the deleted program). Dwell until the panel re-renders.
-			if (!on_detail_page()) { break; }
-			if (OneTouch::LineText(page,4).contains("No Programs"))
-			{
-				finish(true);
-				break;
-			}
-			if (const auto parsed = OneTouch::ParseProgramDetailPage(page); !parsed.has_value())
-			{
-				finish(true);
-			}
-			break;
-		}
-		}
-	}
 
 	void OneTouchDevice::Scraping_ProcessStep_StartUp()
 	{

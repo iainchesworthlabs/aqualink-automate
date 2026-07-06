@@ -14,6 +14,7 @@
 #include "devices/jandy_controller.h"
 #include "devices/jandy_device_types.h"
 #include "devices/chlorinator_setpoint_refresh.h"
+#include "devices/onetouch/onetouch_goals.h"
 #include "devices/onetouch/onetouch_keypad.h"
 #include "devices/onetouch/onetouch_screen_reader.h"
 #include "devices/capabilities/chlorinator_controller.h"
@@ -270,13 +271,6 @@ namespace AqualinkAutomate::Devices
 		// user command cannot interleave on the single shared Navigator.
 		void SetpointRefresh_ProcessStep();
 
-		// On-demand controller-schedule WRITE (ControllerScheduleWriter): service a single pending
-		// create/delete/edit goal in NormalOperation. Screen-driven phase machine that walks the
-		// Program menu to the target equipment's detail page, then either drives the Add/Change editor
-		// (closed-loop field stepping, field tracked by Select-count) or Selects the Delete row, and
-		// finally re-parses the returned detail page to Verify.
-		void ControllerScheduleWrite_ProcessStep();
-
 		// True when the DataHub chlorinator is reporting (ChlorinatorStatusTrait not Off/Unknown);
 		// the offline->online edge of this drives a one-shot recovery re-scrape.
 		bool DataHubChlorinatorOnline() const;
@@ -293,12 +287,6 @@ namespace AqualinkAutomate::Devices
 
 		// Convert Navigator key command to device KeyCommand
 		static KeyCommands ConvertNavKeyCommand(Navigation::NavKeyCommand nav_cmd);
-
-		// Queue a single cursor key (into m_KeyCommand_ToSend) to step the on-screen cursor toward
-		// 'target_line'; establishes a cursor first if none is highlighted. Returns true once the
-		// cursor already sits on the target (no key queued). Shared by the screen-driven spa-switch
-		// and schedule-write walks.
-		bool MoveCursorToward(uint8_t target_line);
 
 		// Shared precondition guard for accepting a keypad actuation goal: the device must be
 		// actively emulating and NOT in a dead-end fault state (the per-frame service steps run
@@ -340,68 +328,10 @@ namespace AqualinkAutomate::Devices
 		// mid-flight, then start a ValueEditGoal on the runner.
 		Capabilities::ActuationResult QueueValueEdit(Navigation::PageId page, uint8_t line, std::string label, int target, std::string desc);
 
-		// On-demand controller-schedule WRITE goal (one at a time). Set by the ControllerScheduleWriter
-		// methods, serviced by ControllerScheduleWrite_ProcessStep in NormalOperation. Screen-driven:
-		// each phase reads the current page and emits one key. Distinct from the value-edit because it
-		// crosses several pages (Menu/Help -> Program -> equipment list -> detail -> editor) and the
-		// editor has NO field-cursor highlight, so the active field is tracked by counting Selects.
-		// RE'd from captures/onetouch_program.cap; see docs/onetouch_schedule_protocol.md (write path).
-		enum class ScheduleWriteOp
-		{
-			Create,   // add a new program on an equipment (Add Program -> editor)
-			Delete,   // remove an equipment's program (Delete Program row -> immediate, no confirm)
-			Edit,     // change an equipment's program (Change Program -> editor, pre-filled)
-		};
-		enum class ScheduleWritePhase
-		{
-			ToProgramMenu,   // Navigator drives to the Program equipment-list page
-			SelectEquipment, // scroll the list until the target equipment is visible, cursor onto it, Select
-			ChooseAction,    // on the detail page, cursor onto Add/Change (create/edit) and Select, or Delete row
-			EnterEditor,     // waiting for the editor (New/Change Program) to render, then begin field entry
-			SetOnHour,       // closed-loop step the ON hour (12h+meridiem wheel), Select to advance
-			SetOnMinute,     // closed-loop step the ON minute (0-59 wrap), Select to advance
-			SetOffHour,      // closed-loop step the OFF hour, Select to advance
-			SetOffMinute,    // closed-loop step the OFF minute, Select to advance
-			SetDays,         // step the days wheel to the target selection, Select -> SAVES + returns to detail
-			Verify,          // re-parse the returned detail page; confirm the program is present (create/edit)
-			VerifyGone,      // (delete) confirm the detail page now shows "No Programs"
-		};
-		struct ScheduleWriteGoal
-		{
-			ScheduleWriteOp op{ ScheduleWriteOp::Create };
-			Scheduling::ControllerSchedule program;  // desired on/off + days to write (create/edit)
-			Scheduling::ControllerSchedule match;    // existing program to locate (delete/edit)
-			std::string desc;
-		};
-		inline static const uint32_t ONETOUCH_SCHEDULE_STEP_LIMIT{ 900 };  // menu walk + list scroll + full field entry
-		inline static const uint32_t ONETOUCH_SCHEDULE_MAX_STEP{ 40 };     // per-field wheel-step / list-scroll bound
-		// Editor line layout (verified vs captures/onetouch_program.cap): title on line 1
-		// ("New Program"/"Change Program"), ON on 3, OFF on 4, days on 5. Detail-page action rows:
-		// Add on 9, Delete on 10, Change on 11.
-		inline static const uint8_t ONETOUCH_SCHEDULE_TITLE_LINE{ 1 };
-		inline static const uint8_t ONETOUCH_SCHEDULE_ON_LINE{ 3 };
-		inline static const uint8_t ONETOUCH_SCHEDULE_OFF_LINE{ 4 };
-		inline static const uint8_t ONETOUCH_SCHEDULE_DAYS_LINE{ 5 };
-		inline static const uint8_t ONETOUCH_SCHEDULE_ADD_ROW{ 9 };
-		inline static const uint8_t ONETOUCH_SCHEDULE_DELETE_ROW{ 10 };
-		inline static const uint8_t ONETOUCH_SCHEDULE_CHANGE_ROW{ 11 };
-		std::optional<ScheduleWriteGoal> m_PendingScheduleWrite;
-		ScheduleWritePhase m_ScheduleWritePhase{ ScheduleWritePhase::ToProgramMenu };
-		bool m_ScheduleWriteInProgress{ false };
-		uint32_t m_ScheduleWriteStepCount{ 0 };   // overall frame backstop
-		uint32_t m_ScheduleWriteFieldStep{ 0 };   // per-field wheel-step / list-scroll bound
-
-		// Arm a schedule-write goal and reset the per-goal state. Shared body of the three
-		// ControllerScheduleWriter methods (validate emulation, feasibility, one-at-a-time gate).
-		Capabilities::ActuationResult QueueScheduleWrite(ScheduleWriteGoal goal);
-
-		// Read the on-screen ON/OFF time row ("ON  11:00 AM") into a 24-hour (hour, minute). Returns
-		// nullopt when the row is not a parseable time (page mid-render). Reuses the read-path parser.
-		std::optional<std::pair<int, int>> DisplayedTime(uint8_t line_id) const;
-
-		// Read the on-screen days row ("All Days"/"Weekdays"/...) into a DayMask value (nullopt when
-		// unparseable). Reuses the read-path ParseDaysRow.
-		std::optional<uint8_t> DisplayedDays(uint8_t line_id) const;
+		// Shared body of the three ControllerScheduleWriter capability methods (validate the device
+		// can actuate, reject if another goal is mid-flight, then start a ScheduleWriteGoal on the
+		// runner). The feasibility / emulation checks that precede it live in the capability methods.
+		Capabilities::ActuationResult QueueScheduleWrite(OneTouch::ScheduleWriteOp op, const Scheduling::ControllerSchedule& program, std::string desc);
 
 		// Proactive chlorinator-setpoint refresh (read-only Set AquaPure re-scrape). m_RefreshState
 		// holds the "when to scrape" policy; m_RefreshInProgress tracks an in-flight visit (counts

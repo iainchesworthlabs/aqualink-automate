@@ -1,8 +1,10 @@
 #include <format>
 #include <utility>
+#include <vector>
 
 #include "logging/logging.h"
 #include "devices/onetouch/onetouch_goals.h"
+#include "devices/onetouch/onetouch_schedule_parser.h"
 #include "devices/onetouch/onetouch_screen_reader.h"
 #include "formatters/jandy_device_formatters.h"
 #include "navigation/menu_model.h"
@@ -427,6 +429,302 @@ namespace AqualinkAutomate::Devices::OneTouch
 			// list, which then shows "S:B  <function>").
 			ctx.Emit(Navigation::NavKeyCommand::Select);
 			return GoalStatus::Done;
+		}
+		}
+
+		return GoalStatus::Running;
+	}
+
+	//=========================================================================
+	// Controller-schedule WRITE. RE'd from captures/onetouch_program.cap; see
+	// docs/onetouch_schedule_protocol.md (write path).
+	//=========================================================================
+
+	ScheduleWriteGoal::ScheduleWriteGoal(ScheduleWriteOp op, Scheduling::ControllerSchedule program, std::string desc) :
+		m_Op(op),
+		m_Program(std::move(program)),
+		m_Desc(std::move(desc))
+	{
+	}
+
+	bool ScheduleWriteGoal::OnDetailPage(const KeypadContext& ctx) const
+	{
+		// The LIST's line 0 is the "Program" title; the detail page's line 0 is the equipment name
+		// and it carries either "Pgm N of M" (line 2), "No Programs" (line 4), or a Change row.
+		if (LineText(ctx.page, 0).contains("Program")) { return false; }
+		return LineText(ctx.page, 2).contains("Pgm ")
+			|| LineText(ctx.page, 4).contains("No Programs")
+			|| LineText(ctx.page, CHANGE_ROW).contains("Change");
+	}
+
+	bool ScheduleWriteGoal::OnEditorPage(const KeypadContext& ctx) const
+	{
+		const std::string title = LineText(ctx.page, TITLE_LINE);
+		return title.contains("New Program") || title.contains("Change Program");
+	}
+
+	std::optional<std::pair<int, int>> ScheduleWriteGoal::DisplayedTime(const KeypadContext& ctx, uint8_t line) const
+	{
+		if (line >= ctx.page.Size())
+		{
+			return std::nullopt;
+		}
+
+		// Reuse the read-path parser: hand the line to ParseProgramDetailLines shaped as a minimal
+		// detail page and read back the field we asked for (ONE 12h->24h decode, no duplicate here).
+		std::vector<std::string> lines(6, std::string{});
+		lines[0] = "X";              // non-empty target so the parse is not rejected
+		lines[3] = "ON  1:00 AM";    // placeholder for the row we are NOT reading
+		lines[4] = "OFF 1:00 AM";
+		lines[5] = "All Days";
+		const uint8_t slot = (line == OFF_LINE) ? 4 : 3;
+		lines[slot] = ctx.page[line].Text;
+
+		const auto parsed = ParseProgramDetailLines(lines);
+		if (!parsed.has_value())
+		{
+			return std::nullopt;
+		}
+		return (slot == 4)
+			? std::pair<int, int>{ parsed->off_hour, parsed->off_minute }
+			: std::pair<int, int>{ parsed->on_hour, parsed->on_minute };
+	}
+
+	std::optional<uint8_t> ScheduleWriteGoal::DisplayedDays(const KeypadContext& ctx, uint8_t line) const
+	{
+		if (line >= ctx.page.Size())
+		{
+			return std::nullopt;
+		}
+		return ParseDaysRow(ctx.page[line].Text);
+	}
+
+	std::optional<GoalStatus> ScheduleWriteGoal::StepHour(KeypadContext& ctx, uint8_t line, int target_hour, Phase next)
+	{
+		// Step a 12h+meridiem hour wheel (24 positions) toward target_hour closed-loop: read the
+		// echoed value, emit ONE key the shorter way round, Select once matched. Advances to next.
+		if (!OnEditorPage(ctx)) { return std::nullopt; }   // page mid-transition; wait
+		auto cur = DisplayedTime(ctx, line);
+		if (!cur.has_value()) { return std::nullopt; }     // value blanked mid-render; wait
+		if (cur->first == target_hour)
+		{
+			ctx.Emit(Navigation::NavKeyCommand::Select);   // commit the hour, advance to the minute
+			m_Phase = next;
+			m_FieldStep = 0;
+			return std::nullopt;
+		}
+		if (++m_FieldStep > MAX_STEP) { return GoalStatus::Failed; }
+		const int forward = ((target_hour - cur->first) + 24) % 24;   // steps if we go LineUp (+1/step)
+		ctx.Emit((forward <= 12) ? Navigation::NavKeyCommand::LineUp : Navigation::NavKeyCommand::LineDown);
+		return std::nullopt;
+	}
+
+	std::optional<GoalStatus> ScheduleWriteGoal::StepMinute(KeypadContext& ctx, uint8_t line, int target_minute, Phase next)
+	{
+		// Step a 0-59 minute wheel toward target_minute closed-loop, then Select to advance.
+		if (!OnEditorPage(ctx)) { return std::nullopt; }
+		auto cur = DisplayedTime(ctx, line);
+		if (!cur.has_value()) { return std::nullopt; }
+		if (cur->second == target_minute)
+		{
+			ctx.Emit(Navigation::NavKeyCommand::Select);
+			m_Phase = next;
+			m_FieldStep = 0;
+			return std::nullopt;
+		}
+		if (++m_FieldStep > MAX_STEP) { return GoalStatus::Failed; }
+		const int forward = ((target_minute - cur->second) + 60) % 60;
+		ctx.Emit((forward <= 30) ? Navigation::NavKeyCommand::LineUp : Navigation::NavKeyCommand::LineDown);
+		return std::nullopt;
+	}
+
+	GoalStatus ScheduleWriteGoal::Step(KeypadContext& ctx)
+	{
+		// Frame backstop so a mis-detected page can never wedge NormalOperation.
+		if (m_Started && (++m_StepCount > STEP_LIMIT))
+		{
+			LogWarning(Channel::Devices, std::format("OneTouch ({}): {} exceeded {} steps - abandoning", ctx.DeviceId(), m_Desc, STEP_LIMIT));
+			return GoalStatus::Failed;
+		}
+
+		switch (m_Phase)
+		{
+		case Phase::ToProgramMenu:
+		{
+			// Reuse the proven navigator to reach the Program equipment-list page, then hand off to
+			// the screen-driven walk (the list scroll + detail + editor need bare content-driven
+			// cursoring the navigator's edge model does not express).
+			if (!m_Started)
+			{
+				LogInfo(Channel::Devices, std::format("OneTouch ({}): Navigating to Program menu for {}", ctx.DeviceId(), m_Desc));
+				ctx.navigator.NavigateTo(Navigation::PageId::Program);
+				m_Started = true;
+				m_StepCount = 0;
+			}
+
+			if (auto nav_cmd = ctx.navigator.OnPageUpdate(ctx.page, ctx.highlighted_line); nav_cmd.has_value())
+			{
+				ctx.Emit(nav_cmd.value());
+			}
+
+			if (ctx.navigator.IsComplete())
+			{
+				if (ctx.navigator.IsSuccess())
+				{
+					ctx.navigator.Reset();   // navigation done; the rest is screen-driven
+					m_FieldStep = 0;
+					m_Phase = Phase::SelectEquipment;
+				}
+				else
+				{
+					return GoalStatus::Failed;
+				}
+			}
+			break;
+		}
+
+		case Phase::SelectEquipment:
+		{
+			// On the Program equipment LIST: find the target equipment row (scrolling if below the
+			// fold), move the cursor onto it, Select -> its detail page. Guard against acting once
+			// the detail page has already rendered (a fast transition).
+			if (OnDetailPage(ctx))
+			{
+				m_FieldStep = 0;
+				m_Phase = Phase::ChooseAction;
+				return GoalStatus::Running;
+			}
+			if (auto line = FindLineStartingWith(ctx.page, m_Program.target); line.has_value() && (line.value() != 0))
+			{
+				m_FieldStep = 0;
+				if (ctx.MoveCursorToward(line.value()))
+				{
+					ctx.Emit(Navigation::NavKeyCommand::Select);
+					m_Phase = Phase::ChooseAction;
+				}
+			}
+			else
+			{
+				ctx.Emit(Navigation::NavKeyCommand::LineDown);   // scroll the list to reveal the equipment
+				if (++m_FieldStep > MAX_STEP)
+				{
+					LogWarning(Channel::Devices, std::format("OneTouch ({}): equipment '{}' not found in the Program list", ctx.DeviceId(), m_Program.target));
+					return GoalStatus::Failed;
+				}
+			}
+			break;
+		}
+
+		case Phase::ChooseAction:
+		{
+			// On the per-equipment detail page. Delete: cursor to the Delete row and Select ->
+			// immediate removal (NO confirm). Create: cursor to Add; Edit: cursor to Change -> editor.
+			if (!OnDetailPage(ctx)) { break; }   // still transitioning -- wait
+
+			if (m_Op == ScheduleWriteOp::Delete)
+			{
+				if (LineText(ctx.page, 4).contains("No Programs"))
+				{
+					return GoalStatus::Done;   // nothing to delete -- treat as done
+				}
+				if (ctx.MoveCursorToward(DELETE_ROW))
+				{
+					ctx.Emit(Navigation::NavKeyCommand::Select);   // immediate delete, no confirm
+					m_Phase = Phase::VerifyGone;
+				}
+				break;
+			}
+
+			if (const uint8_t action_row = (m_Op == ScheduleWriteOp::Edit) ? CHANGE_ROW : ADD_ROW; ctx.MoveCursorToward(action_row))
+			{
+				ctx.Emit(Navigation::NavKeyCommand::Select);   // -> the editor
+				m_FieldStep = 0;
+				m_Phase = Phase::EnterEditor;
+			}
+			break;
+		}
+
+		case Phase::EnterEditor:
+		{
+			// Wait for the Add/Change editor to render, then begin field entry at ON-hour. The panel
+			// reports NO field highlight, so the active field is tracked purely by phase progression.
+			if (OnEditorPage(ctx))
+			{
+				m_FieldStep = 0;
+				m_Phase = Phase::SetOnHour;
+			}
+			break;
+		}
+
+		case Phase::SetOnHour:
+			if (auto s = StepHour(ctx, ON_LINE, m_Program.on_hour, Phase::SetOnMinute); s.has_value()) { return s.value(); }
+			break;
+
+		case Phase::SetOnMinute:
+			if (auto s = StepMinute(ctx, ON_LINE, m_Program.on_minute, Phase::SetOffHour); s.has_value()) { return s.value(); }
+			break;
+
+		case Phase::SetOffHour:
+			if (auto s = StepHour(ctx, OFF_LINE, m_Program.off_hour, Phase::SetOffMinute); s.has_value()) { return s.value(); }
+			break;
+
+		case Phase::SetOffMinute:
+			if (auto s = StepMinute(ctx, OFF_LINE, m_Program.off_minute, Phase::SetDays); s.has_value()) { return s.value(); }
+			break;
+
+		case Phase::SetDays:
+		{
+			// Step the days wheel to the target selection, then Select -> the program SAVES and the
+			// panel returns to the detail page. Closed-loop on the echoed days row; a validated
+			// candidate (CheckControllerCandidate) is always reachable.
+			if (!OnEditorPage(ctx)) { break; }
+			auto cur = DisplayedDays(ctx, DAYS_LINE);
+			if (!cur.has_value()) { break; }   // days row blanked mid-render; wait
+			if (cur.value() == (m_Program.days_of_week & DayMask::AllDays))
+			{
+				ctx.Emit(Navigation::NavKeyCommand::Select);   // commit days -> SAVE -> detail page
+				m_Phase = Phase::Verify;
+				m_FieldStep = 0;
+				break;
+			}
+			if (++m_FieldStep > MAX_STEP) { return GoalStatus::Failed; }
+			ctx.Emit(Navigation::NavKeyCommand::LineUp);   // cycle the days wheel (bounded)
+			break;
+		}
+
+		case Phase::Verify:
+		{
+			// The program saved and the panel returned to the detail page. Re-parse it and confirm it
+			// now carries the target program (target + on/off + days). Dwell until it renders.
+			if (!OnDetailPage(ctx)) { break; }
+			int idx = 0;
+			int count = 0;
+			if (const auto parsed = ParseProgramDetailPage(ctx.page, &idx, &count);
+				parsed.has_value()
+				&& EqualsCaseInsensitive(parsed->target, m_Program.target)
+				&& parsed->days_of_week == (m_Program.days_of_week & DayMask::AllDays)
+				&& parsed->on_hour == m_Program.on_hour && parsed->on_minute == m_Program.on_minute
+				&& parsed->off_hour == m_Program.off_hour && parsed->off_minute == m_Program.off_minute)
+			{
+				return GoalStatus::Done;
+			}
+			break;
+		}
+
+		case Phase::VerifyGone:
+		{
+			// Delete complete once the detail page shows "No Programs" (or no longer parses as a
+			// program-detail). Dwell until the panel re-renders.
+			if (!OnDetailPage(ctx)) { break; }
+			if (LineText(ctx.page, 4).contains("No Programs"))
+			{
+				return GoalStatus::Done;
+			}
+			if (const auto parsed = ParseProgramDetailPage(ctx.page); !parsed.has_value())
+			{
+				return GoalStatus::Done;
+			}
+			break;
 		}
 		}
 
