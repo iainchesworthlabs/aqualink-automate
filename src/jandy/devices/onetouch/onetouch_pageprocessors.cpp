@@ -542,7 +542,19 @@ namespace AqualinkAutomate::Devices
 			Info:   OneTouch Menu Line 10 =
 			Info:   OneTouch Menu Line 11 =
 		*/
-		
+
+		// The REV page carries the same model/type/revision + pool configuration as the cold-start
+		// splash, so it shares PageProcessor_StartUp's decode. Previously this processor built the
+		// bodies of water with its own inline switch that never marked the active body; routing the
+		// build through DecodePanelConfiguration -> ApplyPoolConfiguration (as StartUp does) keeps
+		// the two call sites consistent.
+		DecodePanelConfiguration(page);
+	}
+
+	void OneTouchDevice::DecodePanelConfiguration(const Utility::ScreenDataPage& page)
+	{
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::DecodePanelConfiguration", std::source_location::current());
+
 		const auto model_number = Utility::TrimWhitespace(page[4].Text);
 		const auto panel_type = Utility::TrimWhitespace(page[5].Text);
 		const auto fw_revision = Utility::TrimWhitespace(page[7].Text);
@@ -570,24 +582,15 @@ namespace AqualinkAutomate::Devices
 		JandyController::m_DataHub->EquipmentVersions.Set("Type", panel_type);
 		JandyController::m_DataHub->EquipmentVersions.Set("Revision", fw_revision);
 
-		// Populate bodies if not already present (user config may have done this at startup).
+		// Populate bodies if not already present (user config may have built them at startup).
+		// Reaching here with no bodies means the user did NOT specify a configuration (otherwise
+		// startup would have built them), so this is the auto-detected path: source is Auto and a
+		// SingleBody is treated as pool-only (spa-only is user-signalled only). Body-building lives
+		// in ApplyPoolConfiguration so every call site (startup user-config, this REV/splash decode)
+		// stays consistent - including marking the active body.
 		if (JandyController::m_DataHub->Bodies().empty())
 		{
-			switch (JandyController::m_DataHub->PoolConfiguration)
-			{
-			case Kernel::PoolConfigurations::DualBody_SharedEquipment:
-			case Kernel::PoolConfigurations::DualBody_DualEquipment:
-				JandyController::m_DataHub->AddBody(Kernel::BodyOfWater{ Kernel::BodyOfWaterIds::Pool, "Pool" });
-				JandyController::m_DataHub->AddBody(Kernel::BodyOfWater{ Kernel::BodyOfWaterIds::Spa, "Spa" });
-				break;
-
-			case Kernel::PoolConfigurations::SingleBody:
-				JandyController::m_DataHub->AddBody(Kernel::BodyOfWater{ Kernel::BodyOfWaterIds::Pool, "Pool" });
-				break;
-
-			default:
-				break;
-			}
+			JandyController::m_DataHub->ApplyPoolConfiguration(JandyController::m_DataHub->PoolConfiguration, Kernel::ConfigurationSource::Auto);
 		}
 
 		LogInfo(Channel::Devices, [&model_number, &panel_type, &fw_revision]() { return std::format("Aqualink Power Center - Model: {}, Type: {}, Rev: {}", model_number, panel_type, fw_revision); });
