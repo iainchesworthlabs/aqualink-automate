@@ -3,6 +3,7 @@
 #include <sodium.h>
 
 #include "auth/password_hasher.h"
+#include "exceptions/exception_auth_storeerror.h"
 
 namespace AqualinkAutomate::Auth
 {
@@ -17,7 +18,7 @@ namespace AqualinkAutomate::Auth
 
 			if (result < 0)
 			{
-				throw std::runtime_error("libsodium initialisation failed");
+				throw Exceptions::Auth_StoreError("libsodium initialisation failed");
 			}
 		}
 	}
@@ -39,7 +40,7 @@ namespace AqualinkAutomate::Auth
 
 		if (0 != crypto_pwhash_str(encoded, password.data(), password.size(), ops, mem))
 		{
-			throw std::runtime_error("argon2id password hashing failed (out of memory?)");
+			throw Exceptions::Auth_StoreError("argon2id password hashing failed (out of memory?)");
 		}
 
 		return std::string{ encoded };

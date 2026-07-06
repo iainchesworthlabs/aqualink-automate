@@ -9,6 +9,7 @@
 #include <openssl/sha.h>
 
 #include "auth/jwt_key_store.h"
+#include "exceptions/exception_auth_storeerror.h"
 
 namespace AqualinkAutomate::Auth
 {
@@ -96,7 +97,7 @@ namespace AqualinkAutomate::Auth
 			}
 			catch (const nlohmann::json::parse_error& ex)
 			{
-				throw std::runtime_error(std::format("JWT key file {} is unreadable ({}); refusing to silently regenerate as that would invalidate every session", key_file.string(), ex.what()));
+				throw Exceptions::Auth_StoreError(std::format("JWT key file {} is unreadable ({}); refusing to silently regenerate as that would invalidate every session", key_file.string(), ex.what()));
 			}
 
 			for (const auto& key_json : doc.value("keys", nlohmann::json::array()))
@@ -109,7 +110,7 @@ namespace AqualinkAutomate::Auth
 
 				if (key.Kid.empty() || !secret.has_value() || secret->empty())
 				{
-					throw std::runtime_error(std::format("JWT key file {} contains a malformed key entry", key_file.string()));
+					throw Exceptions::Auth_StoreError(std::format("JWT key file {} contains a malformed key entry", key_file.string()));
 				}
 
 				key.Secret = *secret;
@@ -118,7 +119,7 @@ namespace AqualinkAutomate::Auth
 
 			if (store.m_Keys.empty())
 			{
-				throw std::runtime_error(std::format("JWT key file {} contains no keys", key_file.string()));
+				throw Exceptions::Auth_StoreError(std::format("JWT key file {} contains no keys", key_file.string()));
 			}
 
 			return store;
@@ -187,7 +188,7 @@ namespace AqualinkAutomate::Auth
 
 			if (!file.is_open())
 			{
-				throw std::runtime_error(std::format("Could not write JWT key file {}", temp_file.string()));
+				throw Exceptions::Auth_StoreError(std::format("Could not write JWT key file {}", temp_file.string()));
 			}
 
 			file << doc.dump(2);
@@ -206,7 +207,7 @@ namespace AqualinkAutomate::Auth
 
 		if (1 != RAND_bytes(key.Secret.data(), static_cast<int>(key.Secret.size())))
 		{
-			throw std::runtime_error("OpenSSL RAND_bytes failed while generating a JWT signing key");
+			throw Exceptions::Auth_StoreError("OpenSSL RAND_bytes failed while generating a JWT signing key");
 		}
 
 		key.Kid = DeriveKid(key.Secret);

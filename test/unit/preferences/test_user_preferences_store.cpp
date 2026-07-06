@@ -8,6 +8,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "exceptions/exception_preferences_storeerror.h"
 #include "preferences/user_preferences_store.h"
 
 using namespace AqualinkAutomate;
@@ -156,7 +157,7 @@ BOOST_FIXTURE_TEST_CASE(Test_UserPrefs_CorruptFileThrows, TempDirFixture)
 		out << "not json";
 	}
 
-	BOOST_CHECK_THROW(Preferences::UserPreferencesStore::Load(file), std::runtime_error);
+	BOOST_CHECK_THROW(Preferences::UserPreferencesStore::Load(file), AqualinkAutomate::Exceptions::Preferences_StoreError);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

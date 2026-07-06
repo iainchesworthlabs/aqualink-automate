@@ -68,3 +68,26 @@ namespace AqualinkAutomate::Exceptions
 			::AqualinkAutomate::Logging::Channel::Exceptions,                                      \
 			#TYPE " exception was constructed");                                                   \
 	}
+
+//
+// Message-carrying variants.  A subsystem exception that must surface a runtime-composed
+// message (a file path, an underlying library's error text) declares the caller-supplied
+// message overload with AQ_DECLARE_EXCEPTION_WITH_MESSAGE and defines it with
+// AQ_DEFINE_EXCEPTION_WITH_MESSAGE.  The source_location still defaults to the throw site.
+//
+
+#define AQ_DECLARE_EXCEPTION_WITH_MESSAGE(TYPE)                                                    \
+	class TYPE : public ::AqualinkAutomate::Exceptions::GenericAqualinkException                   \
+	{                                                                                              \
+	public:                                                                                        \
+		explicit TYPE(std::string message, std::source_location location = std::source_location::current()); \
+	}
+
+#define AQ_DEFINE_EXCEPTION_WITH_MESSAGE(TYPE)                                                     \
+	TYPE::TYPE(std::string message, std::source_location location) :                              \
+		::AqualinkAutomate::Exceptions::GenericAqualinkException(std::move(message), location)     \
+	{                                                                                              \
+		::LogTrace(                                                                                \
+			::AqualinkAutomate::Logging::Channel::Exceptions,                                      \
+			#TYPE " exception was constructed");                                                   \
+	}

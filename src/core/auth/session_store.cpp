@@ -6,8 +6,9 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <openssl/rand.h>
 
-#include "auth/auth_store_file.h"
 #include "auth/session_store.h"
+#include "exceptions/exception_auth_storeerror.h"
+#include "auth/auth_store_file.h"
 
 namespace AqualinkAutomate::Auth
 {
@@ -223,7 +224,7 @@ namespace AqualinkAutomate::Auth
 
 		if (1 != RAND_bytes(random_bytes, static_cast<int>(sizeof(random_bytes))))
 		{
-			throw std::runtime_error("OpenSSL RAND_bytes failed while generating a refresh token");
+			throw Exceptions::Auth_StoreError("OpenSSL RAND_bytes failed while generating a refresh token");
 		}
 
 		std::string secret{ REFRESH_PREFIX };

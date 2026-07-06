@@ -8,6 +8,7 @@
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid.hpp>
 
+#include "exceptions/exception_history_databaseerror.h"
 #include "history/history_service.h"
 #include "history/sqlite_db.h"
 #include "kernel/auxillary_devices/auxillary_device.h"
@@ -80,7 +81,7 @@ BOOST_AUTO_TEST_CASE(SqliteDb_TransactionRollbackOnScopeExit)
 BOOST_AUTO_TEST_CASE(SqliteDb_OpenInvalidPathThrows)
 {
 	// A path under a non-existent directory cannot be created.
-	BOOST_CHECK_THROW(History::SqliteDb db("R:/this/dir/does/not/exist/h.db"), std::runtime_error);
+	BOOST_CHECK_THROW(History::SqliteDb db("R:/this/dir/does/not/exist/h.db"), AqualinkAutomate::Exceptions::History_DatabaseError);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
