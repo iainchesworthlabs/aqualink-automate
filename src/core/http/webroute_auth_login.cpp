@@ -1,3 +1,4 @@
+#include <functional>
 #include <source_location>
 #include <string>
 #include <utility>
@@ -23,6 +24,31 @@ namespace AqualinkAutomate::HTTP
 			resp.body() = body.dump();
 			resp.prepare_payload();
 			return resp;
+		}
+
+		void CompleteLogin(unsigned version, bool keep_alive, std::function<void(HTTP::Response&&)>& complete, Auth::SessionService::LoginResult result)
+		{
+			if (result.LockedOut)
+			{
+				auto resp = MakeJsonResponse(version, keep_alive, HTTP::Status::too_many_requests, { { "error", result.Error } });
+				resp.set(boost::beast::http::field::retry_after, "900");
+				complete(std::move(resp));
+				return;
+			}
+
+			if (!result.Success)
+			{
+				complete(MakeJsonResponse(version, keep_alive, HTTP::Status::unauthorized, { { "error", result.Error } }));
+				return;
+			}
+
+			complete(MakeJsonResponse(version, keep_alive, HTTP::Status::ok,
+				{
+					{ "access_token", result.AccessToken },
+					{ "refresh_token", result.RefreshToken },
+					{ "session_id", result.SessionId },
+					{ "token_type", "Bearer" }
+				}));
 		}
 	}
 	// anonymous namespace
@@ -73,27 +99,7 @@ namespace AqualinkAutomate::HTTP
 		m_Sessions.Login(std::move(username), std::move(password), std::move(peer_ip), std::move(user_agent), m_Executor,
 			[version, keep_alive, complete = std::move(complete)](Auth::SessionService::LoginResult result) mutable
 			{
-				if (result.LockedOut)
-				{
-					auto resp = MakeJsonResponse(version, keep_alive, HTTP::Status::too_many_requests, { { "error", result.Error } });
-					resp.set(boost::beast::http::field::retry_after, "900");
-					complete(std::move(resp));
-					return;
-				}
-
-				if (!result.Success)
-				{
-					complete(MakeJsonResponse(version, keep_alive, HTTP::Status::unauthorized, { { "error", result.Error } }));
-					return;
-				}
-
-				complete(MakeJsonResponse(version, keep_alive, HTTP::Status::ok,
-					{
-						{ "access_token", result.AccessToken },
-						{ "refresh_token", result.RefreshToken },
-						{ "session_id", result.SessionId },
-						{ "token_type", "Bearer" }
-					}));
+				CompleteLogin(version, keep_alive, complete, std::move(result));
 			});
 	}
 

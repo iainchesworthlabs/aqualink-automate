@@ -148,6 +148,34 @@ namespace AqualinkAutomate::Options
 			};
 	}
 
+	// Runs a single processor's Process() against the parsed values, storing the
+	// resulting settings area on success. Records the first error into
+	// 'first_error' and skips any subsequent processor once an error is set, so
+	// the fold short-circuits with the first failure.
+	template<typename PROCESSOR>
+	inline void Process_RunOne(
+		PROCESSOR& p,
+		boost::program_options::variables_map& vm,
+		Settings& settings,
+		std::optional<Error>& first_error)
+	{
+		if (first_error.has_value())
+		{
+			return;
+		}
+
+		auto result = p.Process(vm);
+		if (result)
+		{
+			settings.Set(p.Name(), std::any{ std::move(*result) });
+		}
+		else
+		{
+			LogError(Channel::Options, std::format("Processing options for the '{}' area failed", p.Name()));
+			first_error = result.error();
+		}
+	}
+
 	template<Concepts::IsOptionProcessor... Processors>
 	[[nodiscard]] auto Process(Processors... processors) -> Transform
 	{
@@ -161,26 +189,7 @@ namespace AqualinkAutomate::Options
 				// settings area only surfaced as a downstream Get() failure).
 				std::optional<Error> first_error;
 
-				const auto run_one = [&](auto& p)
-					{
-						if (first_error.has_value())
-						{
-							return;
-						}
-
-						auto result = p.Process(vm);
-						if (result)
-						{
-							settings.Set(p.Name(), std::any{ std::move(*result) });
-						}
-						else
-						{
-							LogError(Channel::Options, std::format("Processing options for the '{}' area failed", p.Name()));
-							first_error = result.error();
-						}
-					};
-
-				(..., run_one(ps));
+				(..., Process_RunOne(ps, vm, settings, first_error));
 
 				if (first_error.has_value())
 				{

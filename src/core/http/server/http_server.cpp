@@ -23,6 +23,39 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::HTTP
 {
 
+	namespace
+	{
+
+		// The browser offers the `aqualink` subprotocol (carrying the bearer token
+		// as a `bearer.<token>` entry when auth is enabled).  Returns true iff the
+		// request's Sec-WebSocket-Protocol header lists `aqualink` as one of its
+		// comma-separated entries (with surrounding whitespace trimmed).
+		bool RequestOffersAqualinkSubprotocol(const Request& req)
+		{
+			auto it = req.find(boost::beast::http::field::sec_websocket_protocol);
+			if (it == req.end())
+			{
+				return false;
+			}
+
+			const std::string_view protocols{ it->value().data(), it->value().size() };
+			std::size_t pos = 0;
+			while (pos <= protocols.size())
+			{
+				const std::size_t comma = protocols.find(',', pos);
+				std::string_view entry = (comma == std::string_view::npos) ? protocols.substr(pos) : protocols.substr(pos, comma - pos);
+				while (!entry.empty() && (entry.front() == ' ' || entry.front() == '\t')) { entry.remove_prefix(1); }
+				while (!entry.empty() && (entry.back() == ' ' || entry.back() == '\t')) { entry.remove_suffix(1); }
+				if (entry == "aqualink") { return true; }
+				if (comma == std::string_view::npos) { break; }
+				pos = comma + 1;
+			}
+			return false;
+		}
+
+	}
+	// anonymous namespace
+
 	//=========================================================================
 	// HttpSessionState
 	//=========================================================================
@@ -374,22 +407,7 @@ namespace AqualinkAutomate::HTTP
 		// that offered subprotocols but received a response selecting none closes
 		// the connection.  Auth itself was already enforced by
 		// Routing::AuthorizeWebSocketUpgrade above.
-		bool offered_aqualink = false;
-		if (auto it = req.find(boost::beast::http::field::sec_websocket_protocol); it != req.end())
-		{
-			const std::string_view protocols{ it->value().data(), it->value().size() };
-			std::size_t pos = 0;
-			while (pos <= protocols.size())
-			{
-				const std::size_t comma = protocols.find(',', pos);
-				std::string_view entry = (comma == std::string_view::npos) ? protocols.substr(pos) : protocols.substr(pos, comma - pos);
-				while (!entry.empty() && (entry.front() == ' ' || entry.front() == '\t')) { entry.remove_prefix(1); }
-				while (!entry.empty() && (entry.back() == ' ' || entry.back() == '\t')) { entry.remove_suffix(1); }
-				if (entry == "aqualink") { offered_aqualink = true; break; }
-				if (comma == std::string_view::npos) { break; }
-				pos = comma + 1;
-			}
-		}
+		const bool offered_aqualink = RequestOffersAqualinkSubprotocol(req);
 
 		const bool dispatched = WithWsStream([self = shared_from_this(), &req, offered_aqualink](auto& ws)
 			{

@@ -24,6 +24,200 @@ namespace AqualinkAutomate::Preferences
 			const auto scheme = parsed->scheme();
 			return (scheme == "http" || scheme == "https") && parsed->has_authority();
 		}
+
+		// Each ValidateXxx helper mirrors one field block of ApplyJson: it either
+		// leaves the out-param untouched (field absent) or, after validating, writes
+		// the accepted value into it. On any invalid field it sets error/error_code
+		// and returns false so the caller can abort before committing anything.
+
+		bool ValidateTemperatureUnits(const nlohmann::json& json, Kernel::TemperatureUnits& units, std::string& error, std::string& error_code)
+		{
+			if (!json.contains("temperature_units"))
+			{
+				return true;
+			}
+			if (!json["temperature_units"].is_string())
+			{
+				error = "temperature_units must be 'Celsius' or 'Fahrenheit'";
+				error_code = "invalid_temperature_units";
+				return false;
+			}
+			auto parsed = magic_enum::enum_cast<Kernel::TemperatureUnits>(json["temperature_units"].get<std::string>());
+			if (!parsed.has_value())
+			{
+				error = "temperature_units must be 'Celsius' or 'Fahrenheit'";
+				error_code = "invalid_temperature_units";
+				return false;
+			}
+			units = parsed.value();
+			return true;
+		}
+
+		bool ValidateAlert(const nlohmann::json& json, std::uint32_t& salt, std::uint32_t& comms, std::string& webhook, std::string& error, std::string& error_code)
+		{
+			if (!(json.contains("alert") && json["alert"].is_object()))
+			{
+				return true;
+			}
+			const auto& a = json["alert"];
+			if (a.contains("salt_low_ppm"))
+			{
+				if (!a["salt_low_ppm"].is_number_integer() || a["salt_low_ppm"].get<std::int64_t>() < 0 || a["salt_low_ppm"].get<std::int64_t>() > 6000)
+				{
+					error = "alert.salt_low_ppm must be 0..6000";
+					error_code = "invalid_salt_low_ppm";
+					return false;
+				}
+				salt = a["salt_low_ppm"].get<std::uint32_t>();
+			}
+			if (a.contains("comms_timeout_seconds"))
+			{
+				if (!a["comms_timeout_seconds"].is_number_integer() || a["comms_timeout_seconds"].get<std::int64_t>() <= 0)
+				{
+					error = "alert.comms_timeout_seconds must be greater than 0";
+					error_code = "invalid_comms_timeout";
+					return false;
+				}
+				comms = a["comms_timeout_seconds"].get<std::uint32_t>();
+			}
+			if (a.contains("webhook_url"))
+			{
+				if (!a["webhook_url"].is_string())
+				{
+					error = "alert.webhook_url must be empty or an absolute http/https URL";
+					error_code = "invalid_webhook_url";
+					return false;
+				}
+				const auto url = a["webhook_url"].get<std::string>();
+				if (!url.empty() && !IsValidWebhookUrl(url))
+				{
+					error = "alert.webhook_url must be empty or an absolute http/https URL";
+					error_code = "invalid_webhook_url";
+					return false;
+				}
+				webhook = url;
+			}
+			return true;
+		}
+
+		bool ValidateHistory(const nlohmann::json& json, std::uint32_t& retention, std::string& error, std::string& error_code)
+		{
+			if (!(json.contains("history") && json["history"].is_object()))
+			{
+				return true;
+			}
+			const auto& h = json["history"];
+			if (h.contains("retention_days"))
+			{
+				if (!h["retention_days"].is_number_integer() || h["retention_days"].get<std::int64_t>() <= 0)
+				{
+					error = "history.retention_days must be greater than 0";
+					error_code = "invalid_retention_days";
+					return false;
+				}
+				retention = h["retention_days"].get<std::uint32_t>();
+			}
+			return true;
+		}
+
+		bool ValidateLabelOverrides(const nlohmann::json& json, nlohmann::json& label_overrides, std::string& error, std::string& error_code)
+		{
+			if (!json.contains("label_overrides"))
+			{
+				return true;
+			}
+			if (!json["label_overrides"].is_object())
+			{
+				error = "label_overrides must be an object of canonical->display strings";
+				error_code = "invalid_label_overrides";
+				return false;
+			}
+			for (const auto& [canonical, display] : json["label_overrides"].items())
+			{
+				if (!display.is_string())
+				{
+					error = "label_overrides values must be strings";
+					error_code = "invalid_label_overrides";
+					return false;
+				}
+			}
+			label_overrides = json["label_overrides"];
+			return true;
+		}
+
+		bool ValidateShowAuxId(const nlohmann::json& json, bool& show_aux_id, std::string& error, std::string& error_code)
+		{
+			if (!json.contains("show_aux_id_in_label"))
+			{
+				return true;
+			}
+			if (!json["show_aux_id_in_label"].is_boolean())
+			{
+				error = "show_aux_id_in_label must be a boolean";
+				error_code = "invalid_show_aux_id";
+				return false;
+			}
+			show_aux_id = json["show_aux_id_in_label"].get<bool>();
+			return true;
+		}
+
+		bool ValidateUi(const nlohmann::json& json, nlohmann::json& ui, std::string& error, std::string& error_code)
+		{
+			if (!json.contains("ui"))
+			{
+				return true;
+			}
+			if (!json["ui"].is_object())
+			{
+				error = "ui must be an object";
+				error_code = "invalid_ui";
+				return false;
+			}
+			// Shallow-merge at the top level so independent UI features (e.g.
+			// ui.chemistryBands and ui.locale) can each PUT their own key
+			// without clobbering the others; a null value deletes the key.
+			if (!ui.is_object())
+			{
+				ui = nlohmann::json::object();
+			}
+			for (const auto& [key, value] : json["ui"].items())
+			{
+				if (value.is_null())
+				{
+					ui.erase(key);
+				}
+				else
+				{
+					ui[key] = value;
+				}
+			}
+			return true;
+		}
+
+		bool ValidateSpaSwitchButtons(const nlohmann::json& json, nlohmann::json& spa_switch_buttons, std::string& error, std::string& error_code)
+		{
+			if (!json.contains("spa_switch_buttons"))
+			{
+				return true;
+			}
+			if (!json["spa_switch_buttons"].is_object())
+			{
+				error = "spa_switch_buttons must be an object of \"switch:button\"->function strings";
+				error_code = "invalid_spa_switch_buttons";
+				return false;
+			}
+			for (const auto& [key, function] : json["spa_switch_buttons"].items())
+			{
+				if (!function.is_string())
+				{
+					error = "spa_switch_buttons values must be strings";
+					error_code = "invalid_spa_switch_buttons";
+					return false;
+				}
+			}
+			spa_switch_buttons = json["spa_switch_buttons"];
+			return true;
+		}
 	}
 	// unnamed namespace
 
@@ -102,159 +296,13 @@ namespace AqualinkAutomate::Preferences
 		auto ui = m_Hub->UiPreferences;
 		auto spa_switch_buttons = m_Hub->SpaSwitchButtons;
 
-		if (json.contains("temperature_units"))
-		{
-			if (!json["temperature_units"].is_string())
-			{
-				error = "temperature_units must be 'Celsius' or 'Fahrenheit'";
-				error_code = "invalid_temperature_units";
-				return false;
-			}
-			auto parsed = magic_enum::enum_cast<Kernel::TemperatureUnits>(json["temperature_units"].get<std::string>());
-			if (!parsed.has_value())
-			{
-				error = "temperature_units must be 'Celsius' or 'Fahrenheit'";
-				error_code = "invalid_temperature_units";
-				return false;
-			}
-			units = parsed.value();
-		}
-
-		if (json.contains("alert") && json["alert"].is_object())
-		{
-			const auto& a = json["alert"];
-			if (a.contains("salt_low_ppm"))
-			{
-				if (!a["salt_low_ppm"].is_number_integer() || a["salt_low_ppm"].get<std::int64_t>() < 0 || a["salt_low_ppm"].get<std::int64_t>() > 6000)
-				{
-					error = "alert.salt_low_ppm must be 0..6000";
-					error_code = "invalid_salt_low_ppm";
-					return false;
-				}
-				salt = a["salt_low_ppm"].get<std::uint32_t>();
-			}
-			if (a.contains("comms_timeout_seconds"))
-			{
-				if (!a["comms_timeout_seconds"].is_number_integer() || a["comms_timeout_seconds"].get<std::int64_t>() <= 0)
-				{
-					error = "alert.comms_timeout_seconds must be greater than 0";
-					error_code = "invalid_comms_timeout";
-					return false;
-				}
-				comms = a["comms_timeout_seconds"].get<std::uint32_t>();
-			}
-			if (a.contains("webhook_url"))
-			{
-				if (!a["webhook_url"].is_string())
-				{
-					error = "alert.webhook_url must be empty or an absolute http/https URL";
-					error_code = "invalid_webhook_url";
-					return false;
-				}
-				const auto url = a["webhook_url"].get<std::string>();
-				if (!url.empty() && !IsValidWebhookUrl(url))
-				{
-					error = "alert.webhook_url must be empty or an absolute http/https URL";
-					error_code = "invalid_webhook_url";
-					return false;
-				}
-				webhook = url;
-			}
-		}
-
-		if (json.contains("history") && json["history"].is_object())
-		{
-			const auto& h = json["history"];
-			if (h.contains("retention_days"))
-			{
-				if (!h["retention_days"].is_number_integer() || h["retention_days"].get<std::int64_t>() <= 0)
-				{
-					error = "history.retention_days must be greater than 0";
-					error_code = "invalid_retention_days";
-					return false;
-				}
-				retention = h["retention_days"].get<std::uint32_t>();
-			}
-		}
-
-		if (json.contains("label_overrides"))
-		{
-			if (!json["label_overrides"].is_object())
-			{
-				error = "label_overrides must be an object of canonical->display strings";
-				error_code = "invalid_label_overrides";
-				return false;
-			}
-			for (const auto& [canonical, display] : json["label_overrides"].items())
-			{
-				if (!display.is_string())
-				{
-					error = "label_overrides values must be strings";
-					error_code = "invalid_label_overrides";
-					return false;
-				}
-			}
-			label_overrides = json["label_overrides"];
-		}
-
-		if (json.contains("show_aux_id_in_label"))
-		{
-			if (!json["show_aux_id_in_label"].is_boolean())
-			{
-				error = "show_aux_id_in_label must be a boolean";
-				error_code = "invalid_show_aux_id";
-				return false;
-			}
-			show_aux_id = json["show_aux_id_in_label"].get<bool>();
-		}
-
-		if (json.contains("ui"))
-		{
-			if (!json["ui"].is_object())
-			{
-				error = "ui must be an object";
-				error_code = "invalid_ui";
-				return false;
-			}
-			// Shallow-merge at the top level so independent UI features (e.g.
-			// ui.chemistryBands and ui.locale) can each PUT their own key
-			// without clobbering the others; a null value deletes the key.
-			if (!ui.is_object())
-			{
-				ui = nlohmann::json::object();
-			}
-			for (const auto& [key, value] : json["ui"].items())
-			{
-				if (value.is_null())
-				{
-					ui.erase(key);
-				}
-				else
-				{
-					ui[key] = value;
-				}
-			}
-		}
-
-		if (json.contains("spa_switch_buttons"))
-		{
-			if (!json["spa_switch_buttons"].is_object())
-			{
-				error = "spa_switch_buttons must be an object of \"switch:button\"->function strings";
-				error_code = "invalid_spa_switch_buttons";
-				return false;
-			}
-			for (const auto& [key, function] : json["spa_switch_buttons"].items())
-			{
-				if (!function.is_string())
-				{
-					error = "spa_switch_buttons values must be strings";
-					error_code = "invalid_spa_switch_buttons";
-					return false;
-				}
-			}
-			spa_switch_buttons = json["spa_switch_buttons"];
-		}
+		if (!ValidateTemperatureUnits(json, units, error, error_code)) { return false; }
+		if (!ValidateAlert(json, salt, comms, webhook, error, error_code)) { return false; }
+		if (!ValidateHistory(json, retention, error, error_code)) { return false; }
+		if (!ValidateLabelOverrides(json, label_overrides, error, error_code)) { return false; }
+		if (!ValidateShowAuxId(json, show_aux_id, error, error_code)) { return false; }
+		if (!ValidateUi(json, ui, error, error_code)) { return false; }
+		if (!ValidateSpaSwitchButtons(json, spa_switch_buttons, error, error_code)) { return false; }
 
 		// Commit + persist.
 		const bool units_changed = (m_Hub->Temperature_DisplayUnits != units);

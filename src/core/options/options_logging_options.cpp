@@ -27,6 +27,56 @@ namespace
 		}
 		return out;
 	}
+
+	// Applies a single normalised sink token to the settings flags.
+	// Returns false for an empty or unknown token.
+	bool ApplySinkToken(std::string_view piece, AqualinkAutomate::Options::LogSinks::LoggingSettings& settings)
+	{
+		if (piece == "console")
+		{
+			settings.Console = true;
+		}
+		else if (piece == "native")
+		{
+			settings.Native = true;
+		}
+		else if (piece == "file")
+		{
+			settings.File = true;
+		}
+		else if (piece == "journald")
+		{
+			settings.Journald = true;
+		}
+		else
+		{
+			return false;
+		}
+		return true;
+	}
+
+	// Parses a comma-separated explicit sink list, setting the sink flags.
+	// Returns false on any empty or unknown token.
+	bool ParseExplicitSinks(const std::string& spec, AqualinkAutomate::Options::LogSinks::LoggingSettings& settings)
+	{
+		std::size_t start = 0;
+		while (start <= spec.size())
+		{
+			const auto comma = spec.find(',', start);
+			const auto piece = NormaliseToken(std::string_view{ spec }.substr(start, (comma == std::string::npos ? spec.size() : comma) - start));
+			if (!ApplySinkToken(piece, settings))
+			{
+				return false;
+			}
+
+			if (comma == std::string::npos)
+			{
+				break;
+			}
+			start = comma + 1;
+		}
+		return true;
+	}
 }
 
 namespace AqualinkAutomate::Options::LogSinks
@@ -97,37 +147,10 @@ namespace AqualinkAutomate::Options::LogSinks
 			{
 				settings.Sinks = SinkMode::Explicit;
 
-				std::size_t start = 0;
-				while (start <= spec.size())
+				// Empty or unknown token — fail validation with a clear error.
+				if (!ParseExplicitSinks(spec, settings))
 				{
-					const auto comma = spec.find(',', start);
-					if (const auto piece = NormaliseToken(std::string_view{ spec }.substr(start, (comma == std::string::npos ? spec.size() : comma) - start)); piece == "console")
-					{
-						settings.Console = true;
-					}
-					else if (piece == "native")
-					{
-						settings.Native = true;
-					}
-					else if (piece == "file")
-					{
-						settings.File = true;
-					}
-					else if (piece == "journald")
-					{
-						settings.Journald = true;
-					}
-					else
-					{
-						// Empty or unknown token — fail validation with a clear error.
-						return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
-					}
-
-					if (comma == std::string::npos)
-					{
-						break;
-					}
-					start = comma + 1;
+					return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
 				}
 
 				// An explicit set that selects nothing is not meaningful.

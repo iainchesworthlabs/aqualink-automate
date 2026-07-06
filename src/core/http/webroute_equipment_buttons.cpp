@@ -17,6 +17,60 @@
 
 using namespace AqualinkAutomate::Logging;
 
+namespace
+{
+
+	template<typename DeviceType>
+	nlohmann::json BuildButtonJson(const DeviceType& device, const nlohmann::json& label_overrides, bool show_aux_id)
+	{
+		using namespace AqualinkAutomate;
+
+		nlohmann::json button;
+
+		button["id"] = boost::uuids::to_string(device->Id());
+
+		// The protocol-native short id ("Aux5"), if known - lets the UI show
+		// "friendly name (aux id)" and resolve a device by its hardware label.
+		std::string hardware_id;
+		if (device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::HardwareLabelTrait{}))
+		{
+			hardware_id = *(device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::HardwareLabelTrait{}]);
+			button["hardware_id"] = hardware_id;
+		}
+
+		if (device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::LabelTrait{}))
+		{
+			const std::string label = *(device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::LabelTrait{}]);
+			button["label"] = label;
+
+			// display_label = override (else canonical label), optionally + " (Aux5)".
+			button["display_label"] = HTTP::JSON::ComputeDisplayLabel(label, hardware_id, label_overrides, show_aux_id);
+		}
+
+		if (Kernel::AuxillaryTraitsTypes::HasStatus(device))
+		{
+			button["status"] = Kernel::AuxillaryTraitsTypes::ConvertStatusToString(device);
+		}
+
+		// controllable = the device is operated by an on/off toggle. The
+		// chlorinator (a % setpoint, surfaced in the chemistry view) and
+		// Unknown-type devices are configurable/informational, not toggles.
+		bool controllable = false;
+		if (device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}))
+		{
+			const auto device_type = *(device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}]);
+			button["device_type"] = std::string(magic_enum::enum_name(device_type));
+			controllable = (device_type != Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Chlorinator
+				&& device_type != Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Unknown);
+		}
+		button["controllable"] = controllable;
+
+		return button;
+	}
+
+}
+// anonymous namespace
+
 namespace AqualinkAutomate::HTTP
 {
 
@@ -55,47 +109,7 @@ namespace AqualinkAutomate::HTTP
 		const auto all_devices = m_DataHub->Devices.FindByTrait(Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{});
 		std::ranges::for_each(all_devices, [&buttons, &label_overrides, show_aux_id](const auto& device)
 			{
-				nlohmann::json button;
-
-				button["id"] = boost::uuids::to_string(device->Id());
-
-				// The protocol-native short id ("Aux5"), if known - lets the UI show
-				// "friendly name (aux id)" and resolve a device by its hardware label.
-				std::string hardware_id;
-				if (device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::HardwareLabelTrait{}))
-				{
-					hardware_id = *(device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::HardwareLabelTrait{}]);
-					button["hardware_id"] = hardware_id;
-				}
-
-				if (device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::LabelTrait{}))
-				{
-					const std::string label = *(device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::LabelTrait{}]);
-					button["label"] = label;
-
-					// display_label = override (else canonical label), optionally + " (Aux5)".
-					button["display_label"] = HTTP::JSON::ComputeDisplayLabel(label, hardware_id, label_overrides, show_aux_id);
-				}
-				
-				if (Kernel::AuxillaryTraitsTypes::HasStatus(device))
-				{
-					button["status"] = Kernel::AuxillaryTraitsTypes::ConvertStatusToString(device);
-				}
-
-				// controllable = the device is operated by an on/off toggle. The
-				// chlorinator (a % setpoint, surfaced in the chemistry view) and
-				// Unknown-type devices are configurable/informational, not toggles.
-				bool controllable = false;
-				if (device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}))
-				{
-					const auto device_type = *(device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}]);
-					button["device_type"] = std::string(magic_enum::enum_name(device_type));
-					controllable = (device_type != Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Chlorinator
-						&& device_type != Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Unknown);
-				}
-				button["controllable"] = controllable;
-
-				buttons.push_back(button);
+				buttons.push_back(BuildButtonJson(device, label_overrides, show_aux_id));
 			}
 		);
 

@@ -48,42 +48,47 @@ namespace AqualinkAutomate::HTTP
 
 		return HandleJsonCommandRoute(req, m_CommandDispatcher, [&req, this](const nlohmann::json& payload)
 		{
-			try
-			{
-				if (!payload.contains("body") || !payload["body"].is_string())
-				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "missing string field 'body' (pool|spa|solar)");
-				}
-				if (!payload.contains("enable") || !payload["enable"].is_boolean())
-				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "missing boolean field 'enable'");
-				}
-
-				const auto body_str = payload["body"].get<std::string>();
-				const auto enable = payload["enable"].get<bool>();
-
-				const auto heater_body = ParseHeaterBody(body_str);
-				if (!heater_body.has_value())
-				{
-					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "'body' must be one of pool, spa, solar");
-				}
-
-				const auto r = m_CommandDispatcher->SetHeaterMode(heater_body.value(), enable);
-
-				nlohmann::json result = {
-					{ "body", body_str },
-					{ "enable", enable },
-					{ "status", r == CommandResult::Success ? "success" : "error" }
-				};
-
-				return MakeJsonResponse(req, StatusForCommandResult(r), result.dump());
-			}
-			catch (const nlohmann::json::exception& ex)
-			{
-				LogWarning(Channel::Web, std::format("Heater POST: JSON access error: {}", ex.what()));
-				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "invalid heater payload");
-			}
+			return HandleHeaterCommand(req, payload);
 		});
+	}
+
+	HTTP::Response WebRoute_Equipment_Heater::HandleHeaterCommand(const HTTP::Request& req, const nlohmann::json& payload)
+	{
+		try
+		{
+			if (!payload.contains("body") || !payload["body"].is_string())
+			{
+				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "missing string field 'body' (pool|spa|solar)");
+			}
+			if (!payload.contains("enable") || !payload["enable"].is_boolean())
+			{
+				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "missing boolean field 'enable'");
+			}
+
+			const auto body_str = payload["body"].get<std::string>();
+			const auto enable = payload["enable"].get<bool>();
+
+			const auto heater_body = ParseHeaterBody(body_str);
+			if (!heater_body.has_value())
+			{
+				return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "'body' must be one of pool, spa, solar");
+			}
+
+			const auto r = m_CommandDispatcher->SetHeaterMode(heater_body.value(), enable);
+
+			nlohmann::json result = {
+				{ "body", body_str },
+				{ "enable", enable },
+				{ "status", r == CommandResult::Success ? "success" : "error" }
+			};
+
+			return MakeJsonResponse(req, StatusForCommandResult(r), result.dump());
+		}
+		catch (const nlohmann::json::exception& ex)
+		{
+			LogWarning(Channel::Web, std::format("Heater POST: JSON access error: {}", ex.what()));
+			return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "invalid heater payload");
+		}
 	}
 
 }

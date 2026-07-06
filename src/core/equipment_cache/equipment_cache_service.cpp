@@ -88,10 +88,8 @@ namespace AqualinkAutomate::EquipmentCache
 		return json;
 	}
 
-	void EquipmentCacheService::ApplySnapshot(const nlohmann::json& json) const
+	void EquipmentCacheService::ApplyConfigurationFromSnapshot(const nlohmann::json& json) const
 	{
-		if (!m_DataHub || !json.is_object()) { return; }
-
 		// Pool config / board: only adopt the cached value while still Unknown, so
 		// live discovery (which runs after Load) always wins.
 		if (json.contains("pool_configuration") && json["pool_configuration"].is_string())
@@ -110,73 +108,85 @@ namespace AqualinkAutomate::EquipmentCache
 				m_DataHub->SystemBoard = board.value();
 			}
 		}
+	}
+
+	bool EquipmentCacheService::RestoreDeviceFromSnapshot(const nlohmann::json& d) const
+	{
+		if (!d.contains("label") || !d["label"].is_string()) { return false; }
+		const std::string label = d["label"].get<std::string>();
+
+		// Reconstruct the (stable) id up front so we can dedup on identity, not label.
+		// A cached device and a live-discovered device for the same hardware share a
+		// deterministic id (see DeriveStableUuid), so id is the reliable key; with
+		// distinct ids per aux, same-label devices are each restored rather than
+		// collapsed into one. Fall back to label only when no id was persisted.
+		std::optional<boost::uuids::uuid> id;
+		if (d.contains("id") && d["id"].is_string())
+		{
+			try
+			{
+				boost::uuids::string_generator gen;
+				id = gen(d["id"].get<std::string>());
+			}
+			catch (const std::runtime_error& ex)
+			{
+				// Malformed id: treat as no-id (dedup by label, fresh random id).
+				LogTrace(Channel::Main, std::format("Ignoring malformed cached device id '{}': {}", d["id"].get<std::string>(), ex.what()));
+			}
+		}
+
+		// Skip if this identity is already present (live discovery ran first, or a
+		// duplicate cache entry).
+		if (id.has_value())
+		{
+			if (nullptr != m_DataHub->Devices.FindById(id.value())) { return false; }
+		}
+		else if (!m_DataHub->Devices.FindByLabel(label).empty())
+		{
+			return false;
+		}
+
+		auto device = id.has_value()
+			? std::make_shared<Kernel::AuxillaryDevice>(id.value())
+			: std::make_shared<Kernel::AuxillaryDevice>();
+
+		device->AuxillaryTraits.Set(Traits::LabelTrait{}, label);
+
+		if (d.contains("type") && d["type"].is_string())
+		{
+			if (auto type = magic_enum::enum_cast<Traits::AuxillaryTypes>(d["type"].get<std::string>()); type.has_value())
+			{
+				device->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, type.value());
+			}
+		}
+		if (d.contains("body_of_water") && d["body_of_water"].is_string())
+		{
+			if (auto body = magic_enum::enum_cast<Kernel::BodyOfWaterIds>(d["body_of_water"].get<std::string>()); body.has_value())
+			{
+				device->AuxillaryTraits.Set(Traits::BodyOfWaterTrait{}, body.value());
+			}
+		}
+		if (d.contains("hardware_id") && d["hardware_id"].is_string())
+		{
+			device->AuxillaryTraits.Set(Traits::HardwareLabelTrait{}, d["hardware_id"].get<std::string>());
+		}
+
+		m_DataHub->Devices.Add(std::move(device));
+		return true;
+	}
+
+	void EquipmentCacheService::ApplySnapshot(const nlohmann::json& json) const
+	{
+		if (!m_DataHub || !json.is_object()) { return; }
+
+		ApplyConfigurationFromSnapshot(json);
 
 		if (!json.contains("devices") || !json["devices"].is_array()) { return; }
 
 		std::size_t restored{ 0 };
 		for (const auto& d : json["devices"])
 		{
-			if (!d.contains("label") || !d["label"].is_string()) { continue; }
-			const std::string label = d["label"].get<std::string>();
-
-			// Reconstruct the (stable) id up front so we can dedup on identity, not label.
-			// A cached device and a live-discovered device for the same hardware share a
-			// deterministic id (see DeriveStableUuid), so id is the reliable key; with
-			// distinct ids per aux, same-label devices are each restored rather than
-			// collapsed into one. Fall back to label only when no id was persisted.
-			std::optional<boost::uuids::uuid> id;
-			if (d.contains("id") && d["id"].is_string())
-			{
-				try
-				{
-					boost::uuids::string_generator gen;
-					id = gen(d["id"].get<std::string>());
-				}
-				catch (const std::runtime_error& ex)
-				{
-					// Malformed id: treat as no-id (dedup by label, fresh random id).
-					LogTrace(Channel::Main, std::format("Ignoring malformed cached device id '{}': {}", d["id"].get<std::string>(), ex.what()));
-				}
-			}
-
-			// Skip if this identity is already present (live discovery ran first, or a
-			// duplicate cache entry).
-			if (id.has_value())
-			{
-				if (nullptr != m_DataHub->Devices.FindById(id.value())) { continue; }
-			}
-			else if (!m_DataHub->Devices.FindByLabel(label).empty())
-			{
-				continue;
-			}
-
-			auto device = id.has_value()
-				? std::make_shared<Kernel::AuxillaryDevice>(id.value())
-				: std::make_shared<Kernel::AuxillaryDevice>();
-
-			device->AuxillaryTraits.Set(Traits::LabelTrait{}, label);
-
-			if (d.contains("type") && d["type"].is_string())
-			{
-				if (auto type = magic_enum::enum_cast<Traits::AuxillaryTypes>(d["type"].get<std::string>()); type.has_value())
-				{
-					device->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, type.value());
-				}
-			}
-			if (d.contains("body_of_water") && d["body_of_water"].is_string())
-			{
-				if (auto body = magic_enum::enum_cast<Kernel::BodyOfWaterIds>(d["body_of_water"].get<std::string>()); body.has_value())
-				{
-					device->AuxillaryTraits.Set(Traits::BodyOfWaterTrait{}, body.value());
-				}
-			}
-			if (d.contains("hardware_id") && d["hardware_id"].is_string())
-			{
-				device->AuxillaryTraits.Set(Traits::HardwareLabelTrait{}, d["hardware_id"].get<std::string>());
-			}
-
-			m_DataHub->Devices.Add(std::move(device));
-			++restored;
+			if (RestoreDeviceFromSnapshot(d)) { ++restored; }
 		}
 
 		LogInfo(Channel::Main, std::format("Equipment cache restored {} device(s)", restored));

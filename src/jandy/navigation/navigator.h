@@ -122,6 +122,13 @@ namespace AqualinkAutomate::Navigation
 		// Handle arrival at an unexpected page
 		void HandleUnexpectedPage(PageId actual);
 
+		// Sub-steps of HandleUnexpectedPage extracted for clarity. HandleTransientPage waits
+		// for a self-clearing splash page (returns true when it has taken over handling and the
+		// caller should return); DetectStuckRecompute fails fast when the same target is
+		// repeatedly unreachable (returns true when it has entered the Failed state).
+		bool HandleTransientPage(PageId actual, const MenuPage* actual_page);
+		bool DetectStuckRecompute(PageId actual, const MenuPage* target_page);
+
 		// Start recovery process (back to home)
 		void InitiateRecovery();
 

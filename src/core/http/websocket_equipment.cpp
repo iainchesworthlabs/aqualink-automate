@@ -60,31 +60,36 @@ namespace AqualinkAutomate::HTTP
 			m_AlertSlot = m_EquipmentHub->AlertTransitionSignal.connect(
 				[this](const std::string& condition, bool raised, std::int64_t ts, const std::string& detail, const nlohmann::json& params)
 				{
-					if (m_Connections.empty())
-					{
-						return;
-					}
-
-					auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("WebSocket_Equipment::on_alert_event", std::source_location::current());
-					nlohmann::json alert_payload{
-						{ "condition", condition },
-						{ "state", raised ? "raised" : "cleared" },
-						{ "ts", ts },
-						{ "detail", detail }
-					};
-
-					// Structured values behind the detail prose (additive; absent
-					// when the transition carries none) — the UI builds translated
-					// alert text from condition + params (docs/i18n.md).
-					if (params.is_object() && !params.empty())
-					{
-						alert_payload["params"] = params;
-					}
-					auto payload = std::make_shared<const std::string>(HTTP::WebSocket_Event(WebSocket_EventTypes::AlertTransition, alert_payload).Payload());
-					zone->Value(payload->size());
-					Broadcast(payload);
+					BroadcastAlert(condition, raised, ts, detail, params);
 				});
 		}
+	}
+
+	void WebSocket_Equipment::BroadcastAlert(const std::string& condition, bool raised, std::int64_t ts, const std::string& detail, const nlohmann::json& params)
+	{
+		if (m_Connections.empty())
+		{
+			return;
+		}
+
+		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("WebSocket_Equipment::on_alert_event", std::source_location::current());
+		nlohmann::json alert_payload{
+			{ "condition", condition },
+			{ "state", raised ? "raised" : "cleared" },
+			{ "ts", ts },
+			{ "detail", detail }
+		};
+
+		// Structured values behind the detail prose (additive; absent
+		// when the transition carries none) — the UI builds translated
+		// alert text from condition + params (docs/i18n.md).
+		if (params.is_object() && !params.empty())
+		{
+			alert_payload["params"] = params;
+		}
+		auto payload = std::make_shared<const std::string>(HTTP::WebSocket_Event(WebSocket_EventTypes::AlertTransition, alert_payload).Payload());
+		zone->Value(payload->size());
+		Broadcast(payload);
 	}
 
 	void WebSocket_Equipment::Broadcast(const std::shared_ptr<const std::string>& payload)

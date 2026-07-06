@@ -17,21 +17,12 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::Devices
 {
 
-	SpasideRemoteController::SpasideRemoteController(std::shared_ptr<Kernel::EquipmentHub> equipment_hub) :
-		m_EquipmentHub(std::move(equipment_hub))
+	namespace
 	{
-	}
 
-	std::vector<Interfaces::ISpasideRemoteController::RemoteState> SpasideRemoteController::Remotes() const
-	{
-		std::vector<RemoteState> remotes;
-
-		if (nullptr == m_EquipmentHub)
-		{
-			return remotes;
-		}
-
-		m_EquipmentHub->ForEachDevice([&remotes](Interfaces::IDevice& device)
+		// Appends a RemoteState for a device IF it is a SpasideRemoteDevice (otherwise no-op). Extracted
+		// verbatim from the ForEachDevice lambda in Remotes() to keep that lambda within the line budget.
+		void AppendSpasideRemoteState(Interfaces::IDevice& device, std::vector<Interfaces::ISpasideRemoteController::RemoteState>& remotes)
 		{
 			const auto* spaside = dynamic_cast<const SpasideRemoteDevice*>(&device);
 			if (nullptr == spaside)
@@ -39,7 +30,7 @@ namespace AqualinkAutomate::Devices
 				return;
 			}
 
-			RemoteState state;
+			Interfaces::ISpasideRemoteController::RemoteState state;
 			state.address = spaside->DeviceId().Id()();
 			state.device_class = std::string(magic_enum::enum_name(spaside->DeviceId().Class()));
 			state.emulated = spaside->IsEmulated();
@@ -63,6 +54,28 @@ namespace AqualinkAutomate::Devices
 			}
 
 			remotes.push_back(std::move(state));
+		}
+
+	}
+	// anonymous namespace
+
+	SpasideRemoteController::SpasideRemoteController(std::shared_ptr<Kernel::EquipmentHub> equipment_hub) :
+		m_EquipmentHub(std::move(equipment_hub))
+	{
+	}
+
+	std::vector<Interfaces::ISpasideRemoteController::RemoteState> SpasideRemoteController::Remotes() const
+	{
+		std::vector<RemoteState> remotes;
+
+		if (nullptr == m_EquipmentHub)
+		{
+			return remotes;
+		}
+
+		m_EquipmentHub->ForEachDevice([&remotes](Interfaces::IDevice& device)
+		{
+			AppendSpasideRemoteState(device, remotes);
 		});
 
 		return remotes;

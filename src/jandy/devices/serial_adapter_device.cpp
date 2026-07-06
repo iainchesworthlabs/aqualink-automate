@@ -256,6 +256,39 @@ namespace AqualinkAutomate::Devices
 		QueueCommand(magic_enum::enum_integer(setpoint), temperature);
 	}
 
+	Messages::SerialAdapter_CommandTypes SerialAdapterDevice::ResolveToggleAction(const std::shared_ptr<Kernel::AuxillaryDevice>& device) const
+	{
+		// Auto-detect: default to SetOn; if device is already on, use SetOff.
+		auto action = SerialAdapter_CommandTypes::SetOn;
+		auto device_type = *(device->AuxillaryTraits[AuxillaryTypeTrait{}]);
+
+		using enum AuxillaryTypes;
+		switch (device_type)
+		{
+		case Auxillary:
+		case Cleaner:
+		case Spillover:
+		case Sprinkler:
+			if (auto status = device->AuxillaryTraits.TryGet(AuxillaryStatusTrait{}); status.has_value() && *status == Kernel::AuxillaryStatuses::On)
+			{
+				action = SerialAdapter_CommandTypes::SetOff;
+			}
+			break;
+
+		case Pump:
+			if (auto status = device->AuxillaryTraits.TryGet(PumpStatusTrait{}); status.has_value() && *status == Kernel::PumpStatuses::Running)
+			{
+				action = SerialAdapter_CommandTypes::SetOff;
+			}
+			break;
+
+		default:
+			break;
+		}
+
+		return action;
+	}
+
 	Capabilities::ActuationResult SerialAdapterDevice::ActuateDevice(const std::shared_ptr<Kernel::AuxillaryDevice>& device, Capabilities::ActuationAction requested_action)
 	{
 		// Honest actuation: only an actively-emulating adapter (emulated AND not
@@ -292,32 +325,7 @@ namespace AqualinkAutomate::Devices
 		}
 		else if (requested_action == Capabilities::ActuationAction::Toggle && device->AuxillaryTraits.Has(AuxillaryTypeTrait{}))
 		{
-			// Auto-detect: default to SetOn; if device is already on, use SetOff.
-			auto device_type = *(device->AuxillaryTraits[AuxillaryTypeTrait{}]);
-
-			using enum AuxillaryTypes;
-			switch (device_type)
-			{
-			case Auxillary:
-			case Cleaner:
-			case Spillover:
-			case Sprinkler:
-				if (auto status = device->AuxillaryTraits.TryGet(AuxillaryStatusTrait{}); status.has_value() && *status == Kernel::AuxillaryStatuses::On)
-				{
-					action = SerialAdapter_CommandTypes::SetOff;
-				}
-				break;
-
-			case Pump:
-				if (auto status = device->AuxillaryTraits.TryGet(PumpStatusTrait{}); status.has_value() && *status == Kernel::PumpStatuses::Running)
-				{
-					action = SerialAdapter_CommandTypes::SetOff;
-				}
-				break;
-
-			default:
-				break;
-			}
+			action = ResolveToggleAction(device);
 		}
 
 		// Check if the device has a JandyAuxillaryId trait (i.e. a hardware aux port).

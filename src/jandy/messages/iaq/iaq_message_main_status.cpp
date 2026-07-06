@@ -202,101 +202,19 @@ namespace AqualinkAutomate::Messages
 		LogTrace(Channel::Messages, [device_count, has_sentinel, pos]() { return std::format("IAQMessage_MainStatus: device_count={}, sentinel={}, status_offset={}",
 			device_count, has_sentinel, pos); });
 
-		// Read a big-endian uint16 raw value; conversion to Kernel::Temperature is
-		// separate so the current format can sentinel-check the raw value first.
-		auto read_raw_be = [&payload, &pos]()
-		{
-			uint16_t raw = (static_cast<uint16_t>(payload[pos]) << 8) | static_cast<uint16_t>(payload[pos + 1]);
-			pos += 2;
-			return raw;
-		};
-
-		auto read_temp_be = [&read_raw_be](double scale)
-		{
-			return Kernel::Temperature::ConvertToTemperatureInCelsius(read_raw_be() * scale);
-		};
-
 		if (has_sentinel)
 		{
-			// Legacy format (smaller panels with sentinel):
-			//   pump(1), spa_mode(1), unknown(2), temps in BE deci-Celsius (÷10)
-			if (pos + 4 > payload_size)
+			if (!DeserializeLegacyStatus(payload, pos))
 			{
-				LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for legacy status flags.");
 				return false;
-			}
-
-			m_PumpOn = (payload[pos++] != 0x00);
-			m_SpaMode = (payload[pos++] != 0x00);
-			pos += 2; // Skip 2 unknown bytes
-
-			if (pos + 6 > payload_size)
-			{
-				LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for legacy temperature data.");
-				return false;
-			}
-
-			m_PoolTemp = read_temp_be(0.1);
-			m_SpaTemp = read_temp_be(0.1);
-			m_AirTemp = read_temp_be(0.1);
-
-			// In legacy format, extra bytes after the three temperatures
-			// are the heater setpoint (when a heater device ID is present).
-			if (pos + 2 <= payload_size)
-			{
-				m_HeaterSetpoint = read_temp_be(0.1);
-			}
-			else
-			{
-				m_HeaterSetpoint = std::nullopt;
 			}
 		}
 		else
 		{
-			// Current format (larger panels, e.g. RS-8 Combo):
-			//   pump(1), unk(1), spa_mode(1), unk(1), flags(1),
-			//   pool_target(2 BE °C), spa_target(2 BE °C), air(2 BE °C), water_current(2 BE °C)
-			if (pos + 5 > payload_size)
+			if (!DeserializeCurrentStatus(payload, pos))
 			{
-				LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for status flags.");
 				return false;
 			}
-
-			m_PumpOn = (payload[pos++] != 0x00);
-			m_PoolHeaterStatus = RawToHeaterStatus(payload[pos++]);
-			m_SpaMode = (payload[pos++] != 0x00);
-			m_SpaHeaterStatus = RawToHeaterStatus(payload[pos++]);
-			m_SolarHeaterStatus = RawToHeaterStatus(payload[pos++]);
-
-			if (pos + 8 > payload_size)
-			{
-				LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for temperature data.");
-				return false;
-			}
-
-			m_PoolSetpoint = read_temp_be(1.0);
-			m_SpaSetpoint = read_temp_be(1.0);
-			m_AirTemp = read_temp_be(1.0);
-
-			// water_current is the ACTUAL temperature of whichever body the pump is
-			// circulating (spa in spa mode, else pool). It is only meaningful while
-			// the pump runs; with the pump off the controller reports the sentinel
-			// (see WATER_TEMP_NO_READING_MAX). The targets above must never be
-			// reported as measured temperatures.
-			if (const uint16_t water_current_raw = read_raw_be(); m_PumpOn && (WATER_TEMP_NO_READING_MAX < water_current_raw))
-			{
-				auto water_current = Kernel::Temperature::ConvertToTemperatureInCelsius(static_cast<double>(water_current_raw));
-				if (m_SpaMode)
-				{
-					m_SpaTemp = water_current;
-				}
-				else
-				{
-					m_PoolTemp = water_current;
-				}
-			}
-
-			m_HeaterSetpoint = m_SpaMode ? m_SpaSetpoint : m_PoolSetpoint;
 		}
 
 		LogDebug(Channel::Messages, [this]() {
@@ -315,6 +233,126 @@ namespace AqualinkAutomate::Messages
 				magic_enum::enum_name(m_SpaHeaterStatus),
 				magic_enum::enum_name(m_SolarHeaterStatus)
 			); });
+
+		return true;
+	}
+
+	bool IAQMessage_MainStatus::DeserializeLegacyStatus(const std::vector<uint8_t>& payload, std::size_t& pos)
+	{
+		const size_t payload_size = payload.size();
+
+		// Read a big-endian uint16 raw value; conversion to Kernel::Temperature is
+		// separate so the current format can sentinel-check the raw value first.
+		auto read_raw_be = [&payload, &pos]()
+		{
+			uint16_t raw = (static_cast<uint16_t>(payload[pos]) << 8) | static_cast<uint16_t>(payload[pos + 1]);
+			pos += 2;
+			return raw;
+		};
+
+		auto read_temp_be = [&read_raw_be](double scale)
+		{
+			return Kernel::Temperature::ConvertToTemperatureInCelsius(read_raw_be() * scale);
+		};
+
+		// Legacy format (smaller panels with sentinel):
+		//   pump(1), spa_mode(1), unknown(2), temps in BE deci-Celsius (÷10)
+		if (pos + 4 > payload_size)
+		{
+			LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for legacy status flags.");
+			return false;
+		}
+
+		m_PumpOn = (payload[pos++] != 0x00);
+		m_SpaMode = (payload[pos++] != 0x00);
+		pos += 2; // Skip 2 unknown bytes
+
+		if (pos + 6 > payload_size)
+		{
+			LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for legacy temperature data.");
+			return false;
+		}
+
+		m_PoolTemp = read_temp_be(0.1);
+		m_SpaTemp = read_temp_be(0.1);
+		m_AirTemp = read_temp_be(0.1);
+
+		// In legacy format, extra bytes after the three temperatures
+		// are the heater setpoint (when a heater device ID is present).
+		if (pos + 2 <= payload_size)
+		{
+			m_HeaterSetpoint = read_temp_be(0.1);
+		}
+		else
+		{
+			m_HeaterSetpoint = std::nullopt;
+		}
+
+		return true;
+	}
+
+	bool IAQMessage_MainStatus::DeserializeCurrentStatus(const std::vector<uint8_t>& payload, std::size_t& pos)
+	{
+		const size_t payload_size = payload.size();
+
+		// Read a big-endian uint16 raw value; conversion to Kernel::Temperature is
+		// separate so the current format can sentinel-check the raw value first.
+		auto read_raw_be = [&payload, &pos]()
+		{
+			uint16_t raw = (static_cast<uint16_t>(payload[pos]) << 8) | static_cast<uint16_t>(payload[pos + 1]);
+			pos += 2;
+			return raw;
+		};
+
+		auto read_temp_be = [&read_raw_be](double scale)
+		{
+			return Kernel::Temperature::ConvertToTemperatureInCelsius(read_raw_be() * scale);
+		};
+
+		// Current format (larger panels, e.g. RS-8 Combo):
+		//   pump(1), unk(1), spa_mode(1), unk(1), flags(1),
+		//   pool_target(2 BE °C), spa_target(2 BE °C), air(2 BE °C), water_current(2 BE °C)
+		if (pos + 5 > payload_size)
+		{
+			LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for status flags.");
+			return false;
+		}
+
+		m_PumpOn = (payload[pos++] != 0x00);
+		m_PoolHeaterStatus = RawToHeaterStatus(payload[pos++]);
+		m_SpaMode = (payload[pos++] != 0x00);
+		m_SpaHeaterStatus = RawToHeaterStatus(payload[pos++]);
+		m_SolarHeaterStatus = RawToHeaterStatus(payload[pos++]);
+
+		if (pos + 8 > payload_size)
+		{
+			LogDebug(Channel::Messages, "IAQMessage_MainStatus payload too short for temperature data.");
+			return false;
+		}
+
+		m_PoolSetpoint = read_temp_be(1.0);
+		m_SpaSetpoint = read_temp_be(1.0);
+		m_AirTemp = read_temp_be(1.0);
+
+		// water_current is the ACTUAL temperature of whichever body the pump is
+		// circulating (spa in spa mode, else pool). It is only meaningful while
+		// the pump runs; with the pump off the controller reports the sentinel
+		// (see WATER_TEMP_NO_READING_MAX). The targets above must never be
+		// reported as measured temperatures.
+		if (const uint16_t water_current_raw = read_raw_be(); m_PumpOn && (WATER_TEMP_NO_READING_MAX < water_current_raw))
+		{
+			auto water_current = Kernel::Temperature::ConvertToTemperatureInCelsius(static_cast<double>(water_current_raw));
+			if (m_SpaMode)
+			{
+				m_SpaTemp = water_current;
+			}
+			else
+			{
+				m_PoolTemp = water_current;
+			}
+		}
+
+		m_HeaterSetpoint = m_SpaMode ? m_SpaSetpoint : m_PoolSetpoint;
 
 		return true;
 	}

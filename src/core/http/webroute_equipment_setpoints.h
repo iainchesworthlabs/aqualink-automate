@@ -1,6 +1,12 @@
 #pragma once
 
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
+#include <string>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include <boost/beast/http/verb.hpp>
 
@@ -35,6 +41,17 @@ namespace AqualinkAutomate::HTTP
 	private:
 		HTTP::Response HandleGet(const HTTP::Request& req);
 		HTTP::Response HandlePost(const HTTP::Request& req);
+
+		// Converts a single Celsius setpoint field to a wire value and dispatches it.
+		// Returns std::nullopt on success (or when the field is absent); otherwise the
+		// bad-request response to send immediately.
+		std::optional<HTTP::Response> ConvertAndDispatchSetpoint(
+			const HTTP::Request& req,
+			const nlohmann::json& payload,
+			const std::string& key,
+			const std::function<Interfaces::ICommandDispatcher::CommandResult(uint8_t)>& dispatch_fn,
+			nlohmann::json& result,
+			bool& any_dispatch_failed);
 
 	private:
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };

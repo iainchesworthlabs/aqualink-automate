@@ -120,45 +120,50 @@ namespace AqualinkAutomate::Serial::PortTypes
 				}
 				else
 				{
-					auto init_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("NetworkSerialPortImpl::open -> initialise_protocol", std::source_location::current());
-
-					m_EndpointName = endpoint_name;
-					m_IsOpen = true;
-
-					// Set socket to non-blocking so read_some returns would_block
-					// instead of blocking the frame loop when no data is available
-					m_Socket.non_blocking(true, ec);
-					if (ec)
-					{
-						LogWarning(Channel::Serial, std::format("Failed to set non-blocking mode on '{}': {}", endpoint_name, ec.message()));
-						m_IsOpen = false;
-						m_Socket.close();
-						return;
-					}
-
-					// Disable Nagle's algorithm — serial-over-TCP messages are small
-					// and latency-sensitive; buffering them defeats the purpose.
-					boost::asio::ip::tcp::no_delay no_delay_opt(true);
-					m_Socket.set_option(no_delay_opt, ec);
-					if (ec)
-					{
-						LogWarning(Channel::Serial, std::format("Failed to set TCP_NODELAY on '{}': {}", endpoint_name, ec.message()));
-						ec = {};
-					}
-
-					LogInfo(Channel::Serial, std::format("Successfully connected to network serial port: {}", endpoint_name));
-
-					if (m_ProtocolHandler)
-					{
-						LogDebug(Channel::Serial, "Initializing RFC2217 protocol handler");
-						m_ProtocolHandler->Initialize();
-					}
-					else
-					{
-						LogDebug(Channel::Serial, "Raw TCP transport; no protocol handler to initialise");
-					}
+					InitialiseConnectedSocket(endpoint_name, ec);
 				}
 			}
+		}
+	}
+
+	void NetworkSerialPortImpl::InitialiseConnectedSocket(const std::string& endpoint_name, boost::system::error_code& ec)
+	{
+		auto init_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("NetworkSerialPortImpl::open -> initialise_protocol", std::source_location::current());
+
+		m_EndpointName = endpoint_name;
+		m_IsOpen = true;
+
+		// Set socket to non-blocking so read_some returns would_block
+		// instead of blocking the frame loop when no data is available
+		m_Socket.non_blocking(true, ec);
+		if (ec)
+		{
+			LogWarning(Channel::Serial, std::format("Failed to set non-blocking mode on '{}': {}", endpoint_name, ec.message()));
+			m_IsOpen = false;
+			m_Socket.close();
+			return;
+		}
+
+		// Disable Nagle's algorithm — serial-over-TCP messages are small
+		// and latency-sensitive; buffering them defeats the purpose.
+		boost::asio::ip::tcp::no_delay no_delay_opt(true);
+		m_Socket.set_option(no_delay_opt, ec);
+		if (ec)
+		{
+			LogWarning(Channel::Serial, std::format("Failed to set TCP_NODELAY on '{}': {}", endpoint_name, ec.message()));
+			ec = {};
+		}
+
+		LogInfo(Channel::Serial, std::format("Successfully connected to network serial port: {}", endpoint_name));
+
+		if (m_ProtocolHandler)
+		{
+			LogDebug(Channel::Serial, "Initializing RFC2217 protocol handler");
+			m_ProtocolHandler->Initialize();
+		}
+		else
+		{
+			LogDebug(Channel::Serial, "Raw TCP transport; no protocol handler to initialise");
 		}
 	}
 

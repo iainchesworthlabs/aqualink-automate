@@ -201,20 +201,9 @@ namespace AqualinkAutomate::Devices
 				// and updated in place. A LEGACY pre-stable-id cache placeholder (random id) is
 				// reconciled away here, at this first live touch of the aux, so it never reaches
 				// the MQTT/HA publishers as a duplicate (any cached custom label is preserved).
-				if (new_device->AuxillaryTraits.Has(Auxillaries::JandyAuxillaryId{}))
+				if (ReconcileExistingEquipmentAux(new_device))
 				{
-					const auto aux_id = *(new_device->AuxillaryTraits[Auxillaries::JandyAuxillaryId{}]);
-					if (auto existing = m_DataHub->Devices.FindById(new_device->Id()); nullptr != existing)
-					{
-						// Grant the aux identity to a cache-restored placeholder (which lacks it).
-						Auxillaries::EnsureAuxIdentity(existing, aux_id);
-						if (auto status_opt = new_device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{}); status_opt.has_value())
-						{
-							existing->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{}, status_opt.value());
-						}
-						Auxillaries::RemoveOrphanAuxPlaceholders(m_DataHub->Devices, aux_id, existing);
-						continue;
-					}
+					continue;
 				}
 
 				m_DataHub->Devices.Add(new_device);
@@ -226,6 +215,32 @@ namespace AqualinkAutomate::Devices
 				}
 			}
 		}
+	}
+
+	bool OneTouchScraper::ReconcileExistingEquipmentAux(const std::shared_ptr<Kernel::AuxillaryDevice>& new_device)
+	{
+		// Only aux devices carrying the deterministic stable id can be reconciled by id; a
+		// device without it is always treated as new (added by the caller).
+		if (!new_device->AuxillaryTraits.Has(Auxillaries::JandyAuxillaryId{}))
+		{
+			return false;
+		}
+
+		const auto aux_id = *(new_device->AuxillaryTraits[Auxillaries::JandyAuxillaryId{}]);
+		auto existing = m_DataHub->Devices.FindById(new_device->Id());
+		if (nullptr == existing)
+		{
+			return false;
+		}
+
+		// Grant the aux identity to a cache-restored placeholder (which lacks it).
+		Auxillaries::EnsureAuxIdentity(existing, aux_id);
+		if (auto status_opt = new_device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{}); status_opt.has_value())
+		{
+			existing->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{}, status_opt.value());
+		}
+		Auxillaries::RemoveOrphanAuxPlaceholders(m_DataHub->Devices, aux_id, existing);
+		return true;
 	}
 
 	void OneTouchScraper::PageProcessor_EquipmentStatus(const Utility::ScreenDataPage& page)

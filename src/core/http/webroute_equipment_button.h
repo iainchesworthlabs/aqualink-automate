@@ -37,6 +37,9 @@ namespace AqualinkAutomate::HTTP
 		HTTP::Response ButtonIndividual_PostHandler(const HTTP::Request& req);
 
 	private:
+		HTTP::Response ButtonToggle_MapResultToResponse(const HTTP::Request& req, const std::string& button_id, const std::shared_ptr<Kernel::AuxillaryDevice>& button_device, Interfaces::ICommandDispatcher::CommandResult result);
+
+	private:
 		HTTP::Response Report_ButtonDoesntExist(const HTTP::Request& req, const std::string& button_id);
 		HTTP::Response Report_SystemIsInactive(const HTTP::Request& req);
 

@@ -166,49 +166,50 @@ namespace AqualinkAutomate::Devices
 			}
 		}
 
-		// Helper to create/update a heater device in the DataHub.
-		auto update_heater = [this](const std::string& label, Kernel::HeaterStatuses status, Kernel::BodyOfWaterIds body_id)
-		{
-			// Query the label view once; only re-query after creating a new heater (the
-			// Add invalidates the first snapshot).  Previously FindByLabel() ran a full
-			// label scan up to three times per heater per MainStatus.
-			auto heaters = m_DataHub->Devices.FindByLabel(label);
-			if (heaters.empty())
-			{
-				auto ptr = std::make_shared<Kernel::AuxillaryDevice>();
-				ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}, Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Heater);
-				ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::LabelTrait{}, label);
-				ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::HeaterStatusTrait{}, Kernel::HeaterStatuses::Off);
-				ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::BodyOfWaterTrait{}, body_id);
-				m_DataHub->Devices.Add(std::move(ptr));
-				heaters = m_DataHub->Devices.FindByLabel(label);
-			}
-
-			if (heaters.empty())
-			{
-				return;
-			}
-
-			auto heater = heaters.front();
-			heater->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::HeaterStatusTrait{}, status);
-
-			auto status_string = Kernel::AuxillaryTraitsTypes::ConvertStatusToString(heater);
-			std::string heater_label;
-			if (auto label_opt = heater->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{}); label_opt.has_value())
-			{
-				heater_label = label_opt.value();
-			}
-			m_DataHub->EmitButtonStateChange(heater->Id(), status_string, heater_label);
-		};
-
-		update_heater("Pool Heat", msg.PoolHeaterStatus(), Kernel::BodyOfWaterIds::Pool);
-		update_heater("Spa Heat", msg.SpaHeaterStatus(), Kernel::BodyOfWaterIds::Spa);
-		update_heater("Solar Heat", msg.SolarHeaterStatus(), Kernel::BodyOfWaterIds::Shared);
+		// Create/update the three heater devices in the DataHub.  Extracted into a
+		// member function so this hot decode path stays readable.
+		UpdateHeaterDevice("Pool Heat", msg.PoolHeaterStatus(), Kernel::BodyOfWaterIds::Pool);
+		UpdateHeaterDevice("Spa Heat", msg.SpaHeaterStatus(), Kernel::BodyOfWaterIds::Spa);
+		UpdateHeaterDevice("Solar Heat", msg.SolarHeaterStatus(), Kernel::BodyOfWaterIds::Shared);
 
 		// Now that the DataHub reflects the freshly-decoded MainStatus, render that
 		// live state into the device's Screen so the diagnostics "Actual Devices"
 		// card shows real data rather than a Page_Unknown blank.
 		RenderStatusScreen(msg);
+	}
+
+	void IAQDevice::UpdateHeaterDevice(const std::string& label, Kernel::HeaterStatuses status, Kernel::BodyOfWaterIds body_id)
+	{
+		// Query the label view once; only re-query after creating a new heater (the
+		// Add invalidates the first snapshot).  Previously FindByLabel() ran a full
+		// label scan up to three times per heater per MainStatus.
+		auto heaters = m_DataHub->Devices.FindByLabel(label);
+		if (heaters.empty())
+		{
+			auto ptr = std::make_shared<Kernel::AuxillaryDevice>();
+			ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}, Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Heater);
+			ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::LabelTrait{}, label);
+			ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::HeaterStatusTrait{}, Kernel::HeaterStatuses::Off);
+			ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::BodyOfWaterTrait{}, body_id);
+			m_DataHub->Devices.Add(std::move(ptr));
+			heaters = m_DataHub->Devices.FindByLabel(label);
+		}
+
+		if (heaters.empty())
+		{
+			return;
+		}
+
+		auto heater = heaters.front();
+		heater->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::HeaterStatusTrait{}, status);
+
+		auto status_string = Kernel::AuxillaryTraitsTypes::ConvertStatusToString(heater);
+		std::string heater_label;
+		if (auto label_opt = heater->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::LabelTrait{}); label_opt.has_value())
+		{
+			heater_label = label_opt.value();
+		}
+		m_DataHub->EmitButtonStateChange(heater->Id(), status_string, heater_label);
 	}
 
 	void IAQDevice::RenderStatusScreen(const Messages::IAQMessage_MainStatus& msg)

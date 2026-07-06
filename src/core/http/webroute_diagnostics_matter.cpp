@@ -35,6 +35,47 @@ namespace AqualinkAutomate::HTTP
 	{
 		constexpr std::chrono::milliseconds SIDECAR_TIMEOUT{ 750 };
 
+		// Coroutine body of the sidecar fetch, extracted from the co_spawn lambda so the
+		// lambda stays short. `body` is the caller's local (its stack frame outlives this
+		// coroutine because ioc.run_for completes it before returning), and status_port is
+		// passed by value exactly as the lambda captured it.
+		asio::awaitable<void> FetchSidecarStatusCoro(uint16_t status_port, std::optional<std::string>& body)
+		{
+			auto executor = co_await asio::this_coro::executor;
+			tcp::resolver resolver(executor);
+			beast::tcp_stream stream(executor);
+
+			// Use as_tuple so failures (a sidecar that isn't running -> refused
+			// connect, etc.) come back as error_codes instead of THROWING
+			// boost::system::system_error -- otherwise every poll of an absent
+			// sidecar raised (and caught) a first-chance exception.
+			auto [resolve_ec, results] = co_await resolver.async_resolve("127.0.0.1", std::to_string(status_port), asio::as_tuple(asio::use_awaitable));
+			if (resolve_ec) { co_return; }
+
+			stream.expires_after(SIDECAR_TIMEOUT);
+			auto [connect_ec, connected_endpoint] = co_await stream.async_connect(results, asio::as_tuple(asio::use_awaitable));
+			if (connect_ec) { co_return; }
+			(void)connected_endpoint;
+
+			http::request<http::string_body> req{ http::verb::get, "/matter/status", 11 };
+			req.set(http::field::host, "127.0.0.1");
+			req.set(http::field::user_agent, "aqualink-automate");
+			stream.expires_after(SIDECAR_TIMEOUT);
+			auto [write_ec, bytes_written] = co_await http::async_write(stream, req, asio::as_tuple(asio::use_awaitable));
+			if (write_ec) { co_return; }
+			(void)bytes_written;
+
+			beast::flat_buffer buffer;
+			http::response<http::string_body> res;
+			auto [read_ec, bytes_read] = co_await http::async_read(stream, buffer, res, asio::as_tuple(asio::use_awaitable));
+			if (read_ec) { co_return; }
+			(void)bytes_read;
+			body = res.body();
+
+			beast::error_code ec;
+			stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+		}
+
 		// Fetch the sidecar's /matter/status over localhost on a throwaway io_context,
 		// bounded so a hung/absent sidecar fails fast. Called ONLY from the route's
 		// background RefreshLoop thread -- never the main io_context -- so the bounded
@@ -49,42 +90,7 @@ namespace AqualinkAutomate::HTTP
 
 				asio::co_spawn(
 					ioc,
-					[status_port, &body]() -> asio::awaitable<void>
-					{
-						auto executor = co_await asio::this_coro::executor;
-						tcp::resolver resolver(executor);
-						beast::tcp_stream stream(executor);
-
-						// Use as_tuple so failures (a sidecar that isn't running -> refused
-						// connect, etc.) come back as error_codes instead of THROWING
-						// boost::system::system_error -- otherwise every poll of an absent
-						// sidecar raised (and caught) a first-chance exception.
-						auto [resolve_ec, results] = co_await resolver.async_resolve("127.0.0.1", std::to_string(status_port), asio::as_tuple(asio::use_awaitable));
-						if (resolve_ec) { co_return; }
-
-						stream.expires_after(SIDECAR_TIMEOUT);
-						auto [connect_ec, connected_endpoint] = co_await stream.async_connect(results, asio::as_tuple(asio::use_awaitable));
-						if (connect_ec) { co_return; }
-						(void)connected_endpoint;
-
-						http::request<http::string_body> req{ http::verb::get, "/matter/status", 11 };
-						req.set(http::field::host, "127.0.0.1");
-						req.set(http::field::user_agent, "aqualink-automate");
-						stream.expires_after(SIDECAR_TIMEOUT);
-						auto [write_ec, bytes_written] = co_await http::async_write(stream, req, asio::as_tuple(asio::use_awaitable));
-						if (write_ec) { co_return; }
-						(void)bytes_written;
-
-						beast::flat_buffer buffer;
-						http::response<http::string_body> res;
-						auto [read_ec, bytes_read] = co_await http::async_read(stream, buffer, res, asio::as_tuple(asio::use_awaitable));
-						if (read_ec) { co_return; }
-						(void)bytes_read;
-						body = res.body();
-
-						beast::error_code ec;
-						stream.socket().shutdown(tcp::socket::shutdown_both, ec);
-					},
+					FetchSidecarStatusCoro(status_port, body),
 					asio::detached);
 
 				// Bound the whole exchange; a refused localhost connection fails fast.

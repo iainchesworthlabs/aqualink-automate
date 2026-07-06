@@ -230,44 +230,50 @@ namespace AqualinkAutomate::Mqtt
 			ep->async_recv(
 				[this, self, ep](am::error_code ec, std::optional<am::packet_variant> pv)
 				{
-					if (!IsCurrent(ep)) { return; }
-					if (ec)
-					{
-						ScheduleReconnect(std::format("CONNACK recv error: {}", ec.message()));
-						return;
-					}
-
-					bool accepted = false;
-					if (pv)
-					{
-						pv->visit(am::overload{
-							[&accepted](am::v3_1_1::connack_packet const& p) { accepted = (p.code() == am::connect_return_code::accepted); },
-							[&accepted](am::v5::connack_packet const& p) { accepted = (p.code() == am::connect_reason_code::success); },
-							[](auto const&) { /* Non-CONNACK packets are not expected here and are ignored. */ }
-						});
-					}
-
-					if (!accepted)
-					{
-						ScheduleReconnect("CONNACK rejected by broker");
-						return;
-					}
-
-					m_Owner.m_State = State::Connected;
-					m_Owner.m_ReconnectAttempts = 0;
-					m_Owner.m_LastError.clear();
-
-					LogInfo(Channel::Mqtt, [this] { return std::format("Connected to MQTT broker at {}:{}{} (MQTT {})",
-						m_Owner.m_Settings.broker_host, m_Owner.m_Settings.broker_port,
-						m_Owner.m_Settings.tls.use_tls ? " (TLS)" : "",
-						Options::Mqtt::ToString(m_Owner.m_Settings.protocol_version)); });
-					Factory::ProfilerFactory::Instance().Get()->Message("MQTT: Connected", static_cast<uint32_t>(UnitColours::Green));
-
-					m_Owner.OnConnected();
-
-					DoRecvLoop(ep);
-					DoFlush(ep);
+					HandleConnack(ep, ec, std::move(pv));
 				});
+		}
+
+		template <class Ep>
+		void HandleConnack(const std::shared_ptr<Ep>& ep, am::error_code ec, std::optional<am::packet_variant> pv)
+		{
+			if (!IsCurrent(ep)) { return; }
+			if (ec)
+			{
+				ScheduleReconnect(std::format("CONNACK recv error: {}", ec.message()));
+				return;
+			}
+
+			bool accepted = false;
+			if (pv)
+			{
+				pv->visit(am::overload{
+					[&accepted](am::v3_1_1::connack_packet const& p) { accepted = (p.code() == am::connect_return_code::accepted); },
+					[&accepted](am::v5::connack_packet const& p) { accepted = (p.code() == am::connect_reason_code::success); },
+					[](auto const&) { /* Non-CONNACK packets are not expected here and are ignored. */ }
+				});
+			}
+
+			if (!accepted)
+			{
+				ScheduleReconnect("CONNACK rejected by broker");
+				return;
+			}
+
+			m_Owner.m_State = State::Connected;
+			m_Owner.m_ReconnectAttempts = 0;
+			m_Owner.m_LastError.clear();
+
+			LogInfo(Channel::Mqtt, [this] { return std::format("Connected to MQTT broker at {}:{}{} (MQTT {})",
+				m_Owner.m_Settings.broker_host, m_Owner.m_Settings.broker_port,
+				m_Owner.m_Settings.tls.use_tls ? " (TLS)" : "",
+				Options::Mqtt::ToString(m_Owner.m_Settings.protocol_version)); });
+			Factory::ProfilerFactory::Instance().Get()->Message("MQTT: Connected", static_cast<uint32_t>(UnitColours::Green));
+
+			m_Owner.OnConnected();
+
+			DoRecvLoop(ep);
+			DoFlush(ep);
 		}
 
 		template <class Ep>
@@ -368,36 +374,39 @@ namespace AqualinkAutomate::Mqtt
 
 		void Subscribe(const std::string& filter, std::uint8_t /*qos*/)
 		{
-			WithEndpoint([this, &filter](auto& ep)
+			WithEndpoint([this, &filter](auto& ep) { DoSubscribe(ep, filter); });
+		}
+
+		template <class Ep>
+		void DoSubscribe(std::shared_ptr<Ep>& ep, const std::string& filter)
+		{
+			auto pid = ep->acquire_unique_packet_id();
+			if (!pid)
 			{
-				auto pid = ep->acquire_unique_packet_id();
-				if (!pid)
-				{
-					LogWarning(Channel::Mqtt, [&filter] { return std::format("Cannot subscribe to '{}': no packet id available", filter); });
-					return;
-				}
+				LogWarning(Channel::Mqtt, [&filter] { return std::format("Cannot subscribe to '{}': no packet id available", filter); });
+				return;
+			}
 
-				auto self = m_Owner.shared_from_this();
-				auto cb = [self, filter](am::error_code ec)
+			auto self = m_Owner.shared_from_this();
+			auto cb = [self, filter](am::error_code ec)
+			{
+				if (ec)
 				{
-					if (ec)
-					{
-						LogWarning(Channel::Mqtt, [&filter, msg = ec.message()] { return std::format("Failed to send SUBSCRIBE for '{}': {}", filter, msg); });
-					}
-				};
+					LogWarning(Channel::Mqtt, [&filter, msg = ec.message()] { return std::format("Failed to send SUBSCRIBE for '{}': {}", filter, msg); });
+				}
+			};
 
-				// The endpoint API is identical for TCP/TLS (ep is deduced); only the
-				// packet type differs by protocol version.
-				if (m_Version == am::protocol_version::v5)
-				{
-					ep->async_send(am::v5::subscribe_packet{ *pid, { { filter, am::qos::at_most_once } } }, std::move(cb));
-				}
-				else
-				{
-					ep->async_send(am::v3_1_1::subscribe_packet{ *pid, { { filter, am::qos::at_most_once } } }, std::move(cb));
-				}
-				LogDebug(Channel::Mqtt, [&filter] { return std::format("Sent SUBSCRIBE for '{}'", filter); });
-			});
+			// The endpoint API is identical for TCP/TLS (ep is deduced); only the
+			// packet type differs by protocol version.
+			if (m_Version == am::protocol_version::v5)
+			{
+				ep->async_send(am::v5::subscribe_packet{ *pid, { { filter, am::qos::at_most_once } } }, std::move(cb));
+			}
+			else
+			{
+				ep->async_send(am::v3_1_1::subscribe_packet{ *pid, { { filter, am::qos::at_most_once } } }, std::move(cb));
+			}
+			LogDebug(Channel::Mqtt, [&filter] { return std::format("Sent SUBSCRIBE for '{}'", filter); });
 		}
 
 		//---------------------------------------------------------------------
@@ -464,6 +473,33 @@ namespace AqualinkAutomate::Mqtt
 			m_Owner.m_PublishQueue.clear();
 		}
 
+		// Load the optional client certificate/key pair into the SSL context.
+		// `ec` is threaded through so a failure surfaces to BuildSslContext exactly
+		// as it did inline (the async_mqtt/asio API reports via error_code).
+		void LoadClientCertificate(boost::system::error_code& ec)
+		{
+			if (m_Owner.m_Settings.tls.tls_client_cert.empty() || m_Owner.m_Settings.tls.tls_client_key.empty())
+			{
+				return;
+			}
+
+			if (!std::filesystem::exists(m_Owner.m_Settings.tls.tls_client_cert) || !std::filesystem::exists(m_Owner.m_Settings.tls.tls_client_key))
+			{
+				LogError(Channel::Mqtt, "Client certificate or key file not found");
+				return;
+			}
+
+			m_SslContext->use_certificate_file(m_Owner.m_Settings.tls.tls_client_cert, as::ssl::context::pem, ec);
+			if (ec)
+			{
+				LogError(Channel::Mqtt, [msg = ec.message()] { return std::format("Failed to load client certificate: {}", msg); });
+				return;
+			}
+
+			m_SslContext->use_private_key_file(m_Owner.m_Settings.tls.tls_client_key, as::ssl::context::pem, ec);
+			if (ec) { LogError(Channel::Mqtt, [msg = ec.message()] { return std::format("Failed to load client private key: {}", msg); }); }
+		}
+
 		void BuildSslContext()
 		{
 			LogInfo(Channel::Mqtt, "Initializing TLS context for MQTT");
@@ -491,23 +527,7 @@ namespace AqualinkAutomate::Mqtt
 				}
 			}
 
-			if (!m_Owner.m_Settings.tls.tls_client_cert.empty() && !m_Owner.m_Settings.tls.tls_client_key.empty())
-			{
-				if (std::filesystem::exists(m_Owner.m_Settings.tls.tls_client_cert) && std::filesystem::exists(m_Owner.m_Settings.tls.tls_client_key))
-				{
-					m_SslContext->use_certificate_file(m_Owner.m_Settings.tls.tls_client_cert, as::ssl::context::pem, ec);
-					if (ec) { LogError(Channel::Mqtt, [msg = ec.message()] { return std::format("Failed to load client certificate: {}", msg); }); }
-					else
-					{
-						m_SslContext->use_private_key_file(m_Owner.m_Settings.tls.tls_client_key, as::ssl::context::pem, ec);
-						if (ec) { LogError(Channel::Mqtt, [msg = ec.message()] { return std::format("Failed to load client private key: {}", msg); }); }
-					}
-				}
-				else
-				{
-					LogError(Channel::Mqtt, "Client certificate or key file not found");
-				}
-			}
+			LoadClientCertificate(ec);
 
 			if (m_Owner.m_Settings.tls.tls_skip_verify)
 			{

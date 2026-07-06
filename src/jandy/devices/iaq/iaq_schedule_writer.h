@@ -83,6 +83,36 @@ namespace AqualinkAutomate::Devices::IAQ
 		// Arm the goal and reset the per-goal state.
 		void Arm(Goal goal, const JandyDeviceType& device_id);
 
+		// Emit `cmd` and dwell IAQ_SCHEDULE_SETTLE_POLLS polls so the master can render (was the
+		// `issue` lambda in ProcessStep).
+		void IssueAndSettle(ICommandSink& sink, uint8_t cmd);
+
+		// Finish the pending goal: log ok/abandoned, clear the ACK and reset the per-goal state (was
+		// the `finish` lambda in ProcessStep).
+		void FinishGoal(ICommandSink& sink, const JandyDeviceType& device_id, bool ok);
+
+		// Set one time field of the highlighted program: open it (from the list) then, on the time
+		// picker, match AM/PM and submit the value via the control-data handshake, advancing to `next`
+		// once the submit is issued (was the `set_time` lambda in ProcessStep).
+		void SetTimeField(const PageModel& page, const Utility::ScreenDataPage& status_page,
+			ICommandSink& sink, uint8_t open_cmd, int hour, int minute, Phase next);
+
+		// Does a parsed list row match the pending goal's `match` program (delete/edit row locate)?
+		bool MatchesProgram(const Scheduling::ControllerSchedule& row) const;
+
+		// Per-phase step handlers (each was a `case` body of ProcessStep's `switch (m_Phase)`); each
+		// emits at most one command into `sink` this poll and advances `m_Phase`.
+		void StepNavigateToList(const PageModel& page, ICommandSink& sink, const Goal& goal);
+		void StepAddProgram(const PageModel& page, ICommandSink& sink);
+		void StepSelectDevice(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id, const Goal& goal);
+		void StepSetDay(const PageModel& page, ICommandSink& sink, const Goal& goal);
+		void StepVerify(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id, const Goal& goal);
+		void StepSelectRow(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id, const Goal& goal);
+		void StepPressEdit(const PageModel& page, ICommandSink& sink);
+		void StepPressDelete(const PageModel& page, ICommandSink& sink);
+		void StepConfirmDelete(ICommandSink& sink);
+		void StepVerifyGone(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id);
+
 		std::optional<Goal> m_Pending;
 		Phase m_Phase{ Phase::NavigateToList };
 		uint32_t m_PollCount{ 0 };        // overall backstop

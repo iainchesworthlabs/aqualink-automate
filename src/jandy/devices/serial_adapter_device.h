@@ -97,6 +97,11 @@ namespace AqualinkAutomate::Devices
 		void QueueHeaterCommand(Messages::SerialAdapter_SystemTemperatureCommands heater, bool enable);
 
 	private:
+		// Resolve the concrete SetOn/SetOff command for a Toggle actuation by inspecting
+		// the device's current status trait (default SetOn; SetOff when already on/running).
+		// Precondition: device carries an AuxillaryTypeTrait (checked by the caller).
+		Messages::SerialAdapter_CommandTypes ResolveToggleAction(const std::shared_ptr<Kernel::AuxillaryDevice>& device) const;
+
 		void ProcessControllerUpdates() override;
 
 		// Emit the next queued command in response to an RSSA_DEV_READY (0x07) poll.

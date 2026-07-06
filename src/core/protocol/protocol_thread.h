@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <deque>
 #include <memory>
@@ -10,6 +11,7 @@
 #include <boost/signals2.hpp>
 
 #include "kernel/statistics_hub.h"
+#include "profiling/types/profiling_types.h"
 #include "protocol/protocol_handler_constants.h"
 #include "protocol/protocol_handler_types.h"
 #include "protocol/protocol_message_types.h"
@@ -67,6 +69,21 @@ namespace AqualinkAutomate::Protocol
 		void DrainWrites();
 		void DrainReads();
 		std::size_t ProcessMessages(ReadOps_SerialBufferType& circular_buffer);
+
+		// Success-branch body of the ProcessMessages loop: dispatch a decoded
+		// message to its handlers (behind an exception barrier) and record the
+		// per-message processing latency.
+		void HandleParsedMessage(const ProtocolMessagePtr& message,
+								 std::chrono::steady_clock::time_point msg_processing_start,
+								 const Types::ProfilerTypePtr& profiler);
+
+		// Error-branch body of the ProcessMessages loop.  Dispatches the error
+		// and applies the consume-or-defer invariant.  Returns true if the loop
+		// should CONTINUE parsing (forward progress on a keep-processing code),
+		// false if it should BREAK (need more data or a contract violation).
+		[[nodiscard]] bool HandleGenerationError(const ProtocolErrorCode& error,
+												 const ReadOps_SerialBufferType& circular_buffer,
+												 std::size_t size_before);
 
 	private:
 		std::shared_ptr<Serial::SerialPort> m_SerialPort;

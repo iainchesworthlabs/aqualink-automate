@@ -58,20 +58,8 @@ namespace AqualinkAutomate::HTTP
 		return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
 	}
 
-	nlohmann::json WebRoute_Equipment_SpasideRemotes::BuildEnvelope() const
+	std::map<std::pair<std::uint8_t, std::uint8_t>, std::string> WebRoute_Equipment_SpasideRemotes::ParseRequestedAssignments() const
 	{
-		// --- Live decoded assignments (iAQ "Spa Remotes" / OneTouch "Spa Switch" config), keyed by
-		// the controller's switch:button numbering. Used both for the flat `assignments` list and to
-		// label each remote key with its real function.
-		std::map<std::pair<uint8_t, uint8_t>, std::string> live;
-		if (m_DataHub)
-		{
-			live = m_DataHub->SpaSwitchAssignments();
-		}
-
-		// --- User-requested (desired-state) assignments persisted in PreferencesHub, keyed
-		// "<switch>:<button>". Surfaced so the UI shows intent even before the controller re-reports
-		// it (or, on a read-only/iAQ-only system, as a pending annotation).
 		// Non-throwing parse: std::stoul throws std::out_of_range for an all-digit
 		// string wider than unsigned long (the digit check above does NOT bound the
 		// magnitude), and these keys are attacker-influenced (persisted via PUT
@@ -98,10 +86,13 @@ namespace AqualinkAutomate::HTTP
 			}
 		}
 
-		// --- Remotes, each enriched with a per-key `buttons` list joining the wire press index, the
-		// controller config switch:button coordinate, the live function, the requested function and a
-		// pending flag (requested but not yet confirmed by the live map). `pressable` mirrors the
-		// remote's emulated flag (only an emulated remote can have a press injected).
+		return requested_map;
+	}
+
+	nlohmann::json WebRoute_Equipment_SpasideRemotes::BuildRemotesJson(
+		const std::map<std::pair<std::uint8_t, std::uint8_t>, std::string>& live,
+		const std::map<std::pair<std::uint8_t, std::uint8_t>, std::string>& requested_map) const
+	{
 		nlohmann::json remotes_json = nlohmann::json::array();
 		if (m_Controller)
 		{
@@ -144,6 +135,31 @@ namespace AqualinkAutomate::HTTP
 				remotes_json.push_back(std::move(j));
 			}
 		}
+
+		return remotes_json;
+	}
+
+	nlohmann::json WebRoute_Equipment_SpasideRemotes::BuildEnvelope() const
+	{
+		// --- Live decoded assignments (iAQ "Spa Remotes" / OneTouch "Spa Switch" config), keyed by
+		// the controller's switch:button numbering. Used both for the flat `assignments` list and to
+		// label each remote key with its real function.
+		std::map<std::pair<uint8_t, uint8_t>, std::string> live;
+		if (m_DataHub)
+		{
+			live = m_DataHub->SpaSwitchAssignments();
+		}
+
+		// --- User-requested (desired-state) assignments persisted in PreferencesHub, keyed
+		// "<switch>:<button>". Surfaced so the UI shows intent even before the controller re-reports
+		// it (or, on a read-only/iAQ-only system, as a pending annotation).
+		const std::map<std::pair<uint8_t, uint8_t>, std::string> requested_map = ParseRequestedAssignments();
+
+		// --- Remotes, each enriched with a per-key `buttons` list joining the wire press index, the
+		// controller config switch:button coordinate, the live function, the requested function and a
+		// pending flag (requested but not yet confirmed by the live map). `pressable` mirrors the
+		// remote's emulated flag (only an emulated remote can have a press injected).
+		nlohmann::json remotes_json = BuildRemotesJson(live, requested_map);
 
 		nlohmann::json envelope;
 		envelope["remotes"] = std::move(remotes_json);
@@ -217,88 +233,12 @@ namespace AqualinkAutomate::HTTP
 
 			if ("press" == action)
 			{
-				if (!body.contains("address") || !body["address"].is_number_unsigned())
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_press_requires_address", "'press' requires an unsigned integer 'address'");
-				}
-				if (!body.contains("button") || !body["button"].is_number_unsigned())
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_press_requires_button", "'press' requires an unsigned integer 'button'");
-				}
-
-				const auto address_value = body["address"].get<std::uint64_t>();
-				const auto button_value = body["button"].get<std::uint64_t>();
-				if ((address_value > 0xFF) || (button_value > 0xFF))
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_byte_range", "'address' and 'button' must each fit in a single byte");
-				}
-
-				const auto address = static_cast<uint8_t>(address_value);
-				const auto button = static_cast<uint8_t>(button_value);
-
-				using enum Interfaces::ISpasideRemoteController::PressResult;
-				switch (m_Controller->PressButton(address, button))
-				{
-				case Success:
-					LogInfo(Channel::Web, std::format("Spa-side remote 0x{:02x}: queued press of button {} via web UI", address, button));
-					return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
-
-				case RemoteNotFound:
-					return MakeErrorResponse(req, HTTP::Status::not_found, "spaside_remote_not_found", "No spa-side remote at that address");
-
-				case NotEmulated:
-					return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_remote_observed_only", "That spa-side remote is a real device we only observe; it cannot be actuated");
-
-				case InvalidButton:
-				default:
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_button_out_of_range", "'button' is out of range for that remote (1..button_count)");
-				}
+				return HandlePressAction(req, body);
 			}
 
 			if ("assign" == action)
 			{
-				// Program switch:button -> function over the bus (drives the controller's config menu).
-				if (!body.contains("switch") || !body["switch"].is_number_unsigned() ||
-					!body.contains("button") || !body["button"].is_number_unsigned() ||
-					!body.contains("function") || !body["function"].is_string())
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_assign_requires_fields", "'assign' requires unsigned 'switch', unsigned 'button', and string 'function'");
-				}
-
-				const auto switch_value = body["switch"].get<std::uint64_t>();
-				const auto button_value = body["button"].get<std::uint64_t>();
-				const auto function = body["function"].get<std::string>();
-				if ((switch_value > 0xFF) || (button_value > 0xFF))
-				{
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_byte_range", "'switch' and 'button' must each fit in a single byte");
-				}
-
-				const auto sw = static_cast<uint8_t>(switch_value);
-				const auto btn = static_cast<uint8_t>(button_value);
-
-				using enum Interfaces::ISpasideRemoteController::AssignResult;
-				switch (m_Controller->SetButtonAssignment(sw, btn, function))
-				{
-				case Accepted:
-					LogInfo(Channel::Web, std::format("Spa-switch assign: switch {} button {} -> '{}' queued via web UI", sw, btn, function));
-					// Remember the user's request (desired state) so the UI reflects it and it
-					// survives a restart; the controller's live decoded map remains authoritative.
-					if (m_PreferencesService)
-					{
-						m_PreferencesService->RecordSpaSwitchAssignment(sw, btn, function);
-					}
-					return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
-
-				case InvalidRequest:
-					return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_assign_invalid", "Invalid switch/button/function for assignment");
-
-				case Busy:
-					return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_controller_busy", "A controller operation is in progress; retry shortly");
-
-				case NotAvailable:
-				default:
-					return MakeErrorResponse(req, HTTP::Status::service_unavailable, "spaside_no_programmer", "No controller can program spa-switch assignments on this system");
-				}
+				return HandleAssignAction(req, body);
 			}
 
 			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_invalid_action", "'action' must be 'press' or 'assign'");
@@ -306,6 +246,92 @@ namespace AqualinkAutomate::HTTP
 		catch (const nlohmann::json::exception&)
 		{
 			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_json", "Invalid JSON in request body");
+		}
+	}
+
+	HTTP::Response WebRoute_Equipment_SpasideRemotes::HandlePressAction(const HTTP::Request& req, const nlohmann::json& body) const
+	{
+		if (!body.contains("address") || !body["address"].is_number_unsigned())
+		{
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_press_requires_address", "'press' requires an unsigned integer 'address'");
+		}
+		if (!body.contains("button") || !body["button"].is_number_unsigned())
+		{
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_press_requires_button", "'press' requires an unsigned integer 'button'");
+		}
+
+		const auto address_value = body["address"].get<std::uint64_t>();
+		const auto button_value = body["button"].get<std::uint64_t>();
+		if ((address_value > 0xFF) || (button_value > 0xFF))
+		{
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_byte_range", "'address' and 'button' must each fit in a single byte");
+		}
+
+		const auto address = static_cast<uint8_t>(address_value);
+		const auto button = static_cast<uint8_t>(button_value);
+
+		using enum Interfaces::ISpasideRemoteController::PressResult;
+		switch (m_Controller->PressButton(address, button))
+		{
+		case Success:
+			LogInfo(Channel::Web, std::format("Spa-side remote 0x{:02x}: queued press of button {} via web UI", address, button));
+			return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
+
+		case RemoteNotFound:
+			return MakeErrorResponse(req, HTTP::Status::not_found, "spaside_remote_not_found", "No spa-side remote at that address");
+
+		case NotEmulated:
+			return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_remote_observed_only", "That spa-side remote is a real device we only observe; it cannot be actuated");
+
+		case InvalidButton:
+		default:
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_button_out_of_range", "'button' is out of range for that remote (1..button_count)");
+		}
+	}
+
+	HTTP::Response WebRoute_Equipment_SpasideRemotes::HandleAssignAction(const HTTP::Request& req, const nlohmann::json& body) const
+	{
+		// Program switch:button -> function over the bus (drives the controller's config menu).
+		if (!body.contains("switch") || !body["switch"].is_number_unsigned() ||
+			!body.contains("button") || !body["button"].is_number_unsigned() ||
+			!body.contains("function") || !body["function"].is_string())
+		{
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_assign_requires_fields", "'assign' requires unsigned 'switch', unsigned 'button', and string 'function'");
+		}
+
+		const auto switch_value = body["switch"].get<std::uint64_t>();
+		const auto button_value = body["button"].get<std::uint64_t>();
+		const auto function = body["function"].get<std::string>();
+		if ((switch_value > 0xFF) || (button_value > 0xFF))
+		{
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_byte_range", "'switch' and 'button' must each fit in a single byte");
+		}
+
+		const auto sw = static_cast<uint8_t>(switch_value);
+		const auto btn = static_cast<uint8_t>(button_value);
+
+		using enum Interfaces::ISpasideRemoteController::AssignResult;
+		switch (m_Controller->SetButtonAssignment(sw, btn, function))
+		{
+		case Accepted:
+			LogInfo(Channel::Web, std::format("Spa-switch assign: switch {} button {} -> '{}' queued via web UI", sw, btn, function));
+			// Remember the user's request (desired state) so the UI reflects it and it
+			// survives a restart; the controller's live decoded map remains authoritative.
+			if (m_PreferencesService)
+			{
+				m_PreferencesService->RecordSpaSwitchAssignment(sw, btn, function);
+			}
+			return MakeJsonResponse(req, HTTP::Status::ok, BuildEnvelope().dump());
+
+		case InvalidRequest:
+			return MakeErrorResponse(req, HTTP::Status::bad_request, "spaside_assign_invalid", "Invalid switch/button/function for assignment");
+
+		case Busy:
+			return MakeErrorResponse(req, HTTP::Status::conflict, "spaside_controller_busy", "A controller operation is in progress; retry shortly");
+
+		case NotAvailable:
+		default:
+			return MakeErrorResponse(req, HTTP::Status::service_unavailable, "spaside_no_programmer", "No controller can program spa-switch assignments on this system");
 		}
 	}
 

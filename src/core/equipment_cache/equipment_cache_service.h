@@ -47,6 +47,8 @@ namespace AqualinkAutomate::EquipmentCache
 	private:
 		void ScheduleSave();
 		std::string Fingerprint() const;
+		void ApplyConfigurationFromSnapshot(const nlohmann::json& json) const;
+		bool RestoreDeviceFromSnapshot(const nlohmann::json& d) const;
 
 	private:
 		Options::Equipment::EquipmentSettings m_Settings;

@@ -153,49 +153,7 @@ namespace AqualinkAutomate::HTTP
 					auto parsed_uuid = boost::uuids::string_generator()(button_id.value());
 					auto result = m_CommandDispatcher->ToggleByUuid(parsed_uuid);
 
-					switch (result)
-					{
-					case Interfaces::ICommandDispatcher::CommandResult::Success:
-					{
-						nlohmann::json button;
-						button["id"] = button_id.value();
-
-						if (button_device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::LabelTrait{}))
-						{
-							button["label"] = *(button_device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::LabelTrait{}]);
-						}
-
-						if (Kernel::AuxillaryTraitsTypes::HasStatus(button_device))
-						{
-							button["status"] = Kernel::AuxillaryTraitsTypes::ConvertStatusToString(button_device);
-						}
-
-						button["command"] = "toggled";
-
-						return MakeJsonResponse(req, HTTP::Status::ok, button.dump());
-					}
-
-					case Interfaces::ICommandDispatcher::CommandResult::NoSerialAdapter:
-						return Report_SystemIsInactive(req);
-
-					case Interfaces::ICommandDispatcher::CommandResult::DeviceNotFound:
-						return Report_ButtonDoesntExist(req, button_id.value());
-
-					case Interfaces::ICommandDispatcher::CommandResult::UnknownEquipmentType:
-					{
-						LogWarning(Channel::Web, std::format("Cannot toggle device '{}': unknown equipment type", button_id.value()));
-						return MakeResponse(req, HTTP::Status::unprocessable_entity, ContentTypes::TEXT_PLAIN, "Device type cannot be mapped to a control command");
-					}
-
-					case Interfaces::ICommandDispatcher::CommandResult::InvalidValue:
-					{
-						LogWarning(Channel::Web, std::format("Cannot toggle device '{}': invalid value", button_id.value()));
-						return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "Invalid value for device command");
-					}
-					}
-
-					// Fallback (should not be reached).
-					return Report_SystemIsInactive(req);
+					return ButtonToggle_MapResultToResponse(req, button_id.value(), button_device, result);
 				}
 			}
 			catch (const std::runtime_error& ex_re)
@@ -204,6 +162,53 @@ namespace AqualinkAutomate::HTTP
 				return Report_ButtonDoesntExist(req, UNKNOWN_BUTTON_ID);
 			}
 		}
+	}
+
+	HTTP::Response WebRoute_Equipment_Button::ButtonToggle_MapResultToResponse(const HTTP::Request& req, const std::string& button_id, const std::shared_ptr<Kernel::AuxillaryDevice>& button_device, Interfaces::ICommandDispatcher::CommandResult result)
+	{
+		switch (result)
+		{
+		case Interfaces::ICommandDispatcher::CommandResult::Success:
+		{
+			nlohmann::json button;
+			button["id"] = button_id;
+
+			if (button_device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::LabelTrait{}))
+			{
+				button["label"] = *(button_device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::LabelTrait{}]);
+			}
+
+			if (Kernel::AuxillaryTraitsTypes::HasStatus(button_device))
+			{
+				button["status"] = Kernel::AuxillaryTraitsTypes::ConvertStatusToString(button_device);
+			}
+
+			button["command"] = "toggled";
+
+			return MakeJsonResponse(req, HTTP::Status::ok, button.dump());
+		}
+
+		case Interfaces::ICommandDispatcher::CommandResult::NoSerialAdapter:
+			return Report_SystemIsInactive(req);
+
+		case Interfaces::ICommandDispatcher::CommandResult::DeviceNotFound:
+			return Report_ButtonDoesntExist(req, button_id);
+
+		case Interfaces::ICommandDispatcher::CommandResult::UnknownEquipmentType:
+		{
+			LogWarning(Channel::Web, std::format("Cannot toggle device '{}': unknown equipment type", button_id));
+			return MakeResponse(req, HTTP::Status::unprocessable_entity, ContentTypes::TEXT_PLAIN, "Device type cannot be mapped to a control command");
+		}
+
+		case Interfaces::ICommandDispatcher::CommandResult::InvalidValue:
+		{
+			LogWarning(Channel::Web, std::format("Cannot toggle device '{}': invalid value", button_id));
+			return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "Invalid value for device command");
+		}
+		}
+
+		// Fallback (should not be reached).
+		return Report_SystemIsInactive(req);
 	}
 
 	HTTP::Response WebRoute_Equipment_Button::Report_ButtonDoesntExist(const HTTP::Request& req, const std::string& button_id)

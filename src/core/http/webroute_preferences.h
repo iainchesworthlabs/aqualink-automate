@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include <boost/beast/http/verb.hpp>
 
@@ -8,6 +9,7 @@
 #include "interfaces/iwebroute.h"
 
 namespace AqualinkAutomate::Preferences { class PreferencesService; class UserPreferencesStore; }
+namespace AqualinkAutomate::Auth { struct Subject; }
 
 namespace AqualinkAutomate::HTTP
 {
@@ -47,6 +49,15 @@ namespace AqualinkAutomate::HTTP
 		}
 
 	private:
+		// Effective preferences for the caller, serialised to a JSON string.
+		// When the per-user path is active the caller's overrides are overlaid
+		// on the live global values.
+		std::string BuildMergedView(const Auth::Subject& subject, bool per_user_active) const;
+
+		// PUT handling (validate + apply a partial document).  Split out of
+		// OnRequest to keep that dispatcher small.
+		HTTP::Response HandlePutRequest(const HTTP::Request& req, const Auth::Subject& subject, bool per_user_active);
+
 		std::shared_ptr<Preferences::PreferencesService> m_Service;
 		std::shared_ptr<Preferences::UserPreferencesStore> m_UserPrefs;
 	};

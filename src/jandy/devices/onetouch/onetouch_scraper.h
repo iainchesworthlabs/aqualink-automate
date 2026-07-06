@@ -120,6 +120,12 @@ namespace AqualinkAutomate::Devices
 		// republish the accumulated snapshot to m_ControllerScheduleStore (status Available).
 		void PublishControllerSchedules(const Utility::ScreenDataPage& page);
 
+		// On the Equipment On/Off page: if new_device carries a stable aux id AND a device with
+		// that id already exists in the graph, reconcile onto the existing device in place
+		// (grant identity, copy status, prune legacy placeholders) and return true so the caller
+		// skips adding a duplicate. Returns false when there is no existing device to reconcile.
+		bool ReconcileExistingEquipmentAux(const std::shared_ptr<Kernel::AuxillaryDevice>& new_device);
+
 	private:
 		std::shared_ptr<Devices::JandyDeviceType> m_DeviceId;
 		std::shared_ptr<Kernel::DataHub> m_DataHub;

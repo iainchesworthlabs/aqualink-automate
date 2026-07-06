@@ -16,6 +16,7 @@
 #include "kernel/equipment_hub.h"
 #include "kernel/statistics_hub.h"
 #include "mqtt/mqtt_client.h"
+#include "mqtt/mqtt_topic_scheme.h"
 #include "options/options_mqtt_options.h"
 #include "utility/json_serialization_helpers.h"
 
@@ -159,6 +160,12 @@ namespace AqualinkAutomate::Mqtt
 		void PublishPoolStatus();
 		void PublishDeviceStatus();
 		void PublishStatistics();
+
+		/// Publish a single device's retained JSON topic, accumulating its size/count and
+		/// recording its topic. Extracted from PublishDeviceStatus()'s per-device sweep; a
+		/// null device or one with no label trait is skipped (matching the prior lambda).
+		void PublishOneDevice(TopicScheme::DeviceCategory category, const std::shared_ptr<Kernel::AuxillaryDevice>& device,
+			std::size_t& total_size, std::size_t& device_count, std::unordered_set<std::string>& current_topics);
 
 		//---------------------------------------------------------------------
 		// RETAINED-TOPIC RECONCILIATION

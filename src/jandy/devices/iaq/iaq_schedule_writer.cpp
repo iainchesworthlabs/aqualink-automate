@@ -210,6 +210,255 @@ namespace AqualinkAutomate::Devices::IAQ
 		LogInfo(Channel::Devices, [this, &device_id]() { return std::format("IAQ ({}): queued {}", device_id, m_Pending->desc); });
 	}
 
+	void ScheduleWriter::IssueAndSettle(ICommandSink& sink, uint8_t cmd)
+	{
+		sink.IssueCommand(cmd);
+		m_SettleCount = IAQ_SCHEDULE_SETTLE_POLLS;
+	}
+
+	void ScheduleWriter::FinishGoal(ICommandSink& sink, const JandyDeviceType& device_id, bool ok)
+	{
+		const Goal& goal = m_Pending.value();
+		if (ok) { LogInfo(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} completed", device_id, goal.desc); }); }
+		else    { LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} abandoned", device_id, goal.desc); }); }
+		sink.IssueCommand(0x00);
+		m_Pending.reset();
+		m_Phase = Phase::NavigateToList;
+		m_ProgramAdded = false;
+		m_DeviceClicked = false;
+		m_TimeFieldOpened = false;
+		m_ScrollCount = 0;
+		m_SettleCount = 0;
+	}
+
+	// Set one time field of the highlighted program: open it (from the list) -> on the time
+	// picker, toggle AM/PM to match then submit the value via the control-data handshake. Emits
+	// at most one command per poll and advances to `next` once the submit is issued.
+	void ScheduleWriter::SetTimeField(const PageModel& page, const Utility::ScreenDataPage& status_page,
+		ICommandSink& sink, uint8_t open_cmd, int hour, int minute, Phase next)
+	{
+		if (!m_TimeFieldOpened)
+		{
+			if (page.PageId() == IAQ_SCHEDULE_PAGE_ID) { IssueAndSettle(sink, open_cmd); m_TimeFieldOpened = true; }
+			else { sink.IssueCommand(0x00); }   // dwell until the list is up
+			return;
+		}
+		if (page.PageId() != IAQ_TIME_PICKER_PAGE_ID)
+		{
+			sink.IssueCommand(0x00);   // dwell until the time picker renders
+			return;
+		}
+
+		// Match AM/PM before submitting (picker line 2 carries the current meridiem).
+		const std::string meridiem = Utility::TrimWhitespace(status_page[IAQ_TIME_PICKER_AMPM_LINE].Text);
+		const bool is_am = Utility::EqualsCaseInsensitive(meridiem, "AM");
+		const bool is_pm = Utility::EqualsCaseInsensitive(meridiem, "PM");
+		if (!is_am && !is_pm)
+		{
+			sink.IssueCommand(0x00);   // picker not fully rendered yet; wait for the meridiem line
+			return;
+		}
+		if (const bool want_pm = hour >= 12; is_pm != want_pm)
+		{
+			IssueAndSettle(sink, IAQ_CMD_AMPM_TOGGLE);   // flip AM<->PM, then re-read next poll
+			return;
+		}
+
+		// Meridiem matches: submit. The value ("1"+HH:MM) rides the control-data response the
+		// master requests with IAQ_ControlReady (Slot_IAQ_ControlReady) after the 0x80 submit.
+		sink.ArmControlValue(ScheduleTimeValue(hour, minute));
+		IssueAndSettle(sink, IAQ_CMD_SUBMIT_VALUE);
+		m_TimeFieldOpened = false;
+		m_Phase = next;
+	}
+
+	// Does a parsed list row match the program to LOCATE (delete/edit use `match`, the existing
+	// program; create is never in a row-locating phase so `match` is unset there)?
+	bool ScheduleWriter::MatchesProgram(const Scheduling::ControllerSchedule& row) const
+	{
+		const Goal& goal = m_Pending.value();
+		return Utility::EqualsCaseInsensitive(row.target, goal.match.target)
+			&& row.days_of_week == goal.match.days_of_week
+			&& row.on_hour == goal.match.on_hour && row.on_minute == goal.match.on_minute
+			&& row.off_hour == goal.match.off_hour && row.off_minute == goal.match.off_minute;
+	}
+
+	void ScheduleWriter::StepNavigateToList(const PageModel& page, ICommandSink& sink, const Goal& goal)
+	{
+		// Page-gated walk to the Schedule list (0x28).
+		switch (page.PageId())
+		{
+		case IAQ_SCHEDULE_PAGE_ID:
+			// Arrived on the list: create adds a program; delete/edit find the target row first.
+			m_Phase = (goal.op == Op::Create) ? Phase::AddProgram : Phase::SelectRow;
+			return;
+
+		case IAQ_PAGE_MENU:
+			IssueAndSettle(sink, IAQ_CMD_MENU_TO_SCHEDULE);           // menu pos0 -> Schedule list
+			return;
+
+		case IAQ_PAGE_HOME:
+		default:
+			IssueAndSettle(sink, IAQ_CMD_BACK);                       // unwind toward the menu
+			return;
+		}
+	}
+
+	void ScheduleWriter::StepAddProgram(const PageModel& page, ICommandSink& sink)
+	{
+		if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
+		{
+			m_Phase = Phase::NavigateToList;   // lost the page; re-navigate
+			return;
+		}
+		if (!m_ProgramAdded)
+		{
+			IssueAndSettle(sink, IAQ_CMD_ADD_PROGRAM);   // pos0 on the list -> Add Program -> device picker (0x38)
+			m_ProgramAdded = true;
+		}
+		m_Phase = Phase::SelectDevice;
+	}
+
+	void ScheduleWriter::StepSelectDevice(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id, const Goal& goal)
+	{
+		if (page.PageId() != IAQ_DEVICE_PICKER_PAGE_ID)
+		{
+			sink.IssueCommand(0x00);   // dwell until the picker renders
+			return;
+		}
+
+		// Two-step select once the target is on-screen: click its visible row (0x13 + row) to
+		// highlight it, then confirm with the OK key (0x13) -> returns to the list.
+		if (m_DeviceClicked)
+		{
+			IssueAndSettle(sink, IAQ_CMD_PICKER_OK);
+			m_Phase = Phase::SetOnTime;
+			return;
+		}
+
+		// Is the target device visible in the current picker page? (Attribute = the visible row.)
+		for (const auto& [row, label] : page.DevicePickerRows())
+		{
+			if (Utility::EqualsCaseInsensitive(label, goal.program.target))
+			{
+				IssueAndSettle(sink, static_cast<uint8_t>(IAQ_SCHEDULE_PICK_ROW_BASE + row));   // click the row
+				m_DeviceClicked = true;
+				return;
+			}
+		}
+
+		// Not visible: scroll down one page, bounded by IAQ_SCHEDULE_MAX_SCROLLS.
+		if (++m_ScrollCount > IAQ_SCHEDULE_MAX_SCROLLS)
+		{
+			LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} -- target device '{}' not found after scrolling the picker", device_id, goal.desc, goal.program.target); });
+			FinishGoal(sink, device_id, false);
+			return;
+		}
+		IssueAndSettle(sink, IAQ_CMD_PICKER_SCROLL);
+	}
+
+	void ScheduleWriter::StepSetDay(const PageModel& page, ICommandSink& sink, const Goal& goal)
+	{
+		if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
+		{
+			sink.IssueCommand(0x00);   // dwell until the master renders the list with the new program
+			return;
+		}
+		IssueAndSettle(sink, DayCommandFor(goal.program.days_of_week));
+		m_Phase = Phase::Verify;
+	}
+
+	void ScheduleWriter::StepVerify(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id, const Goal& goal)
+	{
+		// The new program is present once the parsed schedule list carries a row for the target
+		// device on the requested day. (Times are set by a later increment; a freshly-created
+		// program defaults to 1:00 PM / 1:00 PM until then.)
+		for (const auto& [ordinal, text] : page.ScheduleRows())
+		{
+			if (const auto parsed = IAQ::ParseScheduleRow(text);
+				parsed.has_value()
+				&& Utility::EqualsCaseInsensitive(parsed->target, goal.program.target)
+				&& parsed->days_of_week == goal.program.days_of_week
+				&& parsed->on_hour == goal.program.on_hour && parsed->on_minute == goal.program.on_minute
+				&& parsed->off_hour == goal.program.off_hour && parsed->off_minute == goal.program.off_minute)
+			{
+				FinishGoal(sink, device_id, true);
+				return;
+			}
+		}
+		sink.IssueCommand(0x00);   // dwell until the list re-renders (or the poll backstop fires)
+	}
+
+	void ScheduleWriter::StepSelectRow(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id, const Goal& goal)
+	{
+		if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
+		{
+			sink.IssueCommand(0x00);   // dwell until the list renders
+			return;
+		}
+		if (page.ScheduleRows().empty())
+		{
+			sink.IssueCommand(0x00);   // list not populated yet; wait (poll backstop bounds it)
+			return;
+		}
+		// Click the row whose parsed contents match the program to locate, then branch: delete
+		// presses Delete on the highlighted row, edit presses Edit to enter its field editor.
+		for (const auto& [ordinal, text] : page.ScheduleRows())
+		{
+			if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && MatchesProgram(parsed.value()))
+			{
+				IssueAndSettle(sink, static_cast<uint8_t>(IAQ_SCHEDULE_ROW_BASE + ordinal));   // highlight the target row
+				m_Phase = (goal.op == Op::Edit) ? Phase::PressEdit : Phase::PressDelete;
+				return;
+			}
+		}
+		LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} -- no matching program row to {} (target='{}')", device_id, goal.desc, (goal.op == Op::Edit) ? "edit" : "delete", goal.match.target); });
+		FinishGoal(sink, device_id, false);
+	}
+
+	void ScheduleWriter::StepPressEdit(const PageModel& page, ICommandSink& sink)
+	{
+		if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
+		{
+			sink.IssueCommand(0x00);   // dwell until the list (with the highlighted row) renders
+			return;
+		}
+		IssueAndSettle(sink, IAQ_CMD_EDIT_PROGRAM);   // Edit -> enter the highlighted row's field-edit mode
+		// Re-set the fields from the desired program with the same phases the create flow uses.
+		m_Phase = Phase::SetOnTime;
+	}
+
+	void ScheduleWriter::StepPressDelete(const PageModel& page, ICommandSink& sink)
+	{
+		if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
+		{
+			sink.IssueCommand(0x00);
+			return;
+		}
+		IssueAndSettle(sink, IAQ_CMD_DELETE_PROGRAM);   // Delete -> the master raises the confirm dialog
+		m_Phase = Phase::ConfirmDelete;
+	}
+
+	void ScheduleWriter::StepConfirmDelete(ICommandSink& sink)
+	{
+		IssueAndSettle(sink, IAQ_CMD_CONFIRM_OK);   // Ok on the confirm dialog -> removes the program
+		m_Phase = Phase::VerifyGone;
+	}
+
+	void ScheduleWriter::StepVerifyGone(const PageModel& page, ICommandSink& sink, const JandyDeviceType& device_id)
+	{
+		// Complete once the target program is no longer present in the parsed list.
+		for (const auto& [ordinal, text] : page.ScheduleRows())
+		{
+			if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && MatchesProgram(parsed.value()))
+			{
+				sink.IssueCommand(0x00);   // still listed; dwell until the list re-renders
+				return;
+			}
+		}
+		FinishGoal(sink, device_id, true);
+	}
+
 	void ScheduleWriter::ProcessStep(const PageModel& page, const Utility::ScreenDataPage& status_page,
 		ICommandSink& sink, const JandyDeviceType& device_id)
 	{
@@ -221,24 +470,10 @@ namespace AqualinkAutomate::Devices::IAQ
 		}
 		const Goal& goal = m_Pending.value();
 
-		auto finish = [&](bool ok)
-		{
-			if (ok) { LogInfo(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} completed", device_id, goal.desc); }); }
-			else    { LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} abandoned", device_id, goal.desc); }); }
-			sink.IssueCommand(0x00);
-			m_Pending.reset();
-			m_Phase = Phase::NavigateToList;
-			m_ProgramAdded = false;
-			m_DeviceClicked = false;
-			m_TimeFieldOpened = false;
-			m_ScrollCount = 0;
-			m_SettleCount = 0;
-		};
-
 		// Overall backstop.
 		if (++m_PollCount > IAQ_SCHEDULE_POLL_LIMIT)
 		{
-			finish(false);
+			FinishGoal(sink, device_id, false);
 			return;
 		}
 
@@ -250,261 +485,32 @@ namespace AqualinkAutomate::Devices::IAQ
 			return;
 		}
 
-		auto issue = [&](uint8_t cmd)
-		{
-			sink.IssueCommand(cmd);
-			m_SettleCount = IAQ_SCHEDULE_SETTLE_POLLS;
-		};
-
-		// Set one time field of the highlighted program: open it (from the list) -> on the time
-		// picker, toggle AM/PM to match then submit the value via the control-data handshake. Emits
-		// at most one command per poll and advances to `next` once the submit is issued.
-		auto set_time = [&](uint8_t open_cmd, int hour, int minute, Phase next)
-		{
-			if (!m_TimeFieldOpened)
-			{
-				if (page.PageId() == IAQ_SCHEDULE_PAGE_ID) { issue(open_cmd); m_TimeFieldOpened = true; }
-				else { sink.IssueCommand(0x00); }   // dwell until the list is up
-				return;
-			}
-			if (page.PageId() != IAQ_TIME_PICKER_PAGE_ID)
-			{
-				sink.IssueCommand(0x00);   // dwell until the time picker renders
-				return;
-			}
-
-			// Match AM/PM before submitting (picker line 2 carries the current meridiem).
-			const std::string meridiem = Utility::TrimWhitespace(status_page[IAQ_TIME_PICKER_AMPM_LINE].Text);
-			const bool is_am = Utility::EqualsCaseInsensitive(meridiem, "AM");
-			const bool is_pm = Utility::EqualsCaseInsensitive(meridiem, "PM");
-			if (!is_am && !is_pm)
-			{
-				sink.IssueCommand(0x00);   // picker not fully rendered yet; wait for the meridiem line
-				return;
-			}
-			if (const bool want_pm = hour >= 12; is_pm != want_pm)
-			{
-				issue(IAQ_CMD_AMPM_TOGGLE);   // flip AM<->PM, then re-read next poll
-				return;
-			}
-
-			// Meridiem matches: submit. The value ("1"+HH:MM) rides the control-data response the
-			// master requests with IAQ_ControlReady (Slot_IAQ_ControlReady) after the 0x80 submit.
-			sink.ArmControlValue(ScheduleTimeValue(hour, minute));
-			issue(IAQ_CMD_SUBMIT_VALUE);
-			m_TimeFieldOpened = false;
-			m_Phase = next;
-		};
-
-		// Does a parsed list row match the program to LOCATE (delete/edit use `match`, the existing
-		// program; create is never in a row-locating phase so `match` is unset there)?
-		auto matches_program = [&](const Scheduling::ControllerSchedule& row)
-		{
-			return Utility::EqualsCaseInsensitive(row.target, goal.match.target)
-				&& row.days_of_week == goal.match.days_of_week
-				&& row.on_hour == goal.match.on_hour && row.on_minute == goal.match.on_minute
-				&& row.off_hour == goal.match.off_hour && row.off_minute == goal.match.off_minute;
-		};
-
 		switch (m_Phase)
 		{
-		case Phase::NavigateToList:
-		{
-			// Page-gated walk to the Schedule list (0x28).
-			switch (page.PageId())
-			{
-			case IAQ_SCHEDULE_PAGE_ID:
-				// Arrived on the list: create adds a program; delete/edit find the target row first.
-				m_Phase = (goal.op == Op::Create) ? Phase::AddProgram : Phase::SelectRow;
-				return;
-
-			case IAQ_PAGE_MENU:
-				issue(IAQ_CMD_MENU_TO_SCHEDULE);                          // menu pos0 -> Schedule list
-				return;
-
-			case IAQ_PAGE_HOME:
-			default:
-				issue(IAQ_CMD_BACK);                                      // unwind toward the menu
-				return;
-			}
-		}
-
-		case Phase::AddProgram:
-		{
-			if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
-			{
-				m_Phase = Phase::NavigateToList;   // lost the page; re-navigate
-				return;
-			}
-			if (!m_ProgramAdded)
-			{
-				issue(IAQ_CMD_ADD_PROGRAM);            // pos0 on the list -> Add Program -> device picker (0x38)
-				m_ProgramAdded = true;
-			}
-			m_Phase = Phase::SelectDevice;
-			return;
-		}
-
-		case Phase::SelectDevice:
-		{
-			if (page.PageId() != IAQ_DEVICE_PICKER_PAGE_ID)
-			{
-				sink.IssueCommand(0x00);   // dwell until the picker renders
-				return;
-			}
-
-			// Two-step select once the target is on-screen: click its visible row (0x13 + row) to
-			// highlight it, then confirm with the OK key (0x13) -> returns to the list.
-			if (m_DeviceClicked)
-			{
-				issue(IAQ_CMD_PICKER_OK);
-				m_Phase = Phase::SetOnTime;
-				return;
-			}
-
-			// Is the target device visible in the current picker page? (Attribute = the visible row.)
-			for (const auto& [row, label] : page.DevicePickerRows())
-			{
-				if (Utility::EqualsCaseInsensitive(label, goal.program.target))
-				{
-					issue(static_cast<uint8_t>(IAQ_SCHEDULE_PICK_ROW_BASE + row));   // click the row
-					m_DeviceClicked = true;
-					return;
-				}
-			}
-
-			// Not visible: scroll down one page, bounded by IAQ_SCHEDULE_MAX_SCROLLS.
-			if (++m_ScrollCount > IAQ_SCHEDULE_MAX_SCROLLS)
-			{
-				LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} -- target device '{}' not found after scrolling the picker", device_id, goal.desc, goal.program.target); });
-				finish(false);
-				return;
-			}
-			issue(IAQ_CMD_PICKER_SCROLL);
-			return;
-		}
+		case Phase::NavigateToList:  StepNavigateToList(page, sink, goal); return;
+		case Phase::AddProgram:      StepAddProgram(page, sink); return;
+		case Phase::SelectDevice:    StepSelectDevice(page, sink, device_id, goal); return;
 
 		case Phase::SetOnTime:
-			set_time(IAQ_CMD_OPEN_ON_FIELD, goal.program.on_hour, goal.program.on_minute, Phase::SetOffTime);
+			SetTimeField(page, status_page, sink, IAQ_CMD_OPEN_ON_FIELD, goal.program.on_hour, goal.program.on_minute, Phase::SetOffTime);
 			return;
 
 		case Phase::SetOffTime:
-			set_time(IAQ_CMD_OPEN_OFF_FIELD, goal.program.off_hour, goal.program.off_minute, Phase::SetDay);
+			SetTimeField(page, status_page, sink, IAQ_CMD_OPEN_OFF_FIELD, goal.program.off_hour, goal.program.off_minute, Phase::SetDay);
 			return;
 
-		case Phase::SetDay:
-		{
-			if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
-			{
-				sink.IssueCommand(0x00);   // dwell until the master renders the list with the new program
-				return;
-			}
-			issue(DayCommandFor(goal.program.days_of_week));
-			m_Phase = Phase::Verify;
-			return;
-		}
-
-		case Phase::Verify:
-		{
-			// The new program is present once the parsed schedule list carries a row for the target
-			// device on the requested day. (Times are set by a later increment; a freshly-created
-			// program defaults to 1:00 PM / 1:00 PM until then.)
-			for (const auto& [ordinal, text] : page.ScheduleRows())
-			{
-				if (const auto parsed = IAQ::ParseScheduleRow(text);
-					parsed.has_value()
-					&& Utility::EqualsCaseInsensitive(parsed->target, goal.program.target)
-					&& parsed->days_of_week == goal.program.days_of_week
-					&& parsed->on_hour == goal.program.on_hour && parsed->on_minute == goal.program.on_minute
-					&& parsed->off_hour == goal.program.off_hour && parsed->off_minute == goal.program.off_minute)
-				{
-					finish(true);
-					return;
-				}
-			}
-			sink.IssueCommand(0x00);   // dwell until the list re-renders (or the poll backstop fires)
-			return;
-		}
-
-		case Phase::SelectRow:
-		{
-			if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
-			{
-				sink.IssueCommand(0x00);   // dwell until the list renders
-				return;
-			}
-			if (page.ScheduleRows().empty())
-			{
-				sink.IssueCommand(0x00);   // list not populated yet; wait (poll backstop bounds it)
-				return;
-			}
-			// Click the row whose parsed contents match the program to locate, then branch: delete
-			// presses Delete on the highlighted row, edit presses Edit to enter its field editor.
-			for (const auto& [ordinal, text] : page.ScheduleRows())
-			{
-				if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && matches_program(parsed.value()))
-				{
-					issue(static_cast<uint8_t>(IAQ_SCHEDULE_ROW_BASE + ordinal));   // highlight the target row
-					m_Phase = (goal.op == Op::Edit) ? Phase::PressEdit : Phase::PressDelete;
-					return;
-				}
-			}
-			LogWarning(Channel::Devices, [&device_id, &goal]() { return std::format("IAQ ({}): {} -- no matching program row to {} (target='{}')", device_id, goal.desc, (goal.op == Op::Edit) ? "edit" : "delete", goal.match.target); });
-			finish(false);
-			return;
-		}
-
-		case Phase::PressEdit:
-		{
-			if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
-			{
-				sink.IssueCommand(0x00);   // dwell until the list (with the highlighted row) renders
-				return;
-			}
-			issue(IAQ_CMD_EDIT_PROGRAM);   // Edit -> enter the highlighted row's field-edit mode
-			// Re-set the fields from the desired program with the same phases the create flow uses.
-			m_Phase = Phase::SetOnTime;
-			return;
-		}
-
-		case Phase::PressDelete:
-		{
-			if (page.PageId() != IAQ_SCHEDULE_PAGE_ID)
-			{
-				sink.IssueCommand(0x00);
-				return;
-			}
-			issue(IAQ_CMD_DELETE_PROGRAM);   // Delete -> the master raises the confirm dialog
-			m_Phase = Phase::ConfirmDelete;
-			return;
-		}
-
-		case Phase::ConfirmDelete:
-		{
-			issue(IAQ_CMD_CONFIRM_OK);        // Ok on the confirm dialog -> removes the program
-			m_Phase = Phase::VerifyGone;
-			return;
-		}
-
-		case Phase::VerifyGone:
-		{
-			// Complete once the target program is no longer present in the parsed list.
-			for (const auto& [ordinal, text] : page.ScheduleRows())
-			{
-				if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && matches_program(parsed.value()))
-				{
-					sink.IssueCommand(0x00);   // still listed; dwell until the list re-renders
-					return;
-				}
-			}
-			finish(true);
-			return;
-		}
+		case Phase::SetDay:          StepSetDay(page, sink, goal); return;
+		case Phase::Verify:          StepVerify(page, sink, device_id, goal); return;
+		case Phase::SelectRow:       StepSelectRow(page, sink, device_id, goal); return;
+		case Phase::PressEdit:       StepPressEdit(page, sink); return;
+		case Phase::PressDelete:     StepPressDelete(page, sink); return;
+		case Phase::ConfirmDelete:   StepConfirmDelete(sink); return;
+		case Phase::VerifyGone:      StepVerifyGone(page, sink, device_id); return;
 
 		case Phase::Done:
 		case Phase::Failed:
 		default:
-			finish(m_Phase == Phase::Done);
+			FinishGoal(sink, device_id, m_Phase == Phase::Done);
 			return;
 		}
 	}

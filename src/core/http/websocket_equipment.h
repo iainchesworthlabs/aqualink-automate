@@ -43,6 +43,7 @@ namespace AqualinkAutomate::HTTP
 
 	private:
 		void Broadcast(const std::shared_ptr<const std::string>& payload);
+		void BroadcastAlert(const std::string& condition, bool raised, std::int64_t ts, const std::string& detail, const nlohmann::json& params);
 
 	private:
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };

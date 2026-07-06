@@ -1,3 +1,4 @@
+#include <optional>
 #include <source_location>
 #include <string>
 #include <vector>
@@ -14,6 +15,60 @@
 
 namespace AqualinkAutomate::HTTP
 {
+
+	namespace
+	{
+
+		// Validates and applies the optional "username" field. Returns an error
+		// response to be returned immediately, or nullopt to continue.
+		std::optional<HTTP::Response> ApplyUsernameUpdate(const HTTP::Request& req, const nlohmann::json& body, Auth::UserRecord& updated)
+		{
+			if (!body.contains("username"))
+			{
+				return std::nullopt;
+			}
+
+			if (!body["username"].is_string() || body["username"].get<std::string>().empty())
+			{
+				return MakeJsonResponse(req, HTTP::Status::bad_request, nlohmann::json{ { "error", "Username must be a non-empty string" } }.dump());
+			}
+
+			updated.Username = body["username"].get<std::string>();
+			return std::nullopt;
+		}
+
+		// Validates and applies the optional "groups" field. Returns an error
+		// response to be returned immediately, or nullopt to continue.
+		std::optional<HTTP::Response> ApplyGroupsUpdate(const HTTP::Request& req, const nlohmann::json& body, Auth::UserRecord& updated)
+		{
+			if (!body.contains("groups"))
+			{
+				return std::nullopt;
+			}
+
+			if (!body["groups"].is_array())
+			{
+				return MakeJsonResponse(req, HTTP::Status::bad_request, nlohmann::json{ { "error", "Expected groups to be an array of group names" } }.dump());
+			}
+
+			std::vector<std::string> groups;
+
+			for (const auto& entry : body["groups"])
+			{
+				if (!entry.is_string())
+				{
+					return MakeJsonResponse(req, HTTP::Status::bad_request, nlohmann::json{ { "error", "Expected groups to be an array of group names" } }.dump());
+				}
+
+				groups.push_back(entry.get<std::string>());
+			}
+
+			updated.Groups = std::move(groups);
+			return std::nullopt;
+		}
+
+	}
+	// namespace
 
 	WebRoute_User::WebRoute_User(Auth::UserStore& users, Auth::GroupStore& groups, Auth::SessionService& session_service, Auth::SessionStore& sessions, Auth::AuditLog& audit, Preferences::UserPreferencesStore* user_prefs) :
 		m_Users(users),
@@ -84,36 +139,14 @@ namespace AqualinkAutomate::HTTP
 
 		Auth::UserRecord updated = *current;
 
-		if (body.contains("username"))
+		if (auto response = ApplyUsernameUpdate(req, body, updated); response.has_value())
 		{
-			if (!body["username"].is_string() || body["username"].get<std::string>().empty())
-			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, nlohmann::json{ { "error", "Username must be a non-empty string" } }.dump());
-			}
-
-			updated.Username = body["username"].get<std::string>();
+			return std::move(*response);
 		}
 
-		if (body.contains("groups"))
+		if (auto response = ApplyGroupsUpdate(req, body, updated); response.has_value())
 		{
-			if (!body["groups"].is_array())
-			{
-				return MakeJsonResponse(req, HTTP::Status::bad_request, nlohmann::json{ { "error", "Expected groups to be an array of group names" } }.dump());
-			}
-
-			std::vector<std::string> groups;
-
-			for (const auto& entry : body["groups"])
-			{
-				if (!entry.is_string())
-				{
-					return MakeJsonResponse(req, HTTP::Status::bad_request, nlohmann::json{ { "error", "Expected groups to be an array of group names" } }.dump());
-				}
-
-				groups.push_back(entry.get<std::string>());
-			}
-
-			updated.Groups = std::move(groups);
+			return std::move(*response);
 		}
 
 		if (body.contains("direct_entitlements"))

@@ -238,6 +238,95 @@ namespace AqualinkAutomate::Protocol
 		m_WriteQueue.push_back(std::move(buffer));
 	}
 
+	void ProtocolTask::HandleParsedMessage(const ProtocolMessagePtr& message,
+										   std::chrono::steady_clock::time_point msg_processing_start,
+										   const Types::ProfilerTypePtr& profiler)
+	{
+		// Successfully parsed a message — fire the signal.
+		//
+		// Exception barrier: the handler fans the message out to every registered
+		// device/status-processor slot via boost::signals2, and the default combiner
+		// does NOT swallow exceptions.  A single throwing slot (out_of_range,
+		// bad_variant_access, length_error, bad_alloc from an attacker-influenced
+		// reserve, …) would otherwise propagate out of the poll loop and terminate
+		// the whole daemon — a remote DoS over the RS-485 / remote-serial transport.
+		// Mirror the protection the HTTP router already has (routing.cpp): log,
+		// count, and keep polling.  A bus frame must never be able to kill the process.
+		try
+		{
+			ProtocolHandler_ReadOp_MessageHandler(message, m_StatisticsHub);
+		}
+		catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: poll-loop barrier; any throwing signal slot must not kill the daemon (remote-DoS over RS-485).
+		{
+			if (m_StatisticsHub) { ++m_StatisticsHub->MessageErrors.HandlerExceptions; }
+			LogWarning(Channel::Protocol, [&ex] { return std::format(
+				"Exception while dispatching a decoded message to its handlers; dropping the message and continuing: {}", ex.what()); });
+		}
+
+		const auto elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - msg_processing_start).count();
+
+		if (m_StatisticsHub)
+		{
+			m_StatisticsHub->LatencyMetrics.MessageProcessingLatency.RecordSince(msg_processing_start);
+		}
+
+		// Surface per-message processing latency on the profiler timeline so
+		// slow handlers are visible alongside the other per-frame plots.
+		profiler->PlotValue("Message Processing (us)", static_cast<int64_t>(elapsed_us));
+
+		if (elapsed_us > SLOW_MESSAGE_THRESHOLD_US)
+		{
+			LogWarning(Channel::Protocol, [elapsed_us] { return std::format(
+				"Slow message processing: took {:.2f} ms", static_cast<double>(elapsed_us) / 1000.0); });
+		}
+	}
+
+	bool ProtocolTask::HandleGenerationError(const ProtocolErrorCode& error,
+											 const ReadOps_SerialBufferType& circular_buffer,
+											 std::size_t size_before)
+	{
+		ProtocolHandler_ReadOp_ErrorHandler(error, m_StatisticsHub);
+
+		// "Keep processing" codes: the generator either cleaned up bad data
+		// (and there may be another packet behind it) or signalled that an
+		// identified-but-incomplete frame is awaiting more bytes.  Either way
+		// we may continue ONLY IF the buffer actually shrank.
+		const bool keep_processing =
+			(error == make_error_code(ErrorCodes::Protocol_ErrorCodes::DataAvailableToProcess))
+			|| (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::ChecksumFailure))
+			|| (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::OverlappingPackets));
+
+		if (keep_processing && (circular_buffer.size() < size_before))
+		{
+			// Forward progress was made — another packet may follow.
+			return true;
+		}
+
+		if (keep_processing)
+		{
+			// Bounded recovery: the buffer did NOT shrink.  Two cases:
+			//   * DataAvailableToProcess -> a generator positively claimed an
+			//     incomplete frame still arriving across reads.  This is the
+			//     normal partial-frame deferral; await the next read quietly.
+			//   * Anything else -> a non-conforming generator returned a
+			//     "keep processing" code without consuming.  Looping would
+			//     hang within this frame, so break and log the contract
+			//     violation so the offending generator is diagnosable.
+			if (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::DataAvailableToProcess))
+			{
+				LogTrace(Channel::Protocol, "Identified frame incomplete; awaiting more serial data");
+			}
+			else
+			{
+				LogError(Channel::Protocol, [v = error.value()] { return std::format(
+					"Generator returned a keep-processing code ({}) without consuming any bytes; breaking to avoid an infinite parse loop", v); });
+			}
+		}
+
+		return false;
+	}
+
 	std::size_t ProtocolTask::ProcessMessages(ReadOps_SerialBufferType& circular_buffer)
 	{
 		std::size_t messages_parsed = 0;
@@ -261,86 +350,14 @@ namespace AqualinkAutomate::Protocol
 			if (message)
 			{
 				++messages_parsed;
-
-				// Successfully parsed a message — fire the signal.
-				//
-				// Exception barrier: the handler fans the message out to every registered
-				// device/status-processor slot via boost::signals2, and the default combiner
-				// does NOT swallow exceptions.  A single throwing slot (out_of_range,
-				// bad_variant_access, length_error, bad_alloc from an attacker-influenced
-				// reserve, …) would otherwise propagate out of the poll loop and terminate
-				// the whole daemon — a remote DoS over the RS-485 / remote-serial transport.
-				// Mirror the protection the HTTP router already has (routing.cpp): log,
-				// count, and keep polling.  A bus frame must never be able to kill the process.
-				try
-				{
-					ProtocolHandler_ReadOp_MessageHandler(*message, m_StatisticsHub);
-				}
-				catch (const std::exception& ex) // NOSONAR(cpp:S1181) — boundary: poll-loop barrier; any throwing signal slot must not kill the daemon (remote-DoS over RS-485).
-				{
-					if (m_StatisticsHub) { ++m_StatisticsHub->MessageErrors.HandlerExceptions; }
-					LogWarning(Channel::Protocol, [&ex] { return std::format(
-						"Exception while dispatching a decoded message to its handlers; dropping the message and continuing: {}", ex.what()); });
-				}
-
-				const auto elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(
-					std::chrono::steady_clock::now() - msg_processing_start).count();
-
-				if (m_StatisticsHub)
-				{
-					m_StatisticsHub->LatencyMetrics.MessageProcessingLatency.RecordSince(msg_processing_start);
-				}
-
-				// Surface per-message processing latency on the profiler timeline so
-				// slow handlers are visible alongside the other per-frame plots.
-				profiler->PlotValue("Message Processing (us)", static_cast<int64_t>(elapsed_us));
-
-				if (elapsed_us > SLOW_MESSAGE_THRESHOLD_US)
-				{
-					LogWarning(Channel::Protocol, [elapsed_us] { return std::format(
-						"Slow message processing: took {:.2f} ms", static_cast<double>(elapsed_us) / 1000.0); });
-				}
+				HandleParsedMessage(*message, msg_processing_start, profiler);
+			}
+			else if (HandleGenerationError(message.error(), circular_buffer, size_before))
+			{
+				continue;
 			}
 			else
 			{
-				const auto& error = message.error();
-				ProtocolHandler_ReadOp_ErrorHandler(error, m_StatisticsHub);
-
-				// "Keep processing" codes: the generator either cleaned up bad data
-				// (and there may be another packet behind it) or signalled that an
-				// identified-but-incomplete frame is awaiting more bytes.  Either way
-				// we may continue ONLY IF the buffer actually shrank.
-				if (const bool keep_processing =
-					(error == make_error_code(ErrorCodes::Protocol_ErrorCodes::DataAvailableToProcess))
-					|| (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::ChecksumFailure))
-					|| (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::OverlappingPackets));
-					keep_processing)
-				{
-					if (circular_buffer.size() < size_before)
-					{
-						// Forward progress was made — another packet may follow.
-						continue;
-					}
-
-					// Bounded recovery: the buffer did NOT shrink.  Two cases:
-					//   * DataAvailableToProcess -> a generator positively claimed an
-					//     incomplete frame still arriving across reads.  This is the
-					//     normal partial-frame deferral; await the next read quietly.
-					//   * Anything else -> a non-conforming generator returned a
-					//     "keep processing" code without consuming.  Looping would
-					//     hang within this frame, so break and log the contract
-					//     violation so the offending generator is diagnosable.
-					if (error == make_error_code(ErrorCodes::Protocol_ErrorCodes::DataAvailableToProcess))
-					{
-						LogTrace(Channel::Protocol, "Identified frame incomplete; awaiting more serial data");
-					}
-					else
-					{
-						LogError(Channel::Protocol, [v = error.value()] { return std::format(
-							"Generator returned a keep-processing code ({}) without consuming any bytes; breaking to avoid an infinite parse loop", v); });
-					}
-				}
-
 				break;
 			}
 		}

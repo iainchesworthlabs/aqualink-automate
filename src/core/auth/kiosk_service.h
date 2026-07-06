@@ -106,6 +106,10 @@ namespace AqualinkAutomate::Auth
 	private:
 		std::string MintKioskToken() const;
 
+		// Completion of the OffloadPool PIN-verify for LoginWithPin: audits the
+		// outcome and, on success, mints a kiosk session.
+		void HandlePinVerified(bool verified, bool usable, std::string peer_ip, std::string user_agent, LoginCompletion completion);
+
 		void RecordFailure();
 		bool IsLockedOut();
 
