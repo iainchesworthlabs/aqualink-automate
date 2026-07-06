@@ -15,13 +15,17 @@ on:
   push:
     branches: ["main"]
 
-permissions:
-  contents: write
+# Deny-all at the top level; the single job below re-grants only what it needs
+# (contents: write, to push the computed tag). Scorecard TokenPermissions flags any
+# top-level write, so scope it to the job.
+permissions: {}
 
 jobs:
   auto-tag:
     if: vars.AUTO_TAG_ENABLED == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the next prerelease tag
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

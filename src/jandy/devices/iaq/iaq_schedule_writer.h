@@ -21,7 +21,7 @@ namespace AqualinkAutomate::Devices::IAQ
 	// miss can never act on the wrong page: navigate to the Schedule list (0x28) -> Add Program /
 	// locate row -> device picker (0x38) -> set ON/OFF times (time picker 0x29 + value-submit
 	// handshake) and day. RE'd from captures/iaq_schedule_{session,clean,picker}.cap +
-	// iaq_editdelete.cap; see docs/iaq_schedule_protocol.md and docs/iaq_device_decomposition.md.
+	// iaq_editdelete.cap; see docs/iaq_schedule_protocol.md and docs/design/iaq_device_decomposition.md.
 	class ScheduleWriter
 	{
 	public:

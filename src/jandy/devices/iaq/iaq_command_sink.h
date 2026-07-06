@@ -9,7 +9,7 @@ namespace AqualinkAutomate::Devices::IAQ
 	// The poll-ACK command channel as seen by the write state machines and actuators. They push at
 	// most one command per poll; the device drains it into the IAQ_Poll ACK. Extracted from
 	// IAQDevice (SonarCloud S1820) so the writers can be serviced against a fake sink in isolation.
-	// See docs/iaq_device_decomposition.md.
+	// See docs/design/iaq_device_decomposition.md.
 	class ICommandSink
 	{
 	public:

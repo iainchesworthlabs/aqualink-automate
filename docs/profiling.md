@@ -125,6 +125,17 @@ uProf); Tracy is client-driven so they are no-ops for it.
 
 ## Tracy workflow
 
+The Tracy **server tools** (the `tracy-profiler` GUI plus the `tracy-capture` /
+`tracy-csvexport` / `tracy-import-*` CLIs) are a developer-side dependency and
+are **not** part of the build — the application only links the Tracy *client*
+(via the vcpkg `tracy` port). Download the matching prebuilt Windows tools from
+the upstream release that matches the client version — for the pinned
+**v0.13.1**, <https://github.com/wolfpld/tracy/releases/tag/v0.13.1> — or build
+them from that tag, and put them anywhere on your `PATH`. They were previously
+committed under `cmake/tools/tracy-0.13.1/`; that copy was removed (unauditable
+committed binaries), so fetch your own and keep it in step with the port version
+above.
+
 1. Build & run a profiling binary with `--profiler tracy`.
 2. Open the Tracy profiler GUI and connect (the client streams on demand — the
    vcpkg port uses the `on-demand` feature, so capture begins when the GUI

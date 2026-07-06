@@ -2257,7 +2257,8 @@ main input[type="range"] { accent-color: var(--accent); }
 /* --- Trends view --------------------------------------------------------- */
 /* === TRENDS VIEW (reskin) ===============================================
    Authoritative styles — override the legacy .trends-* block in app.css
-   (loaded first). Mirrors design_package … Aqualink.dc.html "isTrends".      */
+   (loaded first). Mirrors docs/design/design_handoff_aqualink_reskin/
+   Aqualink.dc.html "isTrends".                                              */
 .trends-view { display: flex; flex-direction: column; gap: 22px; }
 .trends-body { display: flex; flex-direction: column; gap: 22px; }
 .trends-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

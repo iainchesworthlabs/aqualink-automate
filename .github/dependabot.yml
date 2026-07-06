@@ -48,3 +48,20 @@ updates:
       matter-bridge:
         patterns:
           - "*"
+
+  # Docker — the base images in the root Dockerfile are pinned by digest
+  # (ubuntu:26.04, node:24-bookworm-slim) so Scorecard's PinnedDependencies check
+  # passes; Dependabot advances those digests weekly so the pin does not silently
+  # rot onto a stale base image missing OS security patches.
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci"
+    groups:
+      docker:
+        patterns:
+          - "*"

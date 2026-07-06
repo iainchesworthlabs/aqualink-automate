@@ -32,12 +32,16 @@ concurrency:
   group: publish-docs
   cancel-in-progress: false
 
-permissions:
-  contents: write # push to gh-pages
+# Deny-all at the top level; the build-and-deploy job re-grants contents: write to
+# push the rendered site to gh-pages. Scorecard TokenPermissions flags top-level
+# writes, so keep the grant job-scoped.
+permissions: {}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # push to gh-pages
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

@@ -100,19 +100,18 @@ markdown_extensions:
       alternate_style: true
 
 # Working notes, protocol reverse-engineering, and planning documents stay in the
-# repository as reference but are not part of the published site.
+# repository as reference but are not part of the published site. Design/planning
+# snapshots (roadmaps, analyses, decompositions, the UI-reskin handoff) live under
+# docs/design/ and are excluded wholesale via the `design/` entry.
 exclude_docs: |
   alwin32/
+  design/
   i18n-scoping.md
   alwin32_simulator_protocol.md
   aqualink_rs_revisions.md
   iaqualink2_init_handshake.md
   to_master_decoding.md
-  async_migration_analysis.md
-  async_migration_design.md
-  async_migration_survey.md
-  feature_implementation_plan.md
-  cicd-redesign.md
+  onetouch_schedule_protocol.md
 
 nav:
   - Home: index.md
@@ -135,3 +134,9 @@ nav:
       - Record / replay: RECORD_REPLAY.md
       - Profiling: profiling.md
       - Logging sinks: logging-sinks-redesign.md
+      - Platform isolation: platform-isolation.md
+      - Fuzzing: fuzzing.md
+  - Design & protocol notes:
+      - Auth system design: auth-redesign.md
+      - Schedules design: schedules-design.md
+      - iAQ schedule protocol: iaq_schedule_protocol.md

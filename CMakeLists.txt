@@ -34,6 +34,7 @@ option(ENABLE_CLANG_TIDY "DevTools: Enable static analysis using clang-tidy" OFF
 option(ENABLE_PVS_STUDIO "DevTools: Enable static analysis using PVS-Studio" OFF)
 option(ENABLE_ASIO_TRACKING "DevTools: Debug using ASIO connection tracking" OFF)
 option(ENABLE_SANITIZERS "DevTools: Enable sanitizer tooling" OFF)
+option(ENABLE_FUZZING "DevTools: Build the protocol-decoder libFuzzer harnesses (clang/libFuzzer; standalone replay elsewhere)" OFF)
 option(ENABLE_IPO "Enable interprocedural optimisation (LTO) for Release builds when supported" ON)
 
 # ---------------------------------------------------------------------------
@@ -78,6 +79,18 @@ if(ENABLE_SANITIZERS AND ENABLE_PROFILING)
   message(FATAL_ERROR "ENABLE_SANITIZERS and ENABLE_PROFILING cannot both be ON. "
     "Profiling instrumentation (Tracy) is incompatible with sanitizer runtimes. "
     "Disable one of them.")
+endif()
+
+# The libFuzzer engine builds its targets with its own AddressSanitizer + coverage
+# instrumentation, so it must not be combined with the standalone sanitizer or
+# profiling instrumentation (double-instrumentation / conflicting runtimes).
+if(ENABLE_FUZZING AND ENABLE_PROFILING)
+  message(FATAL_ERROR "ENABLE_FUZZING and ENABLE_PROFILING cannot both be ON. "
+    "The fuzzer's instrumentation conflicts with profiling runtimes. Disable one of them.")
+endif()
+if(ENABLE_FUZZING AND ENABLE_SANITIZERS)
+  message(FATAL_ERROR "ENABLE_FUZZING and ENABLE_SANITIZERS cannot both be ON. "
+    "The libFuzzer engine already enables AddressSanitizer on the fuzz targets. Disable ENABLE_SANITIZERS.")
 endif()
 
 option(USE_SONARQUBE "Use SonarQube for coverage of unit tests" OFF)
@@ -313,6 +326,38 @@ target_enable_sanitizers(libaqualink-pentair)
 target_enable_sanitizers(aqualink-automate)
 
 endif(ENABLE_SANITIZERS)
+
+#------------------------------------------------------------------------------
+#
+#    FUZZING CONFIGURATION
+#    =====================
+#
+#    Opt-in (ENABLE_FUZZING) libFuzzer harnesses over the untrusted RS-485 wire
+#    decoders. The protocol-decode libraries carry the fuzzer coverage + ASan
+#    instrumentation (the wire-parsing hot paths are exactly where OOB reads live);
+#    the harness executables live in fuzz/ and add the libFuzzer engine. Compiler-
+#    conditional flags live in cmake/Fuzzing.cmake, keeping src/ CMake platform-
+#    and compiler-agnostic (see docs/platform-isolation.md). See docs/fuzzing.md.
+#
+#------------------------------------------------------------------------------
+
+if(ENABLE_FUZZING)
+
+include(Fuzzing)
+
+target_enable_fuzzing_instrumentation(libaqualink-automate)
+target_enable_fuzzing_instrumentation(libaqualink-jandy)
+target_enable_fuzzing_instrumentation(libaqualink-pentair)
+
+# The fuzzing preset builds with ENABLE_TESTS OFF (the harnesses are the only
+# targets), so enable_testing() is not reached via the ENABLE_TESTS block above.
+# Enable it here so fuzz/ can register the harnesses as CTest tests (`ctest`
+# then runs a bounded fuzz / corpus replay). enable_testing() is idempotent.
+enable_testing()
+
+add_subdirectory(fuzz)
+
+endif(ENABLE_FUZZING)
 
 #------------------------------------------------------------------------------
 #

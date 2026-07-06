@@ -37,6 +37,25 @@ namespace AqualinkAutomate::Scheduling
 			return type == ActionType::PoolSetpoint || type == ActionType::SpaSetpoint;
 		}
 
+		// nlohmann json.value(key, default) THROWS type_error.302 when the key is
+		// PRESENT with a mismatched type (e.g. {"name": 5} read as a string). On an
+		// untrusted request body that escaped FromJson as an uncaught exception (the
+		// HTTP body is parsed with allow_exceptions=false, then FromJson is called
+		// with no try/catch), violating the "return nullopt / set error" contract.
+		// These read a present-but-wrong-typed field as ABSENT (fall back to the
+		// default) so the parser can never throw — matching ControllerScheduleFromJson.
+		std::string JsonStringOr(const nlohmann::json& json, const char* key, std::string fallback = {})
+		{
+			if (json.contains(key) && json[key].is_string()) { return json[key].get<std::string>(); }
+			return fallback;
+		}
+
+		bool JsonBoolOr(const nlohmann::json& json, const char* key, bool fallback)
+		{
+			if (json.contains(key) && json[key].is_boolean()) { return json[key].get<bool>(); }
+			return fallback;
+		}
+
 		// Parse "HH:MM" into hour/minute. Returns false on any malformation.
 		bool ParseTime(std::string_view text, int& hour, int& minute)
 		{
@@ -61,7 +80,7 @@ namespace AqualinkAutomate::Scheduling
 		// Parse and validate the "action" object into schedule.action. Returns false and sets error on failure.
 		bool ParseAction(const nlohmann::json& action_json, Schedule& schedule, std::string& error)
 		{
-			auto type = ActionTypeFromString(action_json.value("type", std::string{}));
+			auto type = ActionTypeFromString(JsonStringOr(action_json, "type"));
 			if (!type.has_value())
 			{
 				error = "action.type is unknown";
@@ -71,7 +90,7 @@ namespace AqualinkAutomate::Scheduling
 
 			if (IsButtonAction(*type))
 			{
-				schedule.action.target = action_json.value("target", std::string{});
+				schedule.action.target = JsonStringOr(action_json, "target");
 				if (schedule.action.target.empty())
 				{
 					error = "action.target (device label) is required for button actions";
@@ -80,7 +99,7 @@ namespace AqualinkAutomate::Scheduling
 			}
 			else if (*type == ActionType::CirculationMode)
 			{
-				schedule.action.target = action_json.value("target", std::string{});
+				schedule.action.target = JsonStringOr(action_json, "target");
 				if (!magic_enum::enum_cast<Kernel::CirculationModes>(schedule.action.target).has_value())
 				{
 					error = "action.target is not a valid circulation mode";
@@ -169,8 +188,8 @@ namespace AqualinkAutomate::Scheduling
 			schedule.uuid = json["uuid"].get<std::string>();
 		}
 
-		schedule.name = json.value("name", std::string{});
-		schedule.enabled = json.value("enabled", true);
+		schedule.name = JsonStringOr(json, "name");
+		schedule.enabled = JsonBoolOr(json, "enabled", true);
 
 		if (!json.contains("days_of_week") || !json["days_of_week"].is_number_integer())
 		{

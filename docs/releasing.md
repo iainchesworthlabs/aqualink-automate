@@ -1,6 +1,6 @@
 # Releasing Aqualink Automate
 
-*For maintainers cutting a tagged release. Building from source lives in [INSTALL.md](INSTALL.md); the workflow internals live in [docs/ci-cd.md](ci-cd.md) (the original redesign plan is in [docs/cicd-redesign.md](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/cicd-redesign.md)).*
+*For maintainers cutting a tagged release. Building from source lives in [INSTALL.md](INSTALL.md); the workflow internals live in [docs/ci-cd.md](ci-cd.md) (the original redesign plan is in [docs/design/cicd-redesign.md](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/cicd-redesign.md)).*
 
 ## Version scheme
 

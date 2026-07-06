@@ -70,6 +70,21 @@
     },
 
     {
+      "name": "fuzzing",
+      "hidden": true,
+      "description": "Shared fuzzing configuration: ENABLE_FUZZING ON, everything not needed to build the harnesses (tests, benchmarks, profiling, standalone sanitizers) OFF. Built RelWithDebInfo (optimised + symbols — the right shape for a fuzzer). On non-MSVC Clang the harnesses use the libFuzzer engine (-fsanitize=fuzzer,address); elsewhere they build as standalone corpus-replay drivers. Combine with a concrete platform preset, e.g. config-linux-llvm-fuzzing. See docs/fuzzing.md.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "ENABLE_FUZZING": "ON",
+        "ENABLE_TESTS": "OFF",
+        "ENABLE_BENCHMARKS": "OFF",
+        "ENABLE_PROFILING": "OFF",
+        "ENABLE_SANITIZERS": "OFF",
+        "ENABLE_CLANG_TIDY": "OFF"
+      }
+    },
+
+    {
       "name": "config-windows-msvc",
       "inherits": [ "release", "core" ],
       "displayName": "Windows MSVC Release",
@@ -352,6 +367,25 @@
       "displayName": "macOS LLVM Diagnostic (network-hardened profiling)",
       "description": "Hardened profiling build (see config-windows-msvc-diagnostic).",
       "cacheVariables": { "VCPKG_TARGET_TRIPLET": "arm64-macos-llvm-diagnostic" }
+    },
+
+    {
+      "name": "config-linux-llvm-fuzzing",
+      "inherits": [ "fuzzing", "config-linux-llvm" ],
+      "displayName": "Linux LLVM Fuzzing (libFuzzer)",
+      "description": "Coverage-guided libFuzzer build of the protocol-decoder harnesses (fuzz/). This is the primary/OSS-Fuzz-equivalent target. Build: cmake --build --preset build-linux-llvm-fuzzing; run e.g. ./build/config-linux-llvm-fuzzing/fuzz/fuzz-jandy-message fuzz/corpus/jandy."
+    },
+    {
+      "name": "config-macos-llvm-fuzzing",
+      "inherits": [ "fuzzing", "config-macos-llvm" ],
+      "displayName": "macOS LLVM Fuzzing (libFuzzer)",
+      "description": "Coverage-guided libFuzzer build of the protocol-decoder harnesses (see config-linux-llvm-fuzzing)."
+    },
+    {
+      "name": "config-windows-msvc-fuzzing",
+      "inherits": [ "fuzzing", "config-windows-msvc" ],
+      "displayName": "Windows MSVC Fuzzing (standalone replay)",
+      "description": "MSVC has no libFuzzer engine, so the harnesses build as standalone corpus-replay drivers (fuzz/standalone_main.cpp): they replay a corpus / crash reproducer through the decoders under a normal build. Use for crash repro and CI smoke testing on Windows; use config-linux-llvm-fuzzing for coverage-guided fuzzing."
     }
   ],
 
@@ -501,6 +535,27 @@
       "configurePreset": "config-macos-llvm-diagnostic",
       "displayName": "macOS LLVM Diagnostic",
       "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "build-linux-llvm-fuzzing",
+      "configurePreset": "config-linux-llvm-fuzzing",
+      "displayName": "Linux LLVM Fuzzing",
+      "configuration": "RelWithDebInfo",
+      "targets": [ "fuzzers" ]
+    },
+    {
+      "name": "build-macos-llvm-fuzzing",
+      "configurePreset": "config-macos-llvm-fuzzing",
+      "displayName": "macOS LLVM Fuzzing",
+      "configuration": "RelWithDebInfo",
+      "targets": [ "fuzzers" ]
+    },
+    {
+      "name": "build-windows-msvc-fuzzing",
+      "configurePreset": "config-windows-msvc-fuzzing",
+      "displayName": "Windows MSVC Fuzzing (standalone)",
+      "configuration": "RelWithDebInfo",
+      "targets": [ "fuzzers" ]
     }
   ],
 
@@ -670,6 +725,27 @@
       "name": "test-macos-llvm-diagnostic",
       "configurePreset": "config-macos-llvm-diagnostic",
       "displayName": "macOS LLVM Diagnostic Tests",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "stopOnFailure": false }
+    },
+    {
+      "name": "test-linux-llvm-fuzzing",
+      "configurePreset": "config-linux-llvm-fuzzing",
+      "displayName": "Linux LLVM Fuzzing Tests (bounded libFuzzer + corpus seed)",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "stopOnFailure": false }
+    },
+    {
+      "name": "test-macos-llvm-fuzzing",
+      "configurePreset": "config-macos-llvm-fuzzing",
+      "displayName": "macOS LLVM Fuzzing Tests (bounded libFuzzer + corpus seed)",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "stopOnFailure": false }
+    },
+    {
+      "name": "test-windows-msvc-fuzzing",
+      "configurePreset": "config-windows-msvc-fuzzing",
+      "displayName": "Windows MSVC Fuzzing Tests (standalone corpus replay)",
       "output": { "outputOnFailure": true },
       "execution": { "noTestsAction": "error", "stopOnFailure": false }
     }

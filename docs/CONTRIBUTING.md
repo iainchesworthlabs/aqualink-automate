@@ -202,6 +202,8 @@ On Windows the equivalent presets are `config-windows-msvc-debug`, `build-window
 
 All tests must pass and your change must include tests covering it. A bug fix must add a regression test that fails before the fix and passes after it.
 
+If you touch the RS-485 message decoders (`src/jandy/messages/**`, `src/pentair/messages/**`, the generators/factories, or the framing/checksum paths), these parse untrusted wire data and are additionally fuzzed — see [docs/fuzzing.md](fuzzing.md) for the libFuzzer harnesses, how to run them locally, and the "a crash is a real bug, never weaken the parser" discipline. The `test_protocol_fuzz_smoke.cpp` unit test guards these paths in the normal suite even without a Clang build.
+
 ### Platform-specific code
 
 The operating system is a CMake decision, not a preprocessor decision. Code that differs by OS goes in `src/core/platform/<os>/` behind a shared header and is selected by the `if(WIN32)/if(LINUX)/if(APPLE)` blocks in `src/core/CMakeLists.txt` — never behind an `#ifdef _WIN32`/`#elif !defined(__APPLE__)` in shared code. The full principle, the add-a-platform-function workflow, and the allowed exceptions (compiler/arch/build-feature macros) are in [docs/platform-isolation.md](platform-isolation.md). The **Platform Macros** CI check (`scripts/check-os-macros.ps1`) blocks a PR that introduces an OS macro into shared code.
@@ -220,7 +222,7 @@ In particular:
 - **Wire-protocol opcodes or message types** → update the relevant protocol doc under `docs/`.
 - **Web UI appearance** (layout, theme, navigation, new/renamed views or controls, auth screens, the language list) → regenerate the affected screenshots (see below).
 
-Prefer durable references (symbols, route URLs, option long-names, section headings) over bare `file.cpp:NNN` line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (`docs/async_migration_*.md`, `docs/cicd-redesign.md`) are dated snapshots — do not treat their line citations as current truth.
+Prefer durable references (symbols, route URLs, option long-names, section headings) over bare `file.cpp:NNN` line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (`docs/design/async_migration_*.md`, `docs/design/cicd-redesign.md`) are dated snapshots — do not treat their line citations as current truth.
 
 ### Documentation screenshots
 

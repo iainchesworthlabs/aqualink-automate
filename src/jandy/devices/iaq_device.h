@@ -246,7 +246,7 @@ namespace AqualinkAutomate::Devices
 		// The decoded live-page UI state: current page id, title, on-screen PageButton table, and
 		// the schedule / device-picker / spa-switch-picker row accumulators. Written by the IAQ
 		// message slots and read by the actuators + the write state machines. Extracted from this
-		// class (SonarCloud S1448/S1820); see docs/iaq_device_decomposition.md.
+		// class (SonarCloud S1448/S1820); see docs/design/iaq_device_decomposition.md.
 		IAQ::PageModel m_PageModel;
 
 		// Resolved from the HubLocator: the read-only snapshot of the controller's own
@@ -260,12 +260,12 @@ namespace AqualinkAutomate::Devices
 		void PublishSchedulePage() const;
 
 		// The spa-switch button-assignment WRITE state machine (extracted; SonarCloud S1820; see
-		// docs/iaq_device_decomposition.md). SetSpaSwitchAssignment arms it via Queue();
+		// docs/design/iaq_device_decomposition.md). SetSpaSwitchAssignment arms it via Queue();
 		// ProcessControllerUpdates services it one command per poll through this (as ICommandSink).
 		IAQ::SpaSwitchWriter m_SpaSwitchWriter;
 
 		// The controller-schedule WRITE state machine (create/delete/edit; extracted; SonarCloud
-		// S1820; see docs/iaq_device_decomposition.md). Create/Delete/EditControllerProgram arm it
+		// S1820; see docs/design/iaq_device_decomposition.md). Create/Delete/EditControllerProgram arm it
 		// via Queue*(); ProcessControllerUpdates services it one command per poll through this
 		// (as ICommandSink), passing m_PageModel + m_StatusPage (for the time picker's AM/PM line).
 		IAQ::ScheduleWriter m_ScheduleWriter;
