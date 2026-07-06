@@ -20,6 +20,7 @@
 #include "devices/capabilities/screen.h"
 #include "devices/capabilities/setpoint_controller.h"
 #include "devices/capabilities/spa_switch_configurator.h"
+#include "devices/iaq/iaq_page_model.h"
 #include "devices/iaq/iaq_page_registry.h"
 #include "devices/iaq/iaq_schedule_parser.h"
 #include "scheduling/controller_schedule.h"
@@ -231,52 +232,22 @@ namespace AqualinkAutomate::Devices
 		// control-data response ("1" + value).
 		Capabilities::ActuationResult QueueSetpoint(uint8_t select_field_command, uint8_t temperature, const char* body_name);
 
-		// Find the index of the on-screen PageButton whose name matches `label` (prefix match,
-		// since home-page button names carry a trailing status suffix e.g. "Pool LightON").
-		std::optional<uint8_t> FindPageButtonByLabel(const std::string& label) const;
-
 	private:
-		// The live on-screen PageButton table for the CURRENT page (index -> name + status),
-		// rebuilt from the master's IAQMessage_PageButton frames. DeviceActuator looks an aux
-		// up here by name to get its (dynamic) button index. Button indices shift as the page's
-		// device list changes, so always resolve by name rather than caching an index.
-		struct PageButtonInfo
-		{
-			std::string name;
-			Messages::ButtonStatuses status{ Messages::ButtonStatuses::Unknown };
-		};
-		std::map<uint8_t, PageButtonInfo> m_PageButtons;
-
-		// The page identifier of the page the master is currently pushing (IAQ_PageStart's first
-		// payload byte: 0x01 home, 0x0f menu, 0x14 Setup, 0x3a Spa Remotes, 0x3b the 4-Function
-		// detail). Used to page-GATE the spa-switch writer so it never issues a row-select/commit
-		// off the detail page.
-		uint8_t m_CurrentPageId{ 0x00 };
-
-		// Accumulators for reading the controller's internal schedules off the Schedule
-		// list page (IAQ_SCHEDULE_PAGE_ID). The page title carries the program group
-		// ("Schedule Group A"/"B" or a custom label); each schedule row arrives as a
-		// TableMessage (0x26) keyed by its Attribute byte (the 1-based entry ordinal;
-		// LineId is a constant 0 across rows so cannot distinguish them). Both are reset
-		// on PageStart and, when the completed page is the Schedule list, parsed into the
-		// ControllerScheduleStore on PageEnd.
-		std::string m_CurrentPageTitle;
-		std::map<uint8_t, std::string> m_ScheduleRows;
+		// The decoded live-page UI state: current page id, title, on-screen PageButton table, and
+		// the schedule / device-picker / spa-switch-picker row accumulators. Written by the IAQ
+		// message slots and read by the actuators + the write state machines. Extracted from this
+		// class (SonarCloud S1448/S1820); see docs/iaq_device_decomposition.md.
+		IAQ::PageModel m_PageModel;
 
 		// Resolved from the HubLocator: the read-only snapshot of the controller's own
 		// internal schedules that the /api/controller/schedules route serves. Null-safe
 		// (a passive/test rig may not register one). Populated by PublishSchedulePage().
 		std::shared_ptr<Scheduling::ControllerScheduleStore> m_ControllerScheduleStore{ nullptr };
 
-		// Parse the just-completed Schedule list page (m_ScheduleRows + m_CurrentPageTitle)
+		// Parse the just-completed Schedule list page (m_PageModel's schedule rows + title)
 		// into ControllerSchedule spans and swap them into the store, tagged with the
 		// active program group. A no-op when the store is absent.
 		void PublishSchedulePage() const;
-
-		// The 4-Function detail page's device/function PICKER (group-0x01 TableMessages): the live
-		// slot(attr) -> function rows, rebuilt each time the picker page renders. The writer scrolls
-		// this until the target function appears, then commits at (slot + IAQ_SPASWITCH_COMMIT_BASE).
-		std::map<uint8_t, std::string> m_SpaSwitchPickerRows;
 
 		// On-demand spa-switch button-assignment WRITE goal (one at a time). Set by
 		// SetSpaSwitchAssignment, serviced by SpaSwitchWrite_ProcessStep on each poll. Drives the
@@ -310,8 +281,8 @@ namespace AqualinkAutomate::Devices
 		std::optional<std::string> m_SpaSwitchFirstPickerSeen;  // wrap-detection while scrolling the picker
 
 		// Service the pending spa-switch write goal: examine the current page + decoded picker rows
-		// and emit at most one command (into m_PendingCommand) per poll. Gated on m_CurrentPageId so
-		// a navigation miss can never issue a row-select/commit on the wrong page.
+		// and emit at most one command (into m_PendingCommand) per poll. Gated on m_PageModel.PageId()
+		// so a navigation miss can never issue a row-select/commit on the wrong page.
 		void SpaSwitchWrite_ProcessStep();
 
 	private:
@@ -363,16 +334,11 @@ namespace AqualinkAutomate::Devices
 		bool m_ScheduleDeviceClicked{ false };    // the target device row has been clicked (awaiting the OK confirm)
 		bool m_ScheduleTimeFieldOpened{ false };  // the current time field's open press (0x21/0x22) has been issued
 
-		// The device/target rows on the schedule editor's device picker (page 0x38), rebuilt each
-		// render from its group-0x00 TableMessages (attribute -> device label). Used to decide
-		// whether the target device is visible (else scroll).
-		std::map<uint8_t, std::string> m_DevicePickerRows;
-
 		// Arm a schedule-write goal (create or delete) and reset the per-goal state.
 		void QueueScheduleWrite(ScheduleWriteGoal goal);
 
 		// Service the pending schedule-write goal: examine the current page + decoded state and emit
-		// at most one command (into m_PendingCommand) per poll, page-gated on m_CurrentPageId.
+		// at most one command (into m_PendingCommand) per poll, page-gated on m_PageModel.PageId().
 		void ControllerScheduleWrite_ProcessStep();
 
 		OperatingStates m_OpState{ OperatingStates::StartUp };

@@ -280,27 +280,6 @@ namespace AqualinkAutomate::Devices
 		return Capabilities::ActuationResult::Accepted;
 	}
 
-	std::optional<uint8_t> IAQDevice::FindPageButtonByLabel(const std::string& label) const
-	{
-		const std::string target{ Utility::TrimWhitespace(label) };
-		if (target.empty())
-		{
-			return std::nullopt;
-		}
-
-		// Home-page button names carry a trailing status suffix (e.g. "Pool LightON"), so a
-		// prefix match against the trimmed label resolves the live button index.
-		for (const auto& [index, info] : m_PageButtons)
-		{
-			if (Utility::TrimWhitespace(info.name).starts_with(target))
-			{
-				return index;
-			}
-		}
-
-		return std::nullopt;
-	}
-
 	Capabilities::ActuationResult IAQDevice::ActuateDevice(const std::shared_ptr<Kernel::AuxillaryDevice>& device, Capabilities::ActuationAction action)
 	{
 		if (nullptr == device)
@@ -333,7 +312,7 @@ namespace AqualinkAutomate::Devices
 		// honestly. A full fix -- navigate to the page that hosts the button before
 		// pressing -- needs the page-navigation command sequence reverse-engineered from a
 		// live capture, so it is deliberately out of scope here.
-		auto button_index = FindPageButtonByLabel(target_label);
+		auto button_index = m_PageModel.FindButtonByLabel(target_label);
 		if (!button_index.has_value())
 		{
 			LogWarning(Channel::Devices, [this, &target_label]() { return std::format("IAQ ({}): No on-screen button matches '{}' (current page not showing it)", DeviceId(), target_label); });
@@ -350,7 +329,7 @@ namespace AqualinkAutomate::Devices
 		else
 		{
 			const bool want_on{ action == Capabilities::ActuationAction::On };
-			const auto status = m_PageButtons.at(button_index.value()).status;
+			const auto status = m_PageModel.Buttons().at(button_index.value()).status;
 			const bool is_on = (status == Messages::ButtonStatuses::On) || (status == Messages::ButtonStatuses::Enabled) || (status == Messages::ButtonStatuses::EnabledStandby);
 			if (status != Messages::ButtonStatuses::Unknown && is_on == want_on)
 			{
@@ -521,7 +500,7 @@ namespace AqualinkAutomate::Devices
 		{
 			// Page-GATED walk to the 4-Function detail (0x3b). Each hop waits (via settle + page-id
 			// re-evaluation) for the master to land on the next page before the following command.
-			switch (m_CurrentPageId)
+			switch (m_PageModel.PageId())
 			{
 			case IAQ_PAGE_SPA_SWITCH_DETAIL:
 				m_SpaSwitchWritePhase = SpaSwitchWritePhase::SelectRow;   // arrived; act next poll
@@ -532,7 +511,7 @@ namespace AqualinkAutomate::Devices
 				return;
 
 			case IAQ_PAGE_SETUP:
-				if (auto idx = FindPageButtonByLabel("Spa Remotes"); idx.has_value())
+				if (auto idx = m_PageModel.FindButtonByLabel("Spa Remotes"); idx.has_value())
 				{
 					issue(static_cast<uint8_t>(IAQ_CMD_PAGE_BUTTON_BASE + idx.value()));
 				}
@@ -555,7 +534,7 @@ namespace AqualinkAutomate::Devices
 
 		case SpaSwitchWritePhase::SelectRow:
 		{
-			if (m_CurrentPageId != IAQ_PAGE_SPA_SWITCH_DETAIL)
+			if (m_PageModel.PageId() != IAQ_PAGE_SPA_SWITCH_DETAIL)
 			{
 				m_SpaSwitchWritePhase = SpaSwitchWritePhase::Navigate;   // lost the page; re-navigate
 				return;
@@ -573,14 +552,14 @@ namespace AqualinkAutomate::Devices
 
 		case SpaSwitchWritePhase::FindFunction:
 		{
-			if (m_CurrentPageId != IAQ_PAGE_SPA_SWITCH_DETAIL)
+			if (m_PageModel.PageId() != IAQ_PAGE_SPA_SWITCH_DETAIL)
 			{
 				m_SpaSwitchWritePhase = SpaSwitchWritePhase::Navigate;
 				return;
 			}
 
 			// Target visible in the current picker page? Commit at its slot (0x1c + slot).
-			for (const auto& [slot, function] : m_SpaSwitchPickerRows)
+			for (const auto& [slot, function] : m_PageModel.SpaSwitchPickerRows())
 			{
 				if (eq_ci(function, goal.function))
 				{
@@ -592,7 +571,7 @@ namespace AqualinkAutomate::Devices
 
 			// Not visible: scroll the picker, with wrap-detection (the first row repeating means we
 			// have cycled the whole list without finding F) and a hard scroll bound.
-			const std::string signature = m_SpaSwitchPickerRows.empty() ? std::string{} : m_SpaSwitchPickerRows.begin()->second;
+			const std::string signature = m_PageModel.SpaSwitchPickerRows().empty() ? std::string{} : m_PageModel.SpaSwitchPickerRows().begin()->second;
 			if (!m_SpaSwitchFirstPickerSeen.has_value())
 			{
 				m_SpaSwitchFirstPickerSeen = signature;
@@ -812,11 +791,11 @@ namespace AqualinkAutomate::Devices
 		{
 			if (!m_ScheduleTimeFieldOpened)
 			{
-				if (m_CurrentPageId == IAQ_SCHEDULE_PAGE_ID) { issue(open_cmd); m_ScheduleTimeFieldOpened = true; }
+				if (m_PageModel.PageId() == IAQ_SCHEDULE_PAGE_ID) { issue(open_cmd); m_ScheduleTimeFieldOpened = true; }
 				else { m_PendingCommand = 0x00; }   // dwell until the list is up
 				return;
 			}
-			if (m_CurrentPageId != IAQ_TIME_PICKER_PAGE_ID)
+			if (m_PageModel.PageId() != IAQ_TIME_PICKER_PAGE_ID)
 			{
 				m_PendingCommand = 0x00;   // dwell until the time picker renders
 				return;
@@ -861,7 +840,7 @@ namespace AqualinkAutomate::Devices
 		case ScheduleWritePhase::NavigateToList:
 		{
 			// Page-gated walk to the Schedule list (0x28).
-			switch (m_CurrentPageId)
+			switch (m_PageModel.PageId())
 			{
 			case IAQ_SCHEDULE_PAGE_ID:
 				// Arrived on the list: create adds a program; delete/edit find the target row first.
@@ -883,7 +862,7 @@ namespace AqualinkAutomate::Devices
 
 		case ScheduleWritePhase::AddProgram:
 		{
-			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			if (m_PageModel.PageId() != IAQ_SCHEDULE_PAGE_ID)
 			{
 				m_ScheduleWritePhase = ScheduleWritePhase::NavigateToList;   // lost the page; re-navigate
 				return;
@@ -899,7 +878,7 @@ namespace AqualinkAutomate::Devices
 
 		case ScheduleWritePhase::SelectDevice:
 		{
-			if (m_CurrentPageId != IAQ_DEVICE_PICKER_PAGE_ID)
+			if (m_PageModel.PageId() != IAQ_DEVICE_PICKER_PAGE_ID)
 			{
 				m_PendingCommand = 0x00;   // dwell until the picker renders
 				return;
@@ -915,7 +894,7 @@ namespace AqualinkAutomate::Devices
 			}
 
 			// Is the target device visible in the current picker page? (Attribute = the visible row.)
-			for (const auto& [row, label] : m_DevicePickerRows)
+			for (const auto& [row, label] : m_PageModel.DevicePickerRows())
 			{
 				if (eq_ci(label, goal.program.target))
 				{
@@ -946,7 +925,7 @@ namespace AqualinkAutomate::Devices
 
 		case ScheduleWritePhase::SetDay:
 		{
-			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			if (m_PageModel.PageId() != IAQ_SCHEDULE_PAGE_ID)
 			{
 				m_PendingCommand = 0x00;   // dwell until the master renders the list with the new program
 				return;
@@ -961,7 +940,7 @@ namespace AqualinkAutomate::Devices
 			// The new program is present once the parsed schedule list carries a row for the target
 			// device on the requested day. (Times are set by a later increment; a freshly-created
 			// program defaults to 1:00 PM / 1:00 PM until then.)
-			for (const auto& [ordinal, text] : m_ScheduleRows)
+			for (const auto& [ordinal, text] : m_PageModel.ScheduleRows())
 			{
 				if (const auto parsed = IAQ::ParseScheduleRow(text);
 					parsed.has_value()
@@ -980,19 +959,19 @@ namespace AqualinkAutomate::Devices
 
 		case ScheduleWritePhase::SelectRow:
 		{
-			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			if (m_PageModel.PageId() != IAQ_SCHEDULE_PAGE_ID)
 			{
 				m_PendingCommand = 0x00;   // dwell until the list renders
 				return;
 			}
-			if (m_ScheduleRows.empty())
+			if (m_PageModel.ScheduleRows().empty())
 			{
 				m_PendingCommand = 0x00;   // list not populated yet; wait (poll backstop bounds it)
 				return;
 			}
 			// Click the row whose parsed contents match the program to locate, then branch: delete
 			// presses Delete on the highlighted row, edit presses Edit to enter its field editor.
-			for (const auto& [ordinal, text] : m_ScheduleRows)
+			for (const auto& [ordinal, text] : m_PageModel.ScheduleRows())
 			{
 				if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && matches_program(parsed.value()))
 				{
@@ -1010,7 +989,7 @@ namespace AqualinkAutomate::Devices
 
 		case ScheduleWritePhase::PressEdit:
 		{
-			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			if (m_PageModel.PageId() != IAQ_SCHEDULE_PAGE_ID)
 			{
 				m_PendingCommand = 0x00;   // dwell until the list (with the highlighted row) renders
 				return;
@@ -1023,7 +1002,7 @@ namespace AqualinkAutomate::Devices
 
 		case ScheduleWritePhase::PressDelete:
 		{
-			if (m_CurrentPageId != IAQ_SCHEDULE_PAGE_ID)
+			if (m_PageModel.PageId() != IAQ_SCHEDULE_PAGE_ID)
 			{
 				m_PendingCommand = 0x00;
 				return;
@@ -1043,7 +1022,7 @@ namespace AqualinkAutomate::Devices
 		case ScheduleWritePhase::VerifyGone:
 		{
 			// Complete once the target program is no longer present in the parsed list.
-			for (const auto& [ordinal, text] : m_ScheduleRows)
+			for (const auto& [ordinal, text] : m_PageModel.ScheduleRows())
 			{
 				if (const auto parsed = IAQ::ParseScheduleRow(text); parsed.has_value() && matches_program(parsed.value()))
 				{

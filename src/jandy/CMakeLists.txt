@@ -21,6 +21,7 @@ target_sources(
 	devices/iaq_device.cpp
 	devices/iaq/iaq_messageprocessors.cpp
 	devices/iaq/iaq_statusprocessors.cpp
+	devices/iaq/iaq_page_model.cpp
 	devices/iaq/iaq_page_registry.cpp
 	devices/iaq/iaq_schedule_parser.cpp
 	devices/jandy_controller.cpp
