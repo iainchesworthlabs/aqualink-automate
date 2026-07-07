@@ -97,6 +97,22 @@ const HISTORY_DB = process.env.AQUALINK_HISTORY_DB;
 // --schedules-file and run ONLY the schedules spec (schedule CRUD).
 const SCHEDULES_FILE = process.env.AQUALINK_SCHEDULES_FILE;
 
+// MQTT mode: when AQUALINK_MQTT=enabled, start a loopback MQTT broker
+// (e2e/support/mqtt-broker.mjs) and boot the app with --mqtt + --home-assistant
+// pointed at it. This is the only launch mode that exercises the MQTT layer —
+// MqttClient connect/CONNACK/recv-loop/flush, MqttIntegration state publishing,
+// MqttHub, and Home-Assistant auto-discovery — none of which the broker-less
+// default reaches. Short publish intervals keep the publish/flush paths busy.
+// Runs ONLY mqtt.spec.ts (it asserts a live broker connection).
+const MQTT_MODE = process.env.AQUALINK_MQTT === 'enabled';
+const MQTT_PORT = Number(process.env.AQUALINK_MQTT_PORT ?? 11883);
+
+// Persistence modes: point the equipment cache / preferences at real files so
+// their load-or-init + write-scheduling paths run (the default in-memory run
+// skips them). Both use the normal spec suite; they only add a --file flag.
+const EQUIPMENT_CACHE = process.env.AQUALINK_EQUIPMENT_CACHE;
+const PREFERENCES_FILE = process.env.AQUALINK_PREFERENCES_FILE;
+
 const ROOT = __dirname;
 
 // Resolve the built application binary.  The `wt` CMake preset emits it under
@@ -118,6 +134,19 @@ if (!existsSync(APP_EXE)) {
   );
 }
 
+// The loopback MQTT broker Playwright starts alongside the app in MQTT mode.
+// Playwright waits for its TCP port to accept connections before starting the
+// app, so the MqttClient's first connect attempt lands on a live broker.
+const brokerServer = {
+  command: `node "${join(ROOT, 'e2e', 'support', 'mqtt-broker.mjs')}"`,
+  port: MQTT_PORT,
+  reuseExistingServer: false,
+  stdout: 'pipe' as const,
+  stderr: 'pipe' as const,
+  env: { AQUALINK_MQTT_PORT: String(MQTT_PORT) },
+  gracefulShutdown: { signal: 'SIGTERM' as const, timeout: 5_000 },
+};
+
 export default defineConfig({
   testDir: './e2e',
   // The identity specs (auth + admin + guest) need an identity-enabled server
@@ -136,8 +165,8 @@ export default defineConfig({
   // auth.spec's wizard assertion — which is why CI drives one spec per step.
   testMatch: AUTH_MODE
     ? ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts']
-    : (HISTORY_DB ? ['**/trends.spec.ts'] : (SCHEDULES_FILE ? ['**/schedules.spec.ts'] : undefined)),
-  testIgnore: (AUTH_MODE || HISTORY_DB || SCHEDULES_FILE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts'],
+    : (HISTORY_DB ? ['**/trends.spec.ts'] : (SCHEDULES_FILE ? ['**/schedules.spec.ts'] : (MQTT_MODE ? ['**/mqtt.spec.ts'] : undefined))),
+  testIgnore: (AUTH_MODE || HISTORY_DB || SCHEDULES_FILE || MQTT_MODE) ? undefined : ['**/auth.spec.ts', '**/admin.spec.ts', '**/guest.spec.ts', '**/mqtt.spec.ts'],
   // Replay is deterministic but the UI is global mutable state behind one backend;
   // run serially so command-button tests don't race each other's optimistic updates.
   fullyParallel: false,
@@ -165,7 +194,11 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
+  // In MQTT mode the broker is started first (Playwright waits for its port),
+  // then the app; otherwise just the app.
+  webServer: [
+    ...(MQTT_MODE ? [brokerServer] : []),
+    {
     command: [
       `"${APP_EXE}"`,
       '--dev-mode',
@@ -192,6 +225,21 @@ export default defineConfig({
         : []),
       ...(HISTORY_DB ? [`--history-db "${HISTORY_DB}"`, '--history-flush-seconds 1'] : []),
       ...(SCHEDULES_FILE ? [`--schedules-file "${SCHEDULES_FILE}"`] : []),
+      // MQTT mode: connect to the loopback broker + enable HA discovery, with
+      // 1s status/stats intervals so the publish + flush paths run repeatedly
+      // during the spec (they are otherwise on a multi-second cadence).
+      ...(MQTT_MODE
+        ? [
+            '--mqtt',
+            `--mqtt-host ${HOST}`,
+            `--mqtt-port ${MQTT_PORT}`,
+            '--home-assistant',
+            '--mqtt-status-interval 1',
+            '--mqtt-stats-interval 1',
+          ]
+        : []),
+      ...(EQUIPMENT_CACHE ? [`--equipment-cache-file "${EQUIPMENT_CACHE}"`] : []),
+      ...(PREFERENCES_FILE ? [`--preferences-file "${PREFERENCES_FILE}"`] : []),
     ].join(' '),
     url: BASE_URL,
     // The HTTPS readiness probe must accept the self-signed cert too, or the
@@ -215,5 +263,6 @@ export default defineConfig({
     // discard all e2e coverage. The timeout bounds the wait before Playwright
     // escalates to SIGKILL if the app fails to stop.
     gracefulShutdown: { signal: 'SIGTERM', timeout: 15_000 },
-  },
+    },
+  ],
 });

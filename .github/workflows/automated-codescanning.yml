@@ -427,6 +427,40 @@ jobs:
         AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
         AQUALINK_OPEN_BIND: ack
 
+    # MQTT: the ONLY e2e mode that exercises the MQTT layer. Playwright starts a
+    # loopback MQTT broker (e2e/support/mqtt-broker.mjs, via the aedes dev-dep) as
+    # a webServer and boots the app with --mqtt + --home-assistant against it, so
+    # MqttClient (connect/CONNACK/recv-loop/flush), MqttIntegration state
+    # publishing, MqttHub, and Home-Assistant auto-discovery all run under the
+    # coverage build — none of which the broker-less runs above reach.
+    - name: E2E — MQTT (broker + HA discovery)
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test e2e/mqtt.spec.ts
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_MQTT: enabled
+
+    # Equipment-cache persistence: boot with --equipment-cache-file so the cache
+    # load-or-init + write-scheduling paths run (skipped in the in-memory default).
+    - name: E2E — equipment cache persisted
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_EQUIPMENT_CACHE: ${{ runner.temp }}/e2e-equipment-cache.json
+
+    # Preferences persistence: boot with --preferences-file so the preferences
+    # load/persist path runs against a real file rather than in-memory only.
+    - name: E2E — preferences persisted
+      continue-on-error: true
+      shell: bash
+      run: npx playwright test
+      env:
+        AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
+        AQUALINK_PREFERENCES_FILE: ${{ runner.temp }}/e2e-preferences.json
+
     # gcovr may already be baked into the self-hosted image (the unit-coverage
     # CMake target needs it); install it as a fallback for a stock runner.
     - name: Ensure gcovr is available
