@@ -97,6 +97,19 @@ jobs:
         with:
           compiler: llvm
 
+      # aminya/setup-cpp installs clang from apt.llvm.org, which does NOT include the
+      # compiler-rt static runtimes. libFuzzer + the ASan build (SANITIZE_ADDRESS) link
+      # against libclang_rt.fuzzer.a / libclang_rt.asan*.a, so install the matching
+      # libclang-rt-<major>-dev package for whatever clang version was selected.
+      - name: Install LLVM compiler-rt runtimes (fuzzer + sanitizers)
+        if: ${{ !contains(vars.RUNNER_LINUX, 'self-hosted') }}
+        shell: bash
+        run: |
+          ver="$(clang --version | sed -n 's/.*clang version \([0-9][0-9]*\).*/\1/p' | head -1)"
+          echo "Installing compiler-rt runtimes for clang major version ${ver}"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "libclang-rt-${ver}-dev"
+
       - uses: ./.github/actions/setup-vcpkg-cache
         if: ${{ !contains(vars.RUNNER_LINUX, 'self-hosted') }}
         with:
