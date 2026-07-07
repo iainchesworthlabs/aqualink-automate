@@ -1,0 +1,79 @@
+# Home Assistant add-on manifest for Aqualink Automate.
+#
+# Phase 1 (headless + MQTT): the add-on wraps the multi-arch image already
+# published to GHCR by release.yml. No app rebuild — the add-on Dockerfile only
+# layers bashio + run.sh on top of the published base (see build.yaml + Dockerfile).
+#
+# `version` MUST stay in lock-step with the base image tag in build.yaml (both are
+# the app release version). The CI lint/version check enforces this.
+name: Aqualink Automate
+version: "0.12.0-beta.4"
+slug: aqualink_automate
+description: >-
+  Control and monitor Jandy/Zodiac & Pentair pool systems over RS-485, with
+  native Home Assistant MQTT discovery.
+url: https://github.com/iainchesworth/aqualink-automate
+# arm64 (aarch64) + amd64 only — matches what release.yml builds. armv7/armhf
+# (32-bit Pi) is a later phase.
+arch:
+  - aarch64
+  - amd64
+# The published image bundles tini as PID 1 and its own entrypoint, so do NOT let
+# the Supervisor inject its own init.
+init: false
+startup: application
+boot: manual
+# Serial: auto-map host TTY devices (/dev/ttyUSB*, /dev/ttyACM*, /dev/ttyAMA*,
+# /dev/serial/by-id/*) into the container and render a device picker for
+# `serial_port`. The serial-over-ethernet transport needs none of this.
+uart: true
+# MQTT: `want` makes the Supervisor inject the Home Assistant broker's connection
+# details via its Services API (read in run.sh) without failing install if there
+# is no broker. This is the zero-config MQTT path.
+services:
+  - mqtt:want
+# Phase 1 exposes the web UI on a mapped host port. (Phase 2 switches to ingress,
+# which needs a frontend base-path refactor — see docs/design/homeassistant-addon.md.)
+ports:
+  "80/tcp": 8129
+ports_description:
+  "80/tcp": Web UI + HTTP API (host port; change freely)
+webui: "http://[HOST]:[PORT:80]/"
+# Liveness: the image serves an unauthenticated GET /api/health.
+watchdog: "http://[HOST]:[PORT:80]/api/health"
+# ── Options form ───────────────────────────────────────────────────────────────
+options:
+  serial_mode: usb
+  serial_port: ""
+  remote_serial_port: ""
+  remote_protocol: rfc2217
+  mqtt_mode: auto
+  mqtt_host: ""
+  mqtt_port: 1883
+  mqtt_username: ""
+  mqtt_password: ""
+  mqtt_tls: false
+  home_assistant_discovery: true
+  api_auth_token: ""
+  log_level: info
+  jandy_device_type: onetouch
+  jandy_device_id: "0x41"
+schema:
+  # usb -> --serial-port (device picker); network -> --remote-serial-port
+  serial_mode: list(usb|network)
+  serial_port: device(subsystem=tty)?
+  remote_serial_port: str?
+  # rfc2217 -> --rfc2217 ; rawtcp -> --rawtcp ; plain -> --no-rfc2217
+  remote_protocol: list(rfc2217|rawtcp|plain)
+  # auto -> discover the HA broker ; manual -> the fields below ; disabled -> no MQTT
+  mqtt_mode: list(auto|manual|disabled)
+  mqtt_host: str?
+  mqtt_port: port
+  mqtt_username: str?
+  mqtt_password: password?
+  mqtt_tls: bool
+  home_assistant_discovery: bool
+  api_auth_token: password?
+  log_level: list(info|debug|trace)
+  jandy_device_type: str
+  jandy_device_id: str

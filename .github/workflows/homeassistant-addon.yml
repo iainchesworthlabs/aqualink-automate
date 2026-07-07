@@ -1,0 +1,61 @@
+name: Home Assistant Add-on
+
+# Validates the add-on wrapper under homeassistant/ whenever it changes: YAML
+# parses, run.sh passes shellcheck, and the add-on version stays in lock-step with
+# the base-image tag it builds from (config.yaml `version` == build.yaml build_from
+# tag). Cheap, self-contained (no third-party actions to pin), and catches the
+# drift that would otherwise ship a broken repository.yaml or a mismatched image.
+on:
+  push:
+    branches: ["main", "develop"]
+    paths: ["homeassistant/**", ".github/workflows/homeassistant-addon.yml"]
+  pull_request:
+    branches: ["develop", "main"]
+    paths: ["homeassistant/**", ".github/workflows/homeassistant-addon.yml"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate add-on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install YAML parser
+        run: sudo apt-get update && sudo apt-get install -y python3-yaml shellcheck
+
+      - name: YAML parses
+        run: |
+          for f in homeassistant/repository.yaml \
+                   homeassistant/aqualink-automate/config.yaml \
+                   homeassistant/aqualink-automate/build.yaml; do
+            echo "::group::$f"
+            python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$f"
+            echo "OK"
+            echo "::endgroup::"
+          done
+
+      - name: run.sh passes shellcheck
+        run: shellcheck --shell=bash homeassistant/aqualink-automate/run.sh
+
+      - name: Version lock-step (config.yaml <-> build.yaml base image)
+        run: |
+          cfg="$(python3 -c "import yaml; print(yaml.safe_load(open('homeassistant/aqualink-automate/config.yaml'))['version'])")"
+          echo "config.yaml version: ${cfg}"
+          # Every build_from tag must be :<cfg>. Fail on any drift.
+          mapfile -t tags < <(python3 -c "import yaml; [print(v.rsplit(':',1)[1]) for v in yaml.safe_load(open('homeassistant/aqualink-automate/build.yaml'))['build_from'].values()]")
+          rc=0
+          for t in "${tags[@]}"; do
+            echo "build_from tag: ${t}"
+            if [ "${t}" != "${cfg}" ]; then
+              echo "::error::build_from tag '${t}' does not match config.yaml version '${cfg}'"
+              rc=1
+            fi
+          done
+          exit "${rc}"

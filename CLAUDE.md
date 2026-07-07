@@ -31,6 +31,7 @@ When you touch a subsystem, check (and update if affected) its companion doc:
 | Jandy/Pentair wire protocol, opcodes, message types | the relevant protocol doc (`docs/to_master_decoding.md`, `docs/iaqualink2_init_handshake.md`, `docs/aqualink_rs_revisions.md`, `docs/alwin32_simulator_protocol.md`) |
 | Web UI text, i18n catalogs, locales (`assets/web/i18n/`, `assets/web/scripts/i18n.js`) | `docs/i18n.md` |
 | Web UI appearance — layout, theme, navigation, new/renamed views or controls, auth screens, the language list | regenerate the affected `docs/assets/*.png` (see "Documentation screenshots" below) |
+| Home Assistant add-on wrapper (`homeassistant/`) — options/schema, `run.sh` flag mapping, base-image tag | `docs/homeassistant-addon.md` **and** `homeassistant/aqualink-automate/DOCS.md`; keep `config.yaml` `version` == `build.yaml` base-image tag == app release version (CI `Home Assistant Add-on` enforces it) |
 
 Rules of thumb:
 

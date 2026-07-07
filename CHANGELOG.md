@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [Unreleased]
+
+### Added
+
+- **Home Assistant add-on (Phase 1).** Aqualink Automate can now be installed as a Home Assistant add-on on Home Assistant OS / Supervised — the Supervisor runs and manages the container, so there is no Docker to operate by hand. Add the repository, install, and configure from a form: USB-RS485 (device picker) or serial-over-ethernet, and zero-config MQTT that auto-discovers the Home Assistant broker with entity discovery on by default. The add-on wraps the published multi-arch image (`aarch64` + `amd64`); the web UI is exposed on a mapped host port (sidebar ingress is a later phase). See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
 ## [0.12.0-beta.4] - 2026-07-07
 
 A release-integrity update: release artifacts now carry verifiable build provenance and optional signatures, and the codebase gains a broad compile-time (`constexpr`/`consteval`) pass. No functional or configuration changes.
