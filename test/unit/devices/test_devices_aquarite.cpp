@@ -469,4 +469,164 @@ BOOST_AUTO_TEST_CASE(WarningRaisesQuickly)
 	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_LowSalt);
 }
 
+// =============================================================================
+// ConvertToChlorinatorHealthStatus: every decodable wire status maps to its
+// kernel health enumerator.  The first decodable reading is surfaced
+// immediately (the dwell governs only subsequent changes), so a single PPM
+// frame carrying a given status byte writes the corresponding health trait.
+// These drive the individual switch arms in ConvertToChlorinatorHealthStatus.
+// =============================================================================
+
+BOOST_AUTO_TEST_CASE(Status_TurningOff_MapsToTurningOffHealthAndOffOperating)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x09 == AquariteStatuses::TurningOff.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x09));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::TurningOff);
+
+	// TurningOff drives the operating status Off.
+	auto chlorinators = harness.DataHub()->Chlorinators();
+	BOOST_REQUIRE_EQUAL(chlorinators.size(), 1u);
+	auto status = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorStatusTrait{});
+	BOOST_REQUIRE(status.has_value());
+	BOOST_CHECK(status.value() == Kernel::ChlorinatorStatuses::Off);
+}
+
+BOOST_AUTO_TEST_CASE(Status_WarningNoFlow_MapsToNoFlowHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x01 == AquariteStatuses::Warning_NoFlow.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x01));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_NoFlow);
+}
+
+BOOST_AUTO_TEST_CASE(Status_WarningHighSalt_MapsToHighSaltHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x04 == AquariteStatuses::Warning_HighSalt.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x04));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_HighSalt);
+}
+
+BOOST_AUTO_TEST_CASE(Status_WarningHighCurrent_MapsToHighCurrentHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x10 == AquariteStatuses::Warning_HighCurrent.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x10));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_HighCurrent);
+}
+
+BOOST_AUTO_TEST_CASE(Status_WarningCleanCell_MapsToCleanCellHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x08 == AquariteStatuses::Warning_CleanCell.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x08));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_CleanCell);
+}
+
+BOOST_AUTO_TEST_CASE(Status_WarningLowVoltage_MapsToLowVoltageHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x20 == AquariteStatuses::Warning_LowVoltage.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x20));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_LowVoltage);
+}
+
+BOOST_AUTO_TEST_CASE(Status_WarningLowTemperature_MapsToLowTemperatureHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x40 == AquariteStatuses::Warning_LowTemperature.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x40));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_LowTemperature);
+}
+
+BOOST_AUTO_TEST_CASE(Status_ErrorCheckPCB_MapsToCheckPCBHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x80 == AquariteStatuses::Error_CheckPCB.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x80));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Error_CheckPCB);
+}
+
+BOOST_AUTO_TEST_CASE(Status_GeneralFault_MapsToGeneralFaultHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0xFD == AquariteStatuses::GeneralFault.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0xFD));
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::GeneralFault);
+}
+
+// An undecodable status byte (e.g. 0x03 == LowSalt|HighSalt bit-flags combined)
+// deserialises to AquariteStatuses::Unknown, which ConvertToChlorinatorHealthStatus
+// maps via its default arm to ChlorinatorHealth::Unknown, and DwellChlorinatorHealth
+// then swallows (returns nullopt) so the health trait is never written.  Operating
+// status still follows the raw wire status (On, since it is neither Off nor TurningOff).
+BOOST_AUTO_TEST_CASE(Status_UndecodableByte_YieldsUnknownAndDwellHoldsHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x03 is not a single AquariteStatuses enumerator -> decodes to Unknown.
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x03));
+
+	auto chlorinators = harness.DataHub()->Chlorinators();
+	BOOST_REQUIRE_EQUAL(chlorinators.size(), 1u);
+
+	// The dwell returned nullopt for the Unknown reading -> no health trait written.
+	auto health = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorHealthTrait{});
+	BOOST_CHECK(!health.has_value());
+
+	// Operating status is still published and reflects On for a non-Off/non-TurningOff status.
+	auto status = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorStatusTrait{});
+	BOOST_REQUIRE(status.has_value());
+	BOOST_CHECK(status.value() == Kernel::ChlorinatorStatuses::On);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

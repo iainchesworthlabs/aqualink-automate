@@ -1,4 +1,7 @@
+#include <chrono>
 #include <cstdint>
+#include <filesystem>
+#include <format>
 #include <memory>
 #include <string>
 
@@ -605,6 +608,67 @@ BOOST_AUTO_TEST_CASE(Heartbeat_SamplesChlorinatorDutyCycle)
 		}
 	}
 	BOOST_CHECK(saw_swg);
+}
+
+//=============================================================================
+// Schema migration: Start() opening a pre-existing on-disk database created
+// before the `label` column existed runs MigrateSchema, which probes
+// table_info(series) and ALTERs in the missing column. An in-memory database
+// cannot exercise this (it is recreated fresh each connection), so use a real
+// temp file: seed the legacy schema through a raw SqliteDb, close it, then let
+// the service reopen and migrate it.
+//=============================================================================
+
+BOOST_AUTO_TEST_CASE(Start_MigratesLegacyDbWithoutLabelColumn)
+{
+	// Unique temp path so the test never collides with a stale file.
+	const auto db_path = (std::filesystem::temp_directory_path() /
+		std::filesystem::path{ std::format("aqualink_history_migrate_{}.db",
+			static_cast<std::uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())) }).string();
+
+	std::filesystem::remove(db_path);   // ensure a clean start
+
+	// Seed the pre-`label` schema through a raw connection, then close it so the
+	// service can reopen the same file.
+	{
+		History::SqliteDb legacy(db_path);
+		legacy.Exec(
+			"CREATE TABLE series ("
+			"  id INTEGER PRIMARY KEY,"
+			"  key TEXT UNIQUE NOT NULL,"
+			"  unit TEXT);"
+			"CREATE TABLE samples ("
+			"  series_id INTEGER NOT NULL REFERENCES series(id),"
+			"  ts INTEGER NOT NULL,"
+			"  value REAL NOT NULL);");
+	}
+
+	{
+		boost::asio::io_context io;
+		auto settings = MemorySettings();
+		settings.db_path = db_path;
+		History::HistoryService service(io, *this, settings);
+
+		std::int64_t now = 100;
+		service.SetClock([&now] { return now; });
+
+		// Start() -> MigrateSchema() finds no `label` column and ALTERs it in.
+		BOOST_CHECK_NO_THROW(service.Start());
+
+		// Proof the column now exists: a labelled device series records and the
+		// label round-trips through the migrated table.
+		service.RecordDeviceState("device/uuid-migrated", "Pool Light", 1.0);
+
+		auto series = service.ListSeries();
+		BOOST_REQUIRE_EQUAL(series.size(), 1u);
+		BOOST_CHECK_EQUAL(series.front().key, "device/uuid-migrated");
+		BOOST_CHECK_EQUAL(series.front().label, "Pool Light");
+		BOOST_CHECK_EQUAL(series.front().count, 1);
+
+		service.Stop();
+	}
+
+	std::filesystem::remove(db_path);   // cleanup
 }
 
 BOOST_AUTO_TEST_SUITE_END()
