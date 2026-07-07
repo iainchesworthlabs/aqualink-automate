@@ -1,8 +1,8 @@
 # Aqualink Automate
 
-Control and monitor your Jandy/Zodiac (and Pentair) pool equipment over RS-485,
-and surface it in Home Assistant automatically through MQTT discovery — no Docker,
-no command line. The Supervisor runs and manages the container for you.
+Control and monitor your Jandy/Zodiac (and Pentair) pool equipment over RS-485, and
+surface it in Home Assistant automatically through MQTT discovery — no Docker, no
+command line. The Supervisor runs and manages the container for you.
 
 ## Requirements
 
@@ -20,7 +20,19 @@ no command line. The Supervisor runs and manages the container for you.
 2. Open the **⋮** menu (top-right) → **Repositories**, and add:
    `https://github.com/iainchesworth/aqualink-automate`
 3. Find **Aqualink Automate** in the store and click **Install**.
-4. Configure it (below), then **Start**.
+4. Configure it (below), then **Start**, and **Open Web UI** (or use the **Aqualink**
+   sidebar entry).
+
+## The web UI
+
+The UI is served through Home Assistant **ingress**: it appears in the sidebar and via
+the add-on's **Open Web UI** button, secured by your Home Assistant login — it is **not
+exposed on your LAN**, and the app's own authentication is left off because Home
+Assistant provides it.
+
+If you specifically want direct LAN access (e.g. a wall tablet that bypasses HA), set a
+host port for `80/tcp` in the add-on's **Network** panel. That direct port is
+**unauthenticated** — put it behind your firewall.
 
 ## Configuration
 
@@ -44,20 +56,26 @@ no command line. The Supervisor runs and manages the container for you.
 With `mqtt_mode: auto` and the Mosquitto add-on running, the add-on discovers the
 broker through the Supervisor — you do **not** enter any MQTT credentials.
 
+### App features that default to Home Assistant's
+
+These are **off by default** because Home Assistant already provides them; turn one on
+only if you want the app's own version (it is then persisted under `/data`):
+
+| Option | Description |
+|---|---|
+| `enable_history` | App-side time-series history. Off by default — Home Assistant's Recorder/History is the expected source. |
+| `enable_scheduler` | App-side schedules. Off by default — use Home Assistant automations/schedules. |
+
 ### Other
 
 | Option | Description |
 |---|---|
-| `api_auth_token` | Optional bearer token to protect the web UI / HTTP API. |
-| `log_level` | `info` (default), `debug`, or `trace`. |
+| `log_level` | `info` (default), `debug`, or `trace`. Logs appear in the add-on's **Log** tab. |
+| `pool_configuration` | `auto` (default), or force `pool-only` / `spa-only` / `combo` / `dual`. |
 | `jandy_device_type`, `jandy_device_id` | Advanced: the identity the software presents on the RS-485 bus. Defaults suit most panels. |
 
-## Web UI
-
-Open the UI from the add-on's **Open Web UI** button, or at
-`http://<home-assistant-host>:8129/` (change the host port under **Network** in the
-add-on config). A future release will embed the UI directly in the Home Assistant
-sidebar.
+Your UI preferences and an equipment cache (for an instant dashboard after a restart)
+are always persisted under `/data` — no configuration needed.
 
 ## Notes
 

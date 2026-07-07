@@ -15,9 +15,22 @@ export PUID=0 PGID=0
 # surface through MQTT discovery instead. (Matter is a later phase.)
 export MATTER_ENABLED=false
 
-# Base flags: bind all interfaces on port 80 (mapped to the host by config.yaml
-# `ports:`), plain HTTP (TLS is terminated/handled by Home Assistant in Phase 2).
+# /data is the add-on's persistent volume — state written here survives restarts and
+# add-on updates.
+readonly DATA=/data
+
+# Base flags: bind all interfaces on port 80 (the ingress_port; also the opt-in
+# direct port). Plain HTTP — TLS is terminated by Home Assistant's ingress proxy.
 args=("--address" "0.0.0.0" "--http-port" "80" "--disable-https")
+
+# Auth stays OFF: ingress fronts the UI with Home Assistant's own authentication, so
+# the app's identity system is left disabled (auth-mode defaults to disabled).
+
+# ── Persistent app state (always on /data; not surfaced in the form) ────────────
+# The app UI's own preferences and the instant-restart equipment cache are app state
+# HA does not replace, so always persist them under /data.
+args+=("--preferences-file" "${DATA}/preferences.json")
+args+=("--equipment-cache-file" "${DATA}/equipment-cache.json")
 
 # ── Serial transport ───────────────────────────────────────────────────────────
 serial_mode="$(bashio::config 'serial_mode')"
@@ -40,7 +53,8 @@ else
     fi
 fi
 
-# ── Jandy device emulation (advanced) ──────────────────────────────────────────
+# ── Equipment / Jandy (advanced) ───────────────────────────────────────────────
+args+=("--pool-configuration" "$(bashio::config 'pool_configuration')")
 args+=("--jandy-device-type" "$(bashio::config 'jandy_device_type')")
 args+=("--jandy-device-id" "$(bashio::config 'jandy_device_id')")
 
@@ -78,12 +92,20 @@ if [ "${mqtt_mode}" != "disabled" ] && bashio::config.true 'home_assistant_disco
     args+=("--home-assistant")
 fi
 
-# ── HTTP API auth ──────────────────────────────────────────────────────────────
-if bashio::config.has_value 'api_auth_token'; then
-    args+=("--api-auth-token" "$(bashio::config 'api_auth_token')")
+# ── History (opt-in; default OFF → use HA's Recorder) ──────────────────────────
+if bashio::config.true 'enable_history'; then
+    args+=("--history-db" "${DATA}/history.db")
+    bashio::log.info "App history enabled (${DATA}/history.db)."
+fi
+
+# ── Scheduler (opt-in; default OFF → use HA automations) ───────────────────────
+if bashio::config.true 'enable_scheduler'; then
+    args+=("--schedules-file" "${DATA}/schedules.json")
+    bashio::log.info "App scheduler enabled (${DATA}/schedules.json)."
 fi
 
 # ── Log level ──────────────────────────────────────────────────────────────────
+# Sinks stay at the default console sink so the add-on Log tab captures stdout.
 case "$(bashio::config 'log_level')" in
     debug) args+=("--debug") ;;
     trace) args+=("--trace") ;;

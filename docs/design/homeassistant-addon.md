@@ -2,10 +2,25 @@
 
 *Design snapshot (2026-07-08). A point-in-time plan for shipping Aqualink Automate as a
 Home Assistant **add-on** (the store rebranded "Apps" in the 2026.x releases — same
-mechanism). This is a roadmap, not a description of shipped behaviour: nothing here exists
-in the tree yet. When the add-on ships, fold the user-facing parts into
+mechanism). When the add-on ships, fold the user-facing parts into
 [mqtt-home-assistant.md](../mqtt-home-assistant.md) and [INSTALL.md](../INSTALL.md), and
 treat this file as the reconciled record.*
+
+> **RECONCILED 2026-07-08 (same day, after option review):** two decisions below changed
+> once we reviewed the full option surface and the UI-exposure model:
+> 1. **Ingress was pulled into Phase 1** (was "direct port now, ingress later"). The
+>    "surfaced through Home Assistant, not LAN-open, HA-authenticated" behaviour requires
+>    ingress, which serves the UI under a per-session path prefix. The frontend used
+>    root-absolute URLs everywhere, so a **base-path shim** (`assets/web/scripts/base-path.js`,
+>    relies on the app's hash routing to derive the prefix client-side, no backend change)
+>    plus relativised asset refs now ship. Config uses `ingress: true` **plus** an opt-in
+>    (null-default) `ports:` mapping for direct LAN access.
+> 2. **Defaults now defer to Home Assistant.** The app's own auth (ingress provides it),
+>    history (HA Recorder), and scheduler (HA automations) are **off by default**, each an
+>    opt-in toggle. `log_level` is surfaced (stdout → the add-on Log tab). Preferences +
+>    equipment cache are always persisted to `/data`.
+>
+> The tier tables and phasing further down predate this and are kept as the original plan.
 
 ## Goal
 

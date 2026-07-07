@@ -1,8 +1,8 @@
 # Home Assistant add-on manifest for Aqualink Automate.
 #
-# Phase 1 (headless + MQTT): the add-on wraps the multi-arch image already
-# published to GHCR by release.yml. No app rebuild — the add-on Dockerfile only
-# layers bashio + run.sh on top of the published base (see build.yaml + Dockerfile).
+# Phase 1 (headless + MQTT + ingress): the add-on wraps the multi-arch image
+# already published to GHCR by release.yml. No app rebuild — the add-on Dockerfile
+# only layers bashio + run.sh on top of the published base (see build.yaml).
 #
 # `version` MUST stay in lock-step with the base image tag in build.yaml (both are
 # the app release version). The CI lint/version check enforces this.
@@ -32,16 +32,26 @@ uart: true
 # is no broker. This is the zero-config MQTT path.
 services:
   - mqtt:want
-# Phase 1 exposes the web UI on a mapped host port. (Phase 2 switches to ingress,
-# which needs a frontend base-path refactor — see docs/design/homeassistant-addon.md.)
+# Web UI via INGRESS: Home Assistant serves the UI through its own authenticated
+# proxy and shows it in the sidebar — not published on the LAN, and secured by HA's
+# own login (so the app's auth stays off). The frontend is ingress-aware (see
+# assets/web/scripts/base-path.js).
+ingress: true
+ingress_port: 80
+panel_icon: mdi:pool
+panel_title: Aqualink
+# Opt-in direct LAN port: defined but NOT published by default (null). A user who
+# wants direct access can assign a host port in the add-on's Network panel. Note:
+# the direct port is UNAUTHENTICATED (ingress is the secured path) — firewall it.
 ports:
-  "80/tcp": 8129
+  "80/tcp": null
 ports_description:
-  "80/tcp": Web UI + HTTP API (host port; change freely)
-webui: "http://[HOST]:[PORT:80]/"
-# Liveness: the image serves an unauthenticated GET /api/health.
-watchdog: "http://[HOST]:[PORT:80]/api/health"
+  "80/tcp": Optional direct web UI / HTTP API (unauthenticated; ingress is preferred)
 # ── Options form ───────────────────────────────────────────────────────────────
+# Defaults defer to Home Assistant: auth is off (ingress provides it), and history
+# and the scheduler are off (use HA's Recorder and automations); each is an opt-in
+# toggle for users who want the app's own versions. Preferences + the equipment
+# cache persist to /data automatically (wired in run.sh), so they are not surfaced.
 options:
   serial_mode: usb
   serial_port: ""
@@ -54,8 +64,10 @@ options:
   mqtt_password: ""
   mqtt_tls: false
   home_assistant_discovery: true
-  api_auth_token: ""
   log_level: info
+  enable_history: false
+  enable_scheduler: false
+  pool_configuration: auto
   jandy_device_type: onetouch
   jandy_device_id: "0x41"
 schema:
@@ -73,7 +85,13 @@ schema:
   mqtt_password: password?
   mqtt_tls: bool
   home_assistant_discovery: bool
-  api_auth_token: password?
+  # Surfaced operationally; the HA add-on Log tab captures stdout.
   log_level: list(info|debug|trace)
+  # Off by default — Home Assistant's Recorder/History and automations are the
+  # expected sources. Toggle on to use the app's own (persisted under /data).
+  enable_history: bool
+  enable_scheduler: bool
+  # Advanced (defaults suit most installs).
+  pool_configuration: list(auto|pool-only|spa-only|combo|dual)
   jandy_device_type: str
   jandy_device_id: str

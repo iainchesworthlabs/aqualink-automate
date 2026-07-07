@@ -10,6 +10,14 @@
     return;
   }
 
+  // Skip the service worker when running under Home Assistant ingress (a non-empty
+  // base prefix). Its scope would be the per-session ingress path and its precache
+  // list uses absolute "/…" URLs that resolve to the HA host root — both wrong
+  // there. The UI works fine without the SW; it stays enabled for direct serving.
+  if (window.AquaBase) {
+    return;
+  }
+
   // When an UPDATED worker takes control (e.g. a redeployed shell that bumped
   // CACHE_VERSION, which calls skipWaiting()+clients.claim()), reload once so
   // this tab runs the fresh JS/CSS it now serves instead of the assets it

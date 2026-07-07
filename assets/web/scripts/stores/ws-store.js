@@ -29,7 +29,10 @@ document.addEventListener('alpine:init', () => {
 
         wsUrl(path) {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            return `${protocol}//${window.location.host}${path}`;
+            // Prepend the ingress base prefix (empty when served at the site root)
+            // so the socket resolves under Home Assistant's ingress path too.
+            const base = window.AquaBase || '';
+            return `${protocol}//${window.location.host}${base}${path}`;
         },
 
         connectEquipment() {

@@ -49,9 +49,18 @@ The options form maps directly onto the application's settings (full reference:
   credentials. `manual` exposes the broker fields; `disabled` turns MQTT off.
   `home_assistant_discovery` publishes auto-discovery so your equipment appears as
   Home Assistant entities.
-- **Web UI** — reachable on the mapped host port (default `8129`) via the add-on's
-  **Open Web UI** button. `api_auth_token` optionally protects it. (A later release
-  embeds the UI in the Home Assistant sidebar via ingress.)
+- **Web UI** — served through Home Assistant **ingress**: it appears in the sidebar and
+  via **Open Web UI**, secured by your Home Assistant login and **not exposed on the
+  LAN**. Because ingress provides authentication, the app's own auth is left off. For
+  direct LAN access (e.g. a wall tablet), assign a host port to `80/tcp` in the add-on's
+  **Network** panel — that port is unauthenticated, so firewall it.
+- **Deferring to Home Assistant** — the app's own auth, history, and scheduler are
+  **off by default**: Home Assistant provides login (via ingress), Recorder/History,
+  and automations. `enable_history` / `enable_scheduler` turn the app's versions on
+  (persisted under `/data`). UI preferences and an equipment cache are always persisted
+  under `/data`.
+- **Logging** — `log_level` (`info` / `debug` / `trace`); output appears in the add-on's
+  **Log** tab (the app logs to stdout).
 
 ## Notes
 

@@ -7,16 +7,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
     <title>Aqualink Automate</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    <link rel="stylesheet" href="/vendor/fonts/fonts.css">
-    <link rel="stylesheet" href="/styles/app.css">
-    <link rel="stylesheet" href="/styles/components.css">
-    <script defer src="/vendor/qrcode.min.js"></script>
-    <script defer src="/vendor/alpine.min.js"></script>
-    <script defer src="/vendor/chart.umd.min.js"></script>
-    <script defer src="/vendor/chartjs-adapter-date-fns.min.js"></script>
+    <!-- Ingress base-path shim: MUST load first (see scripts/base-path.js). -->
+    <script src="scripts/base-path.js"></script>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="vendor/fonts/fonts.css">
+    <link rel="stylesheet" href="styles/app.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <script defer src="vendor/qrcode.min.js"></script>
+    <script defer src="vendor/alpine.min.js"></script>
+    <script defer src="vendor/chart.umd.min.js"></script>
+    <script defer src="vendor/chartjs-adapter-date-fns.min.js"></script>
 </head>
 <body x-data="app()" x-init="init()">
 
@@ -2972,46 +2974,46 @@
 
     <!-- I18n: English catalog first (synchronous fallback), then the runtime.
          Must precede every store/component/view script. -->
-    <script src="/i18n/en.js"></script>
-    <script src="/scripts/i18n.js"></script>
+    <script src="i18n/en.js"></script>
+    <script src="scripts/i18n.js"></script>
     <!-- Store scripts -->
-    <script src="/scripts/auth.js"></script>
-    <script src="/scripts/prefs-sync.js"></script>
-    <script src="/scripts/stores/theme-store.js"></script>
-    <script src="/scripts/stores/layout-store.js"></script>
-    <script src="/scripts/stores/accent-store.js"></script>
-    <script src="/scripts/stores/toast-store.js"></script>
-    <script src="/scripts/stores/alerts-store.js"></script>
-    <script src="/scripts/stores/ws-store.js"></script>
-    <script src="/scripts/stores/system-store.js"></script>
-    <script src="/scripts/stores/pool-store.js"></script>
-    <script src="/scripts/stores/stats-store.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/prefs-sync.js"></script>
+    <script src="scripts/stores/theme-store.js"></script>
+    <script src="scripts/stores/layout-store.js"></script>
+    <script src="scripts/stores/accent-store.js"></script>
+    <script src="scripts/stores/toast-store.js"></script>
+    <script src="scripts/stores/alerts-store.js"></script>
+    <script src="scripts/stores/ws-store.js"></script>
+    <script src="scripts/stores/system-store.js"></script>
+    <script src="scripts/stores/pool-store.js"></script>
+    <script src="scripts/stores/stats-store.js"></script>
     <!-- UI constants: shared config consumed by the component/view scripts below
          (see scripts/config/ui-constants.js's own header comment). -->
-    <script src="/scripts/config/ui-constants.js"></script>
+    <script src="scripts/config/ui-constants.js"></script>
     <!-- Component scripts -->
-    <script src="/scripts/components/pool-graphic.js"></script>
-    <script src="/scripts/components/chemistry-gauge.js"></script>
-    <script src="/scripts/components/chlorinator-control.js"></script>
-    <script src="/scripts/components/equipment-button.js"></script>
-    <script src="/scripts/components/device-card.js"></script>
-    <script src="/scripts/components/entitlement-editor.js"></script>
+    <script src="scripts/components/pool-graphic.js"></script>
+    <script src="scripts/components/chemistry-gauge.js"></script>
+    <script src="scripts/components/chlorinator-control.js"></script>
+    <script src="scripts/components/equipment-button.js"></script>
+    <script src="scripts/components/device-card.js"></script>
+    <script src="scripts/components/entitlement-editor.js"></script>
     <!-- View scripts -->
-    <script src="/scripts/views/dashboard-view.js"></script>
-    <script src="/scripts/views/diagnostics-view.js"></script>
-    <script src="/scripts/views/trends-view.js"></script>
-    <script src="/scripts/views/schedules-view.js"></script>
-    <script src="/scripts/views/about-view.js"></script>
-    <script src="/scripts/views/settings-view.js"></script>
-    <script src="/scripts/views/account-view.js"></script>
-    <script src="/scripts/views/admin-view.js"></script>
-    <script src="/scripts/views/admin-users-view.js"></script>
-    <script src="/scripts/views/admin-groups-view.js"></script>
-    <script src="/scripts/views/admin-apikeys-view.js"></script>
-    <script src="/scripts/views/admin-kiosk-view.js"></script>
+    <script src="scripts/views/dashboard-view.js"></script>
+    <script src="scripts/views/diagnostics-view.js"></script>
+    <script src="scripts/views/trends-view.js"></script>
+    <script src="scripts/views/schedules-view.js"></script>
+    <script src="scripts/views/about-view.js"></script>
+    <script src="scripts/views/settings-view.js"></script>
+    <script src="scripts/views/account-view.js"></script>
+    <script src="scripts/views/admin-view.js"></script>
+    <script src="scripts/views/admin-users-view.js"></script>
+    <script src="scripts/views/admin-groups-view.js"></script>
+    <script src="scripts/views/admin-apikeys-view.js"></script>
+    <script src="scripts/views/admin-kiosk-view.js"></script>
     <!-- App init -->
-    <script src="/scripts/app.js"></script>
+    <script src="scripts/app.js"></script>
     <!-- Progressive Web App: register the service worker -->
-    <script src="/scripts/pwa.js"></script>
+    <script src="scripts/pwa.js"></script>
 </body>
 </html>

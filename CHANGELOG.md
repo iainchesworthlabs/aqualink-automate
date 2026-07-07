@@ -12,7 +12,11 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
 
 ### Added
 
-- **Home Assistant add-on (Phase 1).** Aqualink Automate can now be installed as a Home Assistant add-on on Home Assistant OS / Supervised — the Supervisor runs and manages the container, so there is no Docker to operate by hand. Add the repository, install, and configure from a form: USB-RS485 (device picker) or serial-over-ethernet, and zero-config MQTT that auto-discovers the Home Assistant broker with entity discovery on by default. The add-on wraps the published multi-arch image (`aarch64` + `amd64`); the web UI is exposed on a mapped host port (sidebar ingress is a later phase). See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+- **Home Assistant add-on (Phase 1).** Aqualink Automate can now be installed as a Home Assistant add-on on Home Assistant OS / Supervised — the Supervisor runs and manages the container, so there is no Docker to operate by hand. Add the repository, install, and configure from a form: USB-RS485 (device picker) or serial-over-ethernet, and zero-config MQTT that auto-discovers the Home Assistant broker with entity discovery on by default. The web UI is served through Home Assistant **ingress** (in the sidebar, behind HA's login, not exposed on the LAN), with an opt-in direct LAN port for cases like a wall tablet. The app's own auth, history, and scheduler default **off**, deferring to Home Assistant's login, Recorder, and automations. The add-on wraps the published multi-arch image (`aarch64` + `amd64`). See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
+### Changed
+
+- **Web UI is now base-path aware.** The UI derives its base prefix from the document location (it uses hash routing) and rebases API, WebSocket, and asset URLs onto it, so it works both when served at the site root and under a path prefix such as Home Assistant ingress. No change to how it behaves when served directly.
 
 ## [0.12.0-beta.4] - 2026-07-07
 

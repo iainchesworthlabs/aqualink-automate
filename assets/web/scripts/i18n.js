@@ -132,7 +132,7 @@
         return new Promise((resolve) => {
             if (api.catalogs[code]) { resolve(true); return; }
             const el = document.createElement('script');
-            el.src = `/i18n/${code}.js`;
+            el.src = `${window.AquaBase || ''}/i18n/${code}.js`;
             el.onload = () => resolve(!!api.catalogs[code]);
             el.onerror = () => {
                 console.warn(`[i18n] failed to load catalog for '${code}'; falling back to English`);
@@ -275,7 +275,7 @@
     // with English as the interim fallback.
     if (initialLocale !== 'en' && !api.catalogs[initialLocale]) {
         try {
-            document.write('<script src="/i18n/' + initialLocale + '.js"><\/script>');
+            document.write('<script src="' + (window.AquaBase || '') + '/i18n/' + initialLocale + '.js"><\/script>');
         } catch (_) { /* async fallback in init() */ }
     }
 
