@@ -143,7 +143,7 @@ namespace AqualinkAutomate::Devices
 		return m_SaltPPM;
 	}
 
-	void AquariteDevice::Slot_Aquarite_GetId(const Messages::AquariteMessage_GetId& msg)
+	void AquariteDevice::Slot_Aquarite_GetId([[maybe_unused]] const Messages::AquariteMessage_GetId& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("AquariteDevice::Slot_Aquarite_GetId", std::source_location::current());
 

@@ -17,16 +17,13 @@ namespace AqualinkAutomate::Factory
         ProfilerFactory();
         ~ProfilerFactory() = default;
 
-    public:
         ProfilerFactory(const ProfilerFactory&) = delete;
         ProfilerFactory& operator=(const ProfilerFactory&) = delete;
         ProfilerFactory(ProfilerFactory&&) = delete;
         ProfilerFactory& operator=(ProfilerFactory&&) = delete;
 
-	public:
         static ProfilerFactory& Instance();
 
-    public:
         bool Register(Types::ProfilerTypes type, Types::ProfilerTypePtr&& instance_ptr);
         void SetDesired(Types::ProfilerTypes type);
         Types::ProfilerTypePtr Get();
@@ -40,8 +37,8 @@ namespace AqualinkAutomate::Factory
         std::optional<Types::ProfilerTypes> Selected() const;
 
     private:
-        std::unordered_map<Types::ProfilerTypes, Types::ProfilerTypePtr> m_Profilers;
-        std::optional<Types::ProfilerTypes> m_DesiredProfiler;
+        std::unordered_map<Types::ProfilerTypes, Types::ProfilerTypePtr> m_Profilers{};
+        std::optional<Types::ProfilerTypes> m_DesiredProfiler{ std::nullopt };
 
 	};
 

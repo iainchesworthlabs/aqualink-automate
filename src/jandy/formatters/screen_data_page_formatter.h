@@ -6,14 +6,6 @@
 
 #include "utility/screen_data_page.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
-
 template<>
 struct std::formatter<AqualinkAutomate::Utility::ScreenDataPage>
 {

@@ -9,8 +9,6 @@ namespace AqualinkAutomate::HTTP
 	{
 	public:
 		static constexpr std::string_view APPLICATION_JSON{ "application/json" };
-
-	public:
 		static constexpr std::string_view TEXT_HTML{ "text/html" };
 		static constexpr std::string_view TEXT_PLAIN{ "text/plain" };
 	};

@@ -12,7 +12,7 @@ namespace AqualinkAutomate::Kernel
 	class DataHub_ConfigEvent : public Hub_Event
 	{
 	public:
-		DataHub_ConfigEvent(Hub_EventTypes event_type);
+		explicit DataHub_ConfigEvent(Hub_EventTypes event_type);
 		~DataHub_ConfigEvent() override = default;
 	};
 

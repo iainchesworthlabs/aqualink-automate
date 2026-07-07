@@ -12,16 +12,18 @@ namespace AqualinkAutomate::Devices::OneTouch
 
 	bool KeypadContext::MoveCursorToward(uint8_t target_line)
 	{
+		using enum Navigation::NavKeyCommand;
+
 		if (highlighted_line == target_line)
 		{
 			return true;
 		}
 		if (highlighted_line == Navigation::Navigator::CURSOR_LINE_NONE)
 		{
-			Emit(Navigation::NavKeyCommand::LineDown);   // establish a cursor first
+			Emit(LineDown);   // establish a cursor first
 			return false;
 		}
-		Emit((highlighted_line < target_line) ? Navigation::NavKeyCommand::LineDown : Navigation::NavKeyCommand::LineUp);
+		Emit((highlighted_line < target_line) ? LineDown : LineUp);
 		return false;
 	}
 

@@ -12,7 +12,6 @@ namespace AqualinkAutomate::Utility::ScreenDataPageUpdaterImpl
 	public:
 		evHighlight(uint8_t line_id);
 
-	public:
 		uint8_t LineId() const;
 
 	private:

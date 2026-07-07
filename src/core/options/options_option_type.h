@@ -38,18 +38,15 @@ namespace AqualinkAutomate::Options
 		explicit AppOption(const std::string& long_name, const std::string& short_name, const std::string& description);
 		explicit AppOption(const std::string& long_name, const std::string& short_name, const std::string& description, const boost::program_options::value_semantic* s);
 
-	private:
 		AppOption(const AppOption&) = delete;
 		AppOption(AppOption&&) = delete;
 
 	public:
 		boost::shared_ptr<boost::program_options::option_description> operator()();
 
-	public:
 		bool IsPresent(boost::program_options::variables_map& vm) const;
 		bool IsPresentAndNotJustDefaulted(boost::program_options::variables_map& vm) const;
 
-	public:
 		const std::string& LongName() const { return m_LongName; }
 		const std::string& ShortName() const { return m_ShortName; }
 		const std::string& Description() const { return m_Description; }
@@ -58,7 +55,6 @@ namespace AqualinkAutomate::Options
 		// by long name. Populated as options are constructed during option parsing.
 		static std::vector<OptionMetadata> RegisteredOptions();
 
-	public:
 		template<typename T>
 		const T& As(boost::program_options::variables_map& vm) const
 		{

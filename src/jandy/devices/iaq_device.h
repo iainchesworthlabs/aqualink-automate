@@ -87,7 +87,6 @@ namespace AqualinkAutomate::Devices
 		IAQDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id, Kernel::HubLocator& hub_locator, bool is_emulated);
 		~IAQDevice() override;
 
-	public:
 		nlohmann::json DescribeDiagnostics() const override;
 
 		void QueueCommand(uint8_t command);
@@ -198,7 +197,6 @@ namespace AqualinkAutomate::Devices
 		void Slot_IAQ_TableMessage(const Messages::IAQMessage_TableMessage& msg);
 		void Slot_IAQ_TitleMessage(const Messages::IAQMessage_TitleMessage& msg);
 
-	private:
 		void ProcessMainStatus(const Messages::IAQMessage_MainStatus& msg);
 		void ProcessAuxStatus(const Messages::IAQMessage_AuxStatus& msg);
 
@@ -211,7 +209,6 @@ namespace AqualinkAutomate::Devices
 		// registry) so it drains one command per poll. Emulated + survey-enabled + not-run only.
 		void MaybeStartPageSurvey();
 
-	private:
 		// Render the live decoded system status into the device's Screen capability
 		// as a fixed "System Status" page so the diagnostics "Actual Devices" card
 		// shows real data instead of Page_Unknown.  The IAQ (iAqualink2 cloud
@@ -226,11 +223,9 @@ namespace AqualinkAutomate::Devices
 		// but the content is the heartbeat liveness, not decoded system status.
 		void RenderCloudLinkScreen();
 
-	private:
-		Utility::ScreenDataPage m_StatusPage;
-		Utility::ScreenDataPage m_TableInfo;
+		Utility::ScreenDataPage m_StatusPage{ IAQ_STATUS_PAGE_LINES };
+		Utility::ScreenDataPage m_TableInfo{ IAQ_MESSAGE_TABLE_LINES };
 
-	private:
 		Utility::ScreenDataPageUpdater<Utility::ScreenDataPage> m_SM_PageUpdate;
 		Utility::ScreenDataPageUpdater<Utility::ScreenDataPage> m_SM_TableUpdate;
 
@@ -242,7 +237,6 @@ namespace AqualinkAutomate::Devices
 		// control-data response ("1" + value).
 		Capabilities::ActuationResult QueueSetpoint(uint8_t select_field_command, uint8_t temperature, const char* body_name);
 
-	private:
 		// The decoded live-page UI state: current page id, title, on-screen PageButton table, and
 		// the schedule / device-picker / spa-switch-picker row accumulators. Written by the IAQ
 		// message slots and read by the actuators + the write state machines. Extracted from this
@@ -270,7 +264,6 @@ namespace AqualinkAutomate::Devices
 		// (as ICommandSink), passing m_PageModel + m_StatusPage (for the time picker's AM/PM line).
 		IAQ::ScheduleWriter m_ScheduleWriter;
 
-	private:
 		// ICommandSink: the write state machines emit their per-poll command through these. IssueCommand
 		// sets the single pending poll-ACK byte (no logging -- it fires every poll); ArmControlValue
 		// primes the control-data handshake (value + awaiting flag); IsBusy reports the command channel
@@ -292,7 +285,6 @@ namespace AqualinkAutomate::Devices
 		// MaybeStartPageSurvey (emulated + home established) consumes it once into the command queue.
 		IAQ::PageSurvey m_PageSurvey;
 
-	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;
 	};
 

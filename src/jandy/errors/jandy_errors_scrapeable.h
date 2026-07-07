@@ -29,7 +29,6 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static const Scrapeable_ErrorCategory& Instance();
 
-	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::Scrapeable Error Category" };
 		static std::string_view Describe(Scrapeable_ErrorCodes e);
 

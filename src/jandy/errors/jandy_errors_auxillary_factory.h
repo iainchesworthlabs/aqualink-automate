@@ -24,7 +24,6 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static const Factory_ErrorCategory& Instance();
 
-	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::Factory Error Category" };
 		static std::string_view Describe(Factory_ErrorCodes e);
 

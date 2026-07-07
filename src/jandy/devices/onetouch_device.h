@@ -278,7 +278,6 @@ namespace AqualinkAutomate::Devices
 	Messages::AckTypes m_AckType_ToSend{ Messages::AckTypes::V2_Normal };
 		KeyCommands m_KeyCommand_ToSend{ KeyCommands::NoKeyCommand };
 
-	private:
 		// The read path: page + status processors, panel-config decode and controller-schedule
 		// accumulation. Created in the constructor with the shared DataHub + schedule store; its
 		// processors are registered into the Screen capability. Destroyed after the Screen base's

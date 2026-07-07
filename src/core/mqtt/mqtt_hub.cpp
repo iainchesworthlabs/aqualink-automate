@@ -887,9 +887,7 @@ namespace AqualinkAutomate::Mqtt
 
 	std::string MqttHub::ExtractCommand(const std::string& topic) const
 	{
-		std::string prefix = m_Client->BuildTopic(std::format("{}/", COMMAND_PREFIX));
-
-		if (topic.find(prefix) == 0)
+		if (std::string prefix = m_Client->BuildTopic(std::format("{}/", COMMAND_PREFIX)); topic.find(prefix) == 0)
 		{
 			return topic.substr(prefix.length());
 		}

@@ -40,21 +40,15 @@ namespace AqualinkAutomate::Messages
 	public:
 		HeaterMessage_Status() noexcept;
 		~HeaterMessage_Status() override = default;
-
-	public:
 		HeaterStates HeaterState() const;
 		HeaterErrors ErrorCode() const;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		HeaterStates m_HeaterState;
-		HeaterErrors m_ErrorCode;
+		HeaterStates m_HeaterState{ HeaterStates::Unknown };
+		HeaterErrors m_ErrorCode{ HeaterErrors::Unknown };
 	};
 
 }

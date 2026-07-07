@@ -4,7 +4,6 @@ namespace AqualinkAutomate::Utility
 {
 
 	StatsCounter::StatsCounter(StatsSignal& stat_signal) :
-		m_Count{ 0 },
 		m_StatsSignal(stat_signal)
 	{
 	}

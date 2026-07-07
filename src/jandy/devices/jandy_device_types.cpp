@@ -6,7 +6,6 @@ namespace AqualinkAutomate::Devices
 {
 
 	JandyDeviceType::JandyDeviceType() :
-		m_DeviceClass(DeviceClasses::Unknown),
 		m_DeviceId(0xFF)
 	{
 	}

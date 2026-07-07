@@ -25,7 +25,6 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static const Message_ErrorCategory& Instance();
 
-	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::Message Error Category" };
 		static std::string_view Describe(Message_ErrorCodes e);
 

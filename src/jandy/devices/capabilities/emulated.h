@@ -18,9 +18,8 @@ namespace AqualinkAutomate::Devices::Capabilities
 	class Emulated : public Interfaces::IEmulatedDevice
 	{
 	protected:
-		Emulated(bool is_emulated);
+		explicit Emulated(bool is_emulated);
 
-	protected:
 		template<typename ACK_VALUE>
 			requires std::is_enum_v<ACK_VALUE> && std::same_as<std::underlying_type_t<ACK_VALUE>, uint8_t>
 		void Signal_AckMessage(Messages::AckTypes ack_type, ACK_VALUE data_value_to_send) const

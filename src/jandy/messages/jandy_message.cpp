@@ -2,6 +2,7 @@
 #include <format>
 #include <span>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <magic_enum/magic_enum.hpp>
@@ -20,11 +21,7 @@ namespace AqualinkAutomate::Messages
 {
 JandyMessage::JandyMessage(const JandyMessageIds& msg_id) :
 		Interfaces::IMessage<JandyMessageIds>(msg_id),
-		Interfaces::ISerializable(),
-		m_Destination(0x00), 
-		m_RawId(0),
-		m_MessageLength(0),
-		m_ChecksumValue(0)
+		Interfaces::ISerializable()
 	{
 	}
 
@@ -122,7 +119,7 @@ JandyMessage::JandyMessage(const JandyMessageIds& msg_id) :
 		std::transform(message_bytes.begin(), message_bytes.end(), byte_buffer.begin(),
 			[](std::byte b)
 			{
-				return static_cast<uint8_t>(b);
+				return std::to_underlying(b);
 			}
 		);
 

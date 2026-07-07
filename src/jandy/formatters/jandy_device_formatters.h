@@ -7,14 +7,6 @@
 #include "devices/jandy_device_id.h"
 #include "devices/jandy_device_types.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
-
 namespace std
 {
 

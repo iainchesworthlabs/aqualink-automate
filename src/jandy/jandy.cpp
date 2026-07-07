@@ -22,8 +22,11 @@ using namespace AqualinkAutomate::Profiling;
 namespace AqualinkAutomate::Jandy
 {
 
-	void Initialise(Kernel::HubLocator& hub_locator)
+	void Initialise(Kernel::HubLocator& /*hub_locator*/)
 	{
+		// Intentionally empty: the Jandy subsystem performs no work at the
+		// Initialise phase; all setup happens in Configure() once settings
+		// are available.
 	}
 
 	void Configure(Kernel::HubLocator& hub_locator, const AqualinkAutomate::Options::Settings& settings)
@@ -100,9 +103,11 @@ namespace AqualinkAutomate::Jandy
 
 				auto device_id = std::make_shared<Devices::JandyDeviceType>(device_type);
 
+				using enum Devices::JandyEmulatedDeviceTypes;
+
 				switch (controller_type)
 				{
-				case Devices::JandyEmulatedDeviceTypes::OneTouch:
+				case OneTouch:
 					{
 						auto onetouch = std::make_unique<Devices::OneTouchDevice>(device_id, hub_locator, true);
 						onetouch->EnableChlorinatorSetpointRefresh(std::chrono::seconds{ jandy_settings.chlorinator_setpoint_refresh_interval });
@@ -110,27 +115,27 @@ namespace AqualinkAutomate::Jandy
 					}
 					break;
 
-				case Devices::JandyEmulatedDeviceTypes::RS_Keypad:
+				case RS_Keypad:
 					equipment_hub->AddDevice(std::make_unique<Devices::KeypadDevice>(device_id, hub_locator, true));
 					break;
 
-				case Devices::JandyEmulatedDeviceTypes::IAQ:
+				case IAQ:
 					equipment_hub->AddDevice(std::make_unique<Devices::IAQDevice>(device_id, hub_locator, true));
 					break;
 
-				case Devices::JandyEmulatedDeviceTypes::PDA:
+				case PDA:
 					equipment_hub->AddDevice(std::make_unique<Devices::PDADevice>(device_id, hub_locator, true));
 					break;
 
-				case Devices::JandyEmulatedDeviceTypes::SerialAdapter:
+				case SerialAdapter:
 					equipment_hub->AddDevice(std::make_unique<Devices::SerialAdapterDevice>(device_id, hub_locator, true));
 					break;
 
-				case Devices::JandyEmulatedDeviceTypes::SpasideRemote:
+				case SpasideRemote:
 					equipment_hub->AddDevice(std::make_unique<Devices::SpasideRemoteDevice>(device_id, hub_locator, true));
 					break;
 
-				case Devices::JandyEmulatedDeviceTypes::Unknown:
+				case Unknown:
 				default:
 					LogWarning(Channel::Main, "Unknown emulated device type; cannot create controller device");
 				}

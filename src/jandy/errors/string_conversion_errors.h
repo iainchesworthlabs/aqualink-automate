@@ -20,7 +20,6 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static const StringConversion_ErrorCategory& Instance();
 
-	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::String Conversion Error Category" };
 		static std::string_view Describe(StringConversion_ErrorCodes e);
 

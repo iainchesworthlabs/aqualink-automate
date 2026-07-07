@@ -38,7 +38,6 @@ namespace AqualinkAutomate::Mqtt
 		MqttIntegration(MqttIntegration&&) = delete;
 		MqttIntegration& operator=(MqttIntegration&&) = delete;
 
-	public:
 		//---------------------------------------------------------------------
 		// LIFECYCLE
 		//---------------------------------------------------------------------

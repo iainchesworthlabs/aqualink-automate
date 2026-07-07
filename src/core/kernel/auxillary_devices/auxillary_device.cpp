@@ -92,21 +92,22 @@ namespace AqualinkAutomate::Kernel
 	AuxillaryHealthStates AuxillaryDevice::Health() const
 	{
 		using AuxillaryTraitsTypes::ErrorCodesTrait;
+		using enum AuxillaryHealthStates;
 
 		if (AuxillaryTraits.Has(ErrorCodesTrait{}))
 		{
 			if (ErrorCodesTrait::TraitValue errors{AuxillaryTraits[ErrorCodesTrait{}]}; 0 != errors.size())
 			{
 				// Presense of errors means the device is unhealthy.
-				return AuxillaryHealthStates::Unhealthy;
+				return Unhealthy;
 			}
-			
+
 			// No errors...assume device is healthy.
-			return AuxillaryHealthStates::Healthy;
+			return Healthy;
 		}
-		
-		// No mechanism available to determine health. 
-		return AuxillaryHealthStates::Unknown;
+
+		// No mechanism available to determine health.
+		return Unknown;
 	}
 
 }

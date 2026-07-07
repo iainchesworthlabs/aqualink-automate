@@ -6,8 +6,7 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::Utility
 {
 
-	ScreenDataPage::ScreenDataPage(std::size_t row_count) :
-		m_Rows()
+	ScreenDataPage::ScreenDataPage(std::size_t row_count)
 	{
 		m_Rows.reserve(row_count);
 
@@ -35,9 +34,9 @@ namespace AqualinkAutomate::Utility
 		}
 	}
 
-	void ScreenDataPage::Highlight(uint8_t line_id)
+	void ScreenDataPage::Highlight(uint8_t line_index)
 	{
-		if (CLEAR_HIGHLIGHTS == line_id)
+		if (CLEAR_HIGHLIGHTS == line_index)
 		{
 			LogTrace(Channel::Devices, "ScreenDataPage: Clearing all previously set highlighted lines");
 
@@ -47,9 +46,9 @@ namespace AqualinkAutomate::Utility
 				row.HighlightRange = std::nullopt;
 			}
 		}
-		else if (m_Rows.size() <= line_id)
+		else if (m_Rows.size() <= line_index)
 		{
-			LogDebug(Channel::Devices, std::format("ScreenDataPage: Cannot toggle highlight, line id is out of range; requested line id -> {}, max line id -> {}", line_id, m_Rows.size()));
+			LogDebug(Channel::Devices, std::format("ScreenDataPage: Cannot toggle highlight, line id is out of range; requested line id -> {}, max line id -> {}", line_index, m_Rows.size()));
 		}
 		else
 		{
@@ -61,21 +60,21 @@ namespace AqualinkAutomate::Utility
 				row.HighlightRange = std::nullopt;
 			}
 
-			m_Rows[line_id].HighlightState = HighlightStates::Highlighted;
-			m_Rows[line_id].HighlightRange = std::nullopt;
+			m_Rows[line_index].HighlightState = HighlightStates::Highlighted;
+			m_Rows[line_index].HighlightRange = std::nullopt;
 		}
 	}
 
-	void ScreenDataPage::HighlightChars(uint8_t line_id, uint8_t start_index, uint8_t stop_index)
+	void ScreenDataPage::HighlightChars(uint8_t line_index, uint8_t start_index, uint8_t stop_index)
 	{
-		if (m_Rows.size() <= line_id)
+		if (m_Rows.size() <= line_index)
 		{
-			LogDebug(Channel::Devices, std::format("ScreenDataPage: Cannot toggle highlight, line id is out of range; requested line id -> {}, max line id -> {}", line_id, m_Rows.size()));
+			LogDebug(Channel::Devices, std::format("ScreenDataPage: Cannot toggle highlight, line id is out of range; requested line id -> {}, max line id -> {}", line_index, m_Rows.size()));
 		}
 		else
 		{
-			m_Rows[line_id].HighlightState = HighlightStates::PartiallyHighlighted;
-			m_Rows[line_id].HighlightRange = { start_index, stop_index };
+			m_Rows[line_index].HighlightState = HighlightStates::PartiallyHighlighted;
+			m_Rows[line_index].HighlightRange = { start_index, stop_index };
 		}
 	}
 

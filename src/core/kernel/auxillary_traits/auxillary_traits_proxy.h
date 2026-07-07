@@ -26,20 +26,17 @@ namespace AqualinkAutomate::Kernel
         {
         }
 
-    public:
         TraitValueProxy& operator=(TRAIT_TYPE::TraitValue trait_value)
         {
             m_TraitsRef.Set(TRAIT_TYPE{}, trait_value);
             return *this;
         }
 
-    public:
         operator auto() const
         {
             return CastOrThrow<ValueType>(m_ValueAny);
         }
 
-    public:
         Reference operator*()
         {
             return CastOrThrow<Reference>(m_ValueAny);
@@ -88,13 +85,11 @@ namespace AqualinkAutomate::Kernel
         {
         }
 
-    public:
         operator auto() const
         {
             return CastOrThrow<ValueType>(m_ValueAny);
         }
 
-    public:
         Reference operator*() const
         {
             return CastOrThrow<Reference>(m_ValueAny);

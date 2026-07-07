@@ -4,14 +4,6 @@
 
 #include "kernel/auxillary_devices/auxillary_device.h"
 
-namespace AqualinkAutomate::HTTP::JSON
-{
-
-	// NOTHING HERE
-
-}
-// namespace AqualinkAutomate::HTTP::JSON
-
 namespace AqualinkAutomate::Kernel
 {
 	// Support the translation of the various DEVICE object types to JSON

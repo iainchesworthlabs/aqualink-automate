@@ -5,12 +5,7 @@ namespace AqualinkAutomate::Kernel
 {
 
 	DataHub_ConfigEvent_Temperature::DataHub_ConfigEvent_Temperature() :
-		DataHub_ConfigEvent(Hub_EventTypes::Temperature),
-		m_PoolTemp(std::nullopt),
-		m_SpaTemp(std::nullopt),
-		m_AirTemp(std::nullopt),
-		m_PoolSetpoint(std::nullopt),
-		m_SpaSetpoint(std::nullopt)
+		DataHub_ConfigEvent(Hub_EventTypes::Temperature)
 	{
 	}
 

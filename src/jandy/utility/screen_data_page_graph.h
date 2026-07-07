@@ -52,13 +52,11 @@ namespace AqualinkAutomate::Utility
 			}
 		}
 
-	public:
 		void AddVertex(ScreenDataPageGraphImpl::Vertex new_vertex)
 		{
 			m_VertexMap[new_vertex.id] = boost::add_vertex(new_vertex, m_Graph);
 		}
 
-	public:
 		void AddEdge(ScreenDataPageGraphImpl::VertexId source_id, ScreenDataPageGraphImpl::VertexId destination_id, ScreenDataPageGraphImpl::Edge new_edge)
 		{
 			boost::add_edge(m_VertexMap[source_id], m_VertexMap[destination_id], new_edge, m_Graph);

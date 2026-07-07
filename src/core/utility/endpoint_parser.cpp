@@ -133,8 +133,7 @@ namespace AqualinkAutomate::Utility
                 auto inner = input.substr(1, rb - 1);
 
                 // RFC 6874: zone id after '%'
-                const auto pct = inner.find('%');
-                if (pct != std::string_view::npos)
+                if (const auto pct = inner.find('%'); pct != std::string_view::npos)
                 {
                     out.scope_id = decode_zone_id(inner.substr(pct + 1));
                     inner = inner.substr(0, pct);

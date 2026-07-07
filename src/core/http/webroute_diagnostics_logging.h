@@ -15,7 +15,6 @@ namespace AqualinkAutomate::HTTP
 		WebRoute_Diagnostics_Logging() = default;
 		~WebRoute_Diagnostics_Logging() override = default;
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override

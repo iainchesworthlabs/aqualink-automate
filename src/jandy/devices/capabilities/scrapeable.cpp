@@ -234,9 +234,7 @@ namespace AqualinkAutomate::Devices::Capabilities
 				(m_ExpectedSource == m_ExpectedDestination) ||
 				(m_ExpectedSource == Utility::ScreenDataPageTypes::Page_Unknown &&
 				 m_ExpectedDestination == Utility::ScreenDataPageTypes::Page_Unknown);
-			bool is_page_transition = !is_cursor_movement;
-
-			if (is_page_transition)
+			if (bool is_page_transition = !is_cursor_movement)
 			{
 				LogDebug(Channel::Scraping, std::format("Page transition: {} -> {}, waiting for 2 Status messages",
 					magic_enum::enum_name(m_ExpectedSource), magic_enum::enum_name(m_ExpectedDestination)));

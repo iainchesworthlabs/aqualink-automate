@@ -21,9 +21,8 @@ namespace AqualinkAutomate::Utility
 		static const ConfigMap JANDY_EQUIPMENT_CONFIGURATIONS;
 
 	public:
-		PoolConfigurationDecoder(const std::string& panel_type);
+		explicit PoolConfigurationDecoder(const std::string& panel_type);
 
-	public:
 		Kernel::PoolConfigurations Configuration() const;
 		Kernel::SystemBoards SystemBoard() const;
 		uint8_t AuxillaryCount() const;

@@ -21,10 +21,9 @@ namespace AqualinkAutomate::Interfaces
 		IStatusPublisher() = delete;
 		~IStatusPublisher() = default;
 
-	public:
 		template<typename DEVICE_STATUS>
 			requires std::derived_from<DEVICE_STATUS, Interfaces::IStatus>
-		IStatusPublisher(const DEVICE_STATUS& status)
+		explicit IStatusPublisher(const DEVICE_STATUS& status)
 		{
 			Status(status);
 		}
@@ -35,7 +34,6 @@ namespace AqualinkAutomate::Interfaces
 	public:
 		StatusType Status() const;
 
-	public:
 		template<typename DEVICE_STATUS>
 			requires std::derived_from<DEVICE_STATUS, Interfaces::IStatus>
 		void Status(const DEVICE_STATUS& status)

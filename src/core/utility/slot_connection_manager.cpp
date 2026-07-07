@@ -3,8 +3,7 @@
 namespace AqualinkAutomate::Utility
 {
 
-	SlotConnectionManager::SlotConnectionManager() :
-		m_Connections()
+	SlotConnectionManager::SlotConnectionManager()
 	{
 	}
 

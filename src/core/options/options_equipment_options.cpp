@@ -23,7 +23,7 @@ namespace AqualinkAutomate::Options::Equipment
 		return options;
 	}
 
-	void OptionsProcessor::Validate(const boost::program_options::variables_map& vm) const
+	void OptionsProcessor::Validate(const boost::program_options::variables_map& /*vm*/) const
 	{
 		// Validation is performed during Process(); nothing to check here
 		// since boost::program_options already validates presence.

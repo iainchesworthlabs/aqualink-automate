@@ -16,11 +16,7 @@ namespace AqualinkAutomate::Messages
 	public:
 		SerialAdapterMessage_DevReady() noexcept;
 		~SerialAdapterMessage_DevReady() override = default;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 	};

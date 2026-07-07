@@ -17,7 +17,7 @@ using namespace AqualinkAutomate::Profiling;
 namespace AqualinkAutomate::Devices
 {
 
-	void IAQDevice::Slot_IAQ_Poll(const Messages::IAQMessage_Poll& msg)
+	void IAQDevice::Slot_IAQ_Poll([[maybe_unused]] const Messages::IAQMessage_Poll& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_Poll", std::source_location::current(), UnitColours::Red);
 
@@ -128,7 +128,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_PageEnd(const Messages::IAQMessage_PageEnd& msg)
+	void IAQDevice::Slot_IAQ_PageEnd([[maybe_unused]] const Messages::IAQMessage_PageEnd& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_PageEnd", std::source_location::current(), UnitColours::Red);
 
@@ -192,7 +192,7 @@ namespace AqualinkAutomate::Devices
 		m_ControllerScheduleStore->Replace(Scheduling::ControllerScheduleStatus::Available, std::move(schedules), group);
 	}
 
-	void IAQDevice::Slot_IAQ_PageContinue(const Messages::IAQMessage_PageContinue& msg)
+	void IAQDevice::Slot_IAQ_PageContinue([[maybe_unused]] const Messages::IAQMessage_PageContinue& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_PageContinue", std::source_location::current(), UnitColours::Red);
 
@@ -313,7 +313,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_MessageLong(const Messages::IAQMessage_MessageLong& msg)
+	void IAQDevice::Slot_IAQ_MessageLong([[maybe_unused]] const Messages::IAQMessage_MessageLong& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_MessageLong", std::source_location::current(), UnitColours::Red);
 
@@ -324,7 +324,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_StartUp(const Messages::IAQMessage_StartUp& msg)
+	void IAQDevice::Slot_IAQ_StartUp([[maybe_unused]] const Messages::IAQMessage_StartUp& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_StartUp", std::source_location::current(), UnitColours::Red);
 
@@ -335,7 +335,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_ControlReady(const Messages::IAQMessage_ControlReady& msg)
+	void IAQDevice::Slot_IAQ_ControlReady([[maybe_unused]] const Messages::IAQMessage_ControlReady& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_ControlReady", std::source_location::current(), UnitColours::Red);
 
@@ -356,7 +356,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_CommandReady(const Messages::IAQMessage_CommandReady& msg)
+	void IAQDevice::Slot_IAQ_CommandReady([[maybe_unused]] const Messages::IAQMessage_CommandReady& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_CommandReady", std::source_location::current(), UnitColours::Red);
 
@@ -367,7 +367,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_OneTouchStatus(const Messages::IAQMessage_OneTouchStatus& msg)
+	void IAQDevice::Slot_IAQ_OneTouchStatus([[maybe_unused]] const Messages::IAQMessage_OneTouchStatus& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_OneTouchStatus", std::source_location::current(), UnitColours::Red);
 
@@ -378,7 +378,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void IAQDevice::Slot_IAQ_Heartbeat(const Messages::IAQMessage_Heartbeat& msg)
+	void IAQDevice::Slot_IAQ_Heartbeat([[maybe_unused]] const Messages::IAQMessage_Heartbeat& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::Slot_IAQ_Heartbeat", std::source_location::current(), UnitColours::Red);
 

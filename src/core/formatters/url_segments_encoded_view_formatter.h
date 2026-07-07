@@ -8,13 +8,6 @@
 
 #include <boost/url/segments_encoded_view.hpp>
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {

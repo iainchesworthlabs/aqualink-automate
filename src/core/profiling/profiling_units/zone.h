@@ -12,10 +12,9 @@ namespace AqualinkAutomate::Profiling
 	class Zone : public Interfaces::IProfilingUnit
 	{
 	public:
-		Zone(std::string_view name, const std::source_location& src_loc = std::source_location::current(), UnitColours colour = UnitColours::NotSpecified);
+		explicit Zone(std::string_view name, const std::source_location& src_loc = std::source_location::current(), UnitColours colour = UnitColours::NotSpecified);
 		~Zone() override = default;
 
-	public:
 		void Start() const override;
 		void Mark() const override;
 		void End() const override;

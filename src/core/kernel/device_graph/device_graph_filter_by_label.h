@@ -13,7 +13,6 @@ namespace AqualinkAutomate::Kernel
 	public:
 		DeviceLabelFilter(const DevicesGraphType& graph, std::string_view device_label);
 
-	public:
 		bool operator()(const DevicesGraphType::edge_descriptor) const;
 		bool operator()(const DevicesGraphType::vertex_descriptor vd) const;
 

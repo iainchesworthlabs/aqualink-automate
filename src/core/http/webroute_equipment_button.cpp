@@ -25,8 +25,7 @@ namespace
 	std::optional<std::string> ExtractButtonId(const AqualinkAutomate::HTTP::Request& req)
 	{
 		// Try extracting from URL path first (e.g. /api/equipment/buttons/some-uuid)
-		auto url_result = boost::urls::parse_origin_form(req.target());
-		if (url_result.has_value())
+		if (auto url_result = boost::urls::parse_origin_form(req.target()); url_result.has_value())
 		{
 			auto segments = url_result->segments();
 			// Path: /api/equipment/buttons/{button_id} -> 4 segments
@@ -55,10 +54,10 @@ namespace
 namespace AqualinkAutomate::HTTP
 {
 
-	WebRoute_Equipment_Button::WebRoute_Equipment_Button(Kernel::HubLocator& hub_locator)
+	WebRoute_Equipment_Button::WebRoute_Equipment_Button(Kernel::HubLocator& hub_locator) :
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_CommandDispatcher(hub_locator.TryFind<Interfaces::ICommandDispatcher>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_CommandDispatcher = hub_locator.TryFind<Interfaces::ICommandDispatcher>();
 	}
 
 	HTTP::Response WebRoute_Equipment_Button::OnRequest(const HTTP::Request& req)

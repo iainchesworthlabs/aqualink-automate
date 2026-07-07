@@ -33,16 +33,10 @@ namespace AqualinkAutomate::Jandy::Options
 			return AREA_NAME;
 		}
 
-		JandySettings() :
-			disable_emulation{ false },
-			emulated_devices{}
-		{
-		}
-
-		bool disable_emulation;
+		bool disable_emulation{ false };
 		bool disable_presence_gating{ false };     // disable RSSA presence-gating (auto-suppress emulation on a detected real adapter)
 		bool auto_startup{ false };                // detect the controller from the bus and choose what to emulate
-		JandyEmulatedDeviceCollection emulated_devices;
+		JandyEmulatedDeviceCollection emulated_devices{};
 		std::string navigation_password{};  // 4-digit password for menu navigation
 		std::uint32_t chlorinator_setpoint_refresh_interval{ 300 };  // seconds between Set-AquaPure menu re-scrapes of the configured chlorinator % (0 = disabled)
 	};
@@ -76,7 +70,6 @@ namespace AqualinkAutomate::Jandy::Options
 		std::string Name() const { return SettingsType::AreaName(); }
 		boost::program_options::options_description Options() const;
 
-	public:
 		void Validate(const boost::program_options::variables_map& vm) const;
 		std::expected<SettingsType, ErrorCodes::Options_ErrorCodes> Process(boost::program_options::variables_map& vm) const;
 	};

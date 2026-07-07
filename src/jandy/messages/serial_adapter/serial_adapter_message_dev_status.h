@@ -168,20 +168,18 @@ namespace AqualinkAutomate::Messages
 
 	public:
 		SerialAdapterMessage_DevStatus() noexcept;
-		SerialAdapterMessage_DevStatus(const SerialAdapter_ConfigControlCommands  sa_ccc);
-		SerialAdapterMessage_DevStatus(const SerialAdapter_SystemConfigurationStatuses sa_scs);
-		SerialAdapterMessage_DevStatus(const SerialAdapter_SystemPumpCommands sa_spc);
-		SerialAdapterMessage_DevStatus(const SerialAdapter_SystemTemperatureCommands sa_stc);
-		SerialAdapterMessage_DevStatus(const Auxillaries::JandyAuxillaryIds sa_jai);
+		explicit SerialAdapterMessage_DevStatus(const SerialAdapter_ConfigControlCommands  sa_ccc);
+		explicit SerialAdapterMessage_DevStatus(const SerialAdapter_SystemConfigurationStatuses sa_scs);
+		explicit SerialAdapterMessage_DevStatus(const SerialAdapter_SystemPumpCommands sa_spc);
+		explicit SerialAdapterMessage_DevStatus(const SerialAdapter_SystemTemperatureCommands sa_stc);
+		explicit SerialAdapterMessage_DevStatus(const Auxillaries::JandyAuxillaryIds sa_jai);
 		~SerialAdapterMessage_DevStatus() override = default;
 
-	public:
 		std::optional<uint16_t> ModelType() const;
 		std::optional<SerialAdapter_SCS_OpModes> OpMode() const;
 		std::optional<SerialAdapter_SCS_Options> Options() const;
 		std::optional<SerialAdapter_SCS_BatteryCondition> BatteryCondition() const;
 
-	public:
 		std::optional<Kernel::TemperatureUnits> TemperatureUnits() const;
 		std::optional<uint8_t> Pool_SetPoint_One() const;
 		std::optional<uint8_t> Pool_SetPoint_Two() const;
@@ -192,28 +190,22 @@ namespace AqualinkAutomate::Messages
 		std::optional<uint8_t> SolarTemperature() const;
 		std::optional<uint8_t> SpaTemperature() const;
 
-	public:
 		std::optional<std::tuple<Auxillaries::JandyAuxillaryIds, std::optional<Auxillaries::JandyAuxillaryStatuses>>> AuxilliaryState() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
 		SerialAdapter_StatusTypes m_StatusType;
 
-	private:
 		std::optional<uint16_t> m_ModelType{ std::nullopt };
 
-	private:
 		std::optional<SerialAdapter_SCS_OpModes> m_OpMode{ std::nullopt };
 		std::optional<SerialAdapter_SCS_Options> m_Options{ std::nullopt };
 		std::optional<SerialAdapter_SCS_BatteryCondition> m_BatteryCondition{ std::nullopt };
 
-	private:
 		std::optional<Kernel::TemperatureUnits> m_TemperatureUnits{ std::nullopt };
 		std::optional<uint8_t> m_PoolTemperature_SetPoint_One{ std::nullopt };
 		std::optional<uint8_t> m_PoolTemperature_SetPoint_Two{ std::nullopt };
@@ -230,10 +222,8 @@ namespace AqualinkAutomate::Messages
 		std::optional<uint8_t> m_SolarTemperature{ std::nullopt };
 		std::optional<uint8_t> m_SpaTemperature{ std::nullopt };
 
-	private:
 		std::optional<std::tuple<Auxillaries::JandyAuxillaryIds, std::optional<Auxillaries::JandyAuxillaryStatuses>>> m_Aux_State{ std::nullopt };
 
-	private:
 		std::optional<Auxillaries::JandyAuxillaryStatuses> m_Cleaner_State;
 		std::optional<Auxillaries::JandyAuxillaryStatuses> m_Spillover_State;
 	};

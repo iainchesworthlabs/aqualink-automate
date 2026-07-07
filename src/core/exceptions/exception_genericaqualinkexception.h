@@ -12,9 +12,8 @@ namespace AqualinkAutomate::Exceptions
 	class GenericAqualinkException : public std::exception
 	{
 	public:
-		GenericAqualinkException(std::string message, std::source_location location = std::source_location::current(), boost::stacktrace::stacktrace trace = boost::stacktrace::stacktrace());
+		explicit GenericAqualinkException(std::string message, std::source_location location = std::source_location::current(), boost::stacktrace::stacktrace trace = boost::stacktrace::stacktrace());
 
-	public:
 		const char* what() const noexcept override;
 		std::string& What();
 		const std::string& What() const noexcept;

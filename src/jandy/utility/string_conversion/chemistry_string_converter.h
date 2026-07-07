@@ -28,16 +28,14 @@ namespace AqualinkAutomate::Utility
 
 	public:
 		ChemistryStringConverter() noexcept;
-		ChemistryStringConverter(const std::string& chemistry_string) noexcept;
+		explicit ChemistryStringConverter(const std::string& chemistry_string) noexcept;
 		ChemistryStringConverter(const ChemistryStringConverter& other) noexcept;
 		ChemistryStringConverter(ChemistryStringConverter&& other) noexcept;
 
-	public:
 		ChemistryStringConverter& operator=(const ChemistryStringConverter& other) noexcept;
 		ChemistryStringConverter& operator=(ChemistryStringConverter&& other) noexcept;
 		ChemistryStringConverter& operator=(const std::string& chemistry_string) noexcept;
 
-	public:
 		std::expected<Kernel::ORP, boost::system::error_code> ORP() const noexcept;
 		std::expected<Kernel::pH, boost::system::error_code> PH() const noexcept;
 
@@ -46,8 +44,8 @@ namespace AqualinkAutomate::Utility
 		std::tuple<std::optional<std::string>, std::optional<std::string>> ValidateAndExtractData(const std::string& chemistry_string) noexcept;
 
 	private:
-		Kernel::ORP m_ORP;
-		Kernel::pH m_PH;
+		Kernel::ORP m_ORP{ 0 };
+		Kernel::pH m_PH{ 0.0f };
 
 	private:
 		std::optional<ErrorCodes::StringConversion_ErrorCodes> m_ErrorOccurred;

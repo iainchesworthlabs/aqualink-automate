@@ -47,7 +47,6 @@ namespace AqualinkAutomate::Devices
 		SerialAdapterDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id, Kernel::HubLocator& hub_locator, bool is_emulated);
 		~SerialAdapterDevice() override;
 
-	public:
 		nlohmann::json DescribeDiagnostics() const override;
 
 		void QueueCommand(uint8_t ack_type, uint8_t ack_data_value);
@@ -111,10 +110,8 @@ namespace AqualinkAutomate::Devices
 		// serialadapter.c). DEV_READY is sent only as part of that handshake.
 		void DrainPendingCommandForDevReady();
 
-	private:
 		void WatchdogTimeoutOccurred() override;
 
-	private:
 		void Slot_SerialAdapter_Ack(const Messages::JandyMessage_Ack& msg);
 		void Slot_SerialAdapter_DevReady(const Messages::SerialAdapterMessage_DevReady& msg);
 		void Slot_SerialAdapter_DevStatus(const Messages::SerialAdapterMessage_DevStatus& msg);
@@ -122,7 +119,6 @@ namespace AqualinkAutomate::Devices
 		void Slot_SerialAdapter_Status(const Messages::JandyMessage_Status& msg);
 		void Slot_SerialAdapter_Unknown(const Messages::JandyMessage_Unknown& msg);
 
-	private:
 		void Command_SerialAdapter_Model(const uint16_t model_type);
 		void Command_SerialAdapter_OpMode(const Messages::SerialAdapter_SCS_OpModes& op_mode);
 		void Command_SerialAdapter_Options(const Messages::SerialAdapter_SCS_Options& options);
@@ -133,18 +129,15 @@ namespace AqualinkAutomate::Devices
 		void Command_SerialAdapter_SolarTemperature(const Kernel::Temperature& temperature);
 		void Command_SerialAdapter_AuxillaryStatus(const Auxillaries::JandyAuxillaryIds& aux_id, const Auxillaries::JandyAuxillaryStatuses& status);
 
-	private:
 		// Presence gating: called when a real Serial Adapter is observed answering
 		// the master at this device's address. Latches emulation off permanently so
 		// the emulated instance never collides with the real one on the bus.
 		void DetectRealAdapterAndSuppressEmulation(std::string_view observed_message_kind);
 
-	private:
 		std::vector<Messages::SerialAdapter_StatusTypes> m_StatusTypesCollection;
 		std::vector<Messages::SerialAdapter_StatusTypes>::const_iterator m_StatusTypesCollectionIter;
 
-	private:
-		bool m_StatusMessageReceived;
+		bool m_StatusMessageReceived{ false };
 
 		// True once the emulated adapter has actively transmitted (answered a master
 		// poll/probe), i.e. it has "claimed" this bus address. Used by presence-gating:
@@ -160,7 +153,6 @@ namespace AqualinkAutomate::Devices
 		// they are emitted on consecutive master polls in the correct order.
 		std::deque<PendingCommand> m_PendingCommands{};
 
-	private:
 		Types::ProfilingUnitTypePtr m_ProfilingDomain;
 	};
 

@@ -15,41 +15,43 @@ namespace AqualinkAutomate::Kernel::AuxillaryTraitsTypes
 		// to a human-readable string. Returns std::nullopt when no status is available for the type.
 		std::optional<std::string_view> ResolveStatusString(const AuxillaryDevice& device, AuxillaryTypes type)
 		{
+			using enum AuxillaryTypes;
+
 			switch (type)
 			{
-			case AuxillaryTypes::Auxillary:
-			case AuxillaryTypes::Cleaner:
-			case AuxillaryTypes::Spillover:
-			case AuxillaryTypes::Sprinkler:
+			case Auxillary:
+			case Cleaner:
+			case Spillover:
+			case Sprinkler:
 				if (auto status = device.AuxillaryTraits.TryGet(AuxillaryStatusTrait{}); status.has_value())
 				{
 					return magic_enum::enum_name(status.value());
 				}
 				break;
 
-			case AuxillaryTypes::Chlorinator:
+			case Chlorinator:
 				if (auto status = device.AuxillaryTraits.TryGet(ChlorinatorStatusTrait{}); status.has_value())
 				{
 					return magic_enum::enum_name(status.value());
 				}
 				break;
 
-			case AuxillaryTypes::Heater:
+			case Heater:
 				if (auto status = device.AuxillaryTraits.TryGet(HeaterStatusTrait{}); status.has_value())
 				{
 					return magic_enum::enum_name(status.value());
 				}
 				break;
 
-			case AuxillaryTypes::Pump:
+			case Pump:
 				if (auto status = device.AuxillaryTraits.TryGet(PumpStatusTrait{}); status.has_value())
 				{
 					return magic_enum::enum_name(status.value());
 				}
 				break;
 
-			case AuxillaryTypes::Light:
-			case AuxillaryTypes::Unknown:
+			case Light:
+			case Unknown:
 			default:
 				// No status mapping for this device type.
 				break;

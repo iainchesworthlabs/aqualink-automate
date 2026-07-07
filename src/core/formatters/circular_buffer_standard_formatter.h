@@ -10,13 +10,6 @@
 
 #include "formatters/formatter_helpers.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {

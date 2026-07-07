@@ -38,22 +38,18 @@ namespace AqualinkAutomate::Messages
 		static constexpr uint8_t MAXIMUM_PACKET_LENGTH{ 128 };
 		static constexpr uint8_t MINIMUM_PACKET_LENGTH{ PACKET_HEADER_LENGTH + PACKET_FOOTER_LENGTH };
 
-	public:
-		JandyMessage(const JandyMessageIds& msg_id);
+		explicit JandyMessage(const JandyMessageIds& msg_id);
 		~JandyMessage() override = default;
 
-	public:
 		const Devices::JandyDeviceType Destination() const;
 		uint8_t RawId() const;
 		uint8_t MessageLength() const;
 		uint8_t ChecksumValue() const;
 
-	public:
 		uint8_t MaxPermittedPacketLength() const override;
 		uint8_t MinPermittedPacketLength() const override;
 		std::string ToString() const override;
 
-	public:
 		// Two Deserialize overloads coexist on this type.  They are NOT competing
 		// generic overloads — they form a single logical entry point split by an
 		// unambiguous, disjoint parameter domain, both forwarding into the one
@@ -76,7 +72,6 @@ namespace AqualinkAutomate::Messages
 		bool Deserialize(const std::span<const std::byte>& message_bytes) final;
 		virtual bool DeserializeContents(std::span<const uint8_t> message_bytes) = 0;
 
-	public:
 		template <MutableJandyRawMessageRange RAW_MESSAGE_RANGE>
 		[[nodiscard]] bool Serialize(RAW_MESSAGE_RANGE& raw_message) const
 		{
@@ -138,10 +133,10 @@ namespace AqualinkAutomate::Messages
 		bool PacketChecksumIsValid(std::span<const uint8_t> message_bytes) const;
 
 	protected:
-		Devices::JandyDeviceType m_Destination;
-		uint8_t m_RawId;
-		uint8_t m_MessageLength;
-		uint8_t m_ChecksumValue;
+		Devices::JandyDeviceType m_Destination{ 0x00 };
+		uint8_t m_RawId{ 0 };
+		uint8_t m_MessageLength{ 0 };
+		uint8_t m_ChecksumValue{ 0 };
 	};
 
 }

@@ -15,11 +15,3 @@
 #include "options/options_scheduling_options.h"
 #include "options/options_serial_options.h"
 #include "options/options_web_options.h"
-
-namespace AqualinkAutomate::Options
-{
-
-	// NOTHING HERE
-
-}
-// namespace AqualinkAutomate::Options

@@ -7,13 +7,6 @@
 
 #include <boost/beast/core/string.hpp>
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {

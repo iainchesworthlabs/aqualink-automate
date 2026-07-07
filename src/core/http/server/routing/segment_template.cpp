@@ -47,8 +47,7 @@ namespace AqualinkAutomate::HTTP::Routing
             
             ++it;
             
-            auto send = boost::urls::grammar::find_if(it, end, boost::urls::grammar::lut_chars('}'));
-            if (send != end)
+            if (auto send = boost::urls::grammar::find_if(it, end, boost::urls::grammar::lut_chars('}')); send != end)
             {
                 std::string_view s(it, send);
                 

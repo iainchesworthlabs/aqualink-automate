@@ -68,7 +68,7 @@ namespace AqualinkAutomate::Utility
 		}
 
 	protected:
-		std::vector<ConnectionVariant> m_Connections;
+		std::vector<ConnectionVariant> m_Connections{};
 	};
 
 }

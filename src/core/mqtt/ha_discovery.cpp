@@ -795,8 +795,7 @@ namespace AqualinkAutomate::Mqtt
 
 		if (auto data_hub = m_DataHub.lock())
 		{
-			auto model = data_hub->EquipmentVersions.ModelNumber();
-			if (!model.empty())
+			if (auto model = data_hub->EquipmentVersions.ModelNumber(); !model.empty())
 			{
 				device["model"] = model;
 			}

@@ -27,16 +27,14 @@ namespace AqualinkAutomate::Utility
 
 	public:
 		AuxillaryStateStringConverter() noexcept;
-		AuxillaryStateStringConverter(const std::string& auxillary_status_string) noexcept;
+		explicit AuxillaryStateStringConverter(const std::string& auxillary_status_string) noexcept;
 		AuxillaryStateStringConverter(const AuxillaryStateStringConverter& other) noexcept;
 		AuxillaryStateStringConverter(AuxillaryStateStringConverter&& other) noexcept;
 
-	public:
 		AuxillaryStateStringConverter& operator=(const AuxillaryStateStringConverter& other) noexcept;
 		AuxillaryStateStringConverter& operator=(AuxillaryStateStringConverter&& other) noexcept;
 		AuxillaryStateStringConverter& operator=(const std::string& auxillary_status_string) noexcept;
 
-	public:
 		std::expected<std::string, boost::system::error_code> Label() const noexcept;
 		std::expected<Kernel::AuxillaryStatuses, boost::system::error_code> State() const noexcept;
 
@@ -44,9 +42,8 @@ namespace AqualinkAutomate::Utility
 		void ConvertStringToStatus(const std::string& auxillary_status_string) noexcept;
 		std::tuple<std::optional<std::string>, std::optional<std::string>> ValidateAndExtractData(const std::string& auxillary_status_string) noexcept;
 
-	private:
 		std::string m_Label;
-		Kernel::AuxillaryStatuses m_State;
+		Kernel::AuxillaryStatuses m_State{ Kernel::AuxillaryStatuses::Unknown };
 
 	private:
 		std::optional<ErrorCodes::StringConversion_ErrorCodes> m_ErrorOccurred;

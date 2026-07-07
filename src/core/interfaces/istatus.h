@@ -19,11 +19,9 @@ namespace AqualinkAutomate::Interfaces
 		IStatus(IStatus&& other) = default;
 		virtual ~IStatus() = default;
 
-	public:
 		IStatus& operator=(const IStatus&) = default;
 		IStatus& operator=(IStatus&& other) = default;
 
-	public:
 		virtual std::string_view SourceName() const = 0;
 		virtual std::string_view SourceType() const = 0;
 		virtual std::string_view StatusType() const = 0;

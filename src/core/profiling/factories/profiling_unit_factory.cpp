@@ -6,9 +6,7 @@
 namespace AqualinkAutomate::Factory
 {
 
-	ProfilingUnitFactory::ProfilingUnitFactory() :
-		m_Generators{},
-		m_DesiredProfiler(std::nullopt)
+	ProfilingUnitFactory::ProfilingUnitFactory()
 	{
 	}
 

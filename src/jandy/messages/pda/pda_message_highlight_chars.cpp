@@ -11,10 +11,7 @@ namespace AqualinkAutomate::Messages
 
 	PDAMessage_HighlightChars::PDAMessage_HighlightChars() noexcept :
 		PDAMessage(JandyMessageIds::PDA_HighlightChars),
-		Interfaces::IMessageSignalRecv<PDAMessage_HighlightChars>(),
-		m_LineId(0),
-		m_StartIndex(0),
-		m_StopIndex(0)
+		Interfaces::IMessageSignalRecv<PDAMessage_HighlightChars>()
 	{
 	}
 

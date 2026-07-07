@@ -17,14 +17,13 @@ namespace AqualinkAutomate::Kernel
 	class Temperature
 	{
 	public:
-		Temperature(const boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>& degrees_celsius);
-		Temperature(const boost::units::quantity<boost::units::absolute<boost::units::fahrenheit::temperature>>& degrees_fahrenheit);
+		explicit Temperature(const boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>& degrees_celsius);
+		explicit Temperature(const boost::units::quantity<boost::units::absolute<boost::units::fahrenheit::temperature>>& degrees_fahrenheit);
 		Temperature(const Temperature& other) = default;
 		Temperature& operator=(const Temperature& other) = default;
 		Temperature(Temperature&& other) noexcept = default;
 		Temperature& operator=(Temperature&& other) noexcept = default;
 
-	public:
 		// Compares the underlying Kelvin quantity directly (no unit-conversion round-trip), so two
 		// temperatures built from the same reading compare equal.
 		bool operator==(const Temperature& other) const = default;
@@ -32,7 +31,6 @@ namespace AqualinkAutomate::Kernel
 		boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>> InCelsius() const;
 		boost::units::quantity<boost::units::absolute<boost::units::fahrenheit::temperature>> InFahrenheit() const;
 
-	public:
 		static Temperature ConvertToTemperatureInCelsius(double degrees_celsius);
 		static Temperature ConvertToTemperatureInFahrenheit(double degrees_fahrenheit);
 

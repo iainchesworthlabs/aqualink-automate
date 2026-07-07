@@ -61,7 +61,6 @@ namespace AqualinkAutomate::Mqtt
 		MqttClient(const MqttClient&) = delete;
 		MqttClient& operator=(const MqttClient&) = delete;
 
-	public:
 		struct WillConfig
 		{
 			std::string topic;
@@ -71,7 +70,6 @@ namespace AqualinkAutomate::Mqtt
 
 		void SetWill(const std::string& topic, const std::string& payload, bool retain = true);
 
-	public:
 		void Start();
 		void Stop() noexcept;
 		void Poll();
@@ -88,7 +86,6 @@ namespace AqualinkAutomate::Mqtt
 		std::string BuildTopic(const std::string& subtopic) const;
 		const std::string& TopicPrefix() const noexcept;
 
-	public:
 		// Read-only diagnostics accessors. Safe to call from the HTTP handler: the
 		// client is single-threaded and the handler runs on the same io_context
 		// thread, so no synchronisation is required.

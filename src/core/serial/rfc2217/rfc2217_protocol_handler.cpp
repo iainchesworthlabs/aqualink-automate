@@ -117,11 +117,12 @@ namespace AqualinkAutomate::Serial::RFC2217
 
 		constexpr auto to_rfc2217_parity = [](Serial::Parity p) -> uint8_t
 			{
+				using enum Serial::Parity;
 				switch (p)
 				{
-				case Serial::Parity::None:  return 1;
-				case Serial::Parity::Odd:   return 2;
-				case Serial::Parity::Even:  return 3;
+				case None:  return 1;
+				case Odd:   return 2;
+				case Even:  return 3;
 				}
 				std::unreachable();
 			};
@@ -144,11 +145,12 @@ namespace AqualinkAutomate::Serial::RFC2217
 
 		constexpr auto to_rfc2217_stop = [](Serial::StopBits s) -> uint8_t
 			{
+				using enum Serial::StopBits;
 				switch (s)
 				{
-				case Serial::StopBits::One:           return 1;
-				case Serial::StopBits::OnePointFive:   return 2;
-				case Serial::StopBits::Two:            return 3;
+				case One:           return 1;
+				case OnePointFive:   return 2;
+				case Two:            return 3;
 				}
 				std::unreachable();
 			};
@@ -171,11 +173,12 @@ namespace AqualinkAutomate::Serial::RFC2217
 
 		constexpr auto to_rfc2217_flow = [](Serial::FlowControl f) -> uint8_t
 			{
+				using enum Serial::FlowControl;
 				switch (f)
 				{
-				case Serial::FlowControl::None:      return 0;
-				case Serial::FlowControl::Software:  return 1;
-				case Serial::FlowControl::Hardware:  return 2;
+				case None:      return 0;
+				case Software:  return 1;
+				case Hardware:  return 2;
 				}
 				std::unreachable();
 			};
@@ -254,8 +257,7 @@ namespace AqualinkAutomate::Serial::RFC2217
 		}
 
 		// Security: Validate parameter lengths for known commands
-		const uint8_t base_command = command - Constants::SERVER_OFFSET;
-		switch (base_command)
+		switch (const uint8_t base_command = command - Constants::SERVER_OFFSET; base_command)
 		{
 		case Constants::SET_BAUDRATE:
 			if (params.size() != 4)

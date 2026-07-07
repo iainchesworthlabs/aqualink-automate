@@ -18,16 +18,13 @@ namespace AqualinkAutomate::Messages
 
 	public:
 		PDAMessage_Highlight() noexcept;
-		PDAMessage_Highlight(const uint8_t line_id);
+		explicit PDAMessage_Highlight(const uint8_t line_id);
 		~PDAMessage_Highlight() override = default;
 
-	public:
 		uint8_t LineId() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

@@ -28,7 +28,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void PDADevice::Slot_PDA_Clear(const Messages::PDAMessage_Clear& msg)
+	void PDADevice::Slot_PDA_Clear([[maybe_unused]] const Messages::PDAMessage_Clear& msg)
 	{
 		LogDebug(Channel::Devices, "PDA device received a JandyMessage_Clear signal.");
 
@@ -95,7 +95,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void PDADevice::Slot_PDA_Probe(const Messages::JandyMessage_Probe& msg)
+	void PDADevice::Slot_PDA_Probe([[maybe_unused]] const Messages::JandyMessage_Probe& msg)
 	{
 		LogDebug(Channel::Devices, "PDA device received a JandyMessage_Probe signal.");
 
@@ -106,7 +106,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void PDADevice::Slot_PDA_Status(const Messages::JandyMessage_Status& msg)
+	void PDADevice::Slot_PDA_Status([[maybe_unused]] const Messages::JandyMessage_Status& msg)
 	{
 		LogDebug(Channel::Devices, "PDA device received a JandyMessage_Status signal.");
 

@@ -7,14 +7,6 @@
 
 #include "devices/jandy_emulated_device_types.h"
 
-namespace AqualinkAutomate::Jandy::Options::Validators
-{
-
-	// NOTHING HERE
-
-}
-// namespace AqualinkAutomate::Jandy::Options::Validators
-
 //=============================================================================
 //
 // BOOST Program Options requires validators to be in the namespace of the

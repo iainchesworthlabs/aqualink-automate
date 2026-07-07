@@ -14,12 +14,9 @@ namespace AqualinkAutomate::HTTP
 {
 
 	WebSocket_Equipment::WebSocket_Equipment(Kernel::HubLocator& hub_locator) :
-		m_ConfigChangeSlot(),
-		m_StatusChangeSlot()
+		m_DataHub(hub_locator.Find<Kernel::DataHub>()),
+		m_EquipmentHub(hub_locator.Find<Kernel::EquipmentHub>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
-		m_EquipmentHub = hub_locator.Find<Kernel::EquipmentHub>();
-
 		// Connect signals that broadcast messages to all connections
 		if (m_DataHub)
 		{
@@ -163,10 +160,14 @@ namespace AqualinkAutomate::HTTP
 
 	void WebSocket_Equipment::OnMessage(ConnectionId /*connId*/, const boost::beast::flat_buffer& /*buffer*/)
 	{
+		// Intentionally empty: this is a broadcast-only endpoint; inbound client
+		// messages are ignored.
 	}
 
 	void WebSocket_Equipment::OnPublish(ConnectionId /*connId*/)
 	{
+		// Intentionally empty: publishing is signal-driven via Broadcast(), so there
+		// is no per-connection publish work to perform here.
 	}
 
 	void WebSocket_Equipment::OnClose(ConnectionId connId)

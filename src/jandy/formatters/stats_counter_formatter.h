@@ -6,14 +6,6 @@
 
 #include "utility/signalling_stats_counter.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
-
 namespace std
 {
 

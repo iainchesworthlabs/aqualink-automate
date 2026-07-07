@@ -42,7 +42,6 @@ namespace AqualinkAutomate::Kernel
 			return *this;
 		}
 
-	public:
 		template <RegistrableHub T>
 		std::shared_ptr<T> Find()
 		{
@@ -54,7 +53,6 @@ namespace AqualinkAutomate::Kernel
 			throw Exceptions::Hub_NotFound();
 		}
 
-	public:
 		template <RegistrableHub T>
 		std::shared_ptr<T> TryFind()
 		{
@@ -66,7 +64,6 @@ namespace AqualinkAutomate::Kernel
 			return nullptr;
 		}
 
-	public:
 		template <RegistrableHub T>
 		HubLocator& Unregister()
 		{

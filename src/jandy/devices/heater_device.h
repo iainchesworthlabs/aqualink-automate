@@ -24,7 +24,7 @@ namespace AqualinkAutomate::Devices
 		using TimestampedError = std::pair<Messages::HeaterErrors, std::chrono::time_point<std::chrono::system_clock>>;
 
 	public:
-		HeaterDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id);
+		explicit HeaterDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id);
 		~HeaterDevice() override = default;
 
 	private:

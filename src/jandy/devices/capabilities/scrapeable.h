@@ -52,13 +52,11 @@ namespace AqualinkAutomate::Devices::Capabilities
 			Faulted                  // Unrecoverable error
 		};
 
-	public:
 		using ScrapeId = uint32_t;
 		using ScraperGraph = Utility::ScreenDataPageGraph;
 		using ScraperIter = Utility::ScreenDataPageGraphImpl::ForwardIterator;
 		using KeyCommand = Utility::ScreenDataPageGraphImpl::KeyCommand;
 
-	public:
 		static constexpr uint32_t MAX_RECOVERY_ATTEMPTS = 3;
 		static constexpr uint32_t MAX_BACK_PRESSES = 10;
 
@@ -74,9 +72,6 @@ namespace AqualinkAutomate::Devices::Capabilities
 		template<typename... MESSAGE_TYPES>
 		Scrapeable(const Devices::JandyDeviceType device_id, GraphDataMap graphs, MESSAGE_TYPES ...) :
 			m_ScraperGraphs(graphs),
-			m_ActiveScrape(std::nullopt),
-			m_Stack_WaitingForPage(),
-			m_Stack_WaitingForMessage(),
 			m_ParentDeviceId(device_id)
 		{
 			// Note: Message handling is now done via explicit OnStatusMessageReceived() calls
@@ -86,19 +81,15 @@ namespace AqualinkAutomate::Devices::Capabilities
 			// might pop messages before the current command's push, or run at unpredictable times.
 		}
 
-	public:
 		void ScrapingStart(ScrapeId scrape_graph_id, const uint32_t starting_index = 1);
 
-	public:
 		// Call this when a Status message is received to pop from the wait stack.
 		// This should be called BEFORE ScrapingNextWithValidation to ensure
 		// the wait stack is updated before processing.
 		void OnStatusMessageReceived();
 
-	public:
 		std::expected<KeyCommand, ErrorCodes::Scrapeable_ErrorCodes> ScrapingNext();
 
-	public:
 		// Main validation-aware scraping method
 		std::expected<KeyCommand, ErrorCodes::Scrapeable_ErrorCodes>
 			ScrapingNextWithValidation(Utility::ScreenDataPageTypes current_page);
@@ -119,14 +110,12 @@ namespace AqualinkAutomate::Devices::Capabilities
 
 	private:
 		GraphDataMap m_ScraperGraphs;
-		std::optional<std::tuple<ScrapeId, ScraperIter>> m_ActiveScrape;
+		std::optional<std::tuple<ScrapeId, ScraperIter>> m_ActiveScrape{ std::nullopt };
 
-	private:
 		std::stack<Utility::ScreenDataPageTypes> m_Stack_WaitingForPage;
 		std::stack<Messages::JandyMessageIds> m_Stack_WaitingForMessage;
 		const Devices::JandyDeviceType m_ParentDeviceId;
 
-	private:
 		ScrapeState m_ScrapeState{ ScrapeState::Idle };
 		uint32_t m_RecoveryAttempts{ 0 };
 		uint32_t m_RecoveryBackPresses{ 0 };

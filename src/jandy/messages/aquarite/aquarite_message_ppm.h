@@ -39,20 +39,17 @@ namespace AqualinkAutomate::Messages
 		AquariteMessage_PPM() noexcept;
 		~AquariteMessage_PPM() override = default;
 
-	public:
 		uint16_t SaltConcentrationPPM() const;
 		AquariteStatuses Status() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint16_t m_PPM;
-		AquariteStatuses m_Status;
+		uint16_t m_PPM{ 0 };
+		AquariteStatuses m_Status{ AquariteStatuses::Unknown };
 	};
 
 }

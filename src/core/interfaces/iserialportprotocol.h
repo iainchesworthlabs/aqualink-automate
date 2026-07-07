@@ -13,11 +13,9 @@ namespace AqualinkAutomate::Interfaces
 		ISerialPortProtocol() = default;
 		virtual ~ISerialPortProtocol() = default;
 
-	public:
 		virtual void Initialize() = 0;
 		virtual void Shutdown() = 0;
 
-	public:
 		virtual void set_baud_rate(uint32_t baud_rate) = 0;
 		virtual void set_character_size(uint8_t size) = 0;
 		virtual void set_parity(Serial::Parity parity) = 0;

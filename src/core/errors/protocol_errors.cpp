@@ -10,24 +10,26 @@ namespace AqualinkAutomate::ErrorCodes
 
 	std::string_view Protocol_ErrorCategory::Describe(Protocol_ErrorCodes e)
 	{
+		using enum Protocol_ErrorCodes;
+
 		switch (e)
 		{
-		case Protocol_ErrorCodes::DataAvailableToProcess:
+		case DataAvailableToProcess:
 			return "A complete frame is available in the buffer and ready to process";
 
-		case Protocol_ErrorCodes::WaitingForMoreData:
+		case WaitingForMoreData:
 			return "Not enough data has been received yet to decode a frame";
 
-		case Protocol_ErrorCodes::InvalidPacketFormat:
+		case InvalidPacketFormat:
 			return "The packet structure does not match the expected protocol format";
 
-		case Protocol_ErrorCodes::UnknownFailure:
+		case UnknownFailure:
 			return "An unspecified protocol processing failure occurred";
 
-		case Protocol_ErrorCodes::ChecksumFailure:
+		case ChecksumFailure:
 			return "The packet checksum did not match the computed value";
 
-		case Protocol_ErrorCodes::OverlappingPackets:
+		case OverlappingPackets:
 			return "Overlapping packet boundaries were detected in the buffer";
 
 		default:

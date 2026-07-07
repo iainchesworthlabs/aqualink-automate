@@ -1,12 +1,5 @@
 #include "formatters/beast_stringview_formatter.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {

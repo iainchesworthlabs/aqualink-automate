@@ -14,10 +14,10 @@ namespace AqualinkAutomate::Messages
 	{
 	}
 
-	PDAMessage_Highlight::PDAMessage_Highlight(const uint8_t line_id) :
+	PDAMessage_Highlight::PDAMessage_Highlight(const uint8_t line_id_value) :
 		PDAMessage(JandyMessageIds::PDA_Highlight),
 		Interfaces::IMessageSignalRecv<PDAMessage_Highlight>(),
-		m_LineId(line_id)
+		m_LineId(line_id_value)
 	{
 	}
 

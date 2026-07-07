@@ -31,14 +31,15 @@ namespace AqualinkAutomate::Jandy::Options
 		// Uses secondary IDs to avoid conflicting with real (primary) devices on the RS-485 bus.
 		JandyDeviceId DefaultDeviceId(JandyEmulatedDeviceTypes device_type)
 		{
+			using enum JandyEmulatedDeviceTypes;
 			switch (device_type)
 			{
-			case JandyEmulatedDeviceTypes::OneTouch:		return JandyDeviceId{ 0x41 };
-			case JandyEmulatedDeviceTypes::IAQ:				return JandyDeviceId{ 0xA1 };
-			case JandyEmulatedDeviceTypes::RS_Keypad:		return JandyDeviceId{ 0x09 };
-			case JandyEmulatedDeviceTypes::PDA:				return JandyDeviceId{ 0x61 };
-			case JandyEmulatedDeviceTypes::SerialAdapter:	return JandyDeviceId{ 0x48 };
-			default:										return JandyDeviceId{ 0xFF };
+			case OneTouch:			return JandyDeviceId{ 0x41 };
+			case IAQ:				return JandyDeviceId{ 0xA1 };
+			case RS_Keypad:			return JandyDeviceId{ 0x09 };
+			case PDA:				return JandyDeviceId{ 0x61 };
+			case SerialAdapter:		return JandyDeviceId{ 0x48 };
+			default:				return JandyDeviceId{ 0xFF };
 			}
 		}
 
@@ -185,11 +186,12 @@ namespace AqualinkAutomate::Jandy::Options
 		{
 			// No explicit device types specified — use default set.
 			// OneTouch for menu scraping, IAQ for status data, SerialAdapter for commands.
+			using enum JandyEmulatedDeviceTypes;
 			static const std::vector<JandyEmulatedDeviceTypes> DEFAULT_DEVICE_TYPES
 			{
-				JandyEmulatedDeviceTypes::OneTouch,
-				JandyEmulatedDeviceTypes::IAQ,
-				JandyEmulatedDeviceTypes::SerialAdapter
+				OneTouch,
+				IAQ,
+				SerialAdapter
 			};
 
 			for (auto type : DEFAULT_DEVICE_TYPES)

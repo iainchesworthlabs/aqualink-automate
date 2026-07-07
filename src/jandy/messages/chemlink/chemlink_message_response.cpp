@@ -14,9 +14,7 @@ namespace AqualinkAutomate::Messages
 
 	ChemlinkMessage_Response::ChemlinkMessage_Response() noexcept :
 		ChemlinkMessage(JandyMessageIds::Chemlink_Response),
-		Interfaces::IMessageSignalRecv<ChemlinkMessage_Response>(),
-		m_DataTag(ChemlinkDataTag::Unknown),
-		m_RawValue(0)
+		Interfaces::IMessageSignalRecv<ChemlinkMessage_Response>()
 	{
 	}
 

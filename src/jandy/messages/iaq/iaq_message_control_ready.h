@@ -16,11 +16,7 @@ namespace AqualinkAutomate::Messages
 	public:
 		IAQMessage_ControlReady() noexcept;
 		~IAQMessage_ControlReady() override = default;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 	};

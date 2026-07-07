@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Exceptions
 
 	public:
 		OptionParsingFailed();
-		OptionParsingFailed(const std::string& message);
+		explicit OptionParsingFailed(const std::string& message);
 	};
 
 }

@@ -27,22 +27,24 @@ namespace AqualinkAutomate::Devices
 			JandyMessage_Status{}
 		),
 		Capabilities::Emulated(is_emulated)
-		
+
 	{
+		using enum Utility::ScreenDataPageTypes;
+
 		PageProcessors(
 			{
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_System, {0, "   MAIN MENU    "}, std::bind(&PDADevice::PageProcessor_System, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_EquipmentStatus, { 0, "EQUIPMENT STATUS" }, std::bind(&PDADevice::PageProcessor_EquipmentStatus, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SetPoolHeat, { 0, "   POOL HEAT    " }, std::bind(&PDADevice::PageProcessor_PoolHeat, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SetSpaHeat, { 0, "    SPA HEAT    " }, std::bind(&PDADevice::PageProcessor_SpaHeat, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SetTemperature, { 0, "    SET TEMP    " }, std::bind(&PDADevice::PageProcessor_SetTemperature, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SetTime, { 0, "    SET TIME    " }, std::bind(&PDADevice::PageProcessor_SetTime, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_FreezeProtect, { 0, " FREEZE PROTECT " }, std::bind(&PDADevice::PageProcessor_FreezeProtect, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Boost, { 0, "BOOST" }, std::bind(&PDADevice::PageProcessor_Boost, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_SetAquapure, { 0, "  SET AquaPure  " }, std::bind(&PDADevice::PageProcessor_AquaPure, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Version, { 3, "Firmware Version" }, std::bind(&PDADevice::PageProcessor_FirmwareVersion, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Version, { 1, "    AquaPalm" }, std::bind(&PDADevice::PageProcessor_FirmwareVersion, this, std::placeholders::_1)),
-				Utility::ScreenDataPage_Processor(Utility::ScreenDataPageTypes::Page_Version, { 1, " PDA-P" }, std::bind(&PDADevice::PageProcessor_FirmwareVersion, this, std::placeholders::_1))
+				Utility::ScreenDataPage_Processor(Page_System, {0, "   MAIN MENU    "}, std::bind(&PDADevice::PageProcessor_System, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_EquipmentStatus, { 0, "EQUIPMENT STATUS" }, std::bind(&PDADevice::PageProcessor_EquipmentStatus, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_SetPoolHeat, { 0, "   POOL HEAT    " }, std::bind(&PDADevice::PageProcessor_PoolHeat, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_SetSpaHeat, { 0, "    SPA HEAT    " }, std::bind(&PDADevice::PageProcessor_SpaHeat, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_SetTemperature, { 0, "    SET TEMP    " }, std::bind(&PDADevice::PageProcessor_SetTemperature, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_SetTime, { 0, "    SET TIME    " }, std::bind(&PDADevice::PageProcessor_SetTime, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_FreezeProtect, { 0, " FREEZE PROTECT " }, std::bind(&PDADevice::PageProcessor_FreezeProtect, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_Boost, { 0, "BOOST" }, std::bind(&PDADevice::PageProcessor_Boost, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_SetAquapure, { 0, "  SET AquaPure  " }, std::bind(&PDADevice::PageProcessor_AquaPure, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_Version, { 3, "Firmware Version" }, std::bind(&PDADevice::PageProcessor_FirmwareVersion, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_Version, { 1, "    AquaPalm" }, std::bind(&PDADevice::PageProcessor_FirmwareVersion, this, std::placeholders::_1)),
+				Utility::ScreenDataPage_Processor(Page_Version, { 1, " PDA-P" }, std::bind(&PDADevice::PageProcessor_FirmwareVersion, this, std::placeholders::_1))
 			}
 		);
 
@@ -64,10 +66,14 @@ namespace AqualinkAutomate::Devices
 	
 	void PDADevice::ProcessControllerUpdates()
 	{
+		// Intentionally empty: the PDA advances its state directly from the incoming
+		// screen-update message handlers, so there is no periodic controller work to do here.
 	}
 
 	void PDADevice::WatchdogTimeoutOccurred()
 	{
+		// Intentionally empty: loss of communications on the PDA requires no device-side
+		// state change.
 	}
 
 	nlohmann::json PDADevice::DescribeDiagnostics() const

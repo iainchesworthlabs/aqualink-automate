@@ -73,7 +73,6 @@ namespace AqualinkAutomate::Developer
 		std::expected<std::size_t, boost::system::error_code> HandleMockRead(const boost::asio::mutable_buffer& buffer);
 		std::expected<std::size_t, boost::system::error_code> HandleMockWrite(const boost::asio::const_buffer& buffer);
 
-	private:
 		std::expected<std::size_t, boost::system::error_code> HandleFileRead(const boost::asio::mutable_buffer& buffer);
 		std::expected<std::size_t, boost::system::error_code> HandleFileWrite(const boost::asio::const_buffer& buffer);
 
@@ -96,7 +95,6 @@ namespace AqualinkAutomate::Developer
 	private:
 		Developer::SerialPortOptions m_Options;
 
-	private:
 		std::random_device m_RandomDevice;
 		std::uniform_int_distribution<> m_Distribution;
 		std::string m_DeviceName;
@@ -104,14 +102,12 @@ namespace AqualinkAutomate::Developer
 		bool m_IsOpen{ false };
 		bool m_Cancelled{ false };
 
-	private:
 		boost::iostreams::stream<boost::iostreams::file_source> m_File;
 		// Replay bytes decoded from the current recording line but not yet handed
 		// to a read_some() caller.  Lets a single recording line span multiple
 		// reads (and multiple lines coalesce into one read) transparently.
 		std::deque<uint8_t> m_PendingReplayBytes;
 
-	private:
 		Profiling::DomainPtr m_ProfilingDomain;
 	};
 

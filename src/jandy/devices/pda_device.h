@@ -51,10 +51,8 @@ namespace AqualinkAutomate::Devices
 	private:
 		void ProcessControllerUpdates() override;
 
-	private:
 		void WatchdogTimeoutOccurred() override;
 
-	private:
 		void Slot_PDA_Ack(const Messages::JandyMessage_Ack& msg);
 		void Slot_PDA_Clear(const Messages::PDAMessage_Clear& msg);
 		void Slot_PDA_Highlight(const Messages::PDAMessage_Highlight& msg);
@@ -65,7 +63,6 @@ namespace AqualinkAutomate::Devices
 		void Slot_PDA_ShiftLines(const Messages::PDAMessage_ShiftLines& msg);
 		void Slot_PDA_Unknown_PDA_1B(const Messages::JandyMessage_Unknown& msg);
 
-	private:
 		void PageProcessor_System(const Utility::ScreenDataPage& page);
 		void PageProcessor_SetTemperature(const Utility::ScreenDataPage& page);
 		void PageProcessor_SetTime(const Utility::ScreenDataPage& page);

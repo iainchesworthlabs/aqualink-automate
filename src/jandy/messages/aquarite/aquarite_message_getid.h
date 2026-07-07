@@ -25,16 +25,13 @@ namespace AqualinkAutomate::Messages
 
 	public:
 		AquariteMessage_GetId() noexcept;
-		AquariteMessage_GetId(PanelDataTypes requested_panel_data);
+		explicit AquariteMessage_GetId(PanelDataTypes requested_panel_data);
 		~AquariteMessage_GetId() override = default;
 
-	public:
 		PanelDataTypes RequestedPanelData() const;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

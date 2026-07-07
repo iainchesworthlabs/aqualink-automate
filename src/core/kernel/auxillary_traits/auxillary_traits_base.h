@@ -10,6 +10,8 @@ namespace AqualinkAutomate::Kernel
     class TraitType
     {
     public:
+        virtual ~TraitType() = default;
+
         using TraitKey = std::string;
         using TraitValue = TRAIT_TYPE;
 

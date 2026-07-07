@@ -11,10 +11,7 @@ namespace AqualinkAutomate::Messages
 
 	PDAMessage_ShiftLines::PDAMessage_ShiftLines() noexcept :
 		PDAMessage(JandyMessageIds::PDA_ShiftLines),
-		Interfaces::IMessageSignalRecv<PDAMessage_ShiftLines>(),
-		m_FirstLineId(0),
-		m_LastLineId(0),
-		m_LineShift(0)
+		Interfaces::IMessageSignalRecv<PDAMessage_ShiftLines>()
 	{
 	}
 

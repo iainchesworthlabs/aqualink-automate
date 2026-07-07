@@ -21,11 +21,3 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(source_file, "File", std::string)
 // records that carry it, and every operational sink is built through the shared
 // filter that excludes it (see sinks/sink_filters.h).
 BOOST_LOG_ATTRIBUTE_KEYWORD(is_audit, "IsAudit", bool)
-
-namespace AqualinkAutomate::Logging
-{
-
-	//
-
-}
-// namespace AqualinkAutomate::Logging

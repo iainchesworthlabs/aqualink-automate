@@ -68,7 +68,6 @@ namespace AqualinkAutomate::Utility
 		LatencyPercentileTracker(LatencyPercentileTracker&&) noexcept = default;
 		LatencyPercentileTracker& operator=(LatencyPercentileTracker&&) noexcept = default;
 
-	public:
 		/// Records a latency sample with the current timestamp.
 		void Record(Duration latency)
 		{

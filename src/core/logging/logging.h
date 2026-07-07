@@ -90,60 +90,62 @@ namespace AqualinkAutomate::Logging
 
 		auto GetGlobalLogger = [](auto lookup_channel) -> Logger&
 		{
+			using enum Channel;
+
 			switch (lookup_channel)
 			{
-			case Channel::Certificates:
+			case Certificates:
 				return GlobalLogger_Certificates::get();
 
-			case Channel::Coroutines:
+			case Coroutines:
 				return GlobalLogger_Coroutines::get();
 
-			case Channel::Developer:
+			case Developer:
 				return GlobalLogger_Developer::get();
 
-			case Channel::Devices:
+			case Devices:
 				return GlobalLogger_Devices::get();
 
-			case Channel::Equipment:
+			case Equipment:
 				return GlobalLogger_Equipment::get();
 
-			case Channel::Exceptions:
+			case Exceptions:
 				return GlobalLogger_Exceptions::get();
 
-			case Channel::Main:
+			case Main:
 				return GlobalLogger_Main::get();
 
-			case Channel::Messages:
+			case Messages:
 				return GlobalLogger_Messages::get();
 
-			case Channel::Mqtt:
+			case Mqtt:
 				return GlobalLogger_Mqtt::get();
 
-			case Channel::Navigation:
+			case Navigation:
 				return GlobalLogger_Navigation::get();
 
-			case Channel::Options:
+			case Options:
 				return GlobalLogger_Options::get();
 
-			case Channel::Platform:
+			case Platform:
 				return GlobalLogger_Platform::get();
 
-			case Channel::Profiling:
+			case Profiling:
 				return GlobalLogger_Profiling::get();
 
-			case Channel::Protocol:
+			case Protocol:
 				return GlobalLogger_Protocol::get();
 
-			case Channel::Scraping:
+			case Scraping:
 				return GlobalLogger_Scraping::get();
 
-			case Channel::Serial:
+			case Serial:
 				return GlobalLogger_Serial::get();
 
-			case Channel::Signals:
+			case Signals:
 				return GlobalLogger_Signals::get();
 
-			case Channel::Web:
+			case Web:
 				return GlobalLogger_Web::get();
 
 			default:

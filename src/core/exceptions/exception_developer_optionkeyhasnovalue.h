@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Exceptions
 
 	public:
 		Developer_OptionKeyHasNoValue();
-		Developer_OptionKeyHasNoValue(const std::string& message);
+		explicit Developer_OptionKeyHasNoValue(const std::string& message);
 	};
 
 }

@@ -11,8 +11,7 @@ namespace AqualinkAutomate::Utility
 {
 	using namespace std::chrono_literals;
 
-	TimeoutDurationStringConverter::TimeoutDurationStringConverter() noexcept :
-		m_TimeoutDuration(0s)
+	TimeoutDurationStringConverter::TimeoutDurationStringConverter() noexcept
 	{
 	}
 
@@ -86,13 +85,13 @@ namespace AqualinkAutomate::Utility
 		{
 			LogDebug(Channel::Devices, std::format("Failed to convert timeout duration; could not convert hours to number: error -> {}", std::make_error_code(ec).message()));
 		}
-		else if (auto [_, ec] = std::from_chars(timeout_string.data() + MINS_INDEX_START, timeout_string.data() + MINS_INDEX_END, minutes); std::errc() != ec)
+		else if (auto [ptr_mins, ec_mins] = std::from_chars(timeout_string.data() + MINS_INDEX_START, timeout_string.data() + MINS_INDEX_END, minutes); std::errc() != ec_mins)
 		{
-			LogDebug(Channel::Devices, std::format("Failed to convert timeout duration; could not convert minutes to number: error -> {}", std::make_error_code(ec).message()));
+			LogDebug(Channel::Devices, std::format("Failed to convert timeout duration; could not convert minutes to number: error -> {}", std::make_error_code(ec_mins).message()));
 		}
-		else if (auto [_, ec] = std::from_chars(timeout_string.data() + SECS_INDEX_START, timeout_string.data() + SECS_INDEX_END, seconds); std::errc() != ec)
+		else if (auto [ptr_secs, ec_secs] = std::from_chars(timeout_string.data() + SECS_INDEX_START, timeout_string.data() + SECS_INDEX_END, seconds); std::errc() != ec_secs)
 		{
-			LogDebug(Channel::Devices, std::format("Failed to convert timeout duration; could not convert seconds to number: error -> {}", std::make_error_code(ec).message()));
+			LogDebug(Channel::Devices, std::format("Failed to convert timeout duration; could not convert seconds to number: error -> {}", std::make_error_code(ec_secs).message()));
 		}
 		else
 		{

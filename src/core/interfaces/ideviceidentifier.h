@@ -9,7 +9,6 @@ namespace AqualinkAutomate::Interfaces
 		IDeviceIdentifier() = default;
 		virtual ~IDeviceIdentifier() = default;
 
-	public:
 		bool operator==(const IDeviceIdentifier& other) const { return Equals(other); }
 		// NOTE: operator!= is intentionally retained (not redundant per SonarCloud
 		// cpp:S6186): derived types re-export it via `using ...::operator!=;`, which

@@ -18,23 +18,20 @@ namespace AqualinkAutomate::Kernel
 		DataHub_ConfigEvent_Chemistry();
 		~DataHub_ConfigEvent_Chemistry() override = default;
 
-	public:
 		std::optional<Kernel::ORP> ORP() const;
 		std::optional<Kernel::pH> pH() const;
 		std::optional<Units::ppm_quantity> SaltLevel() const;
 
-	public:
 		void ORP(const Kernel::ORP& orp);
 		void pH(const Kernel::pH& pH);
 		void SaltLevel(const Units::ppm_quantity& salt_level_in_ppm);
 
-	public:
 		nlohmann::json ToJSON() const override;
 
 	private:
-		std::optional<Kernel::ORP> m_ORP;
-		std::optional<Kernel::pH> m_pH;
-		std::optional<Units::ppm_quantity> m_SaltLevel;
+		std::optional<Kernel::ORP> m_ORP{ std::nullopt };
+		std::optional<Kernel::pH> m_pH{ std::nullopt };
+		std::optional<Units::ppm_quantity> m_SaltLevel{ std::nullopt };
 	};
 
 }

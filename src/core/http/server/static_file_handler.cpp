@@ -21,9 +21,7 @@ namespace AqualinkAutomate::HTTP
         m_Prefix(std::move(prefix)),
         m_DocRoot(std::filesystem::absolute(doc_root))
     {
-        std::error_code ec;
-
-        if (!std::filesystem::is_directory(m_DocRoot, ec))
+        if (std::error_code ec; !std::filesystem::is_directory(m_DocRoot, ec))
         {
             LogWarning(Channel::Web, std::format("Specified static directory '{}' was invalid; error was -> {}", m_DocRoot.string(), ec.message()));
         }
@@ -69,8 +67,7 @@ namespace AqualinkAutomate::HTTP
 
             while (it != end)
             {
-                auto seg = *it;
-                if (!seg.empty())
+                if (auto seg = *it; !seg.empty())
                 {
                     result.append(seg.begin(), seg.end());
                 }
@@ -131,8 +128,7 @@ namespace AqualinkAutomate::HTTP
         }
 
         // Trivially reject target that cannot contain the prefix
-        auto target_size = target.size();
-        if (target_size < non_empty_prefix_count)
+        if (auto target_size = target.size(); target_size < non_empty_prefix_count)
         {
             return -1;
         }

@@ -45,23 +45,23 @@ namespace AqualinkAutomate::Logging
 		}
 		// namespace (anonymous)
 
-		void SetGlobalFilterLevel(Severity severity)
+		void SetGlobalFilterLevel(Severity severity_level)
 		{
-			magic_enum::enum_for_each<Channel>([severity](auto const& channel)
+			magic_enum::enum_for_each<Channel>([severity_level](auto const& channel_entry)
 				{
-					SetChannelFilterLevel(channel.value, severity);
+					SetChannelFilterLevel(channel_entry.value, severity_level);
 				}
 			);
 		}
 
-		void SetChannelFilterLevel(Channel channel, Severity severity)
+		void SetChannelFilterLevel(Channel channel_id, Severity severity_level)
 		{
-			MinimumSeverityLevelPerChannel()[ChannelIndex(channel)] = severity;
+			MinimumSeverityLevelPerChannel()[ChannelIndex(channel_id)] = severity_level;
 		}
 
-		Severity GetChannelFilterLevel(Channel channel)
+		Severity GetChannelFilterLevel(Channel channel_id)
 		{
-			return MinimumSeverityLevelPerChannel()[ChannelIndex(channel)];
+			return MinimumSeverityLevelPerChannel()[ChannelIndex(channel_id)];
 		}
 
 		bool ShouldLog(Channel channel_id, Severity severity_level)
@@ -69,15 +69,15 @@ namespace AqualinkAutomate::Logging
 			return severity_level >= MinimumSeverityLevelPerChannel()[ChannelIndex(channel_id)];
 		}
 
-		bool PerChannelTest(boost::log::value_ref<Channel, tag::channel> const& channel, boost::log::value_ref<Severity, tag::severity> const& severity)
+		bool PerChannelTest(boost::log::value_ref<Channel, tag::channel> const& channel_ref, boost::log::value_ref<Severity, tag::severity> const& severity_ref)
 		{
-			if (!channel || !severity)
+			if (!channel_ref || !severity_ref)
 			{
 				// Missing channel/severity attributes default to the configured channel filter.
-				return (severity ? (*severity >= GetChannelFilterLevel(DEFAULT_CHANNEL)) : true);
+				return (severity_ref ? (*severity_ref >= GetChannelFilterLevel(DEFAULT_CHANNEL)) : true);
 			}
 
-			return (*severity >= MinimumSeverityLevelPerChannel()[ChannelIndex(*channel)]);
+			return (*severity_ref >= MinimumSeverityLevelPerChannel()[ChannelIndex(*channel_ref)]);
 		}
 	}
 	// namespace SeverityFiltering
