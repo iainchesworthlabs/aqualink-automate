@@ -9,14 +9,6 @@
 #include "formatters/ph_formatter.h"
 #include "utility/string_conversion/chemistry_string_converter.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
-
 namespace std
 {
 

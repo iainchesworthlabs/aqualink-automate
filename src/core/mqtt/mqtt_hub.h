@@ -59,7 +59,6 @@ namespace AqualinkAutomate::Mqtt
 		MqttHub(MqttHub&&) = delete;
 		MqttHub& operator=(MqttHub&&) = delete;
 
-	public:
 		//---------------------------------------------------------------------
 		// LIFECYCLE
 		//---------------------------------------------------------------------

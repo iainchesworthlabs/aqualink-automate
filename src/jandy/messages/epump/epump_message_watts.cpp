@@ -12,8 +12,7 @@ namespace AqualinkAutomate::Messages
 
 	EPumpMessage_Watts::EPumpMessage_Watts() noexcept :
 		EPumpMessage(JandyMessageIds::EPUMP_Watts),
-		Interfaces::IMessageSignalRecv<EPumpMessage_Watts>(),
-		m_Watts(0)
+		Interfaces::IMessageSignalRecv<EPumpMessage_Watts>()
 	{
 	}
 

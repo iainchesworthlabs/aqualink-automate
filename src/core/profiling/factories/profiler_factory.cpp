@@ -5,9 +5,7 @@
 namespace AqualinkAutomate::Factory
 {
 
-	ProfilerFactory::ProfilerFactory() :
-		m_Profilers{},
-		m_DesiredProfiler(std::nullopt)
+	ProfilerFactory::ProfilerFactory()
 	{
 	}
 

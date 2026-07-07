@@ -8,7 +8,7 @@ describes the libFuzzer harnesses that exercise those decoders, how to build and
 run them, where the corpus lives, and the discipline for acting on a crash.
 
 This also satisfies the OpenSSF Scorecard **Fuzzing** check with a real signal
-rather than a posture tick: [`fuzzing.yml`](../.github/workflows/fuzzing.yml) runs
+rather than a posture tick: [`fuzzing.yml`](https://github.com/iainchesworth/aqualink-automate/blob/main/.github/workflows/fuzzing.yml) runs
 the harnesses on a schedule (see [ci-cd.md](ci-cd.md)).
 
 ## What is fuzzed
@@ -106,7 +106,7 @@ layers**, so you never have to remember to run it:
 ### 1. Always-on in-suite regression guard (every build, every platform)
 
 The unit test
-[`test/unit/fuzz/test_protocol_fuzz_smoke.cpp`](../test/unit/fuzz/test_protocol_fuzz_smoke.cpp)
+[`test/unit/fuzz/test_protocol_fuzz_smoke.cpp`](https://github.com/iainchesworth/aqualink-automate/blob/main/test/unit/fuzz/test_protocol_fuzz_smoke.cpp)
 runs in the normal test suite (`testaqualink-automate`) — so it executes on **every**
 `ctest`/CI run on every platform, with **no Clang or fuzzing preset required**. It
 drives the same decode paths with:
@@ -126,7 +126,7 @@ covers the `ci.yml` build-and-test on every PR.
 
 ### 2. Coverage-guided libFuzzer on decoder-touching changes
 
-[`fuzzing.yml`](../.github/workflows/fuzzing.yml) runs the real libFuzzer harnesses
+[`fuzzing.yml`](https://github.com/iainchesworth/aqualink-automate/blob/main/.github/workflows/fuzzing.yml) runs the real libFuzzer harnesses
 on a weekly cron **and** on every PR whose diff touches `src/jandy/**`,
 `src/pentair/**`, `src/core/protocol/**`, `fuzz/**`, or the fuzzing scaffolding — so
 a change to how RS-485 is processed triggers an actual mutation-based fuzz run, not

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
 
 #include "auxillaries/jandy_auxillary_id.h"
 #include "kernel/powercenter.h"
@@ -16,25 +17,27 @@ namespace AqualinkAutomate::Auxillaries
 	// is what makes it correct for dual-equipment models and DIP-repurposed relays.
 	inline constexpr std::optional<Kernel::PowerCenterIds> PowerCenterForAuxId(JandyAuxillaryIds id)
 	{
-		if (const auto value = static_cast<uint8_t>(id); value == static_cast<uint8_t>(JandyAuxillaryIds::ExtraAux))
+		using enum Kernel::PowerCenterIds;
+
+		if (const auto value = std::to_underlying(id); value == std::to_underlying(JandyAuxillaryIds::ExtraAux))
 		{
 			return std::nullopt;
 		}
 		else if ((value >= 0x01) && (value <= 0x07))
 		{
-			return Kernel::PowerCenterIds::A;
+			return A;
 		}
 		else if ((value >= 0x08) && (value <= 0x0F))
 		{
-			return Kernel::PowerCenterIds::B;
+			return B;
 		}
 		else if ((value >= 0x10) && (value <= 0x17))
 		{
-			return Kernel::PowerCenterIds::C;
+			return C;
 		}
 		else if ((value >= 0x18) && (value <= 0x1F))
 		{
-			return Kernel::PowerCenterIds::D;
+			return D;
 		}
 
 		return std::nullopt;

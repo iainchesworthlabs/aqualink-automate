@@ -22,9 +22,8 @@ namespace AqualinkAutomate::Devices::Capabilities
 	class Screen
 	{
 	public:
-		Screen(uint8_t screen_lines);
+		explicit Screen(uint8_t screen_lines);
 
-	public:
 		Utility::ScreenDataPage const& DisplayedPage() const;
 		Utility::ScreenDataPageTypes DisplayedPageType() const;
 
@@ -44,7 +43,7 @@ namespace AqualinkAutomate::Devices::Capabilities
 
 	private:
 		Utility::ScreenDataPage m_DisplayedPage;
-		Utility::ScreenDataPageTypes m_DisplayedPageType;
+		Utility::ScreenDataPageTypes m_DisplayedPageType{ Utility::ScreenDataPageTypes::Page_Unknown };
 
 	public:
 		template<typename EVENT_TYPE>
@@ -53,10 +52,8 @@ namespace AqualinkAutomate::Devices::Capabilities
 			m_DisplayedPageUpdater.process_event(event_type);
 		}
 
-	public:
 		void ProcessScreenUpdates();
 
-	public:
 		ScreenModes ScreenMode() const;
 		void ScreenMode(ScreenModes screen_mode);
 

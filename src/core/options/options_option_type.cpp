@@ -23,7 +23,6 @@ namespace AqualinkAutomate::Options
 	AppOption::AppOption(const std::string& long_name, const std::string& description, const boost::program_options::value_semantic* s) :
 		boost::program_options::option_description(long_name.c_str(), s, description.c_str()),
 		m_LongName(long_name),
-		m_ShortName(),
 		m_Description(description)
 	{
 		MetadataRegistry()[m_LongName] = OptionMetadata{ m_LongName, m_ShortName, m_Description };

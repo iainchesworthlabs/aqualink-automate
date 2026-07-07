@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Exceptions
 
     public:
         HTTP_DuplicateRoute();
-        HTTP_DuplicateRoute(const std::string &message);
+        explicit HTTP_DuplicateRoute(const std::string &message);
     };
 
 }

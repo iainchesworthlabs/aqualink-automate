@@ -67,7 +67,7 @@ namespace AqualinkAutomate::Factory
 		}
 
 		template<Concepts::JandyMessageType T>
-		constexpr HashTableEntry(Messages::JandyMessageIds msg_id) noexcept :
+		explicit constexpr HashTableEntry(Messages::JandyMessageIds msg_id) noexcept :
 			id(msg_id),
 			creator(&MessageCreator<T>::Create)
 		{
@@ -107,8 +107,7 @@ namespace AqualinkAutomate::Factory
 		{
 			LogDebug(Channel::Messages, [id]{ return std::format("Creating message type from message id; id -> {}", id); });
 
-			const auto& entry = cold_table[static_cast<std::size_t>(magic_enum::enum_integer(id))];
-			if (entry.id.has_value())
+			if (const auto& entry = cold_table[static_cast<std::size_t>(magic_enum::enum_integer(id))]; entry.id.has_value())
 			{
 				LogTrace(Channel::Messages, [id]{ return std::format("Message type (id: {}) creator located in message table", id); });
 				return entry.creator();

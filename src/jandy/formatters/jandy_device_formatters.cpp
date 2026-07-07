@@ -1,13 +1,5 @@
 #include "formatters/jandy_device_formatters.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
-
 namespace std
 {
 

@@ -25,7 +25,7 @@ namespace AqualinkAutomate::Navigation
 	class FullDiscoveryVisitPolicy : public VisitPolicy
 	{
 	public:
-		FullDiscoveryVisitPolicy(
+		explicit FullDiscoveryVisitPolicy(
 			PageVisitCallback on_page = nullptr,
 			CrawlCompleteCallback on_complete = nullptr,
 			bool skip_label_pages = false);
@@ -50,7 +50,7 @@ namespace AqualinkAutomate::Navigation
 	class TargetedVisitPolicy : public VisitPolicy
 	{
 	public:
-		TargetedVisitPolicy(
+		explicit TargetedVisitPolicy(
 			std::set<PageId> target_pages,
 			PageVisitCallback on_page = nullptr,
 			CrawlCompleteCallback on_complete = nullptr);

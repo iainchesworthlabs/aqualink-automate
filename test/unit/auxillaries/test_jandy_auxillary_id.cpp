@@ -1,7 +1,11 @@
 #include <memory>
 #include <string>
+#include <string_view>
+#include <tuple>
+#include <vector>
 
 #include <boost/test/unit_test.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <boost/uuid/uuid.hpp>
 
 #include "jandy/auxillaries/jandy_auxillary_id.h"
@@ -230,6 +234,63 @@ BOOST_AUTO_TEST_CASE(PlaceholderForADifferentAuxIsNotPruned)
 
 	BOOST_CHECK_EQUAL(devices.CountByLabel("Aux6"), 1u);   // different aux: untouched
 	BOOST_CHECK_EQUAL(devices.CountByLabel("Aux5"), 1u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// enum_name customization + native-key / stable-id across EVERY aux value.
+// Exercises all 32 arms of the magic_enum enum_name<JandyAuxillaryIds> switch
+// (display names) and the per-id native key + stable UUID, and proves the
+// display name round-trips back through ParseAuxId to the same enum.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(JandyAuxillaryId_AllValues_TestSuite)
+
+BOOST_AUTO_TEST_CASE(EnumName_RoundTrips_And_KeysAreConsistent_ForEveryAux)
+{
+	using Auxillaries::JandyAuxillaryIds;
+
+	// {enum value, expected display name, expected native-key integer}.
+	const std::vector<std::tuple<JandyAuxillaryIds, std::string_view, int>> all = {
+		{ JandyAuxillaryIds::Aux_1, "Aux1", 1 },   { JandyAuxillaryIds::Aux_2, "Aux2", 2 },
+		{ JandyAuxillaryIds::Aux_3, "Aux3", 3 },   { JandyAuxillaryIds::Aux_4, "Aux4", 4 },
+		{ JandyAuxillaryIds::Aux_5, "Aux5", 5 },   { JandyAuxillaryIds::Aux_6, "Aux6", 6 },
+		{ JandyAuxillaryIds::Aux_7, "Aux7", 7 },
+		{ JandyAuxillaryIds::Aux_B1, "Aux B1", 8 },  { JandyAuxillaryIds::Aux_B2, "Aux B2", 9 },
+		{ JandyAuxillaryIds::Aux_B3, "Aux B3", 10 }, { JandyAuxillaryIds::Aux_B4, "Aux B4", 11 },
+		{ JandyAuxillaryIds::Aux_B5, "Aux B5", 12 }, { JandyAuxillaryIds::Aux_B6, "Aux B6", 13 },
+		{ JandyAuxillaryIds::Aux_B7, "Aux B7", 14 }, { JandyAuxillaryIds::Aux_B8, "Aux B8", 15 },
+		{ JandyAuxillaryIds::Aux_C1, "Aux C1", 16 }, { JandyAuxillaryIds::Aux_C2, "Aux C2", 17 },
+		{ JandyAuxillaryIds::Aux_C3, "Aux C3", 18 }, { JandyAuxillaryIds::Aux_C4, "Aux C4", 19 },
+		{ JandyAuxillaryIds::Aux_C5, "Aux C5", 20 }, { JandyAuxillaryIds::Aux_C6, "Aux C6", 21 },
+		{ JandyAuxillaryIds::Aux_C7, "Aux C7", 22 }, { JandyAuxillaryIds::Aux_C8, "Aux C8", 23 },
+		{ JandyAuxillaryIds::Aux_D1, "Aux D1", 24 }, { JandyAuxillaryIds::Aux_D2, "Aux D2", 25 },
+		{ JandyAuxillaryIds::Aux_D3, "Aux D3", 26 }, { JandyAuxillaryIds::Aux_D4, "Aux D4", 27 },
+		{ JandyAuxillaryIds::Aux_D5, "Aux D5", 28 }, { JandyAuxillaryIds::Aux_D6, "Aux D6", 29 },
+		{ JandyAuxillaryIds::Aux_D7, "Aux D7", 30 }, { JandyAuxillaryIds::Aux_D8, "Aux D8", 31 },
+		{ JandyAuxillaryIds::ExtraAux, "Extra Aux", 0 },
+	};
+
+	BOOST_REQUIRE_EQUAL(all.size(), 32u);   // every enumerator is exercised
+
+	for (const auto& [id, expected_name, key_int] : all)
+	{
+		// enum_name customization (runtime lookup drives the switch arm for this value).
+		const std::string name{ magic_enum::enum_name(id) };
+		BOOST_CHECK_EQUAL(name, std::string(expected_name));
+
+		// Native key is the integer-keyed protocol identity.
+		BOOST_CHECK_EQUAL(Auxillaries::AuxNativeKey(id), "jandy:aux:" + std::to_string(key_int));
+
+		// Stable UUID is deterministic and non-nil for every aux.
+		const auto uuid = Auxillaries::AuxStableId(id);
+		BOOST_CHECK(!uuid.is_nil());
+		BOOST_CHECK(uuid == Auxillaries::AuxStableId(id));
+
+		// The display name parses back to the same enum (the label contract).
+		BOOST_CHECK(Auxillaries::ParseAuxId(expected_name) == id);
+	}
 }
 
 BOOST_AUTO_TEST_SUITE_END()

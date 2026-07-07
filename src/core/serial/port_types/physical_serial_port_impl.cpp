@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "serial/port_types/physical_serial_port_impl.h"
 
 namespace AqualinkAutomate::Serial::PortTypes
@@ -90,21 +92,21 @@ namespace AqualinkAutomate::Serial::PortTypes
     {
         auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("PhysicalSerialPortImpl::set_flow_control", std::source_location::current());
         m_SerialPort.set_option(boost::asio::serial_port_base::flow_control(
-            static_cast<boost::asio::serial_port_base::flow_control::type>(fc)), ec);
+            static_cast<boost::asio::serial_port_base::flow_control::type>(std::to_underlying(fc))), ec);
     }
 
     void PhysicalSerialPortImpl::set_parity(Serial::Parity p, boost::system::error_code& ec)
     {
         auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("PhysicalSerialPortImpl::set_parity", std::source_location::current());
         m_SerialPort.set_option(boost::asio::serial_port_base::parity(
-            static_cast<boost::asio::serial_port_base::parity::type>(p)), ec);
+            static_cast<boost::asio::serial_port_base::parity::type>(std::to_underlying(p))), ec);
     }
 
     void PhysicalSerialPortImpl::set_stop_bits(Serial::StopBits sb, boost::system::error_code& ec)
     {
         auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("PhysicalSerialPortImpl::set_stop_bits", std::source_location::current());
         m_SerialPort.set_option(boost::asio::serial_port_base::stop_bits(
-            static_cast<boost::asio::serial_port_base::stop_bits::type>(sb)), ec);
+            static_cast<boost::asio::serial_port_base::stop_bits::type>(std::to_underlying(sb))), ec);
     }
 
     std::size_t PhysicalSerialPortImpl::read_some(const boost::asio::mutable_buffer& buffer)

@@ -17,11 +17,7 @@ namespace AqualinkAutomate::Messages
 	public:
 		JandyMessage_Unknown() noexcept;
 		~JandyMessage_Unknown() override = default;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

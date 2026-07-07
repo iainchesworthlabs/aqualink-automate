@@ -118,9 +118,8 @@ namespace AqualinkAutomate::Devices
 		{
 		case OperatingStates::ColdStart:
 		{
-			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> cold_start", std::source_location::current());
-			auto detected = m_MenuModel.DetectPage(DisplayedPage());
-			if (detected == Navigation::PageId::StartUp)
+			auto cold_start_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> cold_start", std::source_location::current());
+			if (auto detected = m_MenuModel.DetectPage(DisplayedPage()); detected == Navigation::PageId::StartUp)
 			{
 				// Splash is still showing - stay in ColdStart and wait.
 				// Page processor has already extracted model/type/revision.
@@ -139,7 +138,7 @@ namespace AqualinkAutomate::Devices
 
 		case OperatingStates::StartUp:
 		{
-			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> start_up", std::source_location::current());
+			auto start_up_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> start_up", std::source_location::current());
 			LogDebug(Channel::Devices, std::format("OneTouch ({}): Processing StartUp state", DeviceId()));
 			Scraping_ProcessStep_StartUp();
 			break;
@@ -147,7 +146,7 @@ namespace AqualinkAutomate::Devices
 
 		case OperatingStates::Scraping:
 		{
-			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> scraping", std::source_location::current());
+			auto scraping_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> scraping", std::source_location::current());
 			LogDebug(Channel::Devices, std::format("OneTouch ({}): Processing Scraping state", DeviceId()));
 			Scraping_ProcessStep();
 			break;
@@ -155,7 +154,7 @@ namespace AqualinkAutomate::Devices
 
 		case OperatingStates::NormalOperation:
 		{
-			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> normal_operation", std::source_location::current());
+			auto normal_operation_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> normal_operation", std::source_location::current());
 			LogTrace(Channel::Devices, std::format("OneTouch ({}): Processing NormalOperation state", DeviceId()));
 			ServiceActiveGoal();
 			SetpointRefresh_ProcessStep();
@@ -164,7 +163,7 @@ namespace AqualinkAutomate::Devices
 
 		case OperatingStates::ScrapingFaulted:
 		{
-			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> scraping_faulted", std::source_location::current());
+			auto scraping_faulted_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> scraping_faulted", std::source_location::current());
 			LogWarning(Channel::Scraping, std::format("OneTouch ({}): ScrapingFaulted state - device in unknown state, no commands will be sent", DeviceId()));
 			// Do not send any commands - device state is unknown. But if the controller has
 			// resumed coherent comms, this attempts to recover us back to NormalOperation.
@@ -174,7 +173,7 @@ namespace AqualinkAutomate::Devices
 
 		case OperatingStates::FaultHasOccurred:
 		{
-			auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> fault", std::source_location::current());
+			auto fault_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::ProcessControllerUpdates -> fault", std::source_location::current());
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): Processing FaultHasOccurred state", DeviceId()));
 			// As for ScrapingFaulted: try to recover once the controller is talking coherently again.
 			AttemptFaultRecovery(is_status_message);
@@ -205,11 +204,13 @@ namespace AqualinkAutomate::Devices
 
 	void OneTouchDevice::WatchdogTimeoutOccurred()
 	{
+		using enum OperatingStates;
+
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::WatchdogTimeoutOccurred", std::source_location::current());
 
 		LogWarning(Channel::Devices, std::format("OneTouch({}) : Watchdog timeout occurred: state={}, timeout_duration={}s", DeviceId(), magic_enum::enum_name(m_OpState), ONETOUCH_TIMEOUT_DURATION.count()));
 
-		if (m_OpState == OperatingStates::Scraping)
+		if (m_OpState == Scraping)
 		{
 			// Scraping was in progress when the watchdog fired.  Abandon the
 			// scraping sequence and fall through to normal (passive) operation
@@ -220,15 +221,15 @@ namespace AqualinkAutomate::Devices
 			// timer - the timed-out crawl may never have reached Set AquaPure, so let the first
 			// periodic re-scrape happen promptly to recover the configured setpoint.
 			m_RefreshState.MarkStartupComplete();
-			m_OpState = OperatingStates::NormalOperation;
+			m_OpState = NormalOperation;
 			m_ScrapingStallCounter = 0;
 			Status(Devices::DeviceStatus_Normal{});
 		}
-		else if (m_OpState == OperatingStates::StartUp || m_OpState == OperatingStates::ColdStart)
+		else if (m_OpState == StartUp || m_OpState == ColdStart)
 		{
 			// Never received a recognisable page during start-up.
 			LogWarning(Channel::Devices, std::format("OneTouch({}) : No valid page received during startup -> entering FaultHasOccurred", DeviceId()));
-			m_OpState = OperatingStates::FaultHasOccurred;
+			m_OpState = FaultHasOccurred;
 			Status(Devices::DeviceStatus_FaultOccurred{});
 		}
 	}
@@ -726,7 +727,7 @@ namespace AqualinkAutomate::Devices
 
 			// Use FullDiscoveryVisitPolicy for startup - visits all navigable pages
 			auto policy = std::make_unique<Navigation::FullDiscoveryVisitPolicy>(
-				[this](Navigation::PageId page, const Utility::ScreenDataPage& content)
+				[this](Navigation::PageId page, [[maybe_unused]] const Utility::ScreenDataPage& content)
 				{
 					LogDebug(Channel::Scraping, std::format("OneTouch ({}): SpiderEngine visited page {}",
 						DeviceId(), static_cast<uint32_t>(page)));

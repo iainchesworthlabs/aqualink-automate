@@ -545,6 +545,8 @@ namespace AqualinkAutomate::Devices::OneTouch
 
 	std::optional<GoalStatus> ScheduleWriteGoal::StepHour(KeypadContext& ctx, uint8_t line, int target_hour, Phase next)
 	{
+		using enum Navigation::NavKeyCommand;
+
 		// Step a 12h+meridiem hour wheel (24 positions) toward target_hour closed-loop: read the
 		// echoed value, emit ONE key the shorter way round, Select once matched. Advances to next.
 		if (!OnEditorPage(ctx)) { return std::nullopt; }   // page mid-transition; wait
@@ -552,33 +554,35 @@ namespace AqualinkAutomate::Devices::OneTouch
 		if (!cur.has_value()) { return std::nullopt; }     // value blanked mid-render; wait
 		if (cur->first == target_hour)
 		{
-			ctx.Emit(Navigation::NavKeyCommand::Select);   // commit the hour, advance to the minute
+			ctx.Emit(Select);   // commit the hour, advance to the minute
 			m_Phase = next;
 			m_FieldStep = 0;
 			return std::nullopt;
 		}
 		if (++m_FieldStep > MAX_STEP) { return GoalStatus::Failed; }
 		const int forward = ((target_hour - cur->first) + 24) % 24;   // steps if we go LineUp (+1/step)
-		ctx.Emit((forward <= 12) ? Navigation::NavKeyCommand::LineUp : Navigation::NavKeyCommand::LineDown);
+		ctx.Emit((forward <= 12) ? LineUp : LineDown);
 		return std::nullopt;
 	}
 
 	std::optional<GoalStatus> ScheduleWriteGoal::StepMinute(KeypadContext& ctx, uint8_t line, int target_minute, Phase next)
 	{
+		using enum Navigation::NavKeyCommand;
+
 		// Step a 0-59 minute wheel toward target_minute closed-loop, then Select to advance.
 		if (!OnEditorPage(ctx)) { return std::nullopt; }
 		auto cur = DisplayedTime(ctx, line);
 		if (!cur.has_value()) { return std::nullopt; }
 		if (cur->second == target_minute)
 		{
-			ctx.Emit(Navigation::NavKeyCommand::Select);
+			ctx.Emit(Select);
 			m_Phase = next;
 			m_FieldStep = 0;
 			return std::nullopt;
 		}
 		if (++m_FieldStep > MAX_STEP) { return GoalStatus::Failed; }
 		const int forward = ((target_minute - cur->second) + 60) % 60;
-		ctx.Emit((forward <= 30) ? Navigation::NavKeyCommand::LineUp : Navigation::NavKeyCommand::LineDown);
+		ctx.Emit((forward <= 30) ? LineUp : LineDown);
 		return std::nullopt;
 	}
 

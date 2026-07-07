@@ -28,7 +28,6 @@ namespace AqualinkAutomate::Serial::PortTypes
 		PhysicalSerialPortImpl(PhysicalSerialPortImpl&& other) noexcept = delete;
 		PhysicalSerialPortImpl& operator=(PhysicalSerialPortImpl&& other) noexcept = delete;
 
-	public:
 		void open(const std::string& device_name) override;
 		void open(const std::string& device_name, boost::system::error_code& ec) override;
 		bool is_open() const override;

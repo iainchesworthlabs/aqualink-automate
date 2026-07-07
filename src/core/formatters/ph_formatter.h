@@ -7,13 +7,6 @@
 
 #include "kernel/ph.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {
@@ -30,9 +23,7 @@ struct std::formatter<AqualinkAutomate::Kernel::pH>
 
 	constexpr auto parse(std::format_parse_context& ctx)
 	{
-		auto it = ctx.begin();
-
-		if (it == ctx.end() || *it == '}')
+		if (auto it = ctx.begin(); it == ctx.end() || *it == '}')
 		{
 			std::basic_format_parse_context<char> default_ctx(std::string_view(".01f"));
 			m_Base.parse(default_ctx);

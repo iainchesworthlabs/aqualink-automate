@@ -17,7 +17,6 @@ namespace AqualinkAutomate::Utility::ScreenDataPageUpdaterImpl
 	public:
 		evUpdate(uint8_t line_id, const std::string& line_text);
 
-	public:
 		ScreenDataPageLine::first_type Id() const;
 		const ScreenDataPageLine::second_type& Text() const;
 

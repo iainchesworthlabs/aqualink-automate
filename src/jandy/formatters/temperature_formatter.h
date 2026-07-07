@@ -8,14 +8,6 @@
 #include "core/formatters/temperature_formatter.h"
 #include "utility/string_conversion/temperature_string_converter.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
-
 namespace std
 {
 

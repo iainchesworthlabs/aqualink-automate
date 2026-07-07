@@ -18,10 +18,10 @@ namespace AqualinkAutomate::Kernel
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("DeviceGraph::Add", std::source_location::current());
 
-		auto insert_device_in_graph = [&](auto& m_DevicesGraph, auto& source_vertex, auto& ptr) -> void
+		auto insert_device_in_graph = [&](auto& devices_graph, auto& source_vertex, auto& ptr) -> void
 		{
-			auto target_vertex = boost::add_vertex(ptr, m_DevicesGraph);
-			auto edge = boost::add_edge(source_vertex, target_vertex, m_DevicesGraph);
+			auto target_vertex = boost::add_vertex(ptr, devices_graph);
+			auto edge = boost::add_edge(source_vertex, target_vertex, devices_graph);
 		};
 
 		if (nullptr == device)

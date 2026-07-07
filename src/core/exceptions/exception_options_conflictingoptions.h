@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Exceptions
 
 	public:
 		Options_ConflictingOptions();
-		Options_ConflictingOptions(const std::string& message);
+		explicit Options_ConflictingOptions(const std::string& message);
 	};
 
 }

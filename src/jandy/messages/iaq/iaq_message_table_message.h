@@ -28,21 +28,15 @@ namespace AqualinkAutomate::Messages
 	public:
 		IAQMessage_TableMessage() noexcept;
 		~IAQMessage_TableMessage() override = default;
-
-	public:
 		uint8_t LineId() const;
 		uint8_t Attribute() const;
 		std::string Line() const;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint8_t m_LineId;
+		uint8_t m_LineId{ 0 };
 		uint8_t m_Attribute{ 0 };
 		std::string m_Line;
 	};

@@ -10,21 +10,23 @@ namespace AqualinkAutomate::ErrorCodes
 
 	std::string_view Factory_ErrorCategory::Describe(Factory_ErrorCodes e)
 	{
+		using enum Factory_ErrorCodes;
+
 		switch (e)
 		{
-		case Factory_ErrorCodes::Error_UnknownFactoryError:
+		case Error_UnknownFactoryError:
 			return "An unspecified error occurred while creating the auxillary device";
 
-		case Factory_ErrorCodes::Error_UnknownDeviceLabel:
+		case Error_UnknownDeviceLabel:
 			return "The device label is not recognised by the auxillary factory";
 
-		case Factory_ErrorCodes::Error_CannotCastToJandyAuxillaryId:
+		case Error_CannotCastToJandyAuxillaryId:
 			return "The device identifier could not be cast to a Jandy auxillary id";
 
-		case Factory_ErrorCodes::Error_FailedToCreateAuxillaryPtr:
+		case Error_FailedToCreateAuxillaryPtr:
 			return "The auxillary device pointer could not be created";
 
-		case Factory_ErrorCodes::Error_ReceivedInvalidAuxillaryStatus:
+		case Error_ReceivedInvalidAuxillaryStatus:
 			return "An invalid auxillary status was received";
 
 		default:

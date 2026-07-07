@@ -1,12 +1,5 @@
 #include "formatters/url_segments_encoded_view_formatter.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {

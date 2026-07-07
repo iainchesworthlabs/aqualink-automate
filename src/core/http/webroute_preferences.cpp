@@ -97,8 +97,7 @@ namespace AqualinkAutomate::HTTP
 			// whole document goes to the global service, which picks out the
 			// fields it knows (units, ui, alert, ...) and ignores the rest.
 			std::string error;
-			std::string error_code;
-			if (!m_Service->ApplyJson(json, error, error_code))
+			if (std::string error_code; !m_Service->ApplyJson(json, error, error_code))
 			{
 				return MakeErrorResponse(req, HTTP::Status::bad_request, error_code.empty() ? "invalid_preferences" : error_code, error);
 			}

@@ -19,7 +19,6 @@ namespace AqualinkAutomate::Kernel
 		BodyOfWater(BodyOfWater&& other) noexcept = default;
 		BodyOfWater& operator=(BodyOfWater&& other) noexcept = default;
 
-	public:
 		BodyOfWaterIds Id() const;
 		const std::string& Label() const;
 

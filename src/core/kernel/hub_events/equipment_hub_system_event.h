@@ -12,7 +12,7 @@ namespace AqualinkAutomate::Kernel
 	class EquipmentHub_SystemEvent : public Hub_Event
 	{
 	public:
-		EquipmentHub_SystemEvent(Hub_EventTypes event_type);
+		explicit EquipmentHub_SystemEvent(Hub_EventTypes event_type);
 		~EquipmentHub_SystemEvent() override = default;
 	};
 

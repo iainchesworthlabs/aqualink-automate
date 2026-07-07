@@ -1,5 +1,7 @@
 #include "navigation/visit_policies.h"
 
+#include <utility>
+
 #include <magic_enum/magic_enum.hpp>
 
 #include "logging/logging.h"
@@ -46,13 +48,15 @@ namespace AqualinkAutomate::Navigation
 	bool FullDiscoveryVisitPolicy::ShouldVisit(PageId page, const MenuPage& info) const
 	{
 		// Visit all pages except special system pages
+		using enum PageId;
+
 		switch (page)
 		{
-		case PageId::Unknown:
-		case PageId::StartUp:
-		case PageId::Service:
-		case PageId::TimeOut:
-		case PageId::EnterPassword:
+		case Unknown:
+		case StartUp:
+		case Service:
+		case TimeOut:
+		case EnterPassword:
 			return false;
 
 		default:
@@ -67,7 +71,7 @@ namespace AqualinkAutomate::Navigation
 	void FullDiscoveryVisitPolicy::OnPageReached(PageId page, const Utility::ScreenDataPage& content)
 	{
 		LogDebug(Channel::Scraping, std::format("FullDiscoveryVisitPolicy: Visited page {}",
-			static_cast<uint32_t>(page)));
+			std::to_underlying(page)));
 
 		if (m_OnPage)
 		{
@@ -107,7 +111,7 @@ namespace AqualinkAutomate::Navigation
 	void TargetedVisitPolicy::OnPageReached(PageId page, const Utility::ScreenDataPage& content)
 	{
 		LogDebug(Channel::Scraping, std::format("TargetedVisitPolicy: Visited target page {}",
-			static_cast<uint32_t>(page)));
+			std::to_underlying(page)));
 
 		if (m_OnPage)
 		{

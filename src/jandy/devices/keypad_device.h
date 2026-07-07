@@ -39,10 +39,8 @@ namespace AqualinkAutomate::Devices
 	private:
 		void ProcessControllerUpdates() override;
 
-	private:
 		void WatchdogTimeoutOccurred() override;
 
-	private:
 		void Slot_Keypad_Ack(const Messages::JandyMessage_Ack& msg);
 		void Slot_Keypad_Probe(const Messages::JandyMessage_Probe& msg);
 		void Slot_Keypad_Message(const Messages::JandyMessage_Message& msg);

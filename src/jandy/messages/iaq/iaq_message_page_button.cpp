@@ -16,11 +16,7 @@ namespace AqualinkAutomate::Messages
 
 	IAQMessage_PageButton::IAQMessage_PageButton() noexcept :
 		IAQMessage(JandyMessageIds::IAQ_PageButton),
-		Interfaces::IMessageSignalRecv<IAQMessage_PageButton>(),
-		m_ButtonIndex(0),
-		m_ButtonStatus(ButtonStatuses::Unknown),
-		m_ButtonType(ButtonTypes::Unknown),
-		m_ButtonName()
+		Interfaces::IMessageSignalRecv<IAQMessage_PageButton>()
 	{
 	}
 

@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Exceptions
 
 	public:
 		Options_MissingDependency();
-		Options_MissingDependency(const std::string& message);
+		explicit Options_MissingDependency(const std::string& message);
 	};
 
 }

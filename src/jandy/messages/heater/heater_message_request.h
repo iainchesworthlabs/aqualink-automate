@@ -38,25 +38,19 @@ namespace AqualinkAutomate::Messages
 	public:
 		HeaterMessage_Request() noexcept;
 		~HeaterMessage_Request() override = default;
-
-	public:
 		HeaterOperatingModes OperatingMode() const;
 		uint8_t PoolSetpoint() const;
 		uint8_t SpaSetpoint() const;
 		uint8_t WaterTemperature() const;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		HeaterOperatingModes m_OperatingMode;
-		uint8_t m_PoolSetpoint;
-		uint8_t m_SpaSetpoint;
-		uint8_t m_WaterTemperature;
+		HeaterOperatingModes m_OperatingMode{ HeaterOperatingModes::Unknown };
+		uint8_t m_PoolSetpoint{ 0 };
+		uint8_t m_SpaSetpoint{ 0 };
+		uint8_t m_WaterTemperature{ 0 };
 	};
 
 }

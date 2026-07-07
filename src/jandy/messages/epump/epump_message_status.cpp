@@ -11,8 +11,7 @@ namespace AqualinkAutomate::Messages
 
 	EPumpMessage_Status::EPumpMessage_Status() noexcept :
 		EPumpMessage(JandyMessageIds::EPUMP_Status),
-		Interfaces::IMessageSignalRecv<EPumpMessage_Status>(),
-		m_SubCommand(0)
+		Interfaces::IMessageSignalRecv<EPumpMessage_Status>()
 	{
 	}
 

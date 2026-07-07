@@ -17,6 +17,7 @@ namespace AqualinkAutomate::Interfaces
 	class IMessageSignalSendBase
 	{
 	public:
+		virtual ~IMessageSignalSendBase() = default;
 		virtual void Signal_MessageToSend() = 0;
 	};
 
@@ -29,7 +30,6 @@ namespace AqualinkAutomate::Interfaces
 	public:
 		virtual ~IMessageSignalSend() = default;
 
-	public:
 		using PublisherRef = std::reference_wrapper<const MESSAGE_TYPE>;
 		using PublisherFunc = boost::signals2::signal<void(PublisherRef)>;
 		using PublisherPtr = std::shared_ptr<PublisherFunc>;
@@ -40,23 +40,24 @@ namespace AqualinkAutomate::Interfaces
 			return publisher;
 		}
 
-	public:
 		void Signal_MessageToSend() final
 		{
+			using enum Channel;
+
 			if (auto publisher_ptr = GetPublisher(); nullptr == publisher_ptr)
 			{
-				LogTrace(Channel::Messages, "Could not retrieve signal shared_ptr from IMessageSignalSend::GetPublisher()");
+				LogTrace(Messages, "Could not retrieve signal shared_ptr from IMessageSignalSend::GetPublisher()");
 			}
 			else if (auto upcast_ptr = dynamic_cast<MESSAGE_TYPE *>(this); nullptr == upcast_ptr)
 			{
 				const std::type_info& src_type = typeid(this);
 				const std::type_info& dst_type = typeid(MESSAGE_TYPE*);
 
-				LogDebug(Channel::Messages, std::format("Could not convert from 'this' to the target message pointer type: src -> {}, dst -> {}", src_type.name(), dst_type.name()));
+				LogDebug(Messages, std::format("Could not convert from 'this' to the target message pointer type: src -> {}, dst -> {}", src_type.name(), dst_type.name()));
 			}
 			else
 			{
-				LogTrace(Channel::Signals, "Signalling all registered slots for published message");
+				LogTrace(Signals, "Signalling all registered slots for published message");
 				(*publisher_ptr)(*upcast_ptr);
 			}
 		}

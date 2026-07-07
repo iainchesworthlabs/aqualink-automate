@@ -17,12 +17,10 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Equipment_Button: public Interfaces::IWebRoute<EQUIPMENTBUTTONS_BUTTON_ROUTE_URL>
 	{
 	public:
-		WebRoute_Equipment_Button(Kernel::HubLocator& hub_locator);
+		explicit WebRoute_Equipment_Button(Kernel::HubLocator& hub_locator);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override
 		{
 			if ((boost::beast::http::verb::get == method) || (boost::beast::http::verb::head == method))
@@ -39,7 +37,6 @@ namespace AqualinkAutomate::HTTP
 	private:
 		HTTP::Response ButtonToggle_MapResultToResponse(const HTTP::Request& req, const std::string& button_id, const std::shared_ptr<Kernel::AuxillaryDevice>& button_device, Interfaces::ICommandDispatcher::CommandResult result);
 
-	private:
 		HTTP::Response Report_ButtonDoesntExist(const HTTP::Request& req, const std::string& button_id);
 		HTTP::Response Report_SystemIsInactive(const HTTP::Request& req);
 

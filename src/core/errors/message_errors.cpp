@@ -10,24 +10,26 @@ namespace AqualinkAutomate::ErrorCodes
 
 	std::string_view Message_ErrorCategory::Describe(Message_ErrorCodes e)
 	{
+		using enum Message_ErrorCodes;
+
 		switch (e)
 		{
-		case Message_ErrorCodes::Error_InvalidMessageData:
+		case Error_InvalidMessageData:
 			return "The serial data did not form a valid message and could not be decoded";
 
-		case Message_ErrorCodes::Error_CannotFindGenerator:
+		case Error_CannotFindGenerator:
 			return "No registered message generator recognised the serial data";
 
-		case Message_ErrorCodes::Error_UnknownMessageType:
+		case Error_UnknownMessageType:
 			return "The message type is not recognised by the factory";
 
-		case Message_ErrorCodes::Error_GeneratorFailed:
+		case Error_GeneratorFailed:
 			return "The message generator failed to produce a message from the serial data";
 
-		case Message_ErrorCodes::Error_FailedToSerialize:
+		case Error_FailedToSerialize:
 			return "The message could not be serialised to wire bytes";
 
-		case Message_ErrorCodes::Error_FailedToDeserialize:
+		case Error_FailedToDeserialize:
 			return "The serial data could not be deserialised into the message";
 
 		default:

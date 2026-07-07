@@ -47,7 +47,6 @@ namespace AqualinkAutomate::Kernel
             return ConstTraitValueProxy<Traits, TRAIT_TYPE>(*this, it->second);
         }
 
-    public:
         template<IsTraitType TRAIT_TYPE>
         TraitValueProxy<Traits, TRAIT_TYPE> operator[](const TRAIT_TYPE& trait_type)
         {
@@ -60,14 +59,12 @@ namespace AqualinkAutomate::Kernel
             return Get(trait_type);
         }
 
-    public:
         template<IsTraitType TRAIT_TYPE>
         bool Has(TRAIT_TYPE trait_type) const
         {
             return m_Traits.contains(trait_type.Name());
         }
 
-    public:
         template<IsTraitType TRAIT_TYPE>
         bool Remove(TRAIT_TYPE trait_type)
         {
@@ -82,7 +79,6 @@ namespace AqualinkAutomate::Kernel
             return (0 < m_Traits.erase(trait_type.Name()));
         }
 
-    public:
         template<IsTraitType TRAIT_TYPE>
         void Set(const TRAIT_TYPE& trait_type, TRAIT_TYPE::TraitValue trait_value)
         {
@@ -108,7 +104,6 @@ namespace AqualinkAutomate::Kernel
             }
         }
 
-    public:
         template<IsTraitType TRAIT_TYPE>
         std::optional<typename TRAIT_TYPE::TraitValue> TryGet(const TRAIT_TYPE& trait_type) const
         {
@@ -135,7 +130,6 @@ namespace AqualinkAutomate::Kernel
             return std::nullopt;
         }
 
-    public:
         template<IsTraitType TRAIT_TYPE>
         std::expected<std::reference_wrapper<Traits>, boost::system::error_code> TrySet(const TRAIT_TYPE& trait_type, TRAIT_TYPE::TraitValue trait_value)
         {

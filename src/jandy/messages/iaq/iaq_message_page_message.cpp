@@ -13,9 +13,7 @@ namespace AqualinkAutomate::Messages
 
 	IAQMessage_PageMessage::IAQMessage_PageMessage() noexcept :
 		IAQMessage(JandyMessageIds::IAQ_PageMessage),
-		Interfaces::IMessageSignalRecv<IAQMessage_PageMessage>(),
-		m_LineId(0),
-		m_Line()
+		Interfaces::IMessageSignalRecv<IAQMessage_PageMessage>()
 	{
 	}
 

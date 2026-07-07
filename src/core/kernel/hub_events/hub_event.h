@@ -10,13 +10,11 @@ namespace AqualinkAutomate::Kernel
 	class Hub_Event
 	{
 	public:
-		Hub_Event(Hub_EventTypes event_type);
+		explicit Hub_Event(Hub_EventTypes event_type);
 		virtual ~Hub_Event() = default;
 
-	public:
 		Hub_EventTypes Type() const;
 
-	public:
 		virtual nlohmann::json ToJSON() const = 0;
 
 	private:

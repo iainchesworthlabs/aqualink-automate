@@ -30,13 +30,11 @@ namespace AqualinkAutomate::Devices
 
 		LogTrace(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Received JandyMessage_Ack: raw_command=0x{:02x}", m_Device.DeviceId(), msg.Command()); });
 
-		OneTouchDevice::KeyCommands key_press = msg.Command<OneTouchDevice::KeyCommands>([](uint8_t command_id)
+		if (OneTouchDevice::KeyCommands key_press = msg.Command<OneTouchDevice::KeyCommands>([](uint8_t command_id)
 			{
 				return magic_enum::enum_cast<OneTouchDevice::KeyCommands>(command_id).value_or(OneTouchDevice::KeyCommands::Unknown);
 			}
-		);
-
-		if (key_press == OneTouchDevice::KeyCommands::Unknown)
+		); key_press == OneTouchDevice::KeyCommands::Unknown)
 		{
 			LogWarning(Channel::Devices, [this, &msg]() { return std::format("OneTouch ({}): Unknown key command received in ACK: 0x{:02x}", m_Device.DeviceId(), msg.Command()); });
 		}
@@ -76,7 +74,7 @@ namespace AqualinkAutomate::Devices
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): Watchdog kicked (MessageLong)", m_Device.DeviceId()); });
 	}
 
-	void OneTouchMessageRouter::Slot_OneTouch_Probe(const Messages::JandyMessage_Probe& msg)
+	void OneTouchMessageRouter::Slot_OneTouch_Probe([[maybe_unused]] const Messages::JandyMessage_Probe& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_Probe", std::source_location::current(), Profiling::UnitColours::Red);
 
@@ -89,7 +87,7 @@ namespace AqualinkAutomate::Devices
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): Watchdog kicked (Probe)", m_Device.DeviceId()); });
 	}
 
-	void OneTouchMessageRouter::Slot_OneTouch_Status(const Messages::JandyMessage_Status& msg)
+	void OneTouchMessageRouter::Slot_OneTouch_Status([[maybe_unused]] const Messages::JandyMessage_Status& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_Status", std::source_location::current(), Profiling::UnitColours::Red);
 
@@ -138,7 +136,7 @@ namespace AqualinkAutomate::Devices
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): Watchdog kicked (Status)", m_Device.DeviceId()); });
 	}
 
-	void OneTouchMessageRouter::Slot_OneTouch_Clear(const Messages::PDAMessage_Clear& msg)
+	void OneTouchMessageRouter::Slot_OneTouch_Clear([[maybe_unused]] const Messages::PDAMessage_Clear& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_Clear", std::source_location::current(), Profiling::UnitColours::Red);
 
@@ -242,7 +240,7 @@ namespace AqualinkAutomate::Devices
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): Watchdog kicked (ShiftLines)", m_Device.DeviceId()); });
 	}
 
-	void OneTouchMessageRouter::Slot_OneTouch_DisplayUpdate(const Messages::JandyMessage_DisplayUpdate& msg)
+	void OneTouchMessageRouter::Slot_OneTouch_DisplayUpdate([[maybe_unused]] const Messages::JandyMessage_DisplayUpdate& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::Slot_DisplayUpdate", std::source_location::current(), Profiling::UnitColours::Red);
 

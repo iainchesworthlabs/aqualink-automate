@@ -91,7 +91,7 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchScraper::PageProcessor_Service(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_Service([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_Service", std::source_location::current());
 
@@ -140,7 +140,7 @@ namespace AqualinkAutomate::Devices
 		m_DataHub->TimeoutRemaining = Utility::TimeoutDurationStringConverter(Utility::TrimWhitespace(page[10].Text));
 	}
 
-	void OneTouchScraper::PageProcessor_OneTouch(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_OneTouch([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_OneTouch", std::source_location::current());
 
@@ -301,14 +301,14 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchScraper::PageProcessor_SelectSpeed(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_SelectSpeed([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_SelectSpeed", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is processing a PageProcessor_SelectSpeed page.", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_MenuHelp(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_MenuHelp([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_MenuHelp", std::source_location::current());
 
@@ -401,14 +401,14 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchScraper::PageProcessor_SetTime(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_SetTime([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_SetTime", std::source_location::current());
 
 		LogDebug(Channel::Devices, [this]() { return std::format("OneTouch ({}): OneTouch device is processing a PageProcessor_SetTime page.", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_SystemSetup(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_SystemSetup([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_SystemSetup", std::source_location::current());
 
@@ -442,7 +442,7 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchScraper::PageProcessor_Boost(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_Boost([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_Boost", std::source_location::current());
 
@@ -611,7 +611,7 @@ namespace AqualinkAutomate::Devices
 		LogInfo(Channel::Devices, [&model_number, &panel_type, &fw_revision]() { return std::format("Aqualink Power Center - Model: {}, Type: {}, Rev: {}", model_number, panel_type, fw_revision); });
 	}
 
-	void OneTouchScraper::PageProcessor_DiagnosticsSensors(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_DiagnosticsSensors([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_DiagnosticsSensors", std::source_location::current());
 
@@ -633,7 +633,7 @@ namespace AqualinkAutomate::Devices
 		*/
 	}
 
-	void OneTouchScraper::PageProcessor_DiagnosticsRemotes(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_DiagnosticsRemotes([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_DiagnosticsRemotes", std::source_location::current());
 
@@ -655,7 +655,7 @@ namespace AqualinkAutomate::Devices
 		*/
 	}
 
-	void OneTouchScraper::PageProcessor_DiagnosticsErrors(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_DiagnosticsErrors([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_DiagnosticsErrors", std::source_location::current());
 
@@ -677,7 +677,7 @@ namespace AqualinkAutomate::Devices
 		*/
 	}
 
-	void OneTouchScraper::PageProcessor_LabelAuxList(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_LabelAuxList([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchScraper::PageProcessor_LabelAuxList", std::source_location::current());
 
@@ -784,17 +784,17 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void OneTouchScraper::PageProcessor_MoreOneTouch(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_MoreOneTouch([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_MoreOneTouch invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_SetPoolHeat(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_SetPoolHeat([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_SetPoolHeat invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_SetSpaHeat(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_SetSpaHeat([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_SetSpaHeat invoked", DeviceId()); });
 	}
@@ -877,52 +877,52 @@ namespace AqualinkAutomate::Devices
 		m_ControllerScheduleStore->Replace(Scheduling::ControllerScheduleStatus::Available, std::move(schedules), m_ControllerScheduleGroup);
 	}
 
-	void OneTouchScraper::PageProcessor_DisplayLight(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_DisplayLight([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_DisplayLight invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_Lockouts(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_Lockouts([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_Lockouts invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_PasswordSettings(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_PasswordSettings([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_PasswordSettings invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_ProgramGroup(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_ProgramGroup([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_ProgramGroup invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_GeneralLabels(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_GeneralLabels([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_GeneralLabels invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_LightLabels(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_LightLabels([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_LightLabels invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_WaterfallLabels(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_WaterfallLabels([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_WaterfallLabels invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_CustomLabel(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_CustomLabel([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_CustomLabel invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_EnterPassword(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_EnterPassword([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_EnterPassword invoked", DeviceId()); });
 	}
 
-	void OneTouchScraper::PageProcessor_HelpKeys(const Utility::ScreenDataPage& page)
+	void OneTouchScraper::PageProcessor_HelpKeys([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogTrace(Channel::Devices, [this]() { return std::format("OneTouch ({}): PageProcessor_HelpKeys invoked", DeviceId()); });
 	}

@@ -15,10 +15,8 @@ namespace AqualinkAutomate::Devices
 		constexpr JandyDeviceId() : m_DeviceId(0) {}
 		constexpr JandyDeviceId(value_type device_id) : m_DeviceId(device_id) {}
 
-	public:
 		constexpr value_type operator()() const { return m_DeviceId; }
 
-	public:
 		constexpr bool operator==(const JandyDeviceId& other) const { return (m_DeviceId == other.m_DeviceId); }
 		constexpr bool operator!=(const JandyDeviceId& other) const { return !operator==(other); }
 

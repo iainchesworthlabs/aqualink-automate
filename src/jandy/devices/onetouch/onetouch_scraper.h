@@ -54,7 +54,6 @@ namespace AqualinkAutomate::Devices
 		// bodies (which log "OneTouch ({})", DeviceId()) read unchanged.
 		const Devices::JandyDeviceType& DeviceId() const { return *m_DeviceId; }
 
-	private:
 		// Page processors (screen -> DataHub). One per navigable page; several are log-only stubs
 		// kept so the page stays registered and therefore detectable/navigable.
 		void PageProcessor_System(const Utility::ScreenDataPage& page);
@@ -95,7 +94,6 @@ namespace AqualinkAutomate::Devices
 		void PageProcessor_SpaSwitch(const Utility::ScreenDataPage& page);
 		void PageProcessor_StartUp(const Utility::ScreenDataPage& page);
 
-	private:
 		static constexpr uint32_t HINT_COUNT{ 2 };
 		using HintArrayType = std::array<unsigned char, HINT_COUNT>;
 
@@ -110,7 +108,6 @@ namespace AqualinkAutomate::Devices
 		void StatusProcessor_SaltLevelPPM(const Utility::ScreenDataPage& page, const uint8_t line_id);
 		void StatusProcessor_CheckAquaPure(const Utility::ScreenDataPage& page, const uint8_t line_id);
 
-	private:
 		// Shared decode for the two pages carrying the panel identity + pool configuration (the
 		// cold-start splash and the REV page); builds the bodies of water via
 		// DataHub::ApplyPoolConfiguration so both call sites stay consistent.

@@ -13,9 +13,7 @@ namespace AqualinkAutomate::Messages
 
 	HeaterMessage_Status::HeaterMessage_Status() noexcept :
 		HeaterMessage(JandyMessageIds::Heater_Status),
-		Interfaces::IMessageSignalRecv<HeaterMessage_Status>(),
-		m_HeaterState(HeaterStates::Unknown),
-		m_ErrorCode(HeaterErrors::Unknown)
+		Interfaces::IMessageSignalRecv<HeaterMessage_Status>()
 	{
 	}
 

@@ -18,10 +18,10 @@ namespace AqualinkAutomate::Messages
 		m_Line.reserve(MAXIMUM_MESSAGE_LENGTH);
 	}
 
-	JandyMessage_MessageLong::JandyMessage_MessageLong(const uint8_t line_id, const std::string& line) :
+	JandyMessage_MessageLong::JandyMessage_MessageLong(const uint8_t line_id_value, const std::string& line) :
 		JandyMessage(JandyMessageIds::MessageLong),
 		Interfaces::IMessageSignalRecv<JandyMessage_MessageLong>(),
-		m_LineId(line_id),
+		m_LineId(line_id_value),
 		m_Line(line)
 	{
 		m_Line.reserve(MAXIMUM_MESSAGE_LENGTH);

@@ -135,14 +135,12 @@ namespace AqualinkAutomate::HTTP::Routing
 				}
 
 				// look for child
-				auto cit = std::find_if(cur->child_idx.begin(), cur->child_idx.end(),
+				if (auto cit = std::find_if(cur->child_idx.begin(), cur->child_idx.end(),
 					[this, &it](std::size_t ci) -> bool
 					{
 						return nodes_[ci].seg == *it;
 					}
-				);
-
-				if (cit != cur->child_idx.end())
+				); cit != cur->child_idx.end())
 				{
 					// move to existing child
 					cur = &nodes_[*cit];
@@ -316,10 +314,9 @@ namespace AqualinkAutomate::HTTP::Routing
 				// match_any) or return a terminal match; the branch lower-bound is
 				// computed inside.
 				bool match_any = false;
-				node<HANDLER_TYPE> const* r = match_children(s, it, end, cur, level, cursors, match_any);
 				// r represent we already found a terminal
 				// node which is a match
-				if (r)
+				if (node<HANDLER_TYPE> const* r = match_children(s, it, end, cur, level, cursors, match_any))
 				{
 					return r;
 				}
@@ -380,8 +377,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				int branches_lb = 0;
 				for (auto i : cur->child_idx)
 				{
-					auto& c = nodes_[i];
-					if (c.seg.is_literal() || !c.seg.has_modifier())
+					if (auto& c = nodes_[i]; c.seg.is_literal() || !c.seg.has_modifier())
 					{
 						// a literal path counts only
 						// if it matches
@@ -615,8 +611,7 @@ namespace AqualinkAutomate::HTTP::Routing
 				auto ids0 = ids;
 				WriteCapture(matches, matches_end, {});
 				WriteCapture(ids, ids_end, c.seg.id());
-				auto n = find_optional_resource(&c, ns, matches, ids, matches_end, ids_end);
-				if (n)
+				if (auto n = find_optional_resource(&c, ns, matches, ids, matches_end, ids_end))
 				{
 					return n;
 				}

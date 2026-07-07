@@ -21,7 +21,6 @@ namespace AqualinkAutomate::Interfaces
         IWebSocketBase() = default;
         virtual ~IWebSocketBase() = default;
 
-    public:
         virtual std::string_view Route() const = 0;
 
         // The entitlement required to complete the upgrade handshake (evaluated
@@ -30,10 +29,8 @@ namespace AqualinkAutomate::Interfaces
         // per-subject payload filtering behind it.
         virtual AccessRequirement RequiredAccess() const { return {}; }
 
-    public:
         virtual std::optional<std::string> DequeueMessage(ConnectionId connId) = 0;
 
-    public:
         virtual ConnectionId OnOpen() = 0;
         virtual void OnMessage(ConnectionId connId, const boost::beast::flat_buffer& buffer) = 0;
         virtual void OnPublish(ConnectionId connId) = 0;
@@ -49,7 +46,6 @@ namespace AqualinkAutomate::Interfaces
         IWebSocket() = default;
         virtual ~IWebSocket() = default;
 
-	public:
         std::string_view Route() const final
         {
             return ROUTE_URL;

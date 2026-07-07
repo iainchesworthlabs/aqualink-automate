@@ -302,17 +302,19 @@ namespace AqualinkAutomate::Navigation
 
 	void Navigator::Reset()
 	{
+		using enum PageId;
+
 		LogDebug(Channel::Navigation, "Navigator: Resetting to idle state");
 		m_State = State::Idle;
-		m_CurrentPage = PageId::Unknown;
-		m_TargetPage = PageId::Unknown;
+		m_CurrentPage = Unknown;
+		m_TargetPage = Unknown;
 		m_Path.clear();
 		m_PathIndex = 0;
 		m_PendingStatusMessages = 0;
 		m_RecoveryAttempts = 0;
 		m_RecoveryBackPresses = 0;
 		m_NavigatingToItem = false;
-		m_SelectTarget = PageId::Unknown;
+		m_SelectTarget = Unknown;
 		m_CursorStuckCount = 0;
 		m_PreviousCursorLine = 0;
 		m_SkipCursorCheck = false;
@@ -320,10 +322,10 @@ namespace AqualinkAutomate::Navigation
 		m_WaitCycleCount = 0;
 		m_RecomputeCount = 0;
 		m_StuckRecomputeCount = 0;
-		m_LastRecomputeActual = PageId::Unknown;
-		m_LastRecomputeTarget = PageId::Unknown;
+		m_LastRecomputeActual = Unknown;
+		m_LastRecomputeTarget = Unknown;
 		m_TransientWaitCount = 0;
-		m_SyncDetectedPage = PageId::Unknown;
+		m_SyncDetectedPage = Unknown;
 		m_SyncConsistentCount = 0;
 		m_pCurrentContent = nullptr;
 		m_CurrentEdge = nullptr;
@@ -910,8 +912,7 @@ namespace AqualinkAutomate::Navigation
 		}
 
 		// Check for system events (timeout, service mode)
-		auto system_event = m_Model.FindSystemEvent(actual);
-		if (system_event.has_value())
+		if (auto system_event = m_Model.FindSystemEvent(actual); system_event.has_value())
 		{
 			LogWarning(Channel::Navigation, [&system_event] { return std::format("Navigator: System event detected: '{}'",
 				system_event->label); });
@@ -989,8 +990,7 @@ namespace AqualinkAutomate::Navigation
 		}
 
 		// Check for pages that don't support Back (OneTouch-style pages)
-		const MenuPage* current_page = m_Model.GetPage(m_CurrentPage);
-		if (current_page && !current_page->SupportsKey(EdgeTrigger::Back))
+		if (const MenuPage* current_page = m_Model.GetPage(m_CurrentPage); current_page && !current_page->SupportsKey(EdgeTrigger::Back))
 		{
 			// This page doesn't support Back - try to navigate to System via selection
 			LogDebug(Channel::Navigation, [this, &current_page] { return std::format("Navigator: Page {}({}) doesn't support Back - looking for System navigation",

@@ -41,13 +41,11 @@ namespace AqualinkAutomate::Utility
 		inline static const uint8_t CLEAR_HIGHLIGHTS = 0xFF;
 
 	public:
-		ScreenDataPage(std::size_t row_count);
+		explicit ScreenDataPage(std::size_t row_count);
 
-	public:
 		RowType& operator[](std::size_t index);
 		const RowType& operator[](std::size_t index) const;
 
-	public:
 		enum class ShiftDirections
 		{
 			Up, Down

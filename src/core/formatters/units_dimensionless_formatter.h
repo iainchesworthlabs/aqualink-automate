@@ -6,13 +6,6 @@
 #include "formatters/formatter_helpers.h"
 #include "types/units_dimensionless.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {

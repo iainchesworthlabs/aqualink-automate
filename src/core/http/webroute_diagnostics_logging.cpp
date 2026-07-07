@@ -40,19 +40,19 @@ namespace AqualinkAutomate::HTTP
 
 		// Build channel → current severity map
 		nlohmann::json channels = nlohmann::json::object();
-		magic_enum::enum_for_each<Channel>([&channels](auto const& channel)
+		magic_enum::enum_for_each<Channel>([&channels](auto const& channel_entry)
 			{
-				auto severity = SeverityFiltering::GetChannelFilterLevel(channel.value);
-				channels[std::string(magic_enum::enum_name(channel.value))] = std::string(magic_enum::enum_name(severity));
+				auto channel_severity = SeverityFiltering::GetChannelFilterLevel(channel_entry.value);
+				channels[std::string(magic_enum::enum_name(channel_entry.value))] = std::string(magic_enum::enum_name(channel_severity));
 			});
 
 		result["channels"] = channels;
 
 		// Build available severity levels array
 		nlohmann::json levels = nlohmann::json::array();
-		magic_enum::enum_for_each<Severity>([&levels](auto const& severity)
+		magic_enum::enum_for_each<Severity>([&levels](auto const& severity_entry)
 			{
-				levels.push_back(std::string(magic_enum::enum_name(severity.value)));
+				levels.push_back(std::string(magic_enum::enum_name(severity_entry.value)));
 			});
 
 		result["severity_levels"] = levels;
@@ -69,14 +69,14 @@ namespace AqualinkAutomate::HTTP
 			if (body.contains("global"))
 			{
 				auto level_name = body["global"].get<std::string>();
-				auto severity = magic_enum::enum_cast<Severity>(level_name);
+				auto severity_cast = magic_enum::enum_cast<Severity>(level_name);
 
-				if (!severity.has_value())
+				if (!severity_cast.has_value())
 				{
 					return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_severity", "Invalid severity level");
 				}
 
-				SeverityFiltering::SetGlobalFilterLevel(severity.value());
+				SeverityFiltering::SetGlobalFilterLevel(severity_cast.value());
 
 				LogInfo(Channel::Web, std::format("Global log level set to {} via web UI", level_name));
 			}
@@ -85,15 +85,15 @@ namespace AqualinkAutomate::HTTP
 				auto channel_name = body["channel"].get<std::string>();
 				auto level_name = body["level"].get<std::string>();
 
-				auto channel = magic_enum::enum_cast<Channel>(channel_name);
-				auto severity = magic_enum::enum_cast<Severity>(level_name);
+				auto channel_cast = magic_enum::enum_cast<Channel>(channel_name);
+				auto severity_cast = magic_enum::enum_cast<Severity>(level_name);
 
-				if (!channel.has_value() || !severity.has_value())
+				if (!channel_cast.has_value() || !severity_cast.has_value())
 				{
 					return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_channel_or_severity", "Invalid channel or severity level");
 				}
 
-				SeverityFiltering::SetChannelFilterLevel(channel.value(), severity.value());
+				SeverityFiltering::SetChannelFilterLevel(channel_cast.value(), severity_cast.value());
 
 				LogInfo(Channel::Web, std::format("Log level for channel {} set to {} via web UI", channel_name, level_name));
 			}

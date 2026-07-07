@@ -151,6 +151,7 @@ namespace AqualinkAutomate::Messages
 			{ 
 				[](std::monostate)
 				{
+					// Intentionally empty: an unset status variant serialises nothing.
 				},
 				[&message_bytes](SerialAdapter_ConfigControlCommands sa_ccc)
 				{
@@ -211,10 +212,10 @@ namespace AqualinkAutomate::Messages
 				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> SerialAdapter_SystemPumpCommands: {}", magic_enum::enum_name(status_type.value())));
 				return status_type.value();
 			}
-			else if (auto status_type = magic_enum::enum_cast<Auxillaries::JandyAuxillaryIds>(static_cast<uint8_t>(message_bytes[Index_DeviceId]) - SERIALADAPTER_AUX_ID_OFFSET); status_type.has_value())
+			else if (auto aux_status_type = magic_enum::enum_cast<Auxillaries::JandyAuxillaryIds>(static_cast<uint8_t>(message_bytes[Index_DeviceId]) - SERIALADAPTER_AUX_ID_OFFSET); aux_status_type.has_value())
 			{
-				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> Auxillaries::JandyAuxillaryIds: {}", magic_enum::enum_name(status_type.value())));
-				return status_type.value();
+				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> Auxillaries::JandyAuxillaryIds: {}", magic_enum::enum_name(aux_status_type.value())));
+				return aux_status_type.value();
 			}
 
 			return SerialAdapter_StatusTypes();
@@ -240,15 +241,15 @@ namespace AqualinkAutomate::Messages
 				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> SerialAdapter_ConfigControlCommands: {}", magic_enum::enum_name(status_type.value())));
 				m_StatusType = status_type.value();
 			}
-			else if (auto status_type = magic_enum::enum_cast<SerialAdapter_SystemConfigurationStatuses>(static_cast<uint8_t>(message_bytes[Index_StatusType])); status_type.has_value())
+			else if (auto config_status_type = magic_enum::enum_cast<SerialAdapter_SystemConfigurationStatuses>(static_cast<uint8_t>(message_bytes[Index_StatusType])); config_status_type.has_value())
 			{
-				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> SerialAdapter_SystemConfigurationStatuses: {}", magic_enum::enum_name(status_type.value())));
-				m_StatusType = status_type.value();
+				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> SerialAdapter_SystemConfigurationStatuses: {}", magic_enum::enum_name(config_status_type.value())));
+				m_StatusType = config_status_type.value();
 			}
-			else if (auto status_type = magic_enum::enum_cast<SerialAdapter_SystemTemperatureCommands>(static_cast<uint8_t>(message_bytes[Index_StatusType])); status_type.has_value())
+			else if (auto temp_status_type = magic_enum::enum_cast<SerialAdapter_SystemTemperatureCommands>(static_cast<uint8_t>(message_bytes[Index_StatusType])); temp_status_type.has_value())
 			{
-				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> SerialAdapter_SystemTemperatureCommands: {}", magic_enum::enum_name(status_type.value())));
-				m_StatusType = status_type.value();
+				LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: StatusType -> SerialAdapter_SystemTemperatureCommands: {}", magic_enum::enum_name(temp_status_type.value())));
+				m_StatusType = temp_status_type.value();
 			}
 			else
 			{
@@ -269,8 +270,9 @@ namespace AqualinkAutomate::Messages
 				{
 					LogWarning(Channel::Messages, "SerialAdapterMessage_DevStatus: Invalid Status Type");
 				},
-				[this, &message_bytes](SerialAdapter_ConfigControlCommands sa_ccc)
+				[this, &message_bytes](SerialAdapter_ConfigControlCommands)
 				{
+					// Intentionally empty: config-control command responses carry no decodable payload here.
 				},
 				[this, &message_bytes](SerialAdapter_SystemConfigurationStatuses sa_scs)
 				{
@@ -319,25 +321,27 @@ namespace AqualinkAutomate::Messages
 				},
 				[this, &message_bytes](SerialAdapter_SystemPumpCommands sa_spc)
 				{
+					using enum SerialAdapter_SystemPumpCommands;
+
 					switch (sa_spc)
 					{
-					case SerialAdapter_SystemPumpCommands::CLEANR:
+					case CLEANR:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: Cleaner -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break;
 
-					case SerialAdapter_SystemPumpCommands::SPILLOVER:
+					case SPILLOVER:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: Spillover -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break;
 
-					case SerialAdapter_SystemPumpCommands::PUMP:
+					case PUMP:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: Pump -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break;
 
-					case SerialAdapter_SystemPumpCommands::PUMPLO:
+					case PUMPLO:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: PumpLowSpeed -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break;
 
-					case SerialAdapter_SystemPumpCommands::SPA:
+					case SPA:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: Spa -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break;
 					}
@@ -349,18 +353,20 @@ namespace AqualinkAutomate::Messages
 					// Unit-aware conversion to Temperature objects happens in the message processor
 					// which has access to DataHub's SystemTemperatureUnits().
 
+					using enum SerialAdapter_SystemTemperatureCommands;
+
 					switch (sa_stc)
 					{
-					case SerialAdapter_SystemTemperatureCommands::UNITS:
+					case UNITS:
 						m_TemperatureUnits = (0x00 == message_bytes[Index_TemperatureUnits]) ? Kernel::TemperatureUnits::Fahrenheit : Kernel::TemperatureUnits::Celsius;
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: TemperatureUnits -> {}", magic_enum::enum_name(m_TemperatureUnits.value())));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::POOLHT:
+					case POOLHT:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: PoolHeat -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break; 
 
-					case SerialAdapter_SystemTemperatureCommands::POOLHT2:
+					case POOLHT2:
 						// CAPTURE-GATED: documented as a boolean enable (st); decode the STC value
 						// byte (Index_PoolTemperature_SetPoint == 6, the shared value slot for every
 						// STC command -- byte[4] is the command selector) as "TEMP2 maintenance
@@ -370,45 +376,45 @@ namespace AqualinkAutomate::Messages
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: PoolHeat2 -> {:02x} {:02x} {:02x} {:02x} (TEMP2 enabled={})", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7], m_PoolHeater_Two_Enabled.value()));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::SPAHT:
+					case SPAHT:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: SpaHeat -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::SOLHT:
+					case SOLHT:
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: SolarHeat -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::POOLSP:
+					case POOLSP:
 						m_PoolTemperature_SetPoint_One = message_bytes[Index_PoolTemperature_SetPoint];
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: PoolTemp SetPoint 1 -> {}", m_PoolTemperature_SetPoint_One.value()));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::POOLSP2:
+					case POOLSP2:
 						m_PoolTemperature_SetPoint_Two = message_bytes[Index_PoolTemperature_SetPoint];
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: PoolTemp SetPoint 2 -> {}", m_PoolTemperature_SetPoint_Two.value()));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::SPASP:
+					case SPASP:
 						m_SpaTemperature_SetPoint = message_bytes[Index_SpaTemperature_SetPoint];
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: SpaTemp SetPoint -> {}", m_SpaTemperature_SetPoint.value()));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::POOLTMP:
+					case POOLTMP:
 						m_PoolTemperature = message_bytes[Index_PoolTemperature];
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: PoolTemp -> {}", m_PoolTemperature.value()));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::SPATMP:
+					case SPATMP:
 						m_SpaTemperature = message_bytes[Index_SpaTemperature];
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: SpaTemp -> {}", m_SpaTemperature.value()));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::AIRTMP:
+					case AIRTMP:
 						m_AirTemperature = message_bytes[Index_AirTemperature];
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: AirTemp -> {}", m_AirTemperature.value()));
 						break;
 
-					case SerialAdapter_SystemTemperatureCommands::SOLTMP:
+					case SOLTMP:
 						m_SolarTemperature = message_bytes[Index_SolarTemperature];
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: SolarTemp -> {}", m_SolarTemperature.value()));
 						break;
@@ -422,7 +428,7 @@ namespace AqualinkAutomate::Messages
 
 					LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: {} Status -> {}", magic_enum::enum_name(sa_jai), magic_enum::enum_name(status)));
 				},
-				[this, &message_bytes](SerialAdapter_UnknownCommands sa_uc)
+				[this, &message_bytes](SerialAdapter_UnknownCommands)
 				{
 					LogDebug(Channel::Messages, "SerialAdapterMessage_DevStatus: Unknown, error, and/or unhandled status type");
 					LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: Unknown/Error -> {:02x} {:02x} {:02x} {:02x}", message_bytes[4], message_bytes[5], message_bytes[6], message_bytes[7]));

@@ -31,10 +31,14 @@ namespace AqualinkAutomate::Devices
 
 	void KeypadDevice::ProcessControllerUpdates()
 	{
+		// Intentionally empty: the RS Keypad is a passive decoder and has no periodic
+		// controller-side state to advance; ACKs are emitted directly from the slot handlers.
 	}
 
 	void KeypadDevice::WatchdogTimeoutOccurred()
 	{
+		// Intentionally empty: loss of communications on the passive RS Keypad requires no
+		// device-side state change.
 	}
 
 	nlohmann::json KeypadDevice::DescribeDiagnostics() const

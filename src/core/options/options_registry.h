@@ -76,8 +76,7 @@ namespace AqualinkAutomate::Options
 						.options(*desc)
 						.run();
 
-					auto unrecognized = boost::program_options::collect_unrecognized(parsed.options, boost::program_options::include_positional);
-					if (!unrecognized.empty())
+					if (auto unrecognized = boost::program_options::collect_unrecognized(parsed.options, boost::program_options::include_positional); !unrecognized.empty())
 					{
 						std::string unknown_args;
 						for (const auto& arg : unrecognized)

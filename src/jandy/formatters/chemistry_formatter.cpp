@@ -1,13 +1,5 @@
 #include "formatters/chemistry_formatter.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
-
 namespace std
 {
 

@@ -15,7 +15,6 @@ namespace AqualinkAutomate::Utility::ScreenDataPageUpdaterImpl
 	public:
 		evShift(ScreenDataPage::ShiftDirections direction, uint8_t first_line, uint8_t last_line, uint8_t number_of_shifts);
 
-	public:
 		ScreenDataPage::ShiftDirections Direction() const;
 		uint8_t FirstLineId() const;
 		uint8_t LastLineId() const;

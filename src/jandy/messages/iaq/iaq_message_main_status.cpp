@@ -28,12 +28,14 @@ namespace AqualinkAutomate::Messages
 		// Protocol values: 0x00=off, 0x01=heating, 0x03=enabled (standby).
 		constexpr Kernel::HeaterStatuses RawToHeaterStatus(uint8_t raw)
 		{
+			using enum Kernel::HeaterStatuses;
+
 			switch (raw)
 			{
-			case 0x00: return Kernel::HeaterStatuses::Off;
-			case 0x01: return Kernel::HeaterStatuses::Heating;
-			case 0x03: return Kernel::HeaterStatuses::Enabled;
-			default:   return Kernel::HeaterStatuses::Unknown;
+			case 0x00: return Off;
+			case 0x01: return Heating;
+			case 0x03: return Enabled;
+			default:   return Unknown;
 			}
 		}
 	}

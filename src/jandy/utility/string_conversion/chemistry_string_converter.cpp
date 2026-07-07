@@ -17,8 +17,6 @@ namespace AqualinkAutomate::Utility
 	const boost::regex ChemistryStringConverter::REGEX_PARSER{ REGEX_PATTERN };
 
 	ChemistryStringConverter::ChemistryStringConverter() noexcept :
-		m_ORP(0),
-		m_PH(0.0f),
 		m_ErrorOccurred(ErrorCodes::StringConversion_ErrorCodes::MalformedInput)
 	{
 	}
@@ -109,9 +107,9 @@ namespace AqualinkAutomate::Utility
 				LogDebug(Channel::Devices, std::format("Failed to convert ORP; could not convert to number: error -> {}", magic_enum::enum_name(ec)));
 				m_ErrorOccurred = ErrorCodes::StringConversion_ErrorCodes::MalformedInput;
 			}
-			else if (auto [_, ec] = std::from_chars((*ph).data(), (*ph).data() + (*ph).size(), converted_ph); std::errc() != ec)
+			else if (auto [_ph, ec_ph] = std::from_chars((*ph).data(), (*ph).data() + (*ph).size(), converted_ph); std::errc() != ec_ph)
 			{
-				LogDebug(Channel::Devices, std::format("Failed to convert pH; could not convert to number: error -> {}", magic_enum::enum_name(ec)));
+				LogDebug(Channel::Devices, std::format("Failed to convert pH; could not convert to number: error -> {}", magic_enum::enum_name(ec_ph)));
 				m_ErrorOccurred = ErrorCodes::StringConversion_ErrorCodes::MalformedInput;
 			}
 			else

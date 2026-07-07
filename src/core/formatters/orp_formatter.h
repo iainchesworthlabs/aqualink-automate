@@ -7,13 +7,6 @@
 #include "formatters/units_electric_potential_formatter.h"
 #include "kernel/orp.h"
 
-namespace AqualinkAutomate::Formatters
-{
-
-	// NOTHING HERE
-
-}
-// AqualinkAutomate::Formatters
 
 namespace std
 {

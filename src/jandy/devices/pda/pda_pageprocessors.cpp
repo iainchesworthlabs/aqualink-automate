@@ -9,7 +9,7 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::Devices
 {
 
-	void PDADevice::PageProcessor_System(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_System([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
 		LogDebug(Channel::Devices, "PDA device is processing a PageProcessor_System page.");
 
@@ -27,36 +27,44 @@ namespace AqualinkAutomate::Devices
 		*/
 	}
 
-	void PDADevice::PageProcessor_SetTemperature(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_SetTemperature([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 
-	void PDADevice::PageProcessor_SetTime(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_SetTime([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 
-	void PDADevice::PageProcessor_PoolHeat(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_PoolHeat([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 
-	void PDADevice::PageProcessor_SpaHeat(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_SpaHeat([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 
-	void PDADevice::PageProcessor_AquaPure(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_AquaPure([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 
-	void PDADevice::PageProcessor_FreezeProtect(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_FreezeProtect([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 
-	void PDADevice::PageProcessor_EquipmentStatus(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_EquipmentStatus([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 
-	void PDADevice::PageProcessor_Boost(const Utility::ScreenDataPage& page)
+	void PDADevice::PageProcessor_Boost([[maybe_unused]] const Utility::ScreenDataPage& page)
 	{
+		// Placeholder: this PDA page is recognised for navigation but not yet parsed.
 	}
 	
 	void PDADevice::PageProcessor_FirmwareVersion(const Utility::ScreenDataPage& page)

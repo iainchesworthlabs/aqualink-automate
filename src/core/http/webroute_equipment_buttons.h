@@ -17,12 +17,10 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Equipment_Buttons : public Interfaces::IWebRoute<EQUIPMENTBUTTONS_ROUTE_URL>
 	{
 	public:
-        WebRoute_Equipment_Buttons(Kernel::HubLocator& hub_locator);
+        explicit WebRoute_Equipment_Buttons(Kernel::HubLocator& hub_locator);
 
-    public:
         HTTP::Response OnRequest(const HTTP::Request& req) final;
 
-	public:
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb) const override
 		{
 			return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };

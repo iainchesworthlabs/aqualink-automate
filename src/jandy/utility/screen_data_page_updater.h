@@ -36,7 +36,7 @@ namespace AqualinkAutomate::Utility
 		template<typename PAGE_TYPE>
 		struct StateMachine : boost::statechart::state_machine<StateMachine<PAGE_TYPE>, Tracking<PAGE_TYPE>>, Context<PAGE_TYPE>
 		{
-			StateMachine(PAGE_TYPE& page) :
+			explicit StateMachine(PAGE_TYPE& page) :
 				Context<PAGE_TYPE>(page)
 			{
 			}
@@ -109,10 +109,8 @@ namespace AqualinkAutomate::Utility
 
 			boost::statechart::result react(const evUpdate& ev)
 			{
-				auto& ctx = this->template context<StateMachine<PAGE_TYPE>>();
-
 				// Validate that the line id is within the size permitted.
-				if (ev.Id() >= ctx().Size())
+				if (auto& ctx = this->template context<StateMachine<PAGE_TYPE>>(); ev.Id() >= ctx().Size())
 				{
 					LogDebug(Channel::Devices, "Attempted to update a page line that is does not exist in the page.");
 				}

@@ -12,7 +12,6 @@ namespace AqualinkAutomate::Utility
 	template<typename DEBOUNCED_VALUE_TYPE, typename VALUE_COMPARATOR = std::equal_to<DEBOUNCED_VALUE_TYPE>>
 	class ValueDebouncer
 	{
-	public:
 		static_assert(std::is_default_constructible_v<DEBOUNCED_VALUE_TYPE>, "DEBOUNCED_VALUE_TYPE must be default constructible");
 		static_assert(std::is_copy_assignable_v<DEBOUNCED_VALUE_TYPE>, "DEBOUNCED_VALUE_TYPE must be copy-assignable");
 		static_assert(std::is_move_assignable_v<DEBOUNCED_VALUE_TYPE>, "DEBOUNCED_VALUE_TYPE must be move-assignable");
@@ -21,12 +20,8 @@ namespace AqualinkAutomate::Utility
 		static const uint32_t DEFAULT_DEBOUNCE_THRESHOLD = 10;
 
 	public:
-		ValueDebouncer(uint32_t threshold = DEFAULT_DEBOUNCE_THRESHOLD) :
-			m_Threshold(threshold),
-			m_UpdateCount(0),
-			m_CurrentValue(),
-			m_FutureValue(),
-			m_ValueComparator(VALUE_COMPARATOR())
+		explicit ValueDebouncer(uint32_t threshold = DEFAULT_DEBOUNCE_THRESHOLD) :
+			m_Threshold(threshold)
 		{
 		}
 
@@ -97,12 +92,11 @@ namespace AqualinkAutomate::Utility
 
 	private:
 		const uint32_t m_Threshold;
-		uint32_t m_UpdateCount;
+		uint32_t m_UpdateCount{ 0 };
 
-	private:
-		DEBOUNCED_VALUE_TYPE m_CurrentValue;
-		DEBOUNCED_VALUE_TYPE m_FutureValue;
-		VALUE_COMPARATOR m_ValueComparator;
+		DEBOUNCED_VALUE_TYPE m_CurrentValue{};
+		DEBOUNCED_VALUE_TYPE m_FutureValue{};
+		VALUE_COMPARATOR m_ValueComparator{};
 	};
 
 }

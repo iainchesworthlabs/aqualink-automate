@@ -25,16 +25,10 @@ namespace AqualinkAutomate::Messages
 	public:
 		IAQMessage_AuxStatus() noexcept;
 		~IAQMessage_AuxStatus() override = default;
-
-	public:
 		const std::vector<uint8_t>& RawPayload() const;
 		const std::vector<AuxDeviceInfo>& Devices() const;
 		uint8_t DeviceCount() const;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 

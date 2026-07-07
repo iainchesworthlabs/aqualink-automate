@@ -12,10 +12,7 @@ namespace AqualinkAutomate::Kernel
 {
 
 	DataHub_ConfigEvent_Chemistry::DataHub_ConfigEvent_Chemistry() :
-		DataHub_ConfigEvent(Hub_EventTypes::Chemistry),
-		m_ORP(std::nullopt),
-		m_pH(std::nullopt),
-		m_SaltLevel(std::nullopt)
+		DataHub_ConfigEvent(Hub_EventTypes::Chemistry)
 	{
 	}
 

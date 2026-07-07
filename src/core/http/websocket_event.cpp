@@ -16,8 +16,7 @@ namespace AqualinkAutomate::HTTP
 	const std::string_view WebSocket_Event::WS_JSON_PAYLOAD_FIELD{ "payload" };
 
 	WebSocket_Event::WebSocket_Event(const HTTP::WebSocket_EventTypes& event_type, const nlohmann::json& payload) :
-		m_EventType(event_type),
-		m_EventPayload()
+		m_EventType(event_type)
 	{
 		m_EventPayload[WS_JSON_TYPE_FIELD] = magic_enum::enum_name(event_type);
 		m_EventPayload[WS_JSON_PAYLOAD_FIELD] = payload;

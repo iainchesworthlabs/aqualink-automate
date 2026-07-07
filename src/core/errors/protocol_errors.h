@@ -25,7 +25,6 @@ namespace AqualinkAutomate::ErrorCodes
 	public:
 		static const Protocol_ErrorCategory& Instance();
 
-	public:
 		static constexpr std::string_view CategoryName{ "AqualinkAutomate::Protocol Error Category" };
 		static std::string_view Describe(Protocol_ErrorCodes e);
 

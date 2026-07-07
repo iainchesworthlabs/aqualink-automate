@@ -21,16 +21,12 @@ namespace AqualinkAutomate::Utility
 	const std::string TemperatureStringConverter::REGEX_PATTERN{ R"(^([A-Za-z0-9][A-Za-z0-9 ]{0,14}?)\s{1,10}(-?\d{1,3})`([CF])$)" };
 	const boost::regex TemperatureStringConverter::REGEX_PARSER{ REGEX_PATTERN };
 
-	TemperatureStringConverter::TemperatureStringConverter() noexcept :
-		m_Temperature(Kernel::Temperature::ConvertToTemperatureInCelsius(0)),
-		m_TemperatureArea(),
-		m_ErrorOccurred(std::nullopt)
+	TemperatureStringConverter::TemperatureStringConverter() noexcept
 	{
 	}
 
 	TemperatureStringConverter::TemperatureStringConverter(const std::string& temperature_string) noexcept :
 		m_Temperature(Kernel::Temperature::ConvertToTemperatureInCelsius(0)),
-		m_TemperatureArea(),
 		m_ErrorOccurred(std::nullopt)
 	{
 		ConvertStringToTemperature(TrimWhitespace(temperature_string));

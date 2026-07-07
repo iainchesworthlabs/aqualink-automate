@@ -13,8 +13,7 @@ namespace AqualinkAutomate::Messages
 
 	IAQMessage_TitleMessage::IAQMessage_TitleMessage() noexcept :
 		IAQMessage(JandyMessageIds::IAQ_TitleMessage),
-		Interfaces::IMessageSignalRecv<IAQMessage_TitleMessage>(),
-		m_Title()
+		Interfaces::IMessageSignalRecv<IAQMessage_TitleMessage>()
 	{
 	}
 

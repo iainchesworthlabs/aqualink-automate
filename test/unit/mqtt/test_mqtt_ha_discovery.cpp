@@ -1413,3 +1413,84 @@ BOOST_AUTO_TEST_CASE(Test_AdoptRetained_InvalidJson_IsHarmless)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// AddChlorinatorComponents rich entities: a LABELLED chlorinator drives the full
+// chlorinator-component builder (generating %/boost/health sensors + a generating
+// setpoint number entity with min/max/step + a boost switch). The existing dynamic
+// tests only add an UNLABELLED chlorinator, which returns early, so these value
+// entities were never exercised.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(TestSuite_HaDiscovery_ChlorinatorComponents)
+
+BOOST_AUTO_TEST_CASE(Test_ChlorinatorComponents_LabelledChlorinator_EmitsRichEntities)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	ha.ConnectDataHub(data_hub);
+
+	// A labelled chlorinator drives AddChlorinatorComponents in full.
+	data_hub->Devices.Add(MakeTypedDevice(Traits::AuxillaryTypes::Chlorinator, "AquaPure"));
+
+	ha.PublishDiscoveryConfigs();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+	BOOST_REQUIRE_EQUAL(queue.size(), 1);
+	auto cmps = nlohmann::json::parse(queue[0].payload)["cmps"];
+
+	// The three read-only sensors (generating %, boost, health).
+	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_generating"));
+	{
+		auto& gen = cmps["chlorinator_aquapure_generating"];
+		BOOST_CHECK_EQUAL(gen["p"], "sensor");
+		BOOST_CHECK_EQUAL(gen["unit_of_measurement"], "%");
+		BOOST_CHECK_EQUAL(gen["state_class"], "measurement");
+		BOOST_CHECK_EQUAL(gen["value_template"], "{{ value_json.generating_percentage }}");
+	}
+
+	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_boost"));
+	{
+		auto& boost_sensor = cmps["chlorinator_aquapure_boost"];
+		BOOST_CHECK_EQUAL(boost_sensor["p"], "sensor");
+		// The boost/health sensors carry no unit_of_measurement / state_class.
+		BOOST_CHECK(!boost_sensor.contains("unit_of_measurement"));
+		BOOST_CHECK(!boost_sensor.contains("state_class"));
+	}
+
+	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_health"));
+	BOOST_CHECK_EQUAL(cmps["chlorinator_aquapure_health"]["p"], "sensor");
+
+	// The generating-percentage setpoint number entity: min/max/step (uncovered lines).
+	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_pct_cmd"));
+	{
+		auto& pct = cmps["chlorinator_aquapure_pct_cmd"];
+		BOOST_CHECK_EQUAL(pct["p"], "number");
+		BOOST_CHECK(pct.contains("command_topic"));
+		BOOST_CHECK_EQUAL(pct["min"].get<int>(), 0);
+		BOOST_CHECK_EQUAL(pct["max"].get<int>(), 100);
+		BOOST_CHECK_EQUAL(pct["step"].get<int>(), 1);
+		BOOST_CHECK_EQUAL(pct["unit_of_measurement"], "%");
+		BOOST_CHECK_EQUAL(pct["mode"], "slider");
+	}
+
+	// The boost switch (command topic + on/off state mapping).
+	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_boost_cmd"));
+	{
+		auto& boost_cmd = cmps["chlorinator_aquapure_boost_cmd"];
+		BOOST_CHECK_EQUAL(boost_cmd["p"], "switch");
+		BOOST_CHECK(boost_cmd.contains("command_topic"));
+		BOOST_CHECK_EQUAL(boost_cmd["payload_on"], "ON");
+		BOOST_CHECK_EQUAL(boost_cmd["payload_off"], "OFF");
+		BOOST_CHECK_EQUAL(boost_cmd["state_on"], "Boost");
+		BOOST_CHECK_EQUAL(boost_cmd["state_off"], "Off");
+	}
+}
+
+BOOST_AUTO_TEST_SUITE_END()

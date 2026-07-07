@@ -22,23 +22,21 @@ namespace AqualinkAutomate::Utility
 
 	public:
 		TimeoutDurationStringConverter() noexcept;
-		TimeoutDurationStringConverter(const std::string& timeout_string) noexcept;
+		explicit TimeoutDurationStringConverter(const std::string& timeout_string) noexcept;
 		TimeoutDurationStringConverter(const TimeoutDurationStringConverter& other) noexcept;
 		TimeoutDurationStringConverter(TimeoutDurationStringConverter&& other) noexcept;
 
-	public:
 		TimeoutDurationStringConverter& operator=(const TimeoutDurationStringConverter& other) noexcept;
 		TimeoutDurationStringConverter& operator=(TimeoutDurationStringConverter&& other) noexcept;
 		TimeoutDurationStringConverter& operator=(const std::string& timeout_string) noexcept;
 
-	public:
 		std::chrono::seconds operator()() const noexcept;
 
 	private:
 		void ConvertStringToTimeoutDuration(const std::string& timeout_string) noexcept;
 
 	private:
-		std::chrono::seconds m_TimeoutDuration;
+		std::chrono::seconds m_TimeoutDuration{ std::chrono::seconds(0) };
 
 	};
 

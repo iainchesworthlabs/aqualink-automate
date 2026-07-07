@@ -36,17 +36,19 @@ namespace AqualinkAutomate::Mqtt
 		/// Convert CommandResult enum to a string for MQTT responses.
 		std::string CommandResultToString(Interfaces::ICommandDispatcher::CommandResult result)
 		{
+			using enum Interfaces::ICommandDispatcher::CommandResult;
+
 			switch (result)
 			{
-			case Interfaces::ICommandDispatcher::CommandResult::Success:
+			case Success:
 				return "success";
-			case Interfaces::ICommandDispatcher::CommandResult::DeviceNotFound:
+			case DeviceNotFound:
 				return "device_not_found";
-			case Interfaces::ICommandDispatcher::CommandResult::NoSerialAdapter:
+			case NoSerialAdapter:
 				return "no_serial_adapter";
-			case Interfaces::ICommandDispatcher::CommandResult::UnknownEquipmentType:
+			case UnknownEquipmentType:
 				return "unknown_equipment_type";
-			case Interfaces::ICommandDispatcher::CommandResult::InvalidValue:
+			case InvalidValue:
 				return "invalid_value";
 			default:
 				return "error";
@@ -657,7 +659,7 @@ namespace AqualinkAutomate::Mqtt
 
 		// Register refresh command - forces status refresh
 		m_Hub->RegisterCommand("refresh",
-			[weak_hub](const std::string& topic, const nlohmann::json& /*payload*/)
+			[weak_hub](const std::string& /*topic*/, const nlohmann::json& /*payload*/)
 			{
 				LogDebug(Channel::Mqtt, "Received refresh command");
 				try
@@ -870,7 +872,7 @@ namespace AqualinkAutomate::Mqtt
 		if (!m_Hub->HasCommand("chlorinator/percentage"))
 		{
 			m_Hub->RegisterCommand("chlorinator/percentage",
-				[weak_dispatcher](const std::string& topic, const nlohmann::json& payload)
+				[weak_dispatcher](const std::string& /*topic*/, const nlohmann::json& payload)
 				{
 					LogDebug(Channel::Mqtt, "Received chlorinator percentage command");
 					try
@@ -897,7 +899,7 @@ namespace AqualinkAutomate::Mqtt
 		if (!m_Hub->HasCommand("chlorinator/boost"))
 		{
 			m_Hub->RegisterCommand("chlorinator/boost",
-				[weak_dispatcher](const std::string& topic, const nlohmann::json& payload)
+				[weak_dispatcher](const std::string& /*topic*/, const nlohmann::json& payload)
 				{
 					LogDebug(Channel::Mqtt, "Received chlorinator boost command");
 					try

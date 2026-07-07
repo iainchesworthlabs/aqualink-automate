@@ -26,7 +26,6 @@ namespace AqualinkAutomate::Version
 		static std::string ProjectDescription();
 		static std::string ProjectHomepageURL();
 
-	public:
 		static uint32_t Major();
 		static uint32_t Minor();
 		static uint32_t Patch();

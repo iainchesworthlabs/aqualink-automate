@@ -13,9 +13,7 @@ namespace AqualinkAutomate::Messages
 
 	AquariteMessage_PPM::AquariteMessage_PPM() noexcept :
 		AquariteMessage(JandyMessageIds::AQUARITE_PPM),
-		Interfaces::IMessageSignalRecv<AquariteMessage_PPM>(),
-		m_PPM(0),
-		m_Status(AquariteStatuses::Unknown)
+		Interfaces::IMessageSignalRecv<AquariteMessage_PPM>()
 	{
 	}
 

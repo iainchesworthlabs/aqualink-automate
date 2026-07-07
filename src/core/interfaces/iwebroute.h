@@ -30,10 +30,8 @@ namespace AqualinkAutomate::Interfaces
         IWebRouteBase() = default;
         virtual ~IWebRouteBase() = default;
 
-    public:
         virtual std::string_view Route() const = 0;
 
-    public:
         // Returns a mutable Response (not a type-erased message_generator) so the
         // router can stamp response-wide policy — e.g. Cache-Control: no-store on
         // dynamic API data — in one place before serialising. See HTTP_OnRequest.
@@ -83,7 +81,6 @@ namespace AqualinkAutomate::Interfaces
         IWebRoute() = default;
         virtual ~IWebRoute() = default;
 
-	public:
         virtual std::string_view Route() const final
 		{
             return ROUTE_URL;

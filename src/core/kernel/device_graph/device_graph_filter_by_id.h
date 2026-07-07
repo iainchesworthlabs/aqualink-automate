@@ -12,7 +12,6 @@ namespace AqualinkAutomate::Kernel
 	public:
 		DeviceIdFilter(const DevicesGraphType& graph, const boost::uuids::uuid& device_id);
 
-	public:
 		bool operator()(const DevicesGraphType::edge_descriptor) const;
 		bool operator()(const DevicesGraphType::vertex_descriptor vd) const;
 

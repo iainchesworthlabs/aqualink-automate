@@ -7,12 +7,11 @@ namespace AqualinkAutomate::Utility::ScreenDataPageUpdaterImpl
 	class Context
 	{
 	public:
-		Context(PAGE_TYPE& page) :
+		explicit Context(PAGE_TYPE& page) :
 			m_Page(page)
 		{
 		};
 
-	public:
 		PAGE_TYPE& operator()()
 		{
 			return m_Page;

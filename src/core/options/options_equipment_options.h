@@ -23,12 +23,7 @@ namespace AqualinkAutomate::Options::Equipment
 			return AREA_NAME;
 		}
 
-		tagEquipmentSettings() :
-			pool_configuration{ Kernel::PoolConfigurations::Unknown }
-		{
-		}
-
-		Kernel::PoolConfigurations pool_configuration;
+		Kernel::PoolConfigurations pool_configuration{ Kernel::PoolConfigurations::Unknown };
 		bool pool_configuration_is_user_specified{ false };
 
 		/// For a SingleBody (pool-only / spa-only) install, which body the single body is.
@@ -69,7 +64,6 @@ namespace AqualinkAutomate::Options::Equipment
 		std::string Name() const { return SettingsType::AreaName(); }
 		boost::program_options::options_description Options() const;
 
-	public:
 		void Validate(const boost::program_options::variables_map& vm) const;
 		std::expected<SettingsType, ErrorCodes::Options_ErrorCodes> Process(boost::program_options::variables_map& vm) const;
 	};

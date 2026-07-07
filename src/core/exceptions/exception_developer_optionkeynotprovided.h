@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Exceptions
 
 	public:
 		Developer_OptionKeyNotProvided();
-		Developer_OptionKeyNotProvided(const std::string& message);
+		explicit Developer_OptionKeyNotProvided(const std::string& message);
 	};
 
 }

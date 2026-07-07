@@ -24,9 +24,6 @@ namespace AqualinkAutomate::Devices
 		JandyController(device_id, hub_locator),
 		Capabilities::Restartable(SERIALADAPTER_TIMEOUT_DURATION),
 		Capabilities::Emulated(is_emulated),
-		m_StatusTypesCollection(),
-		m_StatusTypesCollectionIter(),
-		m_StatusMessageReceived(false),
 		m_ProfilingDomain(std::move(Factory::ProfilingUnitFactory::Instance().CreateDomain("SerialAdapterDevice")))
 	{
 		m_ProfilingDomain->Start();
@@ -44,13 +41,12 @@ namespace AqualinkAutomate::Devices
 		// known before any temperature/setpoint values are decoded in the first poll cycle.
 		auto stc_begin = std::find_if(m_StatusTypesCollection.begin(), m_StatusTypesCollection.end(),
 			[](const auto& v) { return std::holds_alternative<SerialAdapter_SystemTemperatureCommands>(v); });
-		auto units_it = std::find_if(stc_begin, m_StatusTypesCollection.end(),
+		if (auto units_it = std::find_if(stc_begin, m_StatusTypesCollection.end(),
 			[](const auto& v)
 			{
 				return std::holds_alternative<SerialAdapter_SystemTemperatureCommands>(v) &&
 					std::get<SerialAdapter_SystemTemperatureCommands>(v) == SerialAdapter_SystemTemperatureCommands::UNITS;
-			});
-		if (units_it != m_StatusTypesCollection.end() && units_it != stc_begin)
+			}); units_it != m_StatusTypesCollection.end() && units_it != stc_begin)
 		{
 			std::rotate(stc_begin, units_it, units_it + 1);
 		}
@@ -87,7 +83,7 @@ namespace AqualinkAutomate::Devices
 		{
 			if (!m_PendingCommands.empty())
 			{
-				auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::ProcessControllerUpdates -> pending_command", std::source_location::current());
+				auto pending_command_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::ProcessControllerUpdates -> pending_command", std::source_location::current());
 
 				const PendingCommand pending = m_PendingCommands.front();
 				m_PendingCommands.pop_front();
@@ -99,7 +95,7 @@ namespace AqualinkAutomate::Devices
 			}
 			else
 			{
-				auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::ProcessControllerUpdates -> query_status", std::source_location::current());
+				auto query_status_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::ProcessControllerUpdates -> query_status", std::source_location::current());
 
 				LogDebug(Channel::Devices, "ProcessControllerUpdates -> Query for Status");
 
@@ -140,7 +136,7 @@ namespace AqualinkAutomate::Devices
 							ack_type = 0x00;
 							ack_data_value = magic_enum::enum_integer(sa_jai) + SerialAdapterMessage_DevStatus::SERIALADAPTER_AUX_ID_OFFSET;
 						},
-						[](SerialAdapter_UnknownCommands sa_uc)
+						[]([[maybe_unused]] SerialAdapter_UnknownCommands sa_uc)
 						{
 							LogWarning(Channel::Devices, "SerialAdapterDevice: Cannot select next StatusType; unknown command type");
 						}
@@ -590,6 +586,8 @@ namespace AqualinkAutomate::Devices
 
 	void SerialAdapterDevice::WatchdogTimeoutOccurred()
 	{
+		// Intentionally empty: the Serial Adapter is an emulated controller that owns the bus
+		// conversation, so a watchdog timeout requires no device-side state change here.
 	}
 
 	nlohmann::json SerialAdapterDevice::DescribeDiagnostics() const

@@ -12,7 +12,6 @@ namespace AqualinkAutomate::Utility::ScreenDataPageUpdaterImpl
 	public:
 		evHighlightChars(uint8_t line_id, uint8_t start_index, uint8_t stop_index);
 
-	public:
 		uint8_t LineId() const;
 		uint8_t StartIndex() const;
 		uint8_t StopIndex() const;
