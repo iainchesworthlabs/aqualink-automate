@@ -59,6 +59,12 @@ ports:
   "80/tcp": null
 ports_description:
   "80/tcp": Optional direct web UI / HTTP API (unauthenticated; ingress is preferred)
+# Liveness watchdog: the Supervisor polls this and restarts the add-on if it stops
+# answering (e.g. a hung poll loop). It reaches the container over the internal hassio
+# network, so it uses the fixed CONTAINER port 80 — NOT the [PORT:80] host mapping,
+# which is unset here (ingress + opt-in null LAN port). /api/health is the app's
+# unauthenticated liveness probe; the connection bypasses ingress, so no path prefix.
+watchdog: "http://[HOST]:80/api/health"
 # ── Options form ───────────────────────────────────────────────────────────────
 # Defaults defer to Home Assistant: auth is off (ingress provides it), and history
 # and the scheduler are off (use HA's Recorder and automations); each is an opt-in

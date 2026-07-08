@@ -246,15 +246,24 @@ lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
 
 - **`armv7`/`armhf` image** — 32-bit Pi support; needs a release-matrix entry + glibc-floor
   validation.
-- **AppArmor profile** — a tailored profile for a container that opens a serial device and
-  binds a port. Consider it for **both** the standalone image and the HA add-on (the add-on
-  references its own `apparmor.txt`); the two share the same syscall/file surface.
+- **AppArmor profile — AUTHORED, STAGED (not yet enforced).** One tailored profile at
+  `homeassistant/aqualink-automate/apparmor.txt.draft` covers both the add-on and the
+  standalone image (same serial + network + exec surface; broad reads, writes confined to
+  `/data`/`/tmp`/home). Shipped as `.draft` so the Supervisor does NOT auto-enforce it —
+  the Supervisor loads `apparmor.txt` in enforce mode with no complain toggle, so it must
+  be validated on a real HAOS box first (rename → regenerate edge → tune against
+  `dmesg | grep DENIED`). The generator rewrites the profile name to `aqualink_automate_edge`
+  for the edge channel so the two don't collide on one host. Standalone use is opt-in via
+  `docs/SECURITY.md` (Docker's `docker-default` stays the default). **Activate only after
+  the baseline HAOS install pass.**
 - **Opt-in LAN-port auth** — offer app `auth-mode` as a toggle when the direct (non-ingress)
-  port is enabled, so that path is not left unauthenticated.
-- **Health / watchdog under ingress** — settle the idiomatic add-on approach. The HA
-  `watchdog` keys off a published `[PORT]`, which is null by default here; options are a
-  restored (possibly fixed) host port for the watchdog, relying on the image's own Docker
-  `HEALTHCHECK`, or an ingress-compatible liveness mechanism.
+  port is enabled, so that path is not left unauthenticated. (Still open.)
+- **Health / watchdog under ingress — DONE.** `config.yaml` sets
+  `watchdog: "http://[HOST]:80/api/health"` — the Supervisor reaches the container over the
+  internal hassio network on the fixed container port 80 (NOT the unset `[PORT:80]` host
+  mapping), hitting the app's unauthenticated `/api/health` liveness probe directly (no
+  ingress prefix). The image's Docker `HEALTHCHECK` stays as belt-and-braces for standalone
+  runs. **Confirm the `[HOST]:<literal-port>` form on the HAOS pass.**
 
 ### Phase 4 — optional / advanced
 

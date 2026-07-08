@@ -1,0 +1,128 @@
+# ==============================================================================
+# AppArmor profile for the Aqualink Automate add-on — STAGED DRAFT (NOT ACTIVE).
+# ==============================================================================
+#
+# This file is named `apparmor.txt.draft` ON PURPOSE. The Supervisor only loads a
+# file named exactly `apparmor.txt`, so as `.draft` this profile is INERT — it does
+# nothing until deliberately activated.
+#
+# Why staged: the Supervisor loads an add-on's apparmor.txt in ENFORCE mode (there is
+# no complain-mode toggle from the add-on file), and a single missing rule makes the
+# add-on fail at runtime — the serial port won't open, or the entrypoint's privilege
+# handling dies. That is indistinguishable from any other first-run problem, so this
+# profile must be validated on a real Home Assistant OS box, NOT enabled blind.
+#
+# Activation (do this only AFTER a successful baseline HAOS install without it):
+#   1. Rename to `apparmor.txt` (in the STABLE add-on folder), re-run
+#      scripts/gen-homeassistant-edge-addon.ps1 so the edge channel gets it too,
+#      and commit.
+#   2. Install/restart the add-on and drive the real flows (serial, MQTT, web UI).
+#   3. Watch for denials:  dmesg | grep -i 'apparmor.*DENIED'  (or the host audit log)
+#      Add the missing rule for each DENIED path/operation and repeat until clean.
+#
+# Caveats to confirm during that pass:
+#   - Profile NAME: the Supervisor may require the profile name to match a value it
+#     derives from the add-on slug, and the stable + edge channels must not collide on
+#     one host. Adjust the `profile <name>` line below if the Supervisor rejects it.
+#   - This is a GENEROUS starting point (broad reads; writes limited to /data, /tmp,
+#     and the home dirs). Tighten reads once the DENIED list is empty.
+#
+# Standalone Docker image: the same profile can harden `docker run` — see
+# docs/SECURITY.md. There it is opt-in (load with apparmor_parser, then
+# `--security-opt apparmor=aqualink_automate`); Docker's docker-default stays the
+# default. Keep this file and that guidance in sync.
+# ==============================================================================
+
+#include <tunables/global>
+
+profile aqualink_automate_edge flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/ssl_certs>
+
+  # ── Capabilities ───────────────────────────────────────────────────────────
+  # setuid/setgid + chown/dac_*: the entrypoint chowns /data and drops privileges
+  # via gosu when PUID != 0 (the standalone image path; the add-on runs PUID=0).
+  # net_bind_service: bind port 80 when not root.
+  capability setuid,
+  capability setgid,
+  capability chown,
+  capability fowner,
+  capability fsetid,
+  capability dac_override,
+  capability dac_read_search,
+  capability net_bind_service,
+  capability kill,
+
+  # tini (PID 1) and the entrypoint forward termination signals to their children.
+  signal (send,receive) set=(term,int,kill,hup,cont,usr1,usr2),
+
+  # ── Network ────────────────────────────────────────────────────────────────
+  # HTTP server (inbound), MQTT client + RFC2217 remote serial (outbound TCP), the
+  # Supervisor services API (http://supervisor), and DNS (dgram).
+  network inet  stream,
+  network inet6 stream,
+  network inet  dgram,
+  network inet6 dgram,
+  network netlink raw,
+
+  # ── Executables (the tini -> run.sh/bashio -> entrypoint -> gosu -> app chain) ─
+  /usr/bin/tini ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /usr/local/bin/** ix,
+  /sbin/** ix,
+  /usr/sbin/** ix,
+  /usr/lib/bashio/** rix,
+  /opt/aqualink-automate/bin/aqualink-automate ix,
+  # Matter sidecar (node) — disabled in the add-on, allowed so one profile also
+  # covers the standalone image where Matter is on by default.
+  /opt/matter-bridge/** r,
+
+  # ── Shared libraries ───────────────────────────────────────────────────────
+  /{usr/,}lib/** mr,
+  /{usr/,}lib{32,64}/** mr,
+  /opt/aqualink-automate/lib/** mr,
+
+  # ── App tree + config (read-only) ──────────────────────────────────────────
+  /opt/aqualink-automate/** r,
+  /etc/aqualink-automate/ r,
+  /etc/aqualink-automate/** r,
+  /run.sh r,
+
+  # ── Persistent state (the add-on's /data volume) ───────────────────────────
+  /data/ rw,
+  /data/** rwk,
+
+  # Home dirs: root (PUID=0, the add-on) and the bundled aqualink user (standalone).
+  /root/ rw,
+  /root/** rwk,
+  /home/aqualink/ rw,
+  /home/aqualink/** rwk,
+  /tmp/ rw,
+  /tmp/** rwk,
+
+  # ── Serial devices (RS-485 adapter) ────────────────────────────────────────
+  # USB-RS485 enumerations, on-board UARTs, and the stable by-id symlinks that HA's
+  # `uart: true` maps in. The device cgroup allowance is separate (handled by uart).
+  /dev/ttyUSB[0-9]* rw,
+  /dev/ttyACM[0-9]* rw,
+  /dev/ttyAMA[0-9]* rw,
+  /dev/ttyS[0-9]* rw,
+  /dev/serial/ r,
+  /dev/serial/** rw,
+
+  # ── Standard device + proc/sys reads ───────────────────────────────────────
+  /dev/tty rw,
+  /dev/ptmx rw,
+  /dev/pts/* rw,
+  /dev/null rw,
+  /dev/zero rw,
+  /dev/full rw,
+  /dev/random r,
+  /dev/urandom r,
+  @{PROC}/ r,
+  @{PROC}/** r,
+  @{PROC}/sys/kernel/random/uuid r,
+  /sys/** r,
+}

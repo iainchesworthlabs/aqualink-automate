@@ -18,3 +18,5 @@
   (`translations/en.yaml`).
 - Two channels: **Aqualink Automate** (stable) and **Aqualink Automate (Edge)**
   (beta, tracks the newest prerelease).
+- Liveness watchdog: Home Assistant restarts the add-on if the app stops answering
+  its `/api/health` probe (e.g. a hung poll loop).

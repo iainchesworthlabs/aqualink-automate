@@ -71,6 +71,17 @@ $bld = Get-Content -Raw -LiteralPath $buildPath
 $bld = [regex]::Replace($bld, '(ghcr\.io/[^"'':\s]+:)[^"''\s]+', { param($m) $m.Groups[1].Value + $edgeVersion })
 Set-Content -NoNewline -LiteralPath $buildPath -Value ($banner + "`n" + $bld)
 
+# ── apparmor.txt(.draft): the AppArmor profile name must be the edge slug, so the
+#    stable and edge channels don't collide on one host when both are active. ──────
+foreach ($aa in @('apparmor.txt', 'apparmor.txt.draft')) {
+    $aaPath = Join-Path $dest $aa
+    if (Test-Path $aaPath) {
+        $aaText = Get-Content -Raw -LiteralPath $aaPath
+        $aaText = $aaText -replace '(?m)^(profile\s+)aqualink_automate(\s+flags=)', ('${1}aqualink_automate_edge${2}')
+        Set-Content -NoNewline -LiteralPath $aaPath -Value $aaText
+    }
+}
+
 # ── README: a short generated/beta note on top ──────────────────────────────────
 $readmePath = Join-Path $dest 'README.md'
 if (Test-Path $readmePath) {
