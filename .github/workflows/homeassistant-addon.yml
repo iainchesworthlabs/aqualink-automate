@@ -33,14 +33,29 @@ jobs:
       - name: YAML parses
         run: |
           for f in homeassistant/repository.yaml \
-                   homeassistant/aqualink-automate/config.yaml \
-                   homeassistant/aqualink-automate/build.yaml \
-                   homeassistant/aqualink-automate/translations/*.yaml; do
+                   homeassistant/*/config.yaml \
+                   homeassistant/*/build.yaml \
+                   homeassistant/*/translations/*.yaml; do
             echo "::group::$f"
             python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$f"
             echo "OK"
             echo "::endgroup::"
           done
+
+      # The Edge (beta) channel add-on is GENERATED from the stable one. Regenerate
+      # and fail on any diff, so the two channels can never drift by hand.
+      - name: Edge channel is generated (no drift)
+        shell: pwsh
+        run: |
+          ./scripts/gen-homeassistant-edge-addon.ps1 -Root $PWD
+          $dirty = git status --porcelain -- homeassistant/aqualink-automate-edge
+          if ($dirty) {
+            Write-Host "::error::homeassistant/aqualink-automate-edge is stale. Run scripts/gen-homeassistant-edge-addon.ps1 and commit."
+            git --no-pager diff -- homeassistant/aqualink-automate-edge
+            git --no-pager status --porcelain -- homeassistant/aqualink-automate-edge
+            exit 1
+          }
+          Write-Host "Edge channel matches the generator output."
 
       # Guard the options translations against drift: every locale must document
       # exactly the config.yaml `options:` keys (configuration:) and `ports:` keys
@@ -69,9 +84,9 @@ jobs:
       - name: run.sh passes shellcheck
         run: shellcheck --shell=bash homeassistant/aqualink-automate/run.sh
 
-      # Internal lock-step: config.yaml `version` == every build.yaml build_from tag.
-      # Same script the release pipeline uses as the single writer (set mode) — here
-      # in check mode, so CI and release can never disagree on the rule.
-      - name: Version lock-step (config.yaml <-> build.yaml base image)
+      # Internal lock-step for BOTH channels: each config.yaml `version` == every
+      # build.yaml build_from tag. Same script the release pipeline uses as the single
+      # writer (set mode) — here in check mode, so CI and release never disagree.
+      - name: Version lock-step (both channels)
         shell: pwsh
         run: ./scripts/sync-homeassistant-addon-version.ps1 -Check -Root $PWD

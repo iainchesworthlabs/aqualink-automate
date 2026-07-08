@@ -227,8 +227,20 @@ lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
   `config.yaml` `options:` (configuration:) and `ports:` (network:) keys — no missing, no
   extra — mirroring the web UI's i18n key guard. Add a locale = drop in another
   `translations/<lang>.yaml`.
-- **Release channel** — decide whether the add-on tracks `stable` vs an `edge`/beta channel
-  (mirrors the image's `latest`/`edge` tags).
+- **Release channel — DONE (stable + edge, generated).** The repository exposes two
+  add-ons: `aqualink-automate` (stable channel; tracks the latest stable release) and
+  `aqualink-automate-edge` (`stage: experimental`; tracks the latest prerelease). Both
+  pull the **same** `homeassistant-{arch}` image family — only the `version` pointer
+  differs — so no extra images. The edge folder is **generated** from the stable one by
+  `scripts/gen-homeassistant-edge-addon.ps1` (identity + version overrides only; run.sh /
+  Dockerfile / translations copied verbatim), and the `Home Assistant Add-on` CI job
+  regenerates + fails on any diff, so the channels cannot drift by hand. Channel versions
+  are independent: `sync-homeassistant-addon-version.ps1 -Channel {stable|edge} -Version`
+  bumps one channel (the generator preserves the edge version across regenerations), and
+  `release.yml` checks the channel matching the release's prerelease-ness. **Pre-1.0:** no
+  stable release exists yet, so the stable channel is also marked `experimental` and both
+  currently track the newest release; flip stable to `stage: stable` at the first
+  non-prerelease release.
 
 ### Phase 3 — hardware reach & security hardening
 

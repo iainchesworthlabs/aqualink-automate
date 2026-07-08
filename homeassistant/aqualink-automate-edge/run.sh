@@ -1,0 +1,115 @@
+#!/usr/bin/env bashio
+# shellcheck shell=bash
+#
+# Add-on entrypoint. Reads the Home Assistant options form (/data/options.json) and
+# the injected MQTT service, assembles the app's CLI flags, and hands off to the
+# base image's docker-entrypoint.sh (which owns privilege handling + process launch).
+set -euo pipefail
+
+# Run as root inside the add-on (the Home Assistant norm — simplest for serial-device
+# and /data access), so skip the base image's PUID/PGID privilege drop.
+export PUID=0 PGID=0
+
+# The Matter bridge sidecar is not part of the Phase 1 add-on: Home Assistant is
+# already a Matter controller, and mDNS commissioning needs host networking. Devices
+# surface through MQTT discovery instead. (Matter is a later phase.)
+export MATTER_ENABLED=false
+
+# /data is the add-on's persistent volume — state written here survives restarts and
+# add-on updates.
+readonly DATA=/data
+
+# Base flags: bind all interfaces on port 80 (the ingress_port; also the opt-in
+# direct port). Plain HTTP — TLS is terminated by Home Assistant's ingress proxy.
+args=("--address" "0.0.0.0" "--http-port" "80" "--disable-https")
+
+# Auth stays OFF: ingress fronts the UI with Home Assistant's own authentication, so
+# the app's identity system is left disabled (auth-mode defaults to disabled).
+
+# ── Persistent app state (always on /data; not surfaced in the form) ────────────
+# The app UI's own preferences and the instant-restart equipment cache are app state
+# HA does not replace, so always persist them under /data.
+args+=("--preferences-file" "${DATA}/preferences.json")
+args+=("--equipment-cache-file" "${DATA}/equipment-cache.json")
+
+# ── Serial transport ───────────────────────────────────────────────────────────
+serial_mode="$(bashio::config 'serial_mode')"
+if [ "${serial_mode}" = "usb" ]; then
+    if bashio::config.has_value 'serial_port'; then
+        args+=("--serial-port" "$(bashio::config 'serial_port')")
+    else
+        bashio::exit.nok "serial_mode is 'usb' but no serial_port was selected."
+    fi
+else
+    if bashio::config.has_value 'remote_serial_port'; then
+        args+=("--remote-serial-port" "$(bashio::config 'remote_serial_port')")
+        case "$(bashio::config 'remote_protocol')" in
+            rfc2217) args+=("--rfc2217") ;;
+            rawtcp)  args+=("--rawtcp") ;;
+            plain)   args+=("--no-rfc2217") ;;
+        esac
+    else
+        bashio::exit.nok "serial_mode is 'network' but no remote_serial_port was set."
+    fi
+fi
+
+# ── Equipment / Jandy (advanced) ───────────────────────────────────────────────
+args+=("--pool-configuration" "$(bashio::config 'pool_configuration')")
+args+=("--jandy-device-type" "$(bashio::config 'jandy_device_type')")
+args+=("--jandy-device-id" "$(bashio::config 'jandy_device_id')")
+
+# ── MQTT ───────────────────────────────────────────────────────────────────────
+mqtt_mode="$(bashio::config 'mqtt_mode')"
+if [ "${mqtt_mode}" = "auto" ]; then
+    if bashio::services.available 'mqtt'; then
+        args+=("--mqtt")
+        args+=("--mqtt-host" "$(bashio::services 'mqtt' 'host')")
+        args+=("--mqtt-port" "$(bashio::services 'mqtt' 'port')")
+        if bashio::var.has_value "$(bashio::services 'mqtt' 'username')"; then
+            args+=("--mqtt-username" "$(bashio::services 'mqtt' 'username')")
+            args+=("--mqtt-password" "$(bashio::services 'mqtt' 'password')")
+        fi
+        if [ "$(bashio::services 'mqtt' 'ssl')" = "true" ]; then
+            args+=("--mqtt-tls")
+        fi
+        bashio::log.info "MQTT auto-configured from the Home Assistant broker."
+    else
+        bashio::log.warning "mqtt_mode=auto but no MQTT service is available; running without MQTT."
+    fi
+elif [ "${mqtt_mode}" = "manual" ]; then
+    args+=("--mqtt" "--mqtt-host" "$(bashio::config 'mqtt_host')" "--mqtt-port" "$(bashio::config 'mqtt_port')")
+    if bashio::config.has_value 'mqtt_username'; then
+        args+=("--mqtt-username" "$(bashio::config 'mqtt_username')")
+        args+=("--mqtt-password" "$(bashio::config 'mqtt_password')")
+    fi
+    if bashio::config.true 'mqtt_tls'; then
+        args+=("--mqtt-tls")
+    fi
+fi
+
+# Home Assistant MQTT discovery rides on top of MQTT (never valid when disabled).
+if [ "${mqtt_mode}" != "disabled" ] && bashio::config.true 'home_assistant_discovery'; then
+    args+=("--home-assistant")
+fi
+
+# ── History (opt-in; default OFF → use HA's Recorder) ──────────────────────────
+if bashio::config.true 'enable_history'; then
+    args+=("--history-db" "${DATA}/history.db")
+    bashio::log.info "App history enabled (${DATA}/history.db)."
+fi
+
+# ── Scheduler (opt-in; default OFF → use HA automations) ───────────────────────
+if bashio::config.true 'enable_scheduler'; then
+    args+=("--schedules-file" "${DATA}/schedules.json")
+    bashio::log.info "App scheduler enabled (${DATA}/schedules.json)."
+fi
+
+# ── Log level ──────────────────────────────────────────────────────────────────
+# Sinks stay at the default console sink so the add-on Log tab captures stdout.
+case "$(bashio::config 'log_level')" in
+    debug) args+=("--debug") ;;
+    trace) args+=("--trace") ;;
+esac
+
+bashio::log.info "Starting aqualink-automate..."
+exec /usr/local/bin/docker-entrypoint.sh "${args[@]}"

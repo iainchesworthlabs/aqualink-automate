@@ -3,49 +3,50 @@
 # Home Assistant add-on version lock-step (docs/design/homeassistant-addon.md).
 #
 # The add-on is a thin wrapper over the multi-arch image release.yml publishes to
-# GHCR. For that to work, THREE versions must agree:
+# GHCR. For that to work, THREE versions must agree PER CHANNEL:
 #
-#   1. homeassistant/aqualink-automate/config.yaml : version
-#   2. homeassistant/aqualink-automate/build.yaml  : every build_from tag
+#   1. <channel>/config.yaml : version
+#   2. <channel>/build.yaml  : every build_from tag
 #      (ghcr.io/iainchesworth/aqualink-automate:<tag>)
 #   3. the app release version the image was published under (no leading 'v')
 #
-# (1) == (2) is what the user sees vs the image that is actually pulled; (2) == (3)
-# is that the referenced image exists. This script is the single writer that keeps
-# them aligned and the checker CI runs to catch drift.
+# There are two channels (docs/design/homeassistant-addon.md):
+#   stable -> homeassistant/aqualink-automate       (tracks the latest stable release)
+#   edge   -> homeassistant/aqualink-automate-edge   (tracks the latest prerelease)
+#
+# A stable release bumps the stable channel; a prerelease bumps edge. This script is
+# the single writer that keeps (1)==(2) aligned and the checker CI/release run.
 #
 # Usage:
-#   Set   : ./scripts/sync-homeassistant-addon-version.ps1 -Version 0.12.0-beta.5 [-Root <repo>]
-#   Check : ./scripts/sync-homeassistant-addon-version.ps1 -Check [-Version <expected>] [-Root <repo>]
+#   Set   : ./scripts/sync-homeassistant-addon-version.ps1 -Channel edge -Version 0.14.0-beta.1 [-Root <repo>]
+#   Check : ./scripts/sync-homeassistant-addon-version.ps1 -Check [-Channel <c>] [-Version <expected>] [-Root <repo>]
 #
-#   -Version alone  : rewrite config.yaml + build.yaml to that version.
-#   -Check          : verify config.yaml == every build.yaml tag (internal consistency).
-#   -Check -Version : additionally require they equal <expected> (used at release time).
+#   -Channel          : stable (default) or edge — which channel folder to act on.
+#   -Version alone    : rewrite that channel's config.yaml + build.yaml to the version.
+#   -Check            : verify config.yaml == every build.yaml tag. With no -Channel,
+#                       checks EVERY channel that exists (stable + edge).
+#   -Check -Channel -Version : additionally require that channel == <expected> (release).
 #
 # Exit: 0 = ok / written, 1 = drift or bad input.
 
 param(
     [string]$Version,
     [switch]$Check,
+    [ValidateSet('stable', 'edge')]
+    [string]$Channel,
     [string]$Root = $PWD
 )
 
 $ErrorActionPreference = 'Stop'
 
-$configPath = Join-Path $Root 'homeassistant/aqualink-automate/config.yaml'
-$buildPath  = Join-Path $Root 'homeassistant/aqualink-automate/build.yaml'
-
-foreach ($p in @($configPath, $buildPath)) {
-    if (-not (Test-Path $p)) {
-        Write-Error "Add-on manifest not found: $p"
-        exit 1
-    }
+$channelDirs = [ordered]@{
+    stable = Join-Path $Root 'homeassistant/aqualink-automate'
+    edge   = Join-Path $Root 'homeassistant/aqualink-automate-edge'
 }
 
 # Accepted release version (no leading 'v'): M.M.P[-(alpha|beta|rc).N], mirroring
 # release.yml's resolve-version regex.
 $semverPattern = '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$'
-
 if ($Version -and ($Version -notmatch $semverPattern)) {
     Write-Error "Invalid -Version '$Version' (expected M.M.P[-(alpha|beta|rc).N], no leading 'v')."
     exit 1
@@ -56,50 +57,78 @@ if ($Version -and ($Version -notmatch $semverPattern)) {
 $configVersionRe = '(?m)^(?<pre>version:\s*")(?<ver>[^"]*)(?<post>")\s*$'
 $buildTagRe      = '(?<pre>ghcr\.io/[^"'':\s]+:)(?<ver>[^"''\s]+)'
 
-$configText = Get-Content -Raw -LiteralPath $configPath
-$buildText  = Get-Content -Raw -LiteralPath $buildPath
+function Set-ChannelVersion([string]$dir, [string]$version) {
+    $configPath = Join-Path $dir 'config.yaml'
+    $buildPath  = Join-Path $dir 'build.yaml'
+    $configText = Get-Content -Raw -LiteralPath $configPath
+    $buildText  = Get-Content -Raw -LiteralPath $buildPath
 
-# ── Set mode ────────────────────────────────────────────────────────────────────
-if ($Version -and -not $Check) {
-    $cm = [regex]::Match($configText, $configVersionRe)
-    if (-not $cm.Success) { Write-Error "Could not find a 'version:' key in $configPath"; exit 1 }
-    $newConfig = [regex]::Replace($configText, $configVersionRe, { param($m) $m.Groups['pre'].Value + $Version + $m.Groups['post'].Value })
+    if ($configText -notmatch $configVersionRe) { Write-Error "No 'version:' key in $configPath"; exit 1 }
+    if ($buildText  -notmatch $buildTagRe)       { Write-Error "No ghcr.io build_from image in $buildPath"; exit 1 }
 
-    if ($buildText -notmatch $buildTagRe) { Write-Error "Could not find a ghcr.io build_from image in $buildPath"; exit 1 }
-    $newBuild = [regex]::Replace($buildText, $buildTagRe, { param($m) $m.Groups['pre'].Value + $Version })
+    $newConfig = [regex]::Replace($configText, $configVersionRe, { param($m) $m.Groups['pre'].Value + $version + $m.Groups['post'].Value })
+    $newBuild  = [regex]::Replace($buildText,  $buildTagRe,      { param($m) $m.Groups['pre'].Value + $version })
 
     if ($newConfig -ne $configText) { Set-Content -NoNewline -LiteralPath $configPath -Value $newConfig }
     if ($newBuild  -ne $buildText)  { Set-Content -NoNewline -LiteralPath $buildPath  -Value $newBuild }
+    Write-Host "Synced '$dir' to version $version"
+}
 
-    Write-Host "Synced Home Assistant add-on to version $Version"
-    Write-Host "  config.yaml : $configPath"
-    Write-Host "  build.yaml  : $buildPath"
+# Returns $true when the channel is internally consistent (and == $expected if given).
+function Test-ChannelVersion([string]$name, [string]$dir, [string]$expected) {
+    $configPath = Join-Path $dir 'config.yaml'
+    $buildPath  = Join-Path $dir 'build.yaml'
+    $configText = Get-Content -Raw -LiteralPath $configPath
+    $buildText  = Get-Content -Raw -LiteralPath $buildPath
+
+    $cm = [regex]::Match($configText, $configVersionRe)
+    if (-not $cm.Success) { Write-Error "Could not read 'version:' from $configPath"; exit 1 }
+    $configVersion = $cm.Groups['ver'].Value
+
+    $tags = [regex]::Matches($buildText, $buildTagRe) | ForEach-Object { $_.Groups['ver'].Value }
+    if ($tags.Count -eq 0) { Write-Error "Could not read any build_from image tag from $buildPath"; exit 1 }
+
+    $ok = $true
+    Write-Host "[$name] config.yaml version : $configVersion"
+    foreach ($t in $tags) {
+        if ($t -ne $configVersion) {
+            Write-Host "::error::[$name] build.yaml image tag '$t' != config.yaml version '$configVersion'"
+            $ok = $false
+        } else {
+            Write-Host "[$name] build.yaml tag      : $t (match)"
+        }
+    }
+    if ($expected -and ($configVersion -ne $expected)) {
+        Write-Host "::error::[$name] add-on version '$configVersion' != expected release version '$expected'"
+        Write-Host "         Run: ./scripts/sync-homeassistant-addon-version.ps1 -Channel $name -Version $expected"
+        $ok = $false
+    }
+    return $ok
+}
+
+# ── Set mode ────────────────────────────────────────────────────────────────────
+if ($Version -and -not $Check) {
+    $ch = if ($Channel) { $Channel } else { 'stable' }
+    Set-ChannelVersion $channelDirs[$ch] $Version
     exit 0
 }
 
-# ── Check mode (default when -Version is absent, or explicit -Check) ─────────────
-$configMatch = [regex]::Match($configText, $configVersionRe)
-if (-not $configMatch.Success) { Write-Error "Could not read 'version:' from $configPath"; exit 1 }
-$configVersion = $configMatch.Groups['ver'].Value
-
-$buildTags = [regex]::Matches($buildText, $buildTagRe) | ForEach-Object { $_.Groups['ver'].Value }
-if ($buildTags.Count -eq 0) { Write-Error "Could not read any build_from image tag from $buildPath"; exit 1 }
-
-$ok = $true
-Write-Host "config.yaml version : $configVersion"
-foreach ($t in $buildTags) {
-    if ($t -ne $configVersion) {
-        Write-Host "::error::build.yaml image tag '$t' != config.yaml version '$configVersion'"
-        $ok = $false
-    } else {
-        Write-Host "build.yaml tag      : $t (match)"
-    }
+# ── Check mode ──────────────────────────────────────────────────────────────────
+if ($Version -and $Check -and -not $Channel) {
+    Write-Error "-Check -Version requires -Channel (which channel must equal <expected>)."
+    exit 1
 }
 
-if ($Version -and ($configVersion -ne $Version)) {
-    Write-Host "::error::add-on version '$configVersion' != expected release version '$Version'"
-    Write-Host "         Run: ./scripts/sync-homeassistant-addon-version.ps1 -Version $Version"
-    $ok = $false
+$channelsToCheck = if ($Channel) { @($Channel) } else { @('stable', 'edge') }
+$ok = $true
+foreach ($name in $channelsToCheck) {
+    $dir = $channelDirs[$name]
+    if (-not (Test-Path (Join-Path $dir 'config.yaml'))) {
+        if ($Channel) { Write-Error "Channel '$name' not found at $dir"; exit 1 }
+        continue  # a channel that does not exist yet is fine when scanning all
+    }
+    $expected = if ($Channel -and $Version) { $Version } else { $null }
+    if (-not (Test-ChannelVersion $name $dir $expected)) { $ok = $false }
 }
 
 if (-not $ok) { exit 1 }

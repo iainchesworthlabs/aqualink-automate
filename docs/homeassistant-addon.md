@@ -35,6 +35,12 @@ The add-on files live in this repository under
 2. **⋮ → Repositories**, add `https://github.com/iainchesworth/aqualink-automate`.
 3. Install **Aqualink Automate**, configure it, then **Start**.
 
+The repository offers two channels: **Aqualink Automate** (stable) and **Aqualink
+Automate (Edge)** (beta — tracks the newest prerelease). Install whichever you prefer;
+Edge is for trying the latest before it's stable. Don't run both against the same panel
+at once — they'd contend for the serial device and MQTT topics. *(Pre-1.0, no stable
+release exists yet, so both are marked experimental and track the newest release.)*
+
 ## Configuration
 
 The options form maps directly onto the application's settings (full reference:

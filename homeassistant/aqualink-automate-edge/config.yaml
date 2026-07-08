@@ -1,3 +1,5 @@
+# GENERATED from ../aqualink-automate by scripts/gen-homeassistant-edge-addon.ps1 — DO NOT EDIT.
+# Change the stable add-on, then re-run the generator and commit (CI enforces no drift).
 # Home Assistant add-on manifest for Aqualink Automate.
 #
 # Phase 1 (headless + MQTT + ingress): the add-on wraps the multi-arch image
@@ -6,9 +8,9 @@
 #
 # `version` MUST stay in lock-step with the base image tag in build.yaml (both are
 # the app release version). The CI lint/version check enforces this.
-name: Aqualink Automate
+name: Aqualink Automate (Edge)
 version: "0.12.0-beta.4"
-slug: aqualink_automate
+slug: aqualink_automate_edge
 # Pre-1.0: no stable release exists yet, so the main channel is marked experimental.
 # Flip to `stable` at the first non-prerelease release. The generated Edge channel
 # (aqualink-automate-edge, tracks the newest prerelease) stays `experimental`.
@@ -49,7 +51,7 @@ services:
 ingress: true
 ingress_port: 80
 panel_icon: mdi:pool
-panel_title: Aqualink
+panel_title: Aqualink (Edge)
 # Opt-in direct LAN port: defined but NOT published by default (null). A user who
 # wants direct access can assign a host port in the add-on's Network panel. Note:
 # the direct port is UNAUTHENTICATED (ingress is the secured path) — firewall it.
