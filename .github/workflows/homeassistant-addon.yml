@@ -48,11 +48,14 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/gen-homeassistant-edge-addon.ps1 -Root $PWD
-          $dirty = git status --porcelain -- homeassistant/aqualink-automate-edge
+          # Compare CONTENT only: -c core.fileMode=false ignores the run.sh exec bit,
+          # which the Dockerfile sets anyway and which pwsh Copy-Item may or may not
+          # preserve across OSes. The generator writes LF, so content is deterministic.
+          $dirty = git -c core.fileMode=false status --porcelain -- homeassistant/aqualink-automate-edge
           if ($dirty) {
             Write-Host "::error::homeassistant/aqualink-automate-edge is stale. Run scripts/gen-homeassistant-edge-addon.ps1 and commit."
-            git --no-pager diff -- homeassistant/aqualink-automate-edge
-            git --no-pager status --porcelain -- homeassistant/aqualink-automate-edge
+            git -c core.fileMode=false --no-pager diff -- homeassistant/aqualink-automate-edge
+            git -c core.fileMode=false --no-pager status --porcelain -- homeassistant/aqualink-automate-edge
             exit 1
           }
           Write-Host "Edge channel matches the generator output."

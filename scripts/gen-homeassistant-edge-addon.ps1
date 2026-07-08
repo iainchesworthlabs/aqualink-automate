@@ -50,6 +50,14 @@ if (-not $edgeVersion) { $edgeVersion = $srcVersion }
 if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
 Copy-Item -Recurse -LiteralPath $src -Destination $dest
 
+# Write text with UNIX (LF) line endings and no BOM, so the generator's output is
+# byte-identical on Windows and the Linux CI runner (the no-drift check runs on Linux).
+# PowerShell here-strings/Set-Content would otherwise emit CRLF on Windows.
+function Write-Lf([string]$path, [string]$text) {
+    $lf = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+    [System.IO.File]::WriteAllText($path, $lf, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 $banner = @"
 # GENERATED from ../aqualink-automate by scripts/gen-homeassistant-edge-addon.ps1 — DO NOT EDIT.
 # Change the stable add-on, then re-run the generator and commit (CI enforces no drift).
@@ -63,13 +71,13 @@ $cfg = $cfg -replace '(?m)^slug:\s*.*$',        'slug: aqualink_automate_edge'
 $cfg = $cfg -replace '(?m)^stage:\s*.*$',       'stage: experimental'
 $cfg = $cfg -replace '(?m)^panel_title:\s*.*$', 'panel_title: Aqualink (Edge)'
 $cfg = $cfg -replace '(?m)^version:\s*"[^"]*"', ('version: "' + $edgeVersion + '"')
-Set-Content -NoNewline -LiteralPath $configPath -Value ($banner + "`n" + $cfg)
+Write-Lf $configPath ($banner + "`n" + $cfg)
 
 # ── build.yaml: base-image tag == edge version ──────────────────────────────────
 $buildPath = Join-Path $dest 'build.yaml'
 $bld = Get-Content -Raw -LiteralPath $buildPath
 $bld = [regex]::Replace($bld, '(ghcr\.io/[^"'':\s]+:)[^"''\s]+', { param($m) $m.Groups[1].Value + $edgeVersion })
-Set-Content -NoNewline -LiteralPath $buildPath -Value ($banner + "`n" + $bld)
+Write-Lf $buildPath ($banner + "`n" + $bld)
 
 # ── apparmor.txt(.draft): the AppArmor profile name must be the edge slug, so the
 #    stable and edge channels don't collide on one host when both are active. ──────
@@ -78,7 +86,7 @@ foreach ($aa in @('apparmor.txt', 'apparmor.txt.draft')) {
     if (Test-Path $aaPath) {
         $aaText = Get-Content -Raw -LiteralPath $aaPath
         $aaText = $aaText -replace '(?m)^(profile\s+)aqualink_automate(\s+flags=)', ('${1}aqualink_automate_edge${2}')
-        Set-Content -NoNewline -LiteralPath $aaPath -Value $aaText
+        Write-Lf $aaPath $aaText
     }
 }
 
@@ -87,7 +95,7 @@ $readmePath = Join-Path $dest 'README.md'
 if (Test-Path $readmePath) {
     $readme = Get-Content -Raw -LiteralPath $readmePath
     $note = "<!-- GENERATED from ../aqualink-automate — do not edit; see scripts/gen-homeassistant-edge-addon.ps1 -->`n`n> **Edge (beta) channel.** Tracks the newest prerelease. For the stable channel install **Aqualink Automate** instead.`n`n"
-    Set-Content -NoNewline -LiteralPath $readmePath -Value ($note + $readme)
+    Write-Lf $readmePath ($note + $readme)
 }
 
 Write-Host "Generated edge add-on at $dest (version $edgeVersion)"

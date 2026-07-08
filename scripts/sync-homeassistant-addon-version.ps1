@@ -57,6 +57,13 @@ if ($Version -and ($Version -notmatch $semverPattern)) {
 $configVersionRe = '(?m)^(?<pre>version:\s*")(?<ver>[^"]*)(?<post>")\s*$'
 $buildTagRe      = '(?<pre>ghcr\.io/[^"'':\s]+:)(?<ver>[^"''\s]+)'
 
+# Write with UNIX (LF) line endings and no BOM, so output is byte-identical on Windows
+# and Linux (the edge no-drift check runs on Linux CI).
+function Write-Lf([string]$path, [string]$text) {
+    $lf = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+    [System.IO.File]::WriteAllText($path, $lf, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 function Set-ChannelVersion([string]$dir, [string]$version) {
     $configPath = Join-Path $dir 'config.yaml'
     $buildPath  = Join-Path $dir 'build.yaml'
@@ -69,8 +76,8 @@ function Set-ChannelVersion([string]$dir, [string]$version) {
     $newConfig = [regex]::Replace($configText, $configVersionRe, { param($m) $m.Groups['pre'].Value + $version + $m.Groups['post'].Value })
     $newBuild  = [regex]::Replace($buildText,  $buildTagRe,      { param($m) $m.Groups['pre'].Value + $version })
 
-    if ($newConfig -ne $configText) { Set-Content -NoNewline -LiteralPath $configPath -Value $newConfig }
-    if ($newBuild  -ne $buildText)  { Set-Content -NoNewline -LiteralPath $buildPath  -Value $newBuild }
+    if ($newConfig -ne $configText) { Write-Lf $configPath $newConfig }
+    if ($newBuild  -ne $buildText)  { Write-Lf $buildPath  $newBuild }
     Write-Host "Synced '$dir' to version $version"
 }
 
