@@ -199,7 +199,8 @@ numbering below supersedes the original three-phase plan.
 
 `uart`/remote serial, `services: mqtt:want` auto-discovery, the options form, ingress
 (+ opt-in LAN port), HA-deferring defaults, the base-path frontend refactor, the version
-lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
+lock-step, and docs. Remaining **close-out** gates before it is truly shipped (run the
+step-by-step [HAOS test checklist](homeassistant-addon-haos-test.md)):
 
 - **Live HAOS install pass** — the three seams unverifiable without a Supervisor: ingress
   proxy end-to-end, the MQTT services-API handshake, and `uart` device mapping.
