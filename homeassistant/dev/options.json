@@ -1,0 +1,22 @@
+{
+  "serial_mode": "network",
+  "serial_port": "",
+  "remote_serial_port": "serial-stub:9999",
+  "remote_protocol": "plain",
+  "mqtt_mode": "disabled",
+  "mqtt_host": "",
+  "mqtt_port": 1883,
+  "mqtt_username": "",
+  "mqtt_password": "",
+  "mqtt_tls": false,
+  "home_assistant_discovery": false,
+  "enable_auth": false,
+  "auth_username": "admin",
+  "auth_password": "",
+  "log_level": "info",
+  "enable_history": false,
+  "enable_scheduler": false,
+  "pool_configuration": "auto",
+  "jandy_device_type": "onetouch",
+  "jandy_device_id": "0x41"
+}
