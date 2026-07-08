@@ -206,7 +206,10 @@ step-by-step [HAOS test checklist](homeassistant-addon-haos-test.md)):
   proxy end-to-end, the MQTT services-API handshake, and `uart` device mapping.
 - **First real add-on image build** — validates the bashio tarball URL/version and that
   `SUPERVISOR_TOKEN` reaches bashio on our non-s6 image (no `with-contenv`).
-- **`icon.png` / `logo.png`** store art.
+- **`icon.png` / `logo.png` store art — DONE.** Water-drop mark (the app favicon motif:
+  sky-blue drop + white ripples on a slate tile) — `icon.png` 256×256, `logo.png` 640×200
+  banner with the wordmark. In the stable folder; the generator copies them to edge. Source
+  SVGs render via `@resvg/resvg-js`. Confirm they look right in the store during the pass.
 - Green CI, un-draft, merge.
 
 ### Phase 2 — release integration & install robustness

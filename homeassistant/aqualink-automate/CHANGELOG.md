@@ -22,3 +22,4 @@
   its `/api/health` probe (e.g. a hung poll loop).
 - Optional **Require web UI login** (`enable_auth`) — protects the UI when you publish
   the direct LAN port; bootstraps an admin on first enable.
+- Add-on icon + logo (the app's water-drop mark).
