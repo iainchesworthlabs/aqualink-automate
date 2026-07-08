@@ -44,18 +44,9 @@ jobs:
       - name: run.sh passes shellcheck
         run: shellcheck --shell=bash homeassistant/aqualink-automate/run.sh
 
+      # Internal lock-step: config.yaml `version` == every build.yaml build_from tag.
+      # Same script the release pipeline uses as the single writer (set mode) — here
+      # in check mode, so CI and release can never disagree on the rule.
       - name: Version lock-step (config.yaml <-> build.yaml base image)
-        run: |
-          cfg="$(python3 -c "import yaml; print(yaml.safe_load(open('homeassistant/aqualink-automate/config.yaml'))['version'])")"
-          echo "config.yaml version: ${cfg}"
-          # Every build_from tag must be :<cfg>. Fail on any drift.
-          mapfile -t tags < <(python3 -c "import yaml; [print(v.rsplit(':',1)[1]) for v in yaml.safe_load(open('homeassistant/aqualink-automate/build.yaml'))['build_from'].values()]")
-          rc=0
-          for t in "${tags[@]}"; do
-            echo "build_from tag: ${t}"
-            if [ "${t}" != "${cfg}" ]; then
-              echo "::error::build_from tag '${t}' does not match config.yaml version '${cfg}'"
-              rc=1
-            fi
-          done
-          exit "${rc}"
+        shell: pwsh
+        run: ./scripts/sync-homeassistant-addon-version.ps1 -Check -Root $PWD

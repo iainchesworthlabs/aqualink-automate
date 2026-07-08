@@ -156,51 +156,96 @@ homeassistant/                      # users add THIS repo's URL as a custom repo
 build; nothing new compiles. The add-on `Dockerfile` only layers bashio + jq + `run.sh` on
 top of that image.
 
-## Options form → flag mapping (initial cut)
+## Options form → flag mapping (as shipped, Phase 1)
 
-| Add-on option | App flag | Notes |
+Assembled by `homeassistant/aqualink-automate/run.sh` (bashio → argv → the base image's
+`docker-entrypoint.sh`).
+
+| Add-on option | App flag / behaviour | Notes |
 |---|---|---|
-| `serial_port` (device dropdown, `uart: true`) | `--serial-port` | Mutually exclusive with remote. |
-| `remote_serial_port` (`host:port`) | `--remote-serial-port` | Selects network transport. |
-| `rfc2217` / `rawtcp` | `--rfc2217` / `--no-rfc2217` / `--rawtcp` | Remote-only. |
-| `mqtt_auto` (bool, default on) | `--mqtt --home-assistant` + injected broker | From `services: mqtt` (Services API). |
-| `mqtt_host` / `mqtt_port` / `mqtt_username` / `mqtt_password` / `mqtt_tls` | `--mqtt-*` | Manual broker override when `mqtt_auto` is off. |
-| `api_auth_token` | `--api-auth-token` | Optional; ingress (Phase 2) makes it redundant. |
-| `matter_enabled` (advanced, default off) | `MATTER_ENABLED` env + `host_network` | Off by default. |
-| `log_level` | app log flags | Map to the logging facade. |
-
-Exact option set is finalised during scaffolding against
-[docs/configuration.md](../configuration.md).
+| `serial_mode` = `usb` + `serial_port` (device picker, `uart: true`) | `--serial-port` | Mutually exclusive with the network transport. |
+| `serial_mode` = `network` + `remote_serial_port` + `remote_protocol` | `--remote-serial-port` + `--rfc2217` / `--rawtcp` / `--no-rfc2217` | `plain` → `--no-rfc2217`. |
+| `mqtt_mode` = `auto` | `--mqtt` (+ broker from the Supervisor services API) | Zero-config; from `services: mqtt:want`. |
+| `mqtt_mode` = `manual` + `mqtt_host/port/username/password/tls` | `--mqtt --mqtt-*` | External broker HA does not manage. |
+| `home_assistant_discovery` | `--home-assistant` | Ignored when `mqtt_mode: disabled`. |
+| `log_level` | `--debug` / `--trace` (else default) | Console sink → the add-on Log tab. |
+| `enable_history` | `--history-db /data/history.db` (else off) | Off by default → HA Recorder. |
+| `enable_scheduler` | `--schedules-file /data/schedules.json` (else off) | Off by default → HA automations. |
+| `pool_configuration`, `jandy_device_type`, `jandy_device_id` | `--pool-configuration` / `--jandy-device-*` | Advanced; defaults suit most. |
+| _(not surfaced)_ | `--preferences-file /data/preferences.json`, `--equipment-cache-file /data/equipment-cache.json` | Always persisted to `/data`. |
+| _(not surfaced)_ | `MATTER_ENABLED=false`, `PUID/PGID=0`, `--address 0.0.0.0 --http-port 80 --disable-https` | Fixed by the add-on. Auth stays off — ingress authenticates. |
 
 ## CI / release touches
 
 - **Add-on lint job** — run the official `home-assistant/actions` add-on linter over
   `homeassistant/` (cheap; catches manifest/schema drift). Add to [ci.yml](../../.github/workflows/ci.yml).
-- **Version lock-step** — the add-on `config.yaml` `version` must track the app release
-  version, mirroring the existing version-stamping. A small check (like the release
-  `version-check`) fails the build on drift.
+- **Version lock-step** — IMPLEMENTED. `scripts/sync-homeassistant-addon-version.ps1` is
+  the single writer/checker for `config.yaml` `version` + `build.yaml` build_from tags.
+  `-Version <v>` rewrites both (run in release prep); `-Check` verifies internal
+  consistency. The `Home Assistant Add-on` CI job runs `-Check` on every add-on change;
+  `release.yml`'s `resolve-version` runs `-Check -Version <release>` so a real release
+  **fails fast** unless the add-on was bumped to the release version.
 - **Arch gap (flagged, not silent):** CI builds `amd64` + `arm64` only. Older 32-bit Pis
   (Pi 3 / `armv7`/`armhf`) are common HA hosts and are **unsupported** until we add an
   `armv7` image to the release matrix (extra glibc-floor validation). Deferred by decision
   above — recorded here so it stays a conscious choice.
 
-## Phasing
+## Phasing (reconciled 2026-07-08)
 
-1. **Phase 1 — headless + MQTT (the 80% case).** Add-on repo dir, `uart` + remote serial,
-   `services: mqtt:want` auto-discovery, options form, UI on a direct mapped port. Ships
-   against today's image with **no app code change**.
-2. **Phase 2 — ingress.** Frontend base-path refactor (assets + `/api/*` + WebSocket) so the
-   UI embeds in the HA sidebar with HA-handled auth.
-3. **Phase 3 — polish.** `armv7` image, AppArmor profile, optional Matter toggle, docs +
-   cross-links from [mqtt-home-assistant.md](../mqtt-home-assistant.md) and
-   [INSTALL.md](../INSTALL.md).
+Ingress moved from Phase 2 into Phase 1 (see the reconciliation banner at the top), so the
+numbering below supersedes the original three-phase plan.
 
-## Open items to resolve during implementation
+### Phase 1 — headless + MQTT + ingress — **CODE COMPLETE** (branch `feat/home-assistant-addon`, PR #96)
 
-- Whether to reference the **multi-arch manifest** directly from `config.yaml` `image:` or
-  publish per-arch tags (`…-{arch}`) — HA supports both; the manifest path is simpler if the
-  Supervisor resolves the arch cleanly.
-- Final AppArmor posture (default profile vs a tailored one) for a container that opens a
-  serial device and binds an HTTP port.
-- Whether the add-on should offer a config-file mode (`--config` into `/data`) in addition to
-  argv assembly, for power users.
+`uart`/remote serial, `services: mqtt:want` auto-discovery, the options form, ingress
+(+ opt-in LAN port), HA-deferring defaults, the base-path frontend refactor, the version
+lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
+
+- **Live HAOS install pass** — the three seams unverifiable without a Supervisor: ingress
+  proxy end-to-end, the MQTT services-API handshake, and `uart` device mapping.
+- **First real add-on image build** — validates the bashio tarball URL/version and that
+  `SUPERVISOR_TOKEN` reaches bashio on our non-s6 image (no `with-contenv`).
+- **`icon.png` / `logo.png`** store art.
+- Green CI, un-draft, merge.
+
+### Phase 2 — release integration & install robustness
+
+- **Version lock-step automation — DONE** (`scripts/sync-homeassistant-addon-version.ps1`
+  + CI `-Check` + release `-Check -Version`; see CI/release touches above).
+- **Prebuilt add-on image** — publish the wrapper image per-arch to GHCR and reference it
+  via `config.yaml` `image:` instead of local-build, for faster/reproducible installs (no
+  on-device Docker build, no bashio fetch at install). Wire into `release.yml`.
+- **Add-on options translations** (`homeassistant/aqualink-automate/translations/en.yaml`)
+  — friendly labels/help per option; fits the app's own heavy i18n.
+- **Release channel** — decide whether the add-on tracks `stable` vs an `edge`/beta channel
+  (mirrors the image's `latest`/`edge` tags).
+
+### Phase 3 — hardware reach & security hardening
+
+- **`armv7`/`armhf` image** — 32-bit Pi support; needs a release-matrix entry + glibc-floor
+  validation.
+- **AppArmor profile** — a tailored profile for a container that opens a serial device and
+  binds a port. Consider it for **both** the standalone image and the HA add-on (the add-on
+  references its own `apparmor.txt`); the two share the same syscall/file surface.
+- **Opt-in LAN-port auth** — offer app `auth-mode` as a toggle when the direct (non-ingress)
+  port is enabled, so that path is not left unauthenticated.
+- **Health / watchdog under ingress** — settle the idiomatic add-on approach. The HA
+  `watchdog` keys off a published `[PORT]`, which is null by default here; options are a
+  restored (possibly fixed) host port for the watchdog, relying on the image's own Docker
+  `HEALTHCHECK`, or an ingress-compatible liveness mechanism.
+
+### Phase 4 — optional / advanced
+
+- **Matter inside the add-on** — needs `host_network: true` and reconciling with HA's own
+  Matter controller. Niche (MQTT discovery already covers HA).
+- **Native HACS integration** — the genuinely MQTT-free path (a Python component over the
+  REST/WS API). Slickest UX, but a separate deliverable in another repo/language.
+
+## Resolved / open items
+
+- **Multi-arch manifest vs per-arch tags** — RESOLVED for Phase 1: local-build `build.yaml`
+  `build_from` references the multi-arch manifest tag; Docker resolves the arch. Revisit if
+  Phase 2 switches to a prebuilt `image:`.
+- **AppArmor posture** — deferred to Phase 3 (above).
+- **Config-file mode** (`--config` into `/data`) vs argv assembly — still open; argv is the
+  Phase 1 choice.

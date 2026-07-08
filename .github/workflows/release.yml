@@ -132,6 +132,16 @@ jobs:
             exit 1
           fi
 
+      # Version lock-step: the Home Assistant add-on wraps the image this very release
+      # publishes, so config.yaml `version` + build.yaml build_from tags MUST equal the
+      # release version. Fail fast here (before any build) if the add-on was not bumped
+      # in release prep, so a released add-on can never point at an image that does not
+      # exist. Bump with: ./scripts/sync-homeassistant-addon-version.ps1 -Version <ver>
+      - name: Home Assistant add-on version lock-step
+        if: steps.resolve.outputs.is_dry_run != 'true'
+        shell: pwsh
+        run: ./scripts/sync-homeassistant-addon-version.ps1 -Check -Version ${{ steps.resolve.outputs.version }} -Root $PWD
+
   # Build + test + package on every platform via the same reusable workflow CI
   # uses, so the suites can never diverge between CI and release. do_package adds
   # cpack + the per-OS install/extract smoke test + the package artifact upload.
