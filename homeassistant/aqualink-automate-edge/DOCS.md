@@ -42,7 +42,7 @@ host port for `80/tcp` in the add-on's **Network** panel. That direct port is
 | Option | Description |
 |---|---|
 | `enable_auth` | Off by default (ingress provides login). Turn on to require an app login — mainly for a published direct LAN port, or if you want app-level users. |
-| `auth_username` / `auth_password` | The administrator created the first time login is enabled. **Set a password** (required when `enable_auth` is on). Users are stored under `/data`, so this account survives restarts; changing `auth_password` here later does **not** change the existing account — manage it from the app instead. |
+| `auth_username` / `auth_password` | The administrator created the first time login is enabled. **Set a password of at least 12 characters** (required when `enable_auth` is on — a shorter one is rejected at startup). Users are stored under `/data`, so this account survives restarts; changing `auth_password` here later does **not** change the existing account — manage it from the app instead. |
 
 With login enabled, the UI requires signing in over **both** ingress and the direct port.
 The `/api/health` liveness endpoint stays open, so the add-on watchdog keeps working.

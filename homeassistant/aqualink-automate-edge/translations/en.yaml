@@ -64,8 +64,9 @@ configuration:
   auth_password:
     name: Admin password
     description: >-
-      Password for that administrator (required when login is enabled). The app stores it
-      hashed; changing it here later does NOT change an already-created account.
+      Password for that administrator (required when login is enabled; at least 12
+      characters). The app stores it hashed; changing it here later does NOT change an
+      already-created account.
   log_level:
     name: Log level
     description: >-

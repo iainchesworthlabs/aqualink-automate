@@ -111,13 +111,17 @@ fi
 # password goes via env, not the command line, so it never shows in the process list.
 # /api/health stays unauthenticated, so the watchdog keeps working.
 if bashio::config.true 'enable_auth'; then
-    if ! bashio::config.has_value 'auth_password'; then
-        bashio::exit.nok "enable_auth is on but auth_password is empty — set a password."
+    auth_password="$(bashio::config 'auth_password')"
+    # The app rejects a bootstrap-admin password shorter than 12 characters, which
+    # would silently leave auth enabled with NO admin — a login wall nobody can pass.
+    # Fail fast here instead so the reason is obvious.
+    if [ "${#auth_password}" -lt 12 ]; then
+        bashio::exit.nok "enable_auth is on but auth_password is missing or too short — use at least 12 characters."
     fi
     mkdir -p "${DATA}/auth"
     args+=("--auth-mode" "enabled" "--auth-state-dir" "${DATA}/auth")
     args+=("--bootstrap-admin" "$(bashio::config 'auth_username')")
-    export AQUALINK_BOOTSTRAP_ADMIN_PASSWORD="$(bashio::config 'auth_password')"
+    export AQUALINK_BOOTSTRAP_ADMIN_PASSWORD="${auth_password}"
     bashio::log.info "Web UI authentication enabled (admin: $(bashio::config 'auth_username'))."
 fi
 
