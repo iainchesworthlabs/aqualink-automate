@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.12.0-beta.4
+## 0.12.0-beta.5
 
 - Initial Home Assistant add-on (Phase 1: headless + MQTT).
 - Wraps the published `ghcr.io/iainchesworth/aqualink-automate` image (`aarch64` +

@@ -9,7 +9,7 @@
 # `version` MUST stay in lock-step with the base image tag in build.yaml (both are
 # the app release version). The CI lint/version check enforces this.
 name: Aqualink Automate (Edge)
-version: "0.12.0-beta.4"
+version: "0.12.0-beta.5"
 slug: aqualink_automate_edge
 # Pre-1.0: no stable release exists yet, so the main channel is marked experimental.
 # Flip to `stable` at the first non-prerelease release. The generated Edge channel
