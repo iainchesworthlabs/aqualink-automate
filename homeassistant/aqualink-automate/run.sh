@@ -104,6 +104,23 @@ if bashio::config.true 'enable_scheduler'; then
     bashio::log.info "App scheduler enabled (${DATA}/schedules.json)."
 fi
 
+# ── Web UI authentication (opt-in; default OFF → ingress provides login) ────────
+# Enable this to protect the UI when you publish the direct LAN port (the direct
+# port is otherwise unauthenticated), or if you want app-level users via ingress.
+# The admin is bootstrapped on first start (a no-op once /data/auth has users); the
+# password goes via env, not the command line, so it never shows in the process list.
+# /api/health stays unauthenticated, so the watchdog keeps working.
+if bashio::config.true 'enable_auth'; then
+    if ! bashio::config.has_value 'auth_password'; then
+        bashio::exit.nok "enable_auth is on but auth_password is empty — set a password."
+    fi
+    mkdir -p "${DATA}/auth"
+    args+=("--auth-mode" "enabled" "--auth-state-dir" "${DATA}/auth")
+    args+=("--bootstrap-admin" "$(bashio::config 'auth_username')")
+    export AQUALINK_BOOTSTRAP_ADMIN_PASSWORD="$(bashio::config 'auth_password')"
+    bashio::log.info "Web UI authentication enabled (admin: $(bashio::config 'auth_username'))."
+fi
+
 # ── Log level ──────────────────────────────────────────────────────────────────
 # Sinks stay at the default console sink so the add-on Log tab captures stdout.
 case "$(bashio::config 'log_level')" in

@@ -51,6 +51,21 @@ configuration:
     description: >-
       Publish MQTT auto-discovery so your pool equipment appears in Home Assistant
       automatically. Requires MQTT to be enabled.
+  enable_auth:
+    name: Require web UI login
+    description: >-
+      Off by default — ingress already secures the UI with Home Assistant's login. Turn
+      this on to require a login on the direct LAN port (which is otherwise
+      unauthenticated), or if you want app-level users. Set a password below; the admin
+      account is created the first time this is enabled.
+  auth_username:
+    name: Admin username
+    description: Username for the administrator created when web UI login is first enabled.
+  auth_password:
+    name: Admin password
+    description: >-
+      Password for that administrator (required when login is enabled). The app stores it
+      hashed; changing it here later does NOT change an already-created account.
   log_level:
     name: Log level
     description: >-

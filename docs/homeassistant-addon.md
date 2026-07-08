@@ -61,7 +61,10 @@ The options form maps directly onto the application's settings (full reference:
   via **Open Web UI**, secured by your Home Assistant login and **not exposed on the
   LAN**. Because ingress provides authentication, the app's own auth is left off. For
   direct LAN access (e.g. a wall tablet), assign a host port to `80/tcp` in the add-on's
-  **Network** panel — that port is unauthenticated, so firewall it.
+  **Network** panel — that port is unauthenticated by default, so firewall it **or** turn
+  on `enable_auth` (with `auth_username`/`auth_password`) to make the app enforce its own
+  login there. The admin is bootstrapped on first enable; `/api/health` stays open so the
+  watchdog keeps working.
 - **Deferring to Home Assistant** — the app's own auth, history, and scheduler are
   **off by default**: Home Assistant provides login (via ingress), Recorder/History,
   and automations. `enable_history` / `enable_scheduler` turn the app's versions on

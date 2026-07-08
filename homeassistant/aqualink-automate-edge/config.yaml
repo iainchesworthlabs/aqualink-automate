@@ -82,6 +82,9 @@ options:
   mqtt_password: ""
   mqtt_tls: false
   home_assistant_discovery: true
+  enable_auth: false
+  auth_username: admin
+  auth_password: ""
   log_level: info
   enable_history: false
   enable_scheduler: false
@@ -103,6 +106,12 @@ schema:
   mqtt_password: password?
   mqtt_tls: bool
   home_assistant_discovery: bool
+  # Web UI login. Off by default — ingress fronts the UI with Home Assistant's own
+  # login. Turn ON (and set auth_password) if you publish the direct LAN port above,
+  # so that path is not left unauthenticated; the admin is created on first start.
+  enable_auth: bool
+  auth_username: str
+  auth_password: password?
   # Surfaced operationally; the HA add-on Log tab captures stdout.
   log_level: list(info|debug|trace)
   # Off by default — Home Assistant's Recorder/History and automations are the

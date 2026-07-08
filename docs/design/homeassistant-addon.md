@@ -276,8 +276,13 @@ lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
   for the edge channel so the two don't collide on one host. Standalone use is opt-in via
   `docs/SECURITY.md` (Docker's `docker-default` stays the default). **Activate only after
   the baseline HAOS install pass.**
-- **Opt-in LAN-port auth** — offer app `auth-mode` as a toggle when the direct (non-ingress)
-  port is enabled, so that path is not left unauthenticated. (Still open.)
+- **Opt-in LAN-port auth — DONE.** `enable_auth` (+ `auth_username`/`auth_password`) maps
+  to `--auth-mode enabled --auth-state-dir /data/auth --bootstrap-admin <user>`, with the
+  password passed via `AQUALINK_BOOTSTRAP_ADMIN_PASSWORD` env (never on the command line).
+  Off by default (ingress authenticates); turn on to secure a published direct LAN port or
+  for app-level users. The admin is bootstrapped on first enable (no-op once `/data/auth`
+  has users), and `/api/health` stays unauthenticated so the watchdog keeps working. run.sh
+  fails fast if `enable_auth` is on with no password.
 - **Health / watchdog under ingress — DONE.** `config.yaml` sets
   `watchdog: "http://[HOST]:80/api/health"` — the Supervisor reaches the container over the
   internal hassio network on the fixed container port 80 (NOT the unset `[PORT:80]` host
