@@ -24,7 +24,9 @@ The add-on files live in this repository under
   the application with the project's [`docker-compose.yml`](../docker-compose.yml) or a
   native package instead (see [INSTALL.md](INSTALL.md)).
 - A host architecture of **`aarch64`** (64-bit Pi 4/5, most HAOS installs) or
-  **`amd64`**. 32-bit `armv7`/`armhf` (Pi 3 and older 32-bit HAOS) is not yet built.
+  **`amd64`**. 32-bit `armv7`/`armhf` (Pi 3 and older 32-bit HAOS) is **not supported** —
+  the add-on won't appear in the store on those hosts. Use a 64-bit host (Pi 4/5, a
+  64-bit OS on a Pi 3, or an x86 box).
 - An RS-485 link to the panel: a USB-RS485 adapter on the Home Assistant host, or a
   serial-over-ethernet adapter on the LAN. See
   [RS-485 connectivity](hardware-rs485-connectivity.md) for wiring.

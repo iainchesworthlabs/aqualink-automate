@@ -244,8 +244,28 @@ lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
 
 ### Phase 3 — hardware reach & security hardening
 
-- **`armv7`/`armhf` image** — 32-bit Pi support; needs a release-matrix entry + glibc-floor
-  validation.
+- **`armv7`/`armhf` image — DEFERRED (documented unsupported, 2026-07-08).** 32-bit ARM is
+  a whole-pipeline effort, not an add-on change, and was deferred after a feasibility pass.
+  Blockers, so the next session need not re-investigate:
+  1. **No 32-bit ARM runner** — amd64/arm64 both build natively (`ubuntu-latest` /
+     `ubuntu-24.04-arm`); GitHub has no 32-bit ARM host. armv7 needs a cross toolchain
+     (`arm-linux-gnueabihf` + a vcpkg cross triplet) or slow QEMU (`linux/arm/v7`), where
+     the heavy Boost/OpenSSL TUs risk OOM under the 32-bit 4 GB per-process ceiling.
+  2. **Node/Matter blocker** — the runtime image `apt-get install nodejs` from NodeSource
+     `node_24.x` has no armhf package (32-bit ARM was dropped as an official Node target),
+     so the image build fails at that step; armv7 would need a conditional Node install and
+     ship with no Matter.
+  3. **vcpkg `arm-linux` unverified** — no triplet in-repo; all 29 deps (heavy Boost set,
+     OpenSSL, async-mqtt, libsodium, sqlite3, tracy, boost-stacktrace) must build on the
+     community 32-bit ARM triplet — the make-or-break gate.
+  4. **32-bit correctness unaudited** — Y2038/`time_t` (`_TIME_BITS=64`), pointer/`size_t`
+     width, and the GCC-only UB class; needs a real Pi 3 run.
+
+  The add-on `arch:` already excludes armv7, so 32-bit hosts simply don't see it in the
+  store (clean, not broken). Revisit only on real Pi 3 / 32-bit HAOS demand — the base is
+  shrinking (Pi 4/5 + modern HAOS are arm64). If revisited, spike the vcpkg cross-build
+  first (author `arm-linux` triplet + toolchain + a gated `vcpkg install` CI job) before
+  committing to the full pipeline.
 - **AppArmor profile — AUTHORED, STAGED (not yet enforced).** One tailored profile at
   `homeassistant/aqualink-automate/apparmor.txt.draft` covers both the add-on and the
   standalone image (same serial + network + exec surface; broad reads, writes confined to
