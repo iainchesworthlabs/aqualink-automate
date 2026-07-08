@@ -1,0 +1,63 @@
+# Local smoke-test harness for the Home Assistant add-on — NOT the add-on itself
+# (no config.yaml here, so the Supervisor and the edge generator both ignore this folder).
+#
+# It simulates just enough of the Supervisor to exercise run.sh + the app WITHOUT a real
+# Home Assistant: a mock Supervisor API (add-on options + mqtt service), a dummy RS-485
+# endpoint, and the wrapper image built from the stable Dockerfile.
+#
+# Usage:
+#   docker compose up --build
+#   curl localhost:8099/api/health          # -> {"status":"ok",...}
+#   # edit options.json, then:  docker compose restart addon
+#
+# BUILD_FROM selects the base app image. Default is the last published release; to test
+# THIS branch's frontend/flags faithfully, build a base from source and set
+# BUILD_FROM=<that image> (the published base predates the ingress frontend).
+#
+# NOT covered here (needs real Home Assistant OS): ingress + the base-path frontend, a
+# live MQTT broker + entity discovery, and uart device mapping.
+name: aqualink-addon-dev
+
+services:
+  # Mock Supervisor API that bashio queries (http://supervisor/...).
+  supervisor:
+    image: node:24-bookworm-slim
+    command: ["node", "/harness/mock-supervisor.js"]
+    volumes:
+      - ./mock-supervisor.js:/harness/mock-supervisor.js:ro
+      - ./options.json:/harness/options.json:ro
+    networks:
+      default:
+        aliases: [supervisor]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost/services/mqtt',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  # Dummy RS-485 endpoint: the app EXITS if serial can't connect, so give it something
+  # to hold a socket open (no data flows — this only keeps the app running).
+  serial-stub:
+    image: busybox
+    command: ["sh", "-c", "while true; do nc -l -p 9999 >/dev/null 2>&1; done"]
+
+  # The add-on wrapper, built from the stable Dockerfile, pointed at the mock Supervisor.
+  addon:
+    build:
+      context: ../aqualink-automate
+      args:
+        BUILD_FROM: "${BUILD_FROM:-ghcr.io/iainchesworth/aqualink-automate:0.12.0-beta.4}"
+    environment:
+      SUPERVISOR_TOKEN: dev-token
+    ports:
+      - "8099:80"
+    volumes:
+      - addon-data:/data
+    depends_on:
+      supervisor:
+        condition: service_healthy
+      serial-stub:
+        condition: service_started
+
+volumes:
+  addon-data:

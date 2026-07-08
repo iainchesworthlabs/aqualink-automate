@@ -17,6 +17,10 @@ This is the single authoritative guide for getting Aqualink Automate onto a mach
 - [Development container](#development-container)
 - [Docker](#docker)
 
+**Running Home Assistant OS / Supervised?** You can install Aqualink Automate as a
+managed Home Assistant add-on instead of running Docker yourself — see
+[Running as a Home Assistant add-on](homeassistant-addon.md).
+
 ## Linux: APT / DNF repository (recommended)
 
 On Debian / Ubuntu / **Raspberry Pi OS** (`amd64` or `arm64`), add the signed APT

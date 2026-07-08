@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.12.0-beta.5] - 2026-07-08
+
+The first release of the **Home Assistant add-on**. This is a pre-release intended for testing the add-on on real Home Assistant OS.
+
+### Added
+
+- **Home Assistant add-on.** Aqualink Automate can now be installed as a Home Assistant add-on on Home Assistant OS / Supervised — the Supervisor runs and manages the container, so there is no Docker to operate by hand. Highlights:
+  - **Install & configure from a form.** USB-RS485 (device picker) or serial-over-ethernet, and **zero-config MQTT** that auto-discovers the Home Assistant broker (entity discovery on by default). Every option has a localised label and help text.
+  - **Web UI via ingress** — in the sidebar, behind Home Assistant's login, not exposed on the LAN — plus an opt-in direct LAN port (with an optional built-in login) for cases like a wall tablet.
+  - **Defers to Home Assistant by default** — the app's own auth, history, and scheduler are off, using Home Assistant's login, Recorder, and automations instead; each is an opt-in toggle.
+  - **Two channels** — *Aqualink Automate* (stable) and *Aqualink Automate (Edge)* (tracks the newest pre-release) — installed from **prebuilt per-arch images** (`aarch64` + `amd64`), so installation is a quick download.
+  - A **liveness watchdog** restarts the add-on if the app stops responding. A tailored AppArmor profile ships staged for validation.
+
+  See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
+### Changed
+
+- **Web UI is now base-path aware.** The UI derives its base prefix from the document location (it uses hash routing) and rebases API, WebSocket, and asset URLs onto it, so it works both when served at the site root and under a path prefix such as Home Assistant ingress. No change to how it behaves when served directly.
+
 ## [0.12.0-beta.4] - 2026-07-07
 
 A release-integrity update: release artifacts now carry verifiable build provenance and optional signatures, and the codebase gains a broad compile-time (`constexpr`/`consteval`) pass. No functional or configuration changes.

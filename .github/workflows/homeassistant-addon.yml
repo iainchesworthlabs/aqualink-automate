@@ -1,0 +1,95 @@
+name: Home Assistant Add-on
+
+# Validates the add-on wrapper under homeassistant/ whenever it changes: YAML
+# parses, run.sh passes shellcheck, and the add-on version stays in lock-step with
+# the base-image tag it builds from (config.yaml `version` == build.yaml build_from
+# tag). Cheap, self-contained (no third-party actions to pin), and catches the
+# drift that would otherwise ship a broken repository.yaml or a mismatched image.
+on:
+  push:
+    branches: ["main", "develop"]
+    paths: ["homeassistant/**", ".github/workflows/homeassistant-addon.yml"]
+  pull_request:
+    branches: ["develop", "main"]
+    paths: ["homeassistant/**", ".github/workflows/homeassistant-addon.yml"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate add-on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install YAML parser
+        run: sudo apt-get update && sudo apt-get install -y python3-yaml shellcheck
+
+      - name: YAML parses
+        run: |
+          for f in homeassistant/repository.yaml \
+                   homeassistant/*/config.yaml \
+                   homeassistant/*/build.yaml \
+                   homeassistant/*/translations/*.yaml; do
+            echo "::group::$f"
+            python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$f"
+            echo "OK"
+            echo "::endgroup::"
+          done
+
+      # The Edge (beta) channel add-on is GENERATED from the stable one. Regenerate
+      # and fail on any diff, so the two channels can never drift by hand.
+      - name: Edge channel is generated (no drift)
+        shell: pwsh
+        run: |
+          ./scripts/gen-homeassistant-edge-addon.ps1 -Root $PWD
+          # Compare CONTENT only: -c core.fileMode=false ignores the run.sh exec bit,
+          # which the Dockerfile sets anyway and which pwsh Copy-Item may or may not
+          # preserve across OSes. The generator writes LF, so content is deterministic.
+          $dirty = git -c core.fileMode=false status --porcelain -- homeassistant/aqualink-automate-edge
+          if ($dirty) {
+            Write-Host "::error::homeassistant/aqualink-automate-edge is stale. Run scripts/gen-homeassistant-edge-addon.ps1 and commit."
+            git -c core.fileMode=false --no-pager diff -- homeassistant/aqualink-automate-edge
+            git -c core.fileMode=false --no-pager status --porcelain -- homeassistant/aqualink-automate-edge
+            exit 1
+          }
+          Write-Host "Edge channel matches the generator output."
+
+      # Guard the options translations against drift: every locale must document
+      # exactly the config.yaml `options:` keys (configuration:) and `ports:` keys
+      # (network:) — no missing, no extra. Mirrors the web UI's i18n key check.
+      - name: Options translations cover config.yaml
+        run: |
+          python3 - <<'PY'
+          import glob, sys, yaml
+          cfg = yaml.safe_load(open('homeassistant/aqualink-automate/config.yaml'))
+          options = set((cfg.get('options') or {}).keys())
+          ports = set((cfg.get('ports') or {}).keys())
+          rc = 0
+          for path in sorted(glob.glob('homeassistant/aqualink-automate/translations/*.yaml')):
+              tr = yaml.safe_load(open(path)) or {}
+              conf = set((tr.get('configuration') or {}).keys())
+              net = set((tr.get('network') or {}).keys())
+              for label, have, want in (('configuration', conf, options), ('network', net, ports)):
+                  missing, extra = want - have, have - want
+                  if missing: print(f"::error file={path}::{label}: missing {sorted(missing)}"); rc = 1
+                  if extra:   print(f"::error file={path}::{label}: unknown {sorted(extra)}"); rc = 1
+              if not (conf ^ options) and not (net ^ ports):
+                  print(f"OK {path}")
+          sys.exit(rc)
+          PY
+
+      - name: run.sh passes shellcheck
+        run: shellcheck --shell=bash homeassistant/aqualink-automate/run.sh
+
+      # Internal lock-step for BOTH channels: each config.yaml `version` == every
+      # build.yaml build_from tag. Same script the release pipeline uses as the single
+      # writer (set mode) — here in check mode, so CI and release never disagree.
+      - name: Version lock-step (both channels)
+        shell: pwsh
+        run: ./scripts/sync-homeassistant-addon-version.ps1 -Check -Root $PWD

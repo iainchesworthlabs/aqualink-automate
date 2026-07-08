@@ -4,6 +4,8 @@
 
 This guide covers the MQTT control and telemetry surface: how to connect, the complete topic scheme, command and response topics, and Home Assistant auto-discovery — including a worked `Filter Pump` example and copy-paste mosquitto and Home Assistant setup.
 
+**On Home Assistant OS / Supervised?** The [Home Assistant add-on](homeassistant-addon.md) wires all of this up for you — it auto-discovers the broker through the Supervisor and enables discovery by default, so you can skip the manual MQTT setup below.
+
 ## Overview
 
 MQTT is **off by default**. It is opt-in via the `--mqtt` flag; with MQTT disabled the integration is never created. Once enabled, the application connects to your broker and publishes:

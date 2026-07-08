@@ -132,6 +132,21 @@ jobs:
             exit 1
           fi
 
+      # Version lock-step: the Home Assistant add-on wraps the image this very release
+      # publishes, so the RELEASED channel's config.yaml `version` + build.yaml build_from
+      # tags MUST equal the release version. A prerelease releases the `edge` channel; a
+      # stable release the `stable` channel. Fail fast here (before any build) if that
+      # channel was not bumped in release prep, so a released add-on can never point at an
+      # image that does not exist. Bump with:
+      #   ./scripts/sync-homeassistant-addon-version.ps1 -Channel <edge|stable> -Version <ver>
+      - name: Home Assistant add-on version lock-step
+        if: steps.resolve.outputs.is_dry_run != 'true'
+        shell: pwsh
+        run: >-
+          ./scripts/sync-homeassistant-addon-version.ps1 -Check
+          -Channel ${{ steps.resolve.outputs.is_prerelease == 'true' && 'edge' || 'stable' }}
+          -Version ${{ steps.resolve.outputs.version }} -Root $PWD
+
   # Build + test + package on every platform via the same reusable workflow CI
   # uses, so the suites can never diverge between CI and release. do_package adds
   # cpack + the per-OS install/extract smoke test + the package artifact upload.
@@ -343,6 +358,116 @@ jobs:
           fi
           echo "arm64 variant OK"
           echo "Published multi-arch Docker image verified (amd64 + arm64)."
+
+  # Build + push the Home Assistant add-on WRAPPER images (one single-arch image per
+  # HA arch), so the Supervisor can PULL the add-on (config.yaml `image:`) instead of
+  # building it on the user's device. Each image is this release's published app image
+  # with bashio + run.sh layered on (homeassistant/aqualink-automate/Dockerfile). HA
+  # substitutes {arch} (aarch64/amd64) and pulls the add-on `version` tag, so each name
+  # must be a single-arch image — NOT a multi-arch manifest — hence the per-arch matrix.
+  #
+  # NOTE (first publish): the GHCR packages homeassistant-{aarch64,amd64} are created on
+  # first push and default to PRIVATE. They must be made PUBLIC once (Package settings)
+  # so the Supervisor's anonymous pull works — same one-time step the app image needed.
+  homeassistant-addon-publish:
+    name: HA Add-on Publish (${{ matrix.ha_arch }})
+    needs: [resolve-version, docker-publish]
+    if: needs.resolve-version.outputs.is_dry_run != 'true'
+    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    permissions:
+      contents: read      # checkout the add-on Dockerfile + run.sh
+      packages: write     # push the wrapper image to GHCR
+      id-token: write     # OIDC token for keyless Sigstore attestation signing
+      attestations: write # write the build-provenance attestation
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { ha_arch: amd64,   platform: linux/amd64 }
+          - { ha_arch: aarch64, platform: linux/arm64 }
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # QEMU lets buildx assemble the linux/arm64 wrapper on the x64 runner. The layer
+      # is just apt (jq) + a bashio tarball + run.sh, so the emulated work is light.
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
+        with:
+          images: ghcr.io/${{ github.repository }}/homeassistant-${{ matrix.ha_arch }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.resolve-version.outputs.version_tag }}
+            type=raw,value=latest,enable=${{ needs.resolve-version.outputs.is_prerelease != 'true' }}
+            type=raw,value=edge,enable=${{ needs.resolve-version.outputs.is_prerelease == 'true' }}
+
+      # Build FROM this release's app image (Docker resolves the arch from the manifest
+      # under --platform). --provenance=false keeps the pushed artifact a clean
+      # single-arch image (no buildx index wrapper) so HA's {arch} pull is unambiguous;
+      # provenance is attested below via the repo's keyless Sigstore action instead.
+      - name: Build and push add-on wrapper image
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          IMAGE_LABELS: ${{ steps.meta.outputs.labels }}
+          BUILD_FROM: ghcr.io/${{ github.repository }}:${{ needs.resolve-version.outputs.version }}
+        with:
+          shell: bash
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 30
+          retry_on: error
+          command: |
+            cmd=(docker buildx build
+              --file homeassistant/aqualink-automate/Dockerfile
+              --platform ${{ matrix.platform }}
+              --build-arg BUILD_FROM="$BUILD_FROM"
+              --provenance=false
+              --push
+              --metadata-file "$RUNNER_TEMP/addon-meta.json")
+            while IFS= read -r tag;   do [ -n "$tag" ]   && cmd+=(--tag   "$tag");   done <<< "${IMAGE_TAGS}"
+            while IFS= read -r label; do [ -n "$label" ] && cmd+=(--label "$label"); done <<< "${IMAGE_LABELS}"
+            cmd+=(homeassistant/aqualink-automate)
+            printf 'Running:'; printf ' %q' "${cmd[@]}"; echo
+            "${cmd[@]}"
+
+      - name: Capture pushed image digest
+        id: digest
+        run: |
+          set -euo pipefail
+          DIGEST="$(grep -oE '"containerimage.digest"[[:space:]]*:[[:space:]]*"sha256:[0-9a-f]+"' "$RUNNER_TEMP/addon-meta.json" | grep -oE 'sha256:[0-9a-f]+' | head -1)"
+          case "$DIGEST" in
+            sha256:*) : ;;
+            *) echo "::error::Could not read the image digest from buildx metadata"; cat "$RUNNER_TEMP/addon-meta.json"; exit 1 ;;
+          esac
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Published add-on image digest: $DIGEST"
+
+      - name: Attest add-on image build provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-name: ghcr.io/${{ github.repository }}/homeassistant-${{ matrix.ha_arch }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true
+
+      # Pull the pushed image and confirm the wrapper layered correctly (bashio + the
+      # executable run.sh). Exercises the real published artifact, under QEMU for arm64.
+      - name: Smoke test — pull & inspect the wrapper image
+        run: |
+          set -euo pipefail
+          IMG="ghcr.io/${{ github.repository }}/homeassistant-${{ matrix.ha_arch }}:${{ needs.resolve-version.outputs.version }}"
+          docker pull --platform ${{ matrix.platform }} "$IMG"
+          docker run --rm --platform ${{ matrix.platform }} --entrypoint sh "$IMG" \
+            -c 'command -v bashio >/dev/null && test -x /run.sh && echo "bashio + run.sh present"'
 
   github-release:
     name: GitHub Release

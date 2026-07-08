@@ -132,6 +132,34 @@ Slice 3 covers anonymous visitors and shared terminals:
 
 The route-level detail (including `GET /api/auth/me`'s `kiosk_enabled` flag the login screen keys off) is in [Usage and API](usage-and-api.md).
 
+## Container hardening (AppArmor)
+
+The container talks to hardware (an RS-485 serial device), binds an HTTP port, and — in
+its default form — starts as root to drop privileges. A tailored AppArmor profile
+confines that surface to only what it needs (serial devices, `/data`, TCP for the HTTP
+server / MQTT client / remote serial, and the exec chain), so a compromise cannot roam
+the host. The canonical profile lives with the Home Assistant add-on at
+[`homeassistant/aqualink-automate/apparmor.txt.draft`](../homeassistant/aqualink-automate/apparmor.txt.draft).
+
+- **Home Assistant add-on.** The Supervisor auto-loads and **enforces** a file named
+  exactly `apparmor.txt` in the add-on folder. The profile currently ships as
+  `apparmor.txt.draft` (inert) so it can be validated on a real Home Assistant OS
+  install before it is enforced — enabling an untested profile in enforce mode would
+  make the add-on fail in ways indistinguishable from other first-run issues. Activation
+  steps (rename, regenerate the edge channel, then tune against `dmesg | grep DENIED`)
+  are in the file's header.
+- **Standalone Docker image.** Docker applies its built-in `docker-default` profile
+  automatically; the tailored profile above is **opt-in**. Load it into the host kernel
+  and select it per container:
+
+  ```bash
+  sudo apparmor_parser -r -W homeassistant/aqualink-automate/apparmor.txt.draft
+  docker run --security-opt apparmor=aqualink_automate ... ghcr.io/iainchesworth/aqualink-automate
+  ```
+
+  There is no auto-load hook in plain Docker, so this stays opt-in rather than a default
+  that would break `docker compose up` on hosts without the profile loaded.
+
 ## Verifying build authenticity
 
 Every released binary and container image can be traced back to the exact source

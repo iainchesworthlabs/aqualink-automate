@@ -1,0 +1,101 @@
+# Home Assistant add-on options translations (English).
+#
+# Provides the friendly label (`name`) and help text (`description`) shown under each
+# field in the add-on's Configuration tab, plus the Network port label. Every key here
+# MUST match an option in config.yaml `options:` — the `Home Assistant Add-on` CI job
+# fails on any missing or extra key.
+configuration:
+  serial_mode:
+    name: Serial connection type
+    description: >-
+      How the software reaches the RS-485 bus. "usb" for a USB-RS485 adapter plugged
+      into this machine; "network" for a serial-over-ethernet adapter on your LAN.
+  serial_port:
+    name: USB serial device
+    description: >-
+      The USB-RS485 adapter to use (when Serial connection type is "usb"). Prefer a
+      /dev/serial/by-id/... entry — it survives reboots and re-plugging.
+  remote_serial_port:
+    name: Remote serial endpoint
+    description: >-
+      host:port of the serial-over-ethernet adapter (when Serial connection type is
+      "network"), e.g. 192.168.1.50:8899.
+  remote_protocol:
+    name: Remote serial protocol
+    description: >-
+      Transport for the remote endpoint. "rfc2217" suits most serial-to-ethernet
+      adapters; "rawtcp" for a raw TCP stream; "plain" for a plain socket.
+  mqtt_mode:
+    name: MQTT mode
+    description: >-
+      "auto" discovers the broker Home Assistant already uses (e.g. the Mosquitto
+      add-on) — nothing else to fill in. "manual" uses the broker fields below.
+      "disabled" turns MQTT off.
+  mqtt_host:
+    name: MQTT broker host
+    description: Broker hostname or IP. Used only when MQTT mode is "manual".
+  mqtt_port:
+    name: MQTT broker port
+    description: Broker port (usually 1883, or 8883 for TLS). Used only when MQTT mode is "manual".
+  mqtt_username:
+    name: MQTT username
+    description: Broker username, if required. Used only when MQTT mode is "manual".
+  mqtt_password:
+    name: MQTT password
+    description: Broker password. Sent only alongside a username. Used only when MQTT mode is "manual".
+  mqtt_tls:
+    name: MQTT TLS
+    description: Connect to the broker over TLS. Used only when MQTT mode is "manual".
+  home_assistant_discovery:
+    name: Home Assistant discovery
+    description: >-
+      Publish MQTT auto-discovery so your pool equipment appears in Home Assistant
+      automatically. Requires MQTT to be enabled.
+  enable_auth:
+    name: Require web UI login
+    description: >-
+      Off by default — ingress already secures the UI with Home Assistant's login. Turn
+      this on to require a login on the direct LAN port (which is otherwise
+      unauthenticated), or if you want app-level users. Set a password below; the admin
+      account is created the first time this is enabled.
+  auth_username:
+    name: Admin username
+    description: Username for the administrator created when web UI login is first enabled.
+  auth_password:
+    name: Admin password
+    description: >-
+      Password for that administrator (required when login is enabled; at least 12
+      characters). The app stores it hashed; changing it here later does NOT change an
+      already-created account.
+  log_level:
+    name: Log level
+    description: >-
+      Logging verbosity. Output appears in this add-on's Log tab. Use "debug" or
+      "trace" only when diagnosing an issue.
+  enable_history:
+    name: Enable app history
+    description: >-
+      Off by default — Home Assistant's Recorder/History is the expected source. Turn
+      on to record the app's own time-series history under /data.
+  enable_scheduler:
+    name: Enable app scheduler
+    description: >-
+      Off by default — use Home Assistant automations/schedules. Turn on to use the
+      app's own schedules, persisted under /data.
+  pool_configuration:
+    name: Pool configuration
+    description: >-
+      Installation type. Leave "auto" to detect it from the bus, or force pool-only,
+      spa-only, combo, or dual.
+  jandy_device_type:
+    name: Jandy device type (advanced)
+    description: >-
+      The device the software emulates on the RS-485 bus. The default suits most
+      panels — change only if you know you need to.
+  jandy_device_id:
+    name: Jandy device ID (advanced)
+    description: >-
+      The bus address the software presents (e.g. 0x41). The default suits most
+      panels — change only if you know you need to.
+network:
+  80/tcp: Optional direct web UI / HTTP API (unauthenticated; ingress is preferred)
