@@ -19,7 +19,9 @@ command line. The Supervisor runs and manages the container for you.
 1. In Home Assistant, go to **Settings → Add-ons → Add-on Store**.
 2. Open the **⋮** menu (top-right) → **Repositories**, and add:
    `https://github.com/iainchesworth/aqualink-automate`
-3. Find **Aqualink Automate** in the store and click **Install**.
+3. Find **Aqualink Automate** in the store and click **Install**. The add-on **pulls a
+   prebuilt image** (per architecture), so installation is a quick download — it does
+   not compile anything on your device.
 4. Configure it (below), then **Start**, and **Open Web UI** (or use the **Aqualink**
    sidebar entry).
 

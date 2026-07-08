@@ -212,9 +212,15 @@ lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
 
 - **Version lock-step automation — DONE** (`scripts/sync-homeassistant-addon-version.ps1`
   + CI `-Check` + release `-Check -Version`; see CI/release touches above).
-- **Prebuilt add-on image** — publish the wrapper image per-arch to GHCR and reference it
-  via `config.yaml` `image:` instead of local-build, for faster/reproducible installs (no
-  on-device Docker build, no bashio fetch at install). Wire into `release.yml`.
+- **Prebuilt add-on image — IMPLEMENTED (pending first publish).** `release.yml` job
+  `homeassistant-addon-publish` builds the wrapper per-arch (single-arch image per HA
+  arch) FROM this release's app image + bashio + run.sh, pushes
+  `ghcr.io/iainchesworth/aqualink-automate/homeassistant-{aarch64,amd64}:<version>`
+  (+ floating `latest`/`edge`), and attests provenance. `config.yaml` now carries
+  `image: …/homeassistant-{arch}` so the Supervisor pulls instead of building on-device.
+  **One-time op:** the two new GHCR packages default to PRIVATE on first push — make them
+  PUBLIC once so anonymous Supervisor pulls work (same as the app image). Until the first
+  release publishes them, comment out `image:` to fall back to local-build for testing.
 - **Add-on options translations** (`homeassistant/aqualink-automate/translations/en.yaml`)
   — friendly labels/help per option; fits the app's own heavy i18n.
 - **Release channel** — decide whether the add-on tracks `stable` vs an `edge`/beta channel

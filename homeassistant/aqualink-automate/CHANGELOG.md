@@ -12,3 +12,5 @@
   with an opt-in direct LAN port in the Network panel.
 - App auth, history, and scheduler default off (defer to HA login / Recorder /
   automations); each is an opt-in toggle. `log_level` surfaced.
+- Installs from a **prebuilt per-arch image** (`homeassistant-{arch}`) published by
+  CI — a quick download, no on-device build.
