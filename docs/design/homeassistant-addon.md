@@ -221,8 +221,12 @@ lock-step, and docs. Remaining **close-out** gates before it is truly shipped:
   **One-time op:** the two new GHCR packages default to PRIVATE on first push — make them
   PUBLIC once so anonymous Supervisor pulls work (same as the app image). Until the first
   release publishes them, comment out `image:` to fall back to local-build for testing.
-- **Add-on options translations** (`homeassistant/aqualink-automate/translations/en.yaml`)
-  — friendly labels/help per option; fits the app's own heavy i18n.
+- **Add-on options translations — DONE.** `homeassistant/aqualink-automate/translations/en.yaml`
+  gives every option a friendly label + help text (and the port label). The
+  `Home Assistant Add-on` CI job enforces coverage: each locale must document exactly the
+  `config.yaml` `options:` (configuration:) and `ports:` (network:) keys — no missing, no
+  extra — mirroring the web UI's i18n key guard. Add a locale = drop in another
+  `translations/<lang>.yaml`.
 - **Release channel** — decide whether the add-on tracks `stable` vs an `edge`/beta channel
   (mirrors the image's `latest`/`edge` tags).
 

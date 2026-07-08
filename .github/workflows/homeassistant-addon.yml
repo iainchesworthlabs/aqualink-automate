@@ -34,12 +34,37 @@ jobs:
         run: |
           for f in homeassistant/repository.yaml \
                    homeassistant/aqualink-automate/config.yaml \
-                   homeassistant/aqualink-automate/build.yaml; do
+                   homeassistant/aqualink-automate/build.yaml \
+                   homeassistant/aqualink-automate/translations/*.yaml; do
             echo "::group::$f"
             python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$f"
             echo "OK"
             echo "::endgroup::"
           done
+
+      # Guard the options translations against drift: every locale must document
+      # exactly the config.yaml `options:` keys (configuration:) and `ports:` keys
+      # (network:) — no missing, no extra. Mirrors the web UI's i18n key check.
+      - name: Options translations cover config.yaml
+        run: |
+          python3 - <<'PY'
+          import glob, sys, yaml
+          cfg = yaml.safe_load(open('homeassistant/aqualink-automate/config.yaml'))
+          options = set((cfg.get('options') or {}).keys())
+          ports = set((cfg.get('ports') or {}).keys())
+          rc = 0
+          for path in sorted(glob.glob('homeassistant/aqualink-automate/translations/*.yaml')):
+              tr = yaml.safe_load(open(path)) or {}
+              conf = set((tr.get('configuration') or {}).keys())
+              net = set((tr.get('network') or {}).keys())
+              for label, have, want in (('configuration', conf, options), ('network', net, ports)):
+                  missing, extra = want - have, have - want
+                  if missing: print(f"::error file={path}::{label}: missing {sorted(missing)}"); rc = 1
+                  if extra:   print(f"::error file={path}::{label}: unknown {sorted(extra)}"); rc = 1
+              if not (conf ^ options) and not (net ^ ports):
+                  print(f"OK {path}")
+          sys.exit(rc)
+          PY
 
       - name: run.sh passes shellcheck
         run: shellcheck --shell=bash homeassistant/aqualink-automate/run.sh

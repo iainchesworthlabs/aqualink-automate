@@ -14,3 +14,5 @@
   automations); each is an opt-in toggle. `log_level` surfaced.
 - Installs from a **prebuilt per-arch image** (`homeassistant-{arch}`) published by
   CI — a quick download, no on-device build.
+- Localised options form: every setting has a friendly label and help text
+  (`translations/en.yaml`).
