@@ -19,9 +19,9 @@ export MATTER_ENABLED=false
 # add-on updates.
 readonly DATA=/data
 
-# Base flags: bind all interfaces on port 80 (the ingress_port; also the opt-in
+# Base flags: bind all interfaces on port 8099 (the ingress_port; also the opt-in
 # direct port). Plain HTTP — TLS is terminated by Home Assistant's ingress proxy.
-args=("--address" "0.0.0.0" "--http-port" "80" "--disable-https")
+args=("--address" "0.0.0.0" "--http-port" "8099" "--disable-https")
 
 # Auth stays OFF: ingress fronts the UI with Home Assistant's own authentication, so
 # the app's identity system is left disabled (auth-mode defaults to disabled).
@@ -32,26 +32,27 @@ args=("--address" "0.0.0.0" "--http-port" "80" "--disable-https")
 args+=("--preferences-file" "${DATA}/preferences.json")
 args+=("--equipment-cache-file" "${DATA}/equipment-cache.json")
 
-# ── Serial transport ───────────────────────────────────────────────────────────
-serial_mode="$(bashio::config 'serial_mode')"
-if [ "${serial_mode}" = "usb" ]; then
-    if bashio::config.has_value 'serial_port'; then
-        args+=("--serial-port" "$(bashio::config 'serial_port')")
-    else
-        bashio::exit.nok "serial_mode is 'usb' but no serial_port was selected."
-    fi
-else
-    if bashio::config.has_value 'remote_serial_port'; then
-        args+=("--remote-serial-port" "$(bashio::config 'remote_serial_port')")
+# ── Serial transport (one field, auto-detected) ────────────────────────────────
+# A value starting with "/" is a local device path (--serial-port); anything else is
+# treated as a network address host:port (--remote-serial-port + the chosen protocol).
+# uart:true maps host TTY devices into the container so /dev/... paths resolve.
+if ! bashio::config.has_value 'serial_port'; then
+    bashio::exit.nok "serial_port is required — set a device path (e.g. /dev/serial/by-id/...) or a network address (host:port)."
+fi
+serial_port="$(bashio::config 'serial_port')"
+case "${serial_port}" in
+    /*)
+        args+=("--serial-port" "${serial_port}")
+        ;;
+    *)
+        args+=("--remote-serial-port" "${serial_port}")
         case "$(bashio::config 'remote_protocol')" in
             rfc2217) args+=("--rfc2217") ;;
             rawtcp)  args+=("--rawtcp") ;;
             plain)   args+=("--no-rfc2217") ;;
         esac
-    else
-        bashio::exit.nok "serial_mode is 'network' but no remote_serial_port was set."
-    fi
-fi
+        ;;
+esac
 
 # ── Equipment / Jandy (advanced) ───────────────────────────────────────────────
 args+=("--pool-configuration" "$(bashio::config 'pool_configuration')")
@@ -84,6 +85,25 @@ elif [ "${mqtt_mode}" = "manual" ]; then
     fi
     if bashio::config.true 'mqtt_tls'; then
         args+=("--mqtt-tls")
+    fi
+fi
+
+# MQTT TLS trust material — applies whenever the broker connection is TLS (auto broker
+# advertising ssl, or manual + mqtt_tls). Certificate options are FILENAMES you place in
+# Home Assistant's /ssl share (mounted read-only). --mqtt-client-cert/-key are mutually
+# required by the app (set both or neither).
+if [ "${mqtt_mode}" != "disabled" ]; then
+    if bashio::config.true 'mqtt_tls_skip_verify'; then
+        args+=("--mqtt-tls-skip-verify")
+    fi
+    if bashio::config.has_value 'mqtt_ca_cert'; then
+        args+=("--mqtt-ca-cert" "/ssl/$(bashio::config 'mqtt_ca_cert')")
+    fi
+    if bashio::config.has_value 'mqtt_client_cert'; then
+        args+=("--mqtt-client-cert" "/ssl/$(bashio::config 'mqtt_client_cert')")
+    fi
+    if bashio::config.has_value 'mqtt_client_key'; then
+        args+=("--mqtt-client-key" "/ssl/$(bashio::config 'mqtt_client_key')")
     fi
 fi
 

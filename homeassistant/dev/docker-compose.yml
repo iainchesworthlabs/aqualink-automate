@@ -10,9 +10,9 @@
 #   curl localhost:8099/api/health          # -> {"status":"ok",...}
 #   # edit options.json, then:  docker compose restart addon
 #
-# BUILD_FROM selects the base app image. Default is the last published release; to test
+# BUILD_VERSION selects the base app image tag. Default is the last published release; to test
 # THIS branch's frontend/flags faithfully, build a base from source and set
-# BUILD_FROM=<that image> (the published base predates the ingress frontend).
+# BUILD_VERSION=<that version> (the published base predates newer app changes).
 #
 # NOT covered here (needs real Home Assistant OS): ingress + the base-path frontend, a
 # live MQTT broker + entity discovery, and uart device mapping.
@@ -46,11 +46,11 @@ services:
     build:
       context: ../../aqualink-automate
       args:
-        BUILD_FROM: "${BUILD_FROM:-ghcr.io/iainchesworth/aqualink-automate:0.12.0-beta.5}"
+        BUILD_VERSION: "${BUILD_VERSION:-0.12.0-beta.5}"
     environment:
       SUPERVISOR_TOKEN: dev-token
     ports:
-      - "8099:80"
+      - "8099:8099"
     volumes:
       - addon-data:/data
     depends_on:

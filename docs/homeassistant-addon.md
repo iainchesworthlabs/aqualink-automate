@@ -49,10 +49,10 @@ release exists yet, so both are marked experimental and track the newest release
 The options form maps directly onto the application's settings (full reference:
 [Configuration reference](configuration.md)). Key choices:
 
-- **Serial** — `serial_mode: usb` shows a device picker (choose a `/dev/serial/by-id/…`
-  entry so it survives reboots) mapped to `--serial-port`; `serial_mode: network` takes
-  a `host:port` (`--remote-serial-port`) with `remote_protocol` selecting
-  `rfc2217` / `rawtcp` / `plain`.
+- **Serial** — one `serial_port` field, auto-detected: a **device path** (`/dev/serial/by-id/…`,
+  preferred; or any non-standard path) maps to `--serial-port`, while a **`host:port`**
+  is treated as a network adapter (`--remote-serial-port`) with `remote_protocol`
+  (`rfc2217` / `rawtcp` / `plain`).
 - **MQTT** — `mqtt_mode: auto` (recommended) discovers the broker Home Assistant already
   uses (e.g. the Mosquitto add-on) through the Supervisor, so you enter **no** MQTT
   credentials. `manual` exposes the broker fields; `disabled` turns MQTT off.

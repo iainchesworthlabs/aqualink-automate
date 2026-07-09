@@ -49,10 +49,10 @@ Tear down with `docker compose down -v`.
 
 ## Faithful frontend/flags
 
-`BUILD_FROM` defaults to the last published release, which **predates the ingress
+`BUILD_VERSION` defaults to the last published release, which **predates newer app
 frontend and some flags**. To test this branch faithfully, build a base image from source
 and point the harness at it:
 
 ```bash
-BUILD_FROM=aqualink-automate:local docker compose up --build
+BUILD_VERSION=0.12.0-beta.6 docker compose up --build
 ```

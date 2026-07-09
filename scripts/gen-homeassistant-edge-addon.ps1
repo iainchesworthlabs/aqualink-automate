@@ -73,11 +73,8 @@ $cfg = $cfg -replace '(?m)^panel_title:\s*.*$', 'panel_title: Aqualink (Edge)'
 $cfg = $cfg -replace '(?m)^version:\s*"[^"]*"', ('version: "' + $edgeVersion + '"')
 Write-Lf $configPath ($banner + "`n" + $cfg)
 
-# ── build.yaml: base-image tag == edge version ──────────────────────────────────
-$buildPath = Join-Path $dest 'build.yaml'
-$bld = Get-Content -Raw -LiteralPath $buildPath
-$bld = [regex]::Replace($bld, '(ghcr\.io/[^"'':\s]+:)[^"''\s]+', { param($m) $m.Groups[1].Value + $edgeVersion })
-Write-Lf $buildPath ($banner + "`n" + $bld)
+# (No build.yaml — the base image is pinned in the Dockerfile via ${BUILD_VERSION},
+# which equals config.yaml `version`, so nothing else carries the version.)
 
 # ── apparmor.txt(.draft): the AppArmor profile name must be the edge slug, so the
 #    stable and edge channels don't collide on one host when both are active. ──────

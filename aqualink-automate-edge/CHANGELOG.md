@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0-beta.6
+
+- **Serial is now one field.** `serial_port` takes either a device path (`/dev/serial/by-id/…`, or any non-standard path) or a network `host:port`, auto-detected — no more mode selector. This also fixes a "Device '' does not exist" error when saving.
+- **MQTT TLS certificates.** New `mqtt_tls_skip_verify` and `mqtt_ca_cert` / `mqtt_client_cert` / `mqtt_client_key` options (filenames in Home Assistant's `/ssl` share).
+- Direct-port and internal port moved from `80` to **`8099`**; the add-on gains a read-write `addon_config` mount.
+- **Conformance with the current Home Assistant app schema:** modern `map` syntax, optional fields carry no default, and the image build uses `BUILD_VERSION` in the Dockerfile (dropped the deprecated `build.yaml`).
+
 ## 0.12.0-beta.5
 
 - Initial Home Assistant add-on (Phase 1: headless + MQTT).
