@@ -13,13 +13,11 @@ namespace AqualinkAutomate::Messages
 	class EPumpMessage : public JandyMessage
 	{
 	public:
-		EPumpMessage(const JandyMessageIds& msg_id);
+		explicit EPumpMessage(const JandyMessageIds& msg_id);
 		~EPumpMessage() override = default;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override = 0;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override = 0;
 	};

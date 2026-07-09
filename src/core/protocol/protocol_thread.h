@@ -98,7 +98,6 @@ namespace AqualinkAutomate::Protocol
 		// When true, read at most one serial chunk per Poll() (see constructor).
 		bool m_SingleReadPerPoll;
 
-	private:
 		std::vector<boost::signals2::scoped_connection> m_WriteSignalConnections;
 	};
 

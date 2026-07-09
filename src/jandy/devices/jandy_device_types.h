@@ -75,13 +75,11 @@ namespace AqualinkAutomate::Devices
 		JandyDeviceType();
 		JandyDeviceType(DeviceId device_id);
 
-	public:
 		JandyDeviceType(const JandyDeviceType& other) = default;
 		JandyDeviceType& operator=(const JandyDeviceType& other) = default;
 		JandyDeviceType(JandyDeviceType&& other) noexcept = default;
 		JandyDeviceType& operator=(JandyDeviceType&& other) noexcept = default;
 
-	public:
 		bool operator==(const JandyDeviceType& other) const;
 		bool operator!=(const JandyDeviceType& other) const;
 		using Interfaces::IDeviceIdentifier::operator==;
@@ -93,7 +91,6 @@ namespace AqualinkAutomate::Devices
 	public:
 		DeviceId operator()() const;
 
-	public:
 		DeviceClasses Class() const;
 		DeviceId Id() const;
 
@@ -104,7 +101,7 @@ namespace AqualinkAutomate::Devices
 		static std::vector<std::uint8_t> InstanceAddressesForClass(DeviceClasses device_class);
 
 	private:
-		DeviceClasses m_DeviceClass;
+		DeviceClasses m_DeviceClass{ DeviceClasses::Unknown };
 		DeviceId m_DeviceId;
 	};
 

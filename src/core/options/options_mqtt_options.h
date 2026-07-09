@@ -239,7 +239,6 @@ namespace AqualinkAutomate::Options::Mqtt
 		std::string Name() const { return SettingsType::AreaName(); }
 		boost::program_options::options_description Options() const;
 
-	public:
 		void Validate(const boost::program_options::variables_map& vm) const;
 		std::expected<SettingsType, ErrorCodes::Options_ErrorCodes> Process(boost::program_options::variables_map& vm) const;
 	};

@@ -6,8 +6,7 @@ namespace AqualinkAutomate::Devices
 
 	JandyDevice::JandyDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id) :
 		IDevice(device_id),
-		IStatusPublisher(DeviceStatus_Unknown{}),
-		m_SlotManager()
+		IStatusPublisher(DeviceStatus_Unknown{})
 	{
 	}
 

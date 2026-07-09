@@ -21,23 +21,17 @@ namespace AqualinkAutomate::Messages
 	public:
 		PDAMessage_HighlightChars() noexcept;
 		~PDAMessage_HighlightChars() override = default;
-
-	public:
 		uint8_t LineId() const;
 		uint8_t StartIndex() const;
 		uint8_t StopIndex() const;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint8_t m_LineId;
-		uint8_t m_StartIndex;
-		uint8_t m_StopIndex;
+		uint8_t m_LineId{ 0 };
+		uint8_t m_StartIndex{ 0 };
+		uint8_t m_StopIndex{ 0 };
 	};
 
 }

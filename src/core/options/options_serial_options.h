@@ -23,20 +23,12 @@ namespace AqualinkAutomate::Options::Serial
 			return AREA_NAME;
 		}
 
-		tagSerialSettings() :
-			serial_port{ "/dev/ttyUSB0" },
-			baud_rate{ 9600 },
-			use_rfc2217{ false },
-			use_rawtcp{ false }
-		{
-		}
-
-		std::string serial_port;
-		uint16_t baud_rate;
+		std::string serial_port{ "/dev/ttyUSB0" };
+		uint16_t baud_rate{ 9600 };
 
 		std::string remote_serial_port;
-		bool use_rfc2217;
-		bool use_rawtcp;
+		bool use_rfc2217{ false };
+		bool use_rawtcp{ false };
 
 		bool UsingPhysicalSerialPort() const
 		{
@@ -78,7 +70,6 @@ namespace AqualinkAutomate::Options::Serial
 		std::string Name() const { return SettingsType::AreaName(); }
 		boost::program_options::options_description Options() const;
 
-	public:
 		void Validate(const boost::program_options::variables_map& vm) const;
 		std::expected<SettingsType, ErrorCodes::Options_ErrorCodes> Process(boost::program_options::variables_map& vm) const;
 	};

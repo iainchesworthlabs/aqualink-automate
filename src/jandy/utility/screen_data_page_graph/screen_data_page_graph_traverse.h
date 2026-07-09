@@ -28,23 +28,18 @@ namespace AqualinkAutomate::Utility::ScreenDataPageGraphImpl
         ForwardIterator(const ForwardIterator& other);
         ForwardIterator(ForwardIterator&& other) noexcept;
 
-    public:
         ForwardIterator& operator=(const ForwardIterator& other) = delete;
         ForwardIterator& operator=(ForwardIterator&& other) noexcept = delete;
 
-    public:
         ForwardIterator& operator++();
         ForwardIterator operator++(int);
 
-    public:
         ForwardIterator::reference operator*() const;
         ForwardIterator::pointer operator->() const;
 
-    public:
         bool operator==(const ForwardIterator& other) const;
         bool operator!=(const ForwardIterator& other) const;
 
-    public:
         static ForwardIterator begin(ScreenDataPageGraph& graph, VertexId start_id);
         static ForwardIterator end(ScreenDataPageGraph& graph);
 

@@ -13,10 +13,9 @@ namespace AqualinkAutomate::Devices
 	class JandyDevice : public Interfaces::IDevice, public Interfaces::IStatusPublisher
 	{
 	public:
-		JandyDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id);
+		explicit JandyDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id);
 		~JandyDevice() override = default;
 
-	public:
 		const Devices::JandyDeviceType& DeviceId() const;
 
 	protected:

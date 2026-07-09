@@ -46,10 +46,8 @@ namespace AqualinkAutomate::Equipment
 				...);
 		}
 
-	private:
 		void DisplayUnknownMessages(const Messages::JandyMessage& message);
 
-	private:
 		std::vector<boost::signals2::connection> m_MessageConnections;
 
 		// Device classes already reported as unsupported, so the per-message
@@ -57,7 +55,6 @@ namespace AqualinkAutomate::Equipment
 		// line on every message addressed to an unsupported class (rate limiting).
 		std::unordered_set<Devices::DeviceClasses> m_ReportedUnsupportedClasses;
 
-	private:
 		Kernel::HubLocator& m_HubLocator;
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };
 		// Raw (non-owning) pointer, NOT a shared_ptr: the EquipmentHub OWNS this

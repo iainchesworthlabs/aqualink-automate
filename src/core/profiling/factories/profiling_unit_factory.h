@@ -22,20 +22,16 @@ namespace AqualinkAutomate::Factory
         ProfilingUnitFactory();
         ~ProfilingUnitFactory() = default;
 
-    public:
         ProfilingUnitFactory(const ProfilingUnitFactory&) = delete;
         ProfilingUnitFactory& operator=(const ProfilingUnitFactory&) = delete;
         ProfilingUnitFactory(ProfilingUnitFactory&&) = delete;
         ProfilingUnitFactory& operator=(ProfilingUnitFactory&&) = delete;
 
-    public:
         static ProfilingUnitFactory& Instance();
 
-    public:
         bool Register(const Types::ProfilerTypes type, ProfilingUnitGenerators&& generators);
         void SetDesired(Types::ProfilerTypes type);
 
-    public:
         Types::ProfilingUnitTypePtr CreateDomain(std::string_view name, const std::source_location& src_loc = std::source_location::current(), Profiling::UnitColours colour = Profiling::UnitColours::NotSpecified);
         Types::ProfilingUnitTypePtr CreateFrame(std::string_view name, const std::source_location& src_loc = std::source_location::current(), Profiling::UnitColours colour = Profiling::UnitColours::NotSpecified);
         Types::ProfilingUnitTypePtr CreateZone(std::string_view name, const std::source_location& src_loc, Profiling::UnitColours colour = Profiling::UnitColours::NotSpecified);
@@ -44,8 +40,8 @@ namespace AqualinkAutomate::Factory
         const ProfilingUnitGenerators& Get();
 
     private:
-        std::unordered_map<Types::ProfilerTypes, const ProfilingUnitGenerators> m_Generators;
-        std::optional<Types::ProfilerTypes> m_DesiredProfiler;
+        std::unordered_map<Types::ProfilerTypes, const ProfilingUnitGenerators> m_Generators{};
+        std::optional<Types::ProfilerTypes> m_DesiredProfiler{ std::nullopt };
 	};
 
 }

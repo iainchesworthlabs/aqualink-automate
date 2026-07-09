@@ -107,18 +107,22 @@ namespace AqualinkAutomate::Alerting
 	{
 		// Stop() cancels the asio timer, whose no-throw contract is not guaranteed
 		// (steady_timer::cancel() can throw boost::system::system_error). A throwing
-		// destructor would terminate, so swallow any failure here after logging.
+		// destructor would terminate (cpp:S1048), so swallow any failure. The diagnostic
+		// logging can itself throw (std::format / sink write), so it is guarded too —
+		// nothing, including the log call, may escape a destructor.
 		try
 		{
 			Stop();
 		}
 		catch (const std::exception& ex)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
 		{
-			LogDebug(Channel::Equipment, [&ex] { return std::format("AlertMonitor destructor: Stop() threw and was swallowed: {}", ex.what()); });
+			try { LogDebug(Channel::Equipment, [&ex] { return std::format("AlertMonitor destructor: Stop() threw and was swallowed: {}", ex.what()); }); }
+			catch (...) { /* the diagnostic log itself must not escape the destructor (cpp:S1048) */ }
 		}
 		catch (...)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
 		{
-			LogDebug(Channel::Equipment, "AlertMonitor destructor: Stop() threw a non-std exception and was swallowed");
+			try { LogDebug(Channel::Equipment, "AlertMonitor destructor: Stop() threw a non-std exception and was swallowed"); }
+			catch (...) { /* the diagnostic log itself must not escape the destructor (cpp:S1048) */ }
 		}
 	}
 

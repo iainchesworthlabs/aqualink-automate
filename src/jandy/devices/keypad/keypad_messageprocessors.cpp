@@ -12,7 +12,7 @@ using namespace AqualinkAutomate::Logging;
 
 namespace AqualinkAutomate::Devices
 {
-	void KeypadDevice::Slot_Keypad_Ack(const Messages::JandyMessage_Ack& msg)
+	void KeypadDevice::Slot_Keypad_Ack([[maybe_unused]] const Messages::JandyMessage_Ack& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("KeypadDevice::Slot_Keypad_Ack", std::source_location::current());
 
@@ -24,7 +24,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void KeypadDevice::Slot_Keypad_Probe(const Messages::JandyMessage_Probe& msg)
+	void KeypadDevice::Slot_Keypad_Probe([[maybe_unused]] const Messages::JandyMessage_Probe& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("KeypadDevice::Slot_Keypad_Probe", std::source_location::current());
 
@@ -37,7 +37,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void KeypadDevice::Slot_Keypad_Message(const Messages::JandyMessage_Message& msg)
+	void KeypadDevice::Slot_Keypad_Message([[maybe_unused]] const Messages::JandyMessage_Message& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("KeypadDevice::Slot_Keypad_Message", std::source_location::current());
 
@@ -50,7 +50,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void KeypadDevice::Slot_Keypad_MessageLong(const Messages::JandyMessage_MessageLong& msg)
+	void KeypadDevice::Slot_Keypad_MessageLong([[maybe_unused]] const Messages::JandyMessage_MessageLong& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("KeypadDevice::Slot_Keypad_MessageLong", std::source_location::current());
 
@@ -63,7 +63,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void KeypadDevice::Slot_Keypad_Status(const Messages::JandyMessage_Status& msg)
+	void KeypadDevice::Slot_Keypad_Status([[maybe_unused]] const Messages::JandyMessage_Status& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("KeypadDevice::Slot_Keypad_Status", std::source_location::current());
 

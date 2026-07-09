@@ -15,10 +15,12 @@ namespace AqualinkAutomate::Interfaces
 
 	void IProfilingUnit::Text(std::string_view) const
 	{
+		// No-op default: the null profiling unit discards text annotations.
 	}
 
 	void IProfilingUnit::Value(uint64_t) const
 	{
+		// No-op default: the null profiling unit discards value annotations.
 	}
 
 }

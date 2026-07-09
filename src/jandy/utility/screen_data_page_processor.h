@@ -64,10 +64,8 @@ namespace AqualinkAutomate::Utility
 	public:
 		ScreenDataPage_Processor(ScreenDataPageTypes page_type, const MenuMatcherDetails& menu_matcher, MenuMatcherProcessor menu_processor);
 
-	public:
 		ScreenDataPageTypes PageType() const;
 
-	public:
 		bool CanProcess(const ScreenDataPage& page) const;
 		void Process(const ScreenDataPage& page) const;
 

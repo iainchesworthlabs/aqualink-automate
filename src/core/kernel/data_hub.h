@@ -105,7 +105,6 @@ namespace AqualinkAutomate::Kernel
 	// EQUIPMENT STATUS
 	//---------------------------------------------------------------------
 
-	public:
 		Utility::TimeoutDurationStringConverter TimeoutRemaining;
 		std::chrono::year_month_day Date{ std::chrono::year{2000}, std::chrono::month{1}, std::chrono::day{1} };
 		std::chrono::hh_mm_ss<std::chrono::milliseconds> Time{ std::chrono::milliseconds(0) };
@@ -114,7 +113,6 @@ namespace AqualinkAutomate::Kernel
 	// EQUIPMENT VERSIONS
 	//---------------------------------------------------------------------
 
-	public:
 		Kernel::EquipmentVersions EquipmentVersions;
 
 	//---------------------------------------------------------------------
@@ -148,9 +146,10 @@ namespace AqualinkAutomate::Kernel
 
 		bool SpaMode() const
 		{
-			return CirculationModes::Spa == CirculationMode
-				|| CirculationModes::SpaFill == CirculationMode
-				|| CirculationModes::SpaDrain == CirculationMode;
+			using enum CirculationModes;
+			return Spa == CirculationMode
+				|| SpaFill == CirculationMode
+				|| SpaDrain == CirculationMode;
 		}
 
 		bool InCleanMode{ false };
@@ -159,7 +158,6 @@ namespace AqualinkAutomate::Kernel
 	// BODIES OF WATER
 	//---------------------------------------------------------------------
 
-	public:
 		// single_body_kind selects which body a SingleBody configuration creates: Pool (default)
 		// or Spa. Pool-only and spa-only installs are indistinguishable on the wire (single body,
 		// single equipment - set by the Power Center DIP switches), so a spa-only install can only
@@ -190,7 +188,6 @@ namespace AqualinkAutomate::Kernel
 		std::optional<Kernel::Temperature> FreezeProtectPoint() const;
 		Kernel::TemperatureUnits SystemTemperatureUnits() const;
 
-	public:
 		// Wall-clock time each temperature channel was last written from the wire (nullopt until
 		// first set). The controller only reports temperatures while the filter pump runs, and for
 		// a combo system only for the active body, so a cached value can persist long after it
@@ -219,7 +216,6 @@ namespace AqualinkAutomate::Kernel
 		// --temperature-staleness-threshold; default 10 minutes.
 		std::chrono::seconds TemperatureStalenessThreshold{ std::chrono::seconds(600) };
 
-	public:
 		void AirTemp(const Kernel::Temperature& air_temp);
 		void PoolTemp(const Kernel::Temperature& pool_temp);
 		void SpaTemp(const Kernel::Temperature& spa_temp);
@@ -265,7 +261,6 @@ namespace AqualinkAutomate::Kernel
 		Kernel::pH pH() const;
 		ppm_quantity SaltLevel() const;
 
-	public:
 		void ORP(const Kernel::ORP& orp);
 		void pH(const Kernel::pH& pH);
 		void SaltLevel(const ppm_quantity& salt_level_in_ppm);
@@ -291,7 +286,6 @@ namespace AqualinkAutomate::Kernel
 		std::vector<std::shared_ptr<Kernel::AuxillaryDevice>> Pumps() const;
 		std::vector<std::shared_ptr<Kernel::AuxillaryDevice>> FilterPumps() const;
 
-	public:
 		// Count / existence predicates that avoid materialising a vector for the
 		// common size() / empty() checks on the status hot path.
 		uint32_t CountOfType(AuxillaryTraitsTypes::AuxillaryTypes type) const;
@@ -299,7 +293,6 @@ namespace AqualinkAutomate::Kernel
 		uint32_t CountFilterPumps() const;
 		bool HasAnyFilterPumps() const;
 
-	public:
 		[[deprecated("Use FilterPumps() instead; that returns a collection of pumps as there might be more than one")]]
 		std::optional<std::shared_ptr<Kernel::AuxillaryDevice>> FilterPump();
 

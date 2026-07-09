@@ -27,21 +27,17 @@ namespace AqualinkAutomate::Kernel
 	public:
 		DevicesGraph();
 
-	public:
 		void Add(std::shared_ptr<AuxillaryDevice> device);
 		bool Contains(std::shared_ptr<AuxillaryDevice> device) const;
 		void Remove(const std::shared_ptr<AuxillaryDevice>& device);
 
-	public:
 		uint32_t CountByLabel(std::string_view device_label) const;
 		bool HasAnyByLabel(std::string_view device_label) const;
 		std::vector<std::shared_ptr<AuxillaryDevice>> FindByLabel(std::string_view device_label) const;
 
-	public:
 		uint32_t CountById(const boost::uuids::uuid& id) const;
 		std::shared_ptr<AuxillaryDevice> FindById(const boost::uuids::uuid& id) const;
 
-	public:
 		template<typename TRAIT_TYPE>
 		uint32_t CountByTrait(TRAIT_TYPE trait_type) const
 		{

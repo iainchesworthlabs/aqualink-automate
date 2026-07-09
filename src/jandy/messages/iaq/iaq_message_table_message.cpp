@@ -13,9 +13,7 @@ namespace AqualinkAutomate::Messages
 
 	IAQMessage_TableMessage::IAQMessage_TableMessage() noexcept :
 		IAQMessage(JandyMessageIds::IAQ_TableMessage),
-		Interfaces::IMessageSignalRecv<IAQMessage_TableMessage>(),
-		m_LineId(0),
-		m_Line()
+		Interfaces::IMessageSignalRecv<IAQMessage_TableMessage>()
 	{
 	}
 

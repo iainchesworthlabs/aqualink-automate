@@ -10,36 +10,38 @@ namespace AqualinkAutomate::ErrorCodes
 
 	std::string_view Scrapeable_ErrorCategory::Describe(Scrapeable_ErrorCodes e)
 	{
+		using enum Scrapeable_ErrorCodes;
+
 		switch (e)
 		{
-		case Scrapeable_ErrorCodes::WaitingForPage:
+		case WaitingForPage:
 			return "Waiting for the expected page to be scraped before continuing";
 
-		case Scrapeable_ErrorCodes::WaitingForMessage:
+		case WaitingForMessage:
 			return "Waiting for one or more status messages before continuing";
 
-		case Scrapeable_ErrorCodes::NoStepPossible:
+		case NoStepPossible:
 			return "No further navigation step is possible from the current page";
 
-		case Scrapeable_ErrorCodes::NoGraphBeingScraped:
+		case NoGraphBeingScraped:
 			return "No menu graph is currently being scraped";
 
-		case Scrapeable_ErrorCodes::UnknownScrapeError:
+		case UnknownScrapeError:
 			return "An unspecified error occurred during scraping";
 
-		case Scrapeable_ErrorCodes::PreCommandValidationFailed:
+		case PreCommandValidationFailed:
 			return "Validation of the page state before issuing the command failed";
 
-		case Scrapeable_ErrorCodes::PostCommandValidationFailed:
+		case PostCommandValidationFailed:
 			return "Validation of the page state after issuing the command failed";
 
-		case Scrapeable_ErrorCodes::RecoveryInProgress:
+		case RecoveryInProgress:
 			return "Navigation recovery is in progress (pressing Back to reach a known page)";
 
-		case Scrapeable_ErrorCodes::RecoveryComplete:
+		case RecoveryComplete:
 			return "Navigation recovery completed and a known page was reached";
 
-		case Scrapeable_ErrorCodes::MaxRecoveryAttemptsExceeded:
+		case MaxRecoveryAttemptsExceeded:
 			return "The maximum number of navigation recovery attempts was exceeded";
 
 		default:

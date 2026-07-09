@@ -17,12 +17,10 @@ namespace AqualinkAutomate::Kernel
 		DataHub_ConfigEvent_ButtonStateChange(const boost::uuids::uuid& button_id, std::string_view status, std::string_view label);
 		~DataHub_ConfigEvent_ButtonStateChange() override = default;
 
-	public:
 		boost::uuids::uuid ButtonId() const;
 		std::string_view Status() const;
 		std::string_view Label() const;
 
-	public:
 		nlohmann::json ToJSON() const override;
 
 	private:

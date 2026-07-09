@@ -7,9 +7,9 @@ namespace AqualinkAutomate::HTTP
 {
 
 	WebRoute_Equipment_Version::WebRoute_Equipment_Version(Kernel::HubLocator& hub_locator) :
-		Interfaces::IWebRoute<EQUIPMENTVERSION_ROUTE_URL>()
+		Interfaces::IWebRoute<EQUIPMENTVERSION_ROUTE_URL>(),
+		m_DataHub(hub_locator.Find<Kernel::DataHub>())
 	{
-		m_DataHub = hub_locator.Find<Kernel::DataHub>();
 	}
 
 	HTTP::Response WebRoute_Equipment_Version::OnRequest(const HTTP::Request& req)

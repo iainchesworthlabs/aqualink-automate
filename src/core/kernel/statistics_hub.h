@@ -18,21 +18,17 @@ namespace AqualinkAutomate::Kernel
 		StatisticsHub();
 		~StatisticsHub() override = default;
 
-	public:
 		// The total number of messages sent or received.
 		// This is a generic counter that works with any enum type (e.g., JandyMessageIds, PentairMessageIds).
 		// Use ++MessageCounts[SomeMessageIdEnum::Value] to increment.
 		Utility::SignallingStatsCounter MessageCounts;
 
-	public:
 		Utility::BandwidthMetricsCollection BandwidthMetrics;
 
-	public:
 		// Latency metrics for serial and message processing operations.
 		// These track percentiles (p1, p50, p95, p99) in real-time.
 		Utility::SerialLatencyMetrics LatencyMetrics;
 
-	public:
 		struct SerialMetrics
 		{
 			uint64_t MessageErrorRate{ 0 };
@@ -45,7 +41,6 @@ namespace AqualinkAutomate::Kernel
 
 		SerialMetrics Serial;
 
-	public:
 		struct MessageErrorMetrics
 		{
 			uint64_t ChecksumFailures{ 0 };

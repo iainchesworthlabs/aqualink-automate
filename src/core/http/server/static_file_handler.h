@@ -16,7 +16,6 @@ namespace AqualinkAutomate::HTTP
 		StaticFileHandler(std::string_view prefix, const std::filesystem::path& root);
 		StaticFileHandler(boost::urls::url prefix, const std::filesystem::path& root);
 
-	public:
 		bool match(const boost::urls::url_view& target, std::filesystem::path& result);
 
 	private:

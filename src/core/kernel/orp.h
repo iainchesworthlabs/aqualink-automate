@@ -12,20 +12,17 @@ namespace AqualinkAutomate::Kernel
     class ORP
     {
     public:
-        ORP(boost::float64_t value_in_mV);
+        ORP(boost::float64_t value_in_mV);  // NOSONAR(cpp:S1709) — implicit numeric conversion is part of this value-wrapper's contract (see operator= / operator== on float64_t)
         ORP(const ORP& other) = default;
         ORP& operator=(const ORP& other) = default;
         ORP(ORP&& other) noexcept = default;
         ORP& operator=(ORP&& other) noexcept = default;
 
-    public:
         Units::millivolt_quantity operator()() const;
 
-    public:
         ORP& operator=(const Units::millivolt_quantity& value_in_mV);
         ORP& operator=(boost::float64_t value_in_mV);
 
-    public:
         bool operator==(const ORP& other) const;
         bool operator==(const boost::float64_t value_in_mV) const;
         bool operator==(const Units::millivolt_quantity& value_in_mV) const;

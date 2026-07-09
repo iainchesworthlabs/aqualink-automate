@@ -49,24 +49,18 @@ namespace AqualinkAutomate::Messages
 	public:
 		IAQMessage_PageButton() noexcept;
 		~IAQMessage_PageButton() override = default;
-
-	public:
 		uint8_t ButtonIndex() const;
 		ButtonStatuses ButtonStatus() const;
 		ButtonTypes ButtonType() const;
 		std::string ButtonName() const;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint8_t m_ButtonIndex;
-		ButtonStatuses m_ButtonStatus;
-		ButtonTypes m_ButtonType;
+		uint8_t m_ButtonIndex{ 0 };
+		ButtonStatuses m_ButtonStatus{ ButtonStatuses::Unknown };
+		ButtonTypes m_ButtonType{ ButtonTypes::Unknown };
 		std::string m_ButtonName;
 	};
 

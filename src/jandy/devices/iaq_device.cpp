@@ -56,8 +56,6 @@ namespace AqualinkAutomate::Devices
 		Capabilities::Restartable(IAQ_TIMEOUT_DURATION),
 		Capabilities::Screen(IAQ_STATUS_PAGE_LINES),
 		Capabilities::Emulated(is_emulated),
-		m_StatusPage(IAQ_STATUS_PAGE_LINES),
-		m_TableInfo(IAQ_MESSAGE_TABLE_LINES),
 		m_SM_PageUpdate(m_StatusPage),
 		m_SM_TableUpdate(m_TableInfo),
 		m_ProfilingDomain(std::move(Factory::ProfilingUnitFactory::Instance().CreateDomain("IAQDevice")))

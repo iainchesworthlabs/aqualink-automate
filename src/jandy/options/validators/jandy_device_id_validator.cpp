@@ -11,18 +11,10 @@
 
 using namespace AqualinkAutomate::Logging;
 
-namespace AqualinkAutomate::Jandy::Options::Validators
-{
-
-	// NOTHING HERE
-
-}
-// namespace AqualinkAutomate::Jandy::Options::Validators
-
 namespace AqualinkAutomate::Devices
 {
 
-	void validate(boost::any& v, std::vector<std::string> const& values, JandyDeviceId* target_type, int)
+	void validate(boost::any& v, std::vector<std::string> const& values, JandyDeviceId* /*target_type*/, int)
 	{
 		static const uint8_t MINIMUM_DEVICE_ID_LENGTH = 3;
 		static const uint8_t MAXIMUM_DEVICE_ID_LENGTH = 4;

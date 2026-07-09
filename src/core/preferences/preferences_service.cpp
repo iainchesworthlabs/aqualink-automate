@@ -106,8 +106,7 @@ namespace AqualinkAutomate::Preferences
 			{
 				return true;
 			}
-			const auto& h = json["history"];
-			if (h.contains("retention_days"))
+			if (const auto& h = json["history"]; h.contains("retention_days"))
 			{
 				if (!h["retention_days"].is_number_integer() || h["retention_days"].get<std::int64_t>() <= 0)
 				{

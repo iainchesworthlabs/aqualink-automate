@@ -27,12 +27,10 @@ namespace AqualinkAutomate::Utility
 
 	public:
 		TemperatureStringConverter() noexcept;
-		TemperatureStringConverter(const std::string& temperature_string) noexcept;
+		explicit TemperatureStringConverter(const std::string& temperature_string) noexcept;
 
-	public:
 		TemperatureStringConverter& operator=(const std::string& temperature_string) noexcept;
 
-	public:
 		std::expected<Kernel::Temperature, boost::system::error_code> operator()() const noexcept;
 		std::expected<std::string, boost::system::error_code> TemperatureArea() const noexcept;
 
@@ -41,11 +39,10 @@ namespace AqualinkAutomate::Utility
 		std::tuple<std::optional<std::string>, std::optional<std::string>, std::optional<std::string>> ValidateAndExtractData(const std::string& temperature_string) noexcept;
 
 	private:
-		Kernel::Temperature m_Temperature;
+		Kernel::Temperature m_Temperature{ Kernel::Temperature::ConvertToTemperatureInCelsius(0) };
 		std::string m_TemperatureArea;
 
-	private:
-		std::optional<ErrorCodes::StringConversion_ErrorCodes> m_ErrorOccurred;
+		std::optional<ErrorCodes::StringConversion_ErrorCodes> m_ErrorOccurred{ std::nullopt };
 	};
 
 }

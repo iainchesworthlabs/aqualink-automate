@@ -18,7 +18,7 @@ namespace AqualinkAutomate::Devices::Capabilities
 		static constexpr std::chrono::seconds DEFAULT_WATCHDOG_TIMEOUT{ std::chrono::seconds(30) };
 
 	protected:
-		Restartable(std::chrono::seconds timeout_in_seconds = DEFAULT_WATCHDOG_TIMEOUT, bool delayed_start = false);
+		explicit Restartable(std::chrono::seconds timeout_in_seconds = DEFAULT_WATCHDOG_TIMEOUT, bool delayed_start = false);
 		virtual ~Restartable();
 
 	public:
@@ -33,11 +33,9 @@ namespace AqualinkAutomate::Devices::Capabilities
 		void Kick();
 		void Stop();
 
-	protected:
 		std::chrono::seconds GetTimeout() const;
 		bool IsRunning() const;
 
-	protected:
 		// Fired when the watchdog deadline elapses without an intervening Kick().
 		virtual void WatchdogTimeoutOccurred() = 0;
 

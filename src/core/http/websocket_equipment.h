@@ -24,17 +24,15 @@ namespace AqualinkAutomate::HTTP
 	class WebSocket_Equipment : public Interfaces::IWebSocket<EQUIPMENT_WEBSOCKET_URL>
 	{
 	public:
-		WebSocket_Equipment(Kernel::HubLocator& hub_locator);
+		explicit WebSocket_Equipment(Kernel::HubLocator& hub_locator);
 
 		Interfaces::AccessRequirement RequiredAccess() const override
 		{
 			return { .Action = Auth::Vocabulary::EQUIPMENT_VIEW };
 		}
 
-	public:
 		std::optional<std::string> DequeueMessage(ConnectionId connId) override;
 
-	public:
         ConnectionId OnOpen() override;
         void OnMessage(ConnectionId connId, const boost::beast::flat_buffer& buffer) override;
 		void OnPublish(ConnectionId connId) override;

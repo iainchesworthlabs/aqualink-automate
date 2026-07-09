@@ -151,7 +151,7 @@ namespace AqualinkAutomate::Factory
 		return (SPILLOVER == label);
 	}
 
-	bool JandyAuxillaryFactory::IsSprinklerDevice(const std::string& label) const
+	bool JandyAuxillaryFactory::IsSprinklerDevice(const std::string& /*label*/) const
 	{
 		return false;
 	}
@@ -202,6 +202,8 @@ namespace AqualinkAutomate::Factory
 					},
 					[&aux_ptr](const HeaterDevice_Data& data)
 					{
+						using enum Kernel::BodyOfWaterIds;
+
 						aux_ptr->AuxillaryTraits.Set(AuxillaryTraitsTypes::AuxillaryTypeTrait{}, AuxillaryTraitsTypes::AuxillaryTypes::Heater);
 						aux_ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::LabelTrait{}, data.Label.value_or(HEATER));
 
@@ -211,17 +213,19 @@ namespace AqualinkAutomate::Factory
 						}
 
 						auto label = data.Label.value_or(HEATER);
-						auto body_id = Kernel::BodyOfWaterIds::Unknown;
+						auto body_id = Unknown;
 						if (label.find("Pool") != std::string::npos)
-							body_id = Kernel::BodyOfWaterIds::Pool;
+							body_id = Pool;
 						else if (label.find("Spa") != std::string::npos)
-							body_id = Kernel::BodyOfWaterIds::Spa;
+							body_id = Spa;
 						else if (label.find("Solar") != std::string::npos)
-							body_id = Kernel::BodyOfWaterIds::Shared;
+							body_id = Shared;
 						aux_ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::BodyOfWaterTrait{}, body_id);
 					},
 					[&aux_ptr](const PumpDevice_Data& data)
 					{
+						using enum Kernel::BodyOfWaterIds;
+
 						aux_ptr->AuxillaryTraits.Set(AuxillaryTraitsTypes::AuxillaryTypeTrait{}, AuxillaryTraitsTypes::AuxillaryTypes::Pump);
 						aux_ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::LabelTrait{}, data.Label.value_or(PUMP));
 
@@ -231,13 +235,13 @@ namespace AqualinkAutomate::Factory
 						}
 
 						auto label = data.Label.value_or(PUMP);
-						auto body_id = Kernel::BodyOfWaterIds::Unknown;
+						auto body_id = Unknown;
 						if (label.find("Filter") != std::string::npos)
-							body_id = Kernel::BodyOfWaterIds::Shared;
+							body_id = Shared;
 						else if (label.find("Pool") != std::string::npos)
-							body_id = Kernel::BodyOfWaterIds::Pool;
+							body_id = Pool;
 						else if (label.find("Spa") != std::string::npos)
-							body_id = Kernel::BodyOfWaterIds::Spa;
+							body_id = Spa;
 						aux_ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::BodyOfWaterTrait{}, body_id);
 					},
 					[&aux_ptr](const SpilloverDevice_Data& data)

@@ -10,7 +10,6 @@
 namespace AqualinkAutomate::Developer
 {
 	MockSerialPortImpl::MockSerialPortImpl() :
-		m_RandomDevice{},
 		m_Distribution(32, 127),
 		m_ProfilingDomain(std::move(Factory::ProfilerFactory::Instance().Get()->CreateDomain("MockSerialPortImpl")))
 	{
@@ -294,25 +293,27 @@ namespace AqualinkAutomate::Developer
 
 		auto convert_stop_bits_to_number = [](Serial::StopBits stop_bits)
 			{
+				using enum Serial::StopBits;
 				switch (stop_bits)
 				{
-				case Serial::StopBits::One: return 1.0;
-				case Serial::StopBits::OnePointFive: return 1.5;
-				case Serial::StopBits::Two: return 2.0;
+				case One: return 1.0;
+				case OnePointFive: return 1.5;
+				case Two: return 2.0;
 				default: LogWarning(Channel::Serial, "Attempted to convert an invalid stop bit value; assuming one (1)"); return 1.0;
 				}
 			};
 
 		auto convert_parity_bits_to_number = [](Serial::Parity the_parity)
 			{
+				using enum Serial::Parity;
 				switch (the_parity)
 				{
-				case Serial::Parity::None:
+				case None:
 					return 0;
 
-				case Serial::Parity::Odd:
+				case Odd:
 					[[fallthrough]];
-				case Serial::Parity::Even:
+				case Even:
 					return 1;
 
 				default:
@@ -382,9 +383,9 @@ namespace AqualinkAutomate::Developer
 				return ReadSuccessfully;
 			};
 
-		auto read_from_file = [&](auto& source_stream, uint8_t* output_buffer, std::size_t number_of_elems, boost::system::error_code& ec) -> std::size_t
+		auto read_from_file = [&](auto& source_stream, uint8_t* output_buffer, std::size_t number_of_elems, boost::system::error_code& out_ec) -> std::size_t
 			{
-				auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("MockSerialPortImpl::HandleFileRead -> read_block", std::source_location::current());
+				auto read_block_zone = Factory::ProfilingUnitFactory::Instance().CreateZone("MockSerialPortImpl::HandleFileRead -> read_block", std::source_location::current());
 
 				std::size_t elems_read = 0;
 				bool keep_reading = true;
@@ -395,18 +396,18 @@ namespace AqualinkAutomate::Developer
 					switch (result)
 					{
 					case FileReadErrors::ErrorFileReachedEOF:
-						ec = boost::asio::error::eof;
+						out_ec = boost::asio::error::eof;
 						keep_reading = false;
 						break;
 
 					case FileReadErrors::ErrorDuringRead:
 					case FileReadErrors::NoDataWasRead:
-						ec = boost::asio::error::operation_aborted;
+						out_ec = boost::asio::error::operation_aborted;
 						keep_reading = false;
 						break;
 
 					case FileReadErrors::ReadSuccessfully:
-						ec = make_error_code(boost::system::errc::success);
+						out_ec = make_error_code(boost::system::errc::success);
 						elems_read++;
 						break;
 					}
@@ -418,9 +419,9 @@ namespace AqualinkAutomate::Developer
 				// Otherwise the caller (HandleFileRead) discards a partially-filled
 				// buffer, dropping the tail of any recording shorter than the read
 				// chunk (lossless replay regardless of recording size).
-				if (ec && (elems_read > 0))
+				if (out_ec && (elems_read > 0))
 				{
-					ec = make_error_code(boost::system::errc::success);
+					out_ec = make_error_code(boost::system::errc::success);
 				}
 
 				return elems_read;
@@ -559,13 +560,14 @@ namespace AqualinkAutomate::Developer
 		// input, so a W line decodes to zero bytes (skipped).
 		if ('[' == sv.front())
 		{
+			using enum ReplayHeaderResult;
 			switch (StripReplayHeader(sv, line))
 			{
-			case ReplayHeaderResult::Skip:
+			case Skip:
 				return true;
-			case ReplayHeaderResult::Error:
+			case Error:
 				return false;
-			case ReplayHeaderResult::Continue:
+			case Continue:
 				break;
 			}
 		}
@@ -587,7 +589,7 @@ namespace AqualinkAutomate::Developer
 		return DecodeTokenList(sv, out, line);
 	}
 
-	std::expected<std::size_t, boost::system::error_code> MockSerialPortImpl::HandleFileWrite(const boost::asio::const_buffer& buffer)
+	std::expected<std::size_t, boost::system::error_code> MockSerialPortImpl::HandleFileWrite(const boost::asio::const_buffer& /*buffer*/)
 	{
 		return 0;
 	}

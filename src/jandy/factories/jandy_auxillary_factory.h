@@ -81,10 +81,8 @@ namespace AqualinkAutomate::Factory
 		JandyAuxillaryFactory(JandyAuxillaryFactory&&) = delete;
 		JandyAuxillaryFactory& operator=(JandyAuxillaryFactory&&) = delete;
 
-	public:
 		static JandyAuxillaryFactory& Instance();
 
-	public:
 		std::expected<std::shared_ptr<Kernel::AuxillaryDevice>, boost::system::error_code> SerialAdapterDevice_CreateDevice(const Auxillaries::JandyAuxillaryIds aux_id);
 		std::expected<std::shared_ptr<Kernel::AuxillaryDevice>, boost::system::error_code> SerialAdapterDevice_CreateDevice(const Auxillaries::JandyAuxillaryIds aux_id, const Auxillaries::JandyAuxillaryStatuses status);
 		std::expected<std::shared_ptr<Kernel::AuxillaryDevice>, boost::system::error_code> OneTouchDevice_CreateDevice(const Utility::AuxillaryStateStringConverter& aux_state);
@@ -98,7 +96,6 @@ namespace AqualinkAutomate::Factory
 		bool IsSpilloverDevice(const std::string& label) const;
 		bool IsSprinklerDevice(const std::string& label) const;
 
-	private:
 		std::expected<std::shared_ptr<Kernel::AuxillaryDevice>, boost::system::error_code> CreateDevice_Impl(DeviceData& device_data);
 	};
 

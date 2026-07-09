@@ -15,6 +15,7 @@ namespace AqualinkAutomate::Interfaces
 	class IMessageSignalRecvBase
 	{
 	public:
+		virtual ~IMessageSignalRecvBase() = default;
 		virtual void Signal_MessageWasReceived() = 0;
 	};
 
@@ -31,7 +32,6 @@ namespace AqualinkAutomate::Interfaces
 	public:
 		virtual ~IMessageSignalRecv() = default;
 
-	public:
 		using SignalRef = const MESSAGE_TYPE&;
 		using SignalFunc = boost::signals2::signal<void(SignalRef)>;
 		using SignalPtr = std::shared_ptr<SignalFunc>;
@@ -42,7 +42,6 @@ namespace AqualinkAutomate::Interfaces
 			return signal;
 		}
 
-	public:
 		void Signal_MessageWasReceived() final
 		{
 			// CRTP precondition: MESSAGE_TYPE must derive from this base so the

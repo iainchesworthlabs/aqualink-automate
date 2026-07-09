@@ -325,6 +325,30 @@ BOOST_AUTO_TEST_CASE(LoadSslCertificates_InvalidPem_ThrowsInvalidFormat)
 	fs::remove_all(dir, rm);
 }
 
+BOOST_AUTO_TEST_CASE(LoadSslCertificates_PresentValidCaChain_LoadsSuccessfully)
+{
+	// The other CA-chain cases cover "not provided" (ignored) and "provided but
+	// absent" (throws NotFound). This drives the remaining arm: a CA chain that is
+	// both configured AND present AND a valid PEM, so use_certificate_chain_file
+	// succeeds and LoadSslCertificates completes without throwing. A self-signed
+	// certificate is itself a valid single-entry PEM chain, so reuse it as the chain.
+	const fs::path dir = fs::temp_directory_path() / "aqualink_loadssl_cachain_ok";
+	std::error_code rm;
+	fs::remove_all(dir, rm);
+
+	const fs::path cert = dir / "cert.pem";
+	const fs::path key = dir / "key.pem";
+	BOOST_REQUIRE(Certificates::GenerateSelfSignedCertificate(cert, key));
+
+	auto cfg = EnabledHttpsSettings(cert, key);
+	cfg.ca_chain_certificate = cert;   // configured, present, and a valid PEM chain
+
+	boost::asio::ssl::context ctx(boost::asio::ssl::context::tls_server);
+	BOOST_CHECK_NO_THROW(Certificates::LoadSslCertificates(cfg, ctx));
+
+	fs::remove_all(dir, rm);
+}
+
 BOOST_AUTO_TEST_CASE(LoadSslCertificates_MissingCaChain_ThrowsNotFound)
 {
 	const fs::path dir = fs::temp_directory_path() / "aqualink_loadssl_cachain";

@@ -14,14 +14,11 @@ namespace AqualinkAutomate::Utility
 	const boost::regex AuxillaryStateStringConverter::REGEX_PARSER{ REGEX_PATTERN };
 
 	AuxillaryStateStringConverter::AuxillaryStateStringConverter() noexcept :
-		m_Label(),
-		m_State(Kernel::AuxillaryStatuses::Unknown),
 		m_ErrorOccurred(ErrorCodes::StringConversion_ErrorCodes::MalformedInput)
 	{
 	}
 
 	AuxillaryStateStringConverter::AuxillaryStateStringConverter(const std::string& auxillary_status_string) noexcept :
-		m_Label(),
 		m_State(Kernel::AuxillaryStatuses::Unknown),
 		m_ErrorOccurred(std::nullopt)
 	{

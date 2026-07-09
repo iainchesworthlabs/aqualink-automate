@@ -5,12 +5,14 @@ namespace AqualinkAutomate::Kernel
 
 	std::string ToDisplayString(PoolConfigurations config)
 	{
+		using enum PoolConfigurations;
+
 		switch (config)
 		{
-			case PoolConfigurations::SingleBody:               return "Single Body";
-			case PoolConfigurations::DualBody_SharedEquipment: return "Dual Body (Shared Equipment)";
-			case PoolConfigurations::DualBody_DualEquipment:   return "Dual Body (Dual Equipment)";
-			case PoolConfigurations::Unknown:                  return "Unknown";
+			case SingleBody:               return "Single Body";
+			case DualBody_SharedEquipment: return "Dual Body (Shared Equipment)";
+			case DualBody_DualEquipment:   return "Dual Body (Dual Equipment)";
+			case Unknown:                  return "Unknown";
 		}
 
 		return "Unknown";

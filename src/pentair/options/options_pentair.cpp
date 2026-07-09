@@ -22,11 +22,12 @@ namespace AqualinkAutomate::Pentair::Options
 		return options;
 	}
 
-	void OptionsProcessor::Validate(const boost::program_options::variables_map& vm) const
+	void OptionsProcessor::Validate(const boost::program_options::variables_map& /*vm*/) const
 	{
+		// Intentionally empty: Pentair options carry no cross-option constraints to validate.
 	}
 
-	std::expected<OptionsProcessor::SettingsType, ErrorCodes::Options_ErrorCodes> OptionsProcessor::Process(boost::program_options::variables_map& vm) const
+	std::expected<OptionsProcessor::SettingsType, ErrorCodes::Options_ErrorCodes> OptionsProcessor::Process(boost::program_options::variables_map& /*vm*/) const
 	{
 		SettingsType settings;
 

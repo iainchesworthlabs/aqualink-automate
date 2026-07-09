@@ -439,6 +439,54 @@ BOOST_AUTO_TEST_CASE(Start_NoConfiguredFile_IsNoOp)
 	BOOST_CHECK_NO_THROW(service.Stop());
 }
 
+// SaveNow() writing to a path whose parent directory does not exist: the .tmp
+// ofstream silently fails to create the file, so std::filesystem::rename(tmp, target)
+// throws std::filesystem_error, which is caught and swallowed (SaveNow must not
+// propagate it). Covers the filesystem_error catch arm.
+BOOST_AUTO_TEST_CASE(SaveNow_UnwritablePath_FilesystemErrorIsCaught)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+	// A parent directory that does not exist -> the .tmp cannot be created and the
+	// subsequent rename throws filesystem_error.
+	settings.equipment_cache_file =
+		(std::filesystem::temp_directory_path() / "aqualink_eqcache_no_such_dir" / "cache.json").string();
+
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+	Find<Kernel::DataHub>()->Devices.Add(MakeDevice("Filter Pump", Traits::AuxillaryTypes::Pump));
+
+	// The filesystem_error from rename is caught and logged; SaveNow must not throw
+	// and must not leave the target behind.
+	BOOST_CHECK_NO_THROW(service.SaveNow());
+	BOOST_CHECK(!std::filesystem::exists(settings.equipment_cache_file));
+}
+
+// After Start() schedules the save timer, Stop() cancels it. Pumping the io_context
+// then runs the pending completion handler with error_code == operation_aborted, so
+// it returns immediately without re-scheduling. Covers the operation_aborted guard.
+BOOST_AUTO_TEST_CASE(ScheduleSave_TimerCancelled_HandlerReturnsOnAbort)
+{
+	boost::asio::io_context io;
+	const auto path = (std::filesystem::temp_directory_path() / "aqualink_eqcache_abort.json").string();
+	std::error_code ec;
+	std::filesystem::remove(path, ec);
+
+	Options::Equipment::EquipmentSettings settings;
+	settings.equipment_cache_file = path;
+
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+
+	service.Start();   // schedules the async_wait on m_Timer
+	service.Stop();    // sets m_Stopped, cancels the timer (handler pends w/ aborted ec)
+
+	// Pump the io_context: the cancelled handler runs and returns at the guard,
+	// without rescheduling, so run() drains to completion and does not hang.
+	BOOST_CHECK_NO_THROW(io.run());
+
+	std::filesystem::remove(path, ec);
+	std::filesystem::remove(path + ".tmp", ec);
+}
+
 BOOST_AUTO_TEST_CASE(Snapshot_FreshHub_HasUnknownConfigAndNoDevices)
 {
 	boost::asio::io_context io;

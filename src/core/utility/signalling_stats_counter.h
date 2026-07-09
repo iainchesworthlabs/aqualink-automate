@@ -37,23 +37,21 @@ namespace AqualinkAutomate::Utility
 	class StatsCounter
 	{
 	public:
-		StatsCounter(StatsSignal& stat_signal);
+		explicit StatsCounter(StatsSignal& stat_signal);
 		StatsCounter(const StatsCounter& other);
 		StatsCounter(StatsCounter&& other) noexcept;
 		StatsCounter& operator=(const StatsCounter& other) = delete;
 		StatsCounter& operator=(StatsCounter&& other) noexcept = delete;
 
-	public:
 		StatsCounter& operator=(const uint64_t count_to_assign);
 		StatsCounter& operator+=(const uint64_t count_to_add);
 		StatsCounter& operator++();
 
-	public:
 		uint64_t operator()() const;
 		uint64_t Count() const;
 
 	private:
-		std::uint64_t m_Count;
+		std::uint64_t m_Count{ 0 };
 		StatsSignal& m_StatsSignal;
 	};
 
@@ -94,9 +92,9 @@ namespace AqualinkAutomate::Utility
 		{
 			template<typename STAT_TYPE>
 				requires std::is_enum_v<STAT_TYPE>
-			AnyEnum(STAT_TYPE value) :
+			explicit AnyEnum(STAT_TYPE value) :
 				type_hash(typeid(STAT_TYPE).hash_code()),
-				value_hash(std::hash<std::underlying_type_t<STAT_TYPE>>{}(static_cast<std::underlying_type_t<STAT_TYPE>>(value))),
+				value_hash(std::hash<std::underlying_type_t<STAT_TYPE>>{}(std::to_underlying(value))),
 				name(magic_enum::enum_name(value))
 			{
 			}
@@ -168,19 +166,15 @@ namespace AqualinkAutomate::Utility
 	public:
 		using StatsTypesMap = std::unordered_map<AnyEnum, StatsCounter, AnyEnumHash, AnyEnumEqual>;
 
-	public:
 		using key_type = typename StatsTypesMap::key_type;
 		using mapped_type = typename StatsTypesMap::mapped_type;
 		using value_type = typename StatsTypesMap::value_type;
 
 	public:
-		SignallingStatsCounter() :
-			m_StatsMap(),
-			m_StatsSignal()
+		SignallingStatsCounter()
 		{
 		}
 
-	public:
 		template<typename STAT_TYPE>
 			requires std::is_enum_v<STAT_TYPE>
 		StatsCounter& operator[](const STAT_TYPE& stat_type)
@@ -201,7 +195,6 @@ namespace AqualinkAutomate::Utility
 			return it->second;
 		}
 
-	public:
 		template<typename STAT_TYPE>
 			requires std::is_enum_v<STAT_TYPE>
 		void AddStatsToCount(STAT_TYPE stat_type)
@@ -210,20 +203,18 @@ namespace AqualinkAutomate::Utility
 			(void)(*this)[stat_type];
 		}
 
-	public:
 		auto begin() const noexcept { return m_StatsMap.begin(); }
 		auto end() const noexcept { return m_StatsMap.end(); }
 		auto cbegin() const noexcept { return m_StatsMap.cbegin(); }
 		auto cend() const noexcept { return m_StatsMap.cend(); }
 
-	public:
 		StatsSignal& Signal() const
 		{
 			return m_StatsSignal;
 		}
 
 	private:
-		StatsTypesMap m_StatsMap;
+		StatsTypesMap m_StatsMap{};
 		mutable StatsSignal m_StatsSignal;
 	};
 

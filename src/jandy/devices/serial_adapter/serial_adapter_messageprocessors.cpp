@@ -13,7 +13,7 @@ using namespace AqualinkAutomate::Logging;
 namespace AqualinkAutomate::Devices
 {
 
-	void SerialAdapterDevice::Slot_SerialAdapter_Ack(const Messages::JandyMessage_Ack& msg)
+	void SerialAdapterDevice::Slot_SerialAdapter_Ack([[maybe_unused]] const Messages::JandyMessage_Ack& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::Slot_Ack", std::source_location::current());
 		LogDebug(Channel::Devices, "Serial Adapter device received a JandyMessage_Ack signal.");
@@ -22,7 +22,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void SerialAdapterDevice::Slot_SerialAdapter_DevReady(const Messages::SerialAdapterMessage_DevReady& msg)
+	void SerialAdapterDevice::Slot_SerialAdapter_DevReady([[maybe_unused]] const Messages::SerialAdapterMessage_DevReady& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::Slot_DevReady", std::source_location::current());
 		LogDebug(Channel::Devices, "Serial Adapter device received a SerialAdapterMessage_DevReady signal.");
@@ -219,7 +219,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void SerialAdapterDevice::Slot_SerialAdapter_Probe(const Messages::JandyMessage_Probe& msg)
+	void SerialAdapterDevice::Slot_SerialAdapter_Probe([[maybe_unused]] const Messages::JandyMessage_Probe& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::Slot_Probe", std::source_location::current());
 		LogDebug(Channel::Devices, "Serial Adapter device received a JandyMessage_Probe signal.");
@@ -230,7 +230,7 @@ namespace AqualinkAutomate::Devices
 		Restartable::Kick();
 	}
 
-	void SerialAdapterDevice::Slot_SerialAdapter_Status(const Messages::JandyMessage_Status& msg)
+	void SerialAdapterDevice::Slot_SerialAdapter_Status([[maybe_unused]] const Messages::JandyMessage_Status& msg)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("SerialAdapterDevice::Slot_Status", std::source_location::current());
 		LogDebug(Channel::Devices, "Serial Adapter device received a JandyMessage_Status signal.");

@@ -51,13 +51,16 @@ namespace AqualinkAutomate::Scheduling
 	{
 		// Stop() cancels the asio timer, whose throwing overload can raise
 		// boost::system::system_error. A destructor must not let that escape (cpp:S1048).
+		// The diagnostic logging can itself throw (std::format / sink write), so it is
+		// guarded too — nothing, including the log call, may escape a destructor.
 		try
 		{
 			Stop();
 		}
 		catch (const std::exception& ex)
 		{
-			LogError(Channel::Main, [&ex] { return std::format("Scheduler: error during shutdown: {}", ex.what()); });
+			try { LogError(Channel::Main, [&ex] { return std::format("Scheduler: error during shutdown: {}", ex.what()); }); }
+			catch (...) { /* the diagnostic log itself must not escape the destructor (cpp:S1048) */ }
 		}
 		catch (...)
 		{

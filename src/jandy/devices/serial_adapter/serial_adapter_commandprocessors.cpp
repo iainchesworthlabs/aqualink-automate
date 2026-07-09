@@ -50,12 +50,14 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void SerialAdapterDevice::Command_SerialAdapter_Options(const Messages::SerialAdapter_SCS_Options& options)
+	void SerialAdapterDevice::Command_SerialAdapter_Options([[maybe_unused]] const Messages::SerialAdapter_SCS_Options& options)
 	{
+		// Intentionally empty: the reported system options are not yet consumed by the DataHub.
 	}
 
-	void SerialAdapterDevice::Command_SerialAdapter_BatteryCondition(const Messages::SerialAdapter_SCS_BatteryCondition& battery_condition)
+	void SerialAdapterDevice::Command_SerialAdapter_BatteryCondition([[maybe_unused]] const Messages::SerialAdapter_SCS_BatteryCondition& battery_condition)
 	{
+		// Intentionally empty: the reported battery condition is not yet consumed by the DataHub.
 	}
 
 	void SerialAdapterDevice::Command_SerialAdapter_AirTemperature(const Kernel::Temperature& temperature)
@@ -82,8 +84,10 @@ namespace AqualinkAutomate::Devices
 		}
 	}
 
-	void SerialAdapterDevice::Command_SerialAdapter_SolarTemperature(const Kernel::Temperature& temperature)
+	void SerialAdapterDevice::Command_SerialAdapter_SolarTemperature([[maybe_unused]] const Kernel::Temperature& temperature)
 	{
+		// Intentionally empty: solar temperature is reported by the adapter but not yet
+		// surfaced to the DataHub.
 	}
 
 	void SerialAdapterDevice::Command_SerialAdapter_AuxillaryStatus(const Auxillaries::JandyAuxillaryIds& aux_id, const Auxillaries::JandyAuxillaryStatuses& status)

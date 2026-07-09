@@ -16,12 +16,10 @@ namespace AqualinkAutomate::Interfaces
 	public:
 		virtual ~IProfiler() = default;
 
-	public:
 		// Process lifecycle: called once at startup / shutdown.
 		virtual void StartProfiling() = 0;
 		virtual void StopProfiling() = 0;
 
-	public:
 		// Runtime capture gating, distinct from the process lifecycle above.
 		// Lets the runtime control surface (e.g. the diagnostics endpoint) pause
 		// and resume sample/trace collection without tearing the profiler down.
@@ -30,12 +28,10 @@ namespace AqualinkAutomate::Interfaces
 		virtual void Resume();
 		virtual void Pause();
 
-	public:
 		virtual Profiling::DomainPtr CreateDomain(const std::string& name) const;
 		virtual Profiling::FramePtr CreateFrame(Profiling::DomainPtr domain, const std::string& name) const;
 		virtual Profiling::ZonePtr CreateZone(Profiling::FramePtr frame, const std::string& name) const;
 
-	public:
 		virtual void Message(std::string_view text) const;
 		virtual void Message(std::string_view text, uint32_t colour) const;
 		virtual void PlotValue(const std::string& name, int64_t value);

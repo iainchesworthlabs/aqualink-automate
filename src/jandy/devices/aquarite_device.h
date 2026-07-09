@@ -108,7 +108,6 @@ namespace AqualinkAutomate::Devices
 		void Slot_Aquarite_Percent(const Messages::AquariteMessage_Percent& msg);
 		void Slot_Aquarite_PPM(const Messages::AquariteMessage_PPM& msg);
 
-	private:
 		void EnsureChlorinatorDeviceExists();
 		void PushPercentToDataHub(const Messages::AquariteMessage_Percent& msg);
 		void PushPPMToDataHub(const Messages::AquariteMessage_PPM& msg);

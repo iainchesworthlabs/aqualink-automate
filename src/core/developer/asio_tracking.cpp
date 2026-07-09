@@ -19,6 +19,8 @@ namespace AqualinkAutomate::Developer
 
     void AsioTracking::init()
     {
+        // Intentionally empty: Asio's handler-tracking service requires this hook,
+        // but this implementation performs no one-time initialisation.
     }
 
     void AsioTracking::location(const char* file_name, int line, const char* function_name)
@@ -100,22 +102,23 @@ namespace AqualinkAutomate::Developer
     // Record an operation that is not directly associated with a handler.
     void AsioTracking::operation(boost::asio::execution_context& /*ctx*/, const char* /*object_type*/, void* /*object*/, std::uintmax_t /*native_handle*/, const char* /*op_name*/)
     {
+        // Intentionally empty: non-handler operations are not traced by this implementation.
     }
 
     // Record that a descriptor has been registered with the reactor.
-    void AsioTracking::reactor_registration(boost::asio::execution_context& context, uintmax_t native_handle, uintmax_t registration)
+    void AsioTracking::reactor_registration(boost::asio::execution_context& /*context*/, uintmax_t native_handle, uintmax_t registration)
     {
         LogTrace(Channel::Developer, std::format("Adding to reactor native_handle = {}, registration = {}", native_handle, registration));
     }
 
     // Record that a descriptor has been deregistered from the reactor.
-    void AsioTracking::reactor_deregistration(boost::asio::execution_context& context, uintmax_t native_handle, uintmax_t registration)
+    void AsioTracking::reactor_deregistration(boost::asio::execution_context& /*context*/, uintmax_t native_handle, uintmax_t registration)
     {
         LogTrace(Channel::Developer, std::format("Removing from reactor native_handle = {}, registration = {}", native_handle, registration));
     }
 
     // Record reactor-based readiness events associated with a descriptor.
-    void AsioTracking::reactor_events(boost::asio::execution_context& context, uintmax_t registration, unsigned events)
+    void AsioTracking::reactor_events(boost::asio::execution_context& /*context*/, uintmax_t registration, unsigned events)
     {
         LogTrace(
             Channel::Developer,

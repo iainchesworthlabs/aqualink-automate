@@ -23,7 +23,7 @@
 namespace AqualinkAutomate::Profiling
 {
 
-	void RegisterAvailableProfilers(Factory::ProfilerFactory& profiler, Factory::ProfilingUnitFactory& profiler_units)
+	void RegisterAvailableProfilers([[maybe_unused]] Factory::ProfilerFactory& profiler, [[maybe_unused]] Factory::ProfilingUnitFactory& profiler_units)
 	{
 #if defined(TRACY_ENABLE)
 		profiler.Register(Types::ProfilerTypes::Tracy, std::make_shared<Tracy_Profiler>());

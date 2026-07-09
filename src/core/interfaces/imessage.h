@@ -10,25 +10,22 @@ namespace AqualinkAutomate::Interfaces
 	class IMessage
 	{
 	public:
-		constexpr IMessage(const MESSAGE_ID message_id) :
+		constexpr explicit IMessage(const MESSAGE_ID message_id) :
 			m_Id(message_id)
 		{
 		}
 
 		virtual ~IMessage() = default;
 
-	public:
 		constexpr MESSAGE_ID Id() const
 		{
 			return m_Id;
 		}
 
-	public:
 		virtual uint8_t MaxPermittedPacketLength() const = 0;
 		virtual uint8_t MinPermittedPacketLength() const = 0;
 		virtual std::string ToString() const = 0;
 
-	public:
 		constexpr bool operator==(const IMessage& other) const
 		{
 			bool is_equal = true;

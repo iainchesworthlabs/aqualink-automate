@@ -28,7 +28,6 @@ namespace AqualinkAutomate::Kernel
 		{
 		}
 
-	public:
 		bool operator()(const DevicesGraphType::edge_descriptor) const { return false; }
 		bool operator()(const DevicesGraphType::vertex_descriptor vd) const
 		{

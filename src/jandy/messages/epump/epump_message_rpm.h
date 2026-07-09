@@ -31,19 +31,13 @@ namespace AqualinkAutomate::Messages
 	public:
 		EPumpMessage_RPM() noexcept;
 		~EPumpMessage_RPM() override = default;
-
-	public:
 		uint16_t RPM() const;
-
-	public:
 		std::string ToString() const override;
-
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override;
 
 	private:
-		uint16_t m_RPM;
+		uint16_t m_RPM{ 0 };
 	};
 
 }

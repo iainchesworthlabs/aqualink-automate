@@ -61,13 +61,11 @@ namespace AqualinkAutomate::Serial::PortTypes
 	private:
 		Developer::SerialPortOptions m_Options;
 
-	private:
 		boost::asio::any_io_executor m_Executor;
 		boost::asio::ip::tcp::socket m_Socket;
 		std::string m_EndpointName;
 		bool m_IsOpen{ false };
 
-	private:
 		bool m_UseRfc2217{ true };
 		std::unique_ptr<Interfaces::ISerialPortProtocol> CreateProtocolHandler();
 		std::unique_ptr<Interfaces::ISerialPortProtocol> m_ProtocolHandler;
@@ -77,7 +75,6 @@ namespace AqualinkAutomate::Serial::PortTypes
 		// success path does not nest control flow too deeply.
 		void InitialiseConnectedSocket(const std::string& endpoint_name, boost::system::error_code& ec);
 
-	private:
 		Profiling::DomainPtr m_ProfilingDomain;
 	};
 

@@ -14,19 +14,7 @@ namespace AqualinkAutomate::Messages
 
 	JandyMessage_Status::JandyMessage_Status() noexcept :
 		JandyMessage(JandyMessageIds::Status),
-		Interfaces::IMessageSignalRecv<JandyMessage_Status>(), 
-		m_Mode(ComboModes::Unknown),
-		m_FilterPump(Kernel::PumpStatuses::Unknown),
-		m_Aux1(Kernel::AuxillaryStatuses::Unknown),
-		m_Aux2(Kernel::AuxillaryStatuses::Unknown),
-		m_Aux3(Kernel::AuxillaryStatuses::Unknown),
-		m_Aux4(Kernel::AuxillaryStatuses::Unknown),
-		m_Aux5(Kernel::AuxillaryStatuses::Unknown),
-		m_Aux6(Kernel::AuxillaryStatuses::Unknown),
-		m_Aux7(Kernel::AuxillaryStatuses::Unknown),
-		m_PoolHeater(Kernel::HeaterStatuses::Unknown),
-		m_SolarHeater(Kernel::HeaterStatuses::Unknown),
-		m_SpaHeater(Kernel::HeaterStatuses::Unknown)
+		Interfaces::IMessageSignalRecv<JandyMessage_Status>() 
 	{
 	}
 

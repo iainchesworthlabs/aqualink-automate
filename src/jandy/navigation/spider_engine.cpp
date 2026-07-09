@@ -39,7 +39,7 @@ namespace AqualinkAutomate::Navigation
 		else
 		{
 			LogInfo(Channel::Scraping, std::format("SpiderEngine: Starting crawl from page {}",
-				static_cast<uint32_t>(m_Navigator.GetCurrentPage())));
+				std::to_underlying(m_Navigator.GetCurrentPage())));
 			m_State = State::NavigatingToNext;
 			NavigateToNextTarget();
 		}
@@ -66,7 +66,7 @@ namespace AqualinkAutomate::Navigation
 			if (m_Navigator.IsSynced())
 			{
 				LogInfo(Channel::Scraping, std::format("SpiderEngine: Navigator synced to page {} - beginning crawl",
-					static_cast<uint32_t>(m_Navigator.GetCurrentPage())));
+					std::to_underlying(m_Navigator.GetCurrentPage())));
 				m_State = State::NavigatingToNext;
 				NavigateToNextTarget();
 
@@ -91,7 +91,7 @@ namespace AqualinkAutomate::Navigation
 				{
 					// Arrived at target page
 					LogInfo(Channel::Scraping, std::format("SpiderEngine: Arrived at target page {}",
-						static_cast<uint32_t>(m_CurrentTarget)));
+						std::to_underlying(m_CurrentTarget)));
 					m_State = State::CapturingPage;
 					m_NavigationFailures = 0;
 
@@ -133,7 +133,7 @@ namespace AqualinkAutomate::Navigation
 					{
 						m_NavigationFailures++;
 						LogWarning(Channel::Scraping, std::format("SpiderEngine: Navigation to page {} failed ({}/{})",
-							static_cast<uint32_t>(m_CurrentTarget), m_NavigationFailures, MAX_NAVIGATION_FAILURES));
+							std::to_underlying(m_CurrentTarget), m_NavigationFailures, MAX_NAVIGATION_FAILURES));
 
 						if (m_NavigationFailures >= MAX_NAVIGATION_FAILURES)
 						{
@@ -169,8 +169,7 @@ namespace AqualinkAutomate::Navigation
 			}
 
 			// Track visit for multi-instance vs normal pages
-			const MenuPage* page_info = m_Model.GetPage(m_CurrentTarget);
-			if (page_info && page_info->multi_instance && m_CurrentMultiEdge.has_value())
+			if (const MenuPage* page_info = m_Model.GetPage(m_CurrentTarget); page_info && page_info->multi_instance && m_CurrentMultiEdge.has_value())
 			{
 				// Mark the specific edge as visited (not the page itself)
 				auto edge = m_CurrentMultiEdge.value();
@@ -178,8 +177,8 @@ namespace AqualinkAutomate::Navigation
 				m_CurrentMultiEdge = std::nullopt;
 
 				LogDebug(Channel::Scraping, std::format("SpiderEngine: Captured multi-instance page {} via edge (source={}, line={}) ({} edges visited)",
-					static_cast<uint32_t>(m_CurrentTarget),
-					static_cast<uint32_t>(edge->source), edge->trigger_line,
+					std::to_underlying(m_CurrentTarget),
+					std::to_underlying(edge->source), edge->trigger_line,
 					m_VisitedMultiEdges[m_CurrentTarget].size()));
 
 				// Only mark the page as fully visited when ALL incoming edges are done
@@ -187,7 +186,7 @@ namespace AqualinkAutomate::Navigation
 				{
 					m_Visited.insert(m_CurrentTarget);
 					LogInfo(Channel::Scraping, std::format("SpiderEngine: All instances of multi-instance page {} visited",
-						static_cast<uint32_t>(m_CurrentTarget)));
+						std::to_underlying(m_CurrentTarget)));
 				}
 			}
 			else
@@ -195,7 +194,7 @@ namespace AqualinkAutomate::Navigation
 				m_Visited.insert(m_CurrentTarget);
 
 				LogDebug(Channel::Scraping, std::format("SpiderEngine: Captured page {} ({} pages visited so far)",
-					static_cast<uint32_t>(m_CurrentTarget), m_Visited.size()));
+					std::to_underlying(m_CurrentTarget), m_Visited.size()));
 			}
 
 			// Choose next target
@@ -274,13 +273,10 @@ namespace AqualinkAutomate::Navigation
 
 		for (PageId candidate : candidates)
 		{
-			const MenuPage* page = m_Model.GetPage(candidate);
-
 			// For multi-instance pages, compute path to the parent page (via specific edge)
-			if (page && page->multi_instance)
+			if (const MenuPage* page = m_Model.GetPage(candidate); page && page->multi_instance)
 			{
-				auto next_edge = GetNextUnvisitedMultiEdge(candidate);
-				if (next_edge.has_value())
+				if (auto next_edge = GetNextUnvisitedMultiEdge(candidate); next_edge.has_value())
 				{
 					auto path = m_Model.FindPath(current, next_edge.value()->source);
 					// Path to parent + 1 step to select item
@@ -310,7 +306,7 @@ namespace AqualinkAutomate::Navigation
 		if (nearest != PageId::Unknown)
 		{
 			LogTrace(Channel::Scraping, std::format("SpiderEngine: Nearest unvisited target is page {} ({} steps away)",
-				static_cast<uint32_t>(nearest), shortest_path));
+				std::to_underlying(nearest), shortest_path));
 		}
 
 		return (nearest != PageId::Unknown) ? std::optional<PageId>(nearest) : std::nullopt;
@@ -337,7 +333,7 @@ namespace AqualinkAutomate::Navigation
 		const MenuPage* target_page = m_Model.GetPage(m_CurrentTarget);
 
 		LogDebug(Channel::Scraping, std::format("SpiderEngine: Next target -> {}({})",
-			static_cast<uint32_t>(m_CurrentTarget), target_page ? target_page->name : "Unknown"));
+			std::to_underlying(m_CurrentTarget), target_page ? target_page->name : "Unknown"));
 
 		// Multi-instance pages: navigate to parent page and select specific menu item
 		if (target_page && target_page->multi_instance)
@@ -349,7 +345,7 @@ namespace AqualinkAutomate::Navigation
 				m_CurrentMultiEdge = edge;
 
 				LogDebug(Channel::Scraping, std::format("SpiderEngine: Multi-instance navigation via parent {}({}) line {} '{}'",
-					static_cast<uint32_t>(edge->source), edge->trigger_line,
+					std::to_underlying(edge->source), edge->trigger_line,
 					edge->trigger_line, edge->label));
 
 				// Navigate to the parent page, position cursor on the item, and select it

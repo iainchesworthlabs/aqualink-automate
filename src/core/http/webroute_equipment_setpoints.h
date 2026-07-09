@@ -23,9 +23,8 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Equipment_Setpoints : public Interfaces::IWebRoute<EQUIPMENT_SETPOINTS_ROUTE_URL>
 	{
 	public:
-		WebRoute_Equipment_Setpoints(Kernel::HubLocator& hub_locator);
+		explicit WebRoute_Equipment_Setpoints(Kernel::HubLocator& hub_locator);
 
-	public:
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
 
 		Interfaces::AccessRequirement RequiredAccess(boost::beast::http::verb method) const override

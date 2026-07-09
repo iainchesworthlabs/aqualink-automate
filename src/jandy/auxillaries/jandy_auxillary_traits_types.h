@@ -11,6 +11,7 @@ namespace AqualinkAutomate::Auxillaries
 	class JandyAuxillaryId : public Kernel::ImmutableTraitType<const Auxillaries::JandyAuxillaryIds>
 	{
 	public:
+		virtual ~JandyAuxillaryId() = default;
 		TraitKey Name() const final { return std::string{"JandyAuxillaryId"}; }
 	};
 

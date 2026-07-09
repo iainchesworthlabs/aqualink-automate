@@ -13,13 +13,11 @@ namespace AqualinkAutomate::Messages
 	class ChemlinkMessage : public JandyMessage
 	{
 	public:
-		ChemlinkMessage(const JandyMessageIds& msg_id);
+		explicit ChemlinkMessage(const JandyMessageIds& msg_id);
 		~ChemlinkMessage() override = default;
 
-	public:
 		std::string ToString() const override;
 
-	public:
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override = 0;
 		bool DeserializeContents(std::span<const uint8_t> message_bytes) override = 0;
 	};

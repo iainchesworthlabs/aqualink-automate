@@ -18,7 +18,7 @@ namespace AqualinkAutomate::Interfaces
 		};
 	}
 
-	void from_json(const nlohmann::json& json_object, IStatus& status)
+	void from_json(const nlohmann::json& /*json_object*/, IStatus& /*status*/)
 	{
 		throw Exceptions::NotImplemented();
 	}

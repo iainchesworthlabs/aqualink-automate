@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <span>
+#include <utility>
 
 #include <boost/asio/basic_socket.hpp>
 #include <boost/asio/connect.hpp>
@@ -300,7 +301,7 @@ namespace AqualinkAutomate::Serial::PortTypes
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("NetworkSerialPortImpl::set_flow_control", std::source_location::current());
 
-		LogDebug(Channel::Serial, std::format("Setting flow control: {}", static_cast<int>(fc)));
+		LogDebug(Channel::Serial, std::format("Setting flow control: {}", std::to_underlying(fc)));
 		m_Options.flow_control = fc;
 
 		if (m_ProtocolHandler)
@@ -319,7 +320,7 @@ namespace AqualinkAutomate::Serial::PortTypes
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("NetworkSerialPortImpl::set_parity", std::source_location::current());
 
-		LogDebug(Channel::Serial, std::format("Setting parity: {}", static_cast<int>(p)));
+		LogDebug(Channel::Serial, std::format("Setting parity: {}", std::to_underlying(p)));
 		m_Options.parity = p;
 
 		if (m_ProtocolHandler)
@@ -338,7 +339,7 @@ namespace AqualinkAutomate::Serial::PortTypes
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("NetworkSerialPortImpl::set_stop_bits", std::source_location::current());
 
-		LogDebug(Channel::Serial, std::format("Setting stop bits: {}", static_cast<int>(sb)));
+		LogDebug(Channel::Serial, std::format("Setting stop bits: {}", std::to_underlying(sb)));
 		m_Options.stop_bits = sb;
 
 		if (m_ProtocolHandler)

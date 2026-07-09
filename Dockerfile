@@ -156,7 +156,7 @@ RUN DESTDIR=/src/install/config-linux-gcc cmake --install build/config-linux-gcc
 # the glibc Node installed in the runtime stage. @matter/main and ws are pure JS, so
 # this is belt-and-braces, but it keeps the door open for any future native dep.
 
-FROM node:24-bookworm-slim@sha256:b31e7a42fdf8b8aa5f5ed477c72d694301273f1069c5a2f71d53c6482e99a2fc AS matter-builder
+FROM node:26-bookworm-slim@sha256:b16ca7b4dcfb20184e1c70f9ee30c6a75ed1da669cfafd6d2add4761b123d79f AS matter-builder
 
 WORKDIR /opt/matter-bridge
 
@@ -199,6 +199,18 @@ RUN apt-get update \
     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends nodejs \
+    # Drop npm: the runtime only ever invokes `node` (the Matter sidecar ships its
+    # own pruned production node_modules from the matter-builder stage) and never
+    # npm. Removing npm's bundled node_modules deletes a standing CVE surface -- its
+    # vendored copies of libraries such as undici -- that we would carry yet never
+    # execute. `node` (the only thing the entrypoint needs) is unaffected.
+    && rm -rf /usr/lib/node_modules/npm /usr/bin/npm /usr/bin/npx \
+    # Remove Canonical's pebble service manager that the ubuntu OCI base bakes into
+    # /usr/bin/pebble: this container is supervised by tini + docker-entrypoint.sh,
+    # never pebble, so the ~10 MB Go binary is dead weight. It is not dpkg-managed
+    # (dpkg -S finds no owner), so apt cannot patch the CVEs embedded in its Go
+    # module metadata -- deleting the unused binary is the only fix.
+    && rm -f /usr/bin/pebble \
     && apt-get purge -y --auto-remove gnupg \
     && rm -rf /var/lib/apt/lists/*
 

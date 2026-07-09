@@ -32,24 +32,15 @@ namespace AqualinkAutomate::Options::Web
 			return AREA_NAME;
 		}
 
-		tagWebSettings() :
-			http_port{ 80 },
-			https_port{ 443 },
-			http_content_is_disabled{ false },
-			http_server_is_enabled{ true },
-			https_server_is_enabled{ true }
-		{
-		}
-
 		std::string bind_address;
-		uint16_t http_port;
-		uint16_t https_port;
+		uint16_t http_port{ 80 };
+		uint16_t https_port{ 443 };
 
 		std::string doc_root;
 
-		bool http_content_is_disabled;
-		bool http_server_is_enabled;
-		bool https_server_is_enabled;
+		bool http_content_is_disabled{ false };
+		bool http_server_is_enabled{ true };
+		bool https_server_is_enabled{ true };
 
 		SslCertificate ssl_certificate;
 		std::optional<std::filesystem::path> ca_chain_certificate;
@@ -126,7 +117,6 @@ namespace AqualinkAutomate::Options::Web
 		std::string Name() const { return SettingsType::AreaName(); }
 		boost::program_options::options_description Options() const;
 
-	public:
 		void Validate(const boost::program_options::variables_map& vm) const;
 		std::expected<SettingsType, ErrorCodes::Options_ErrorCodes> Process(boost::program_options::variables_map& vm) const;
 	};

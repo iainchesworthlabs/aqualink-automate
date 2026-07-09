@@ -20,7 +20,7 @@ namespace AqualinkAutomate::Utility
 		using HistoryCollection = std::deque<HistoryElement>;
 
 	public:
-		UtilisationOverPeriod(std::chrono::seconds duration) :
+		explicit UtilisationOverPeriod(std::chrono::seconds duration) :
 			UtilisationOverPeriod(duration, Developer::SerialPortOptions{})
 		{
 		}
@@ -42,7 +42,6 @@ namespace AqualinkAutomate::Utility
 		UtilisationOverPeriod(UtilisationOverPeriod&&) noexcept = default;
 		UtilisationOverPeriod& operator=(UtilisationOverPeriod&&) noexcept = default;
 
-	public:
 		const HistoryCollection& History() const
 		{
 			return m_History;
@@ -63,7 +62,6 @@ namespace AqualinkAutomate::Utility
 			return CalculateCurrentUtilization();
 		}
 
-	public:
 		/// Returns a copy with the supplied bytes added.
 		/// NOTE: deep-copies the entire history; prefer operator+= on the hot path.
 		UtilisationOverPeriod operator+(BytesElement bytes) const
@@ -138,7 +136,6 @@ namespace AqualinkAutomate::Utility
 		std::chrono::seconds m_StatsDuration;
 		BytesElement m_RunningTotalBytes{ 0 };
 
-	private:
 		double m_MaxBandwidthBytesPerSec;
 	};
 
@@ -154,7 +151,6 @@ namespace AqualinkAutomate::Utility
 		FlowStatistics& operator=(FlowStatistics&&) noexcept = default;
 		~FlowStatistics() = default;
 
-	public:
 		FlowStatistics& operator+=(const uint64_t bytes)
 		{
 			TotalBytes += bytes;
@@ -169,7 +165,6 @@ namespace AqualinkAutomate::Utility
 	public:
 		uint64_t TotalBytes{ 0 };
 
-	public:
 		UtilisationOverPeriod<> Average_OneSecond{ std::chrono::seconds(1) };
 		UtilisationOverPeriod<> Average_ThirtySecond{ std::chrono::seconds(30) };
 		UtilisationOverPeriod<> Average_FiveMinute{ std::chrono::minutes(5) };

@@ -78,71 +78,73 @@ namespace magic_enum::customize
 	template<>
 	constexpr customize_t enum_name<JandyAuxillaryIds>(JandyAuxillaryIds value) noexcept
 	{
+		using enum AqualinkAutomate::Auxillaries::JandyAuxillaryIds;
+
 		switch (value)
 		{
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_1:
+		case Aux_1:
 			return "Aux1";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_2:
+		case Aux_2:
 			return "Aux2";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_3:
+		case Aux_3:
 			return "Aux3";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_4:
+		case Aux_4:
 			return "Aux4";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_5:
+		case Aux_5:
 			return "Aux5";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_6:
+		case Aux_6:
 			return "Aux6";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_7:
+		case Aux_7:
 			return "Aux7";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B1:
+		case Aux_B1:
 			return "Aux B1";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B2:
+		case Aux_B2:
 			return "Aux B2";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B3:
+		case Aux_B3:
 			return "Aux B3";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B4:
+		case Aux_B4:
 			return "Aux B4";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B5:
+		case Aux_B5:
 			return "Aux B5";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B6:
+		case Aux_B6:
 			return "Aux B6";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B7:
+		case Aux_B7:
 			return "Aux B7";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_B8:
+		case Aux_B8:
 			return "Aux B8";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C1:
+		case Aux_C1:
 			return "Aux C1";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C2:
+		case Aux_C2:
 			return "Aux C2";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C3:
+		case Aux_C3:
 			return "Aux C3";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C4:
+		case Aux_C4:
 			return "Aux C4";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C5:
+		case Aux_C5:
 			return "Aux C5";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C6:
+		case Aux_C6:
 			return "Aux C6";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C7:
+		case Aux_C7:
 			return "Aux C7";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_C8:
+		case Aux_C8:
 			return "Aux C8";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D1:
+		case Aux_D1:
 			return "Aux D1";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D2:
+		case Aux_D2:
 			return "Aux D2";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D3:
+		case Aux_D3:
 			return "Aux D3";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D4:
+		case Aux_D4:
 			return "Aux D4";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D5:
+		case Aux_D5:
 			return "Aux D5";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D6:
+		case Aux_D6:
 			return "Aux D6";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D7:
+		case Aux_D7:
 			return "Aux D7";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_D8:
+		case Aux_D8:
 			return "Aux D8";
-		case AqualinkAutomate::Auxillaries::JandyAuxillaryIds::ExtraAux:
+		case ExtraAux:
 			return "Extra Aux";
 		}
 

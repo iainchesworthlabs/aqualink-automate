@@ -70,7 +70,6 @@ namespace AqualinkAutomate::Equipment
 	JandyEquipment::JandyEquipment(Kernel::HubLocator& hub_locator, bool decode_to_master) :
 		IEquipment(),
 		IStatusPublisher(Equipment::EquipmentStatus_Unknown{}),
-		m_MessageConnections(),
 		m_HubLocator(hub_locator),
 		m_DecodeToMaster(decode_to_master)
 	{

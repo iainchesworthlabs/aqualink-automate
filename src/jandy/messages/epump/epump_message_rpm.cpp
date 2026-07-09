@@ -12,8 +12,7 @@ namespace AqualinkAutomate::Messages
 
 	EPumpMessage_RPM::EPumpMessage_RPM() noexcept :
 		EPumpMessage(JandyMessageIds::EPUMP_RPM),
-		Interfaces::IMessageSignalRecv<EPumpMessage_RPM>(),
-		m_RPM(0)
+		Interfaces::IMessageSignalRecv<EPumpMessage_RPM>()
 	{
 	}
 

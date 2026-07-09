@@ -13,7 +13,7 @@ namespace AqualinkAutomate::Exceptions
 
 	public:
 		Developer_OptionKeyInvalidType();
-		Developer_OptionKeyInvalidType(const std::string& message);
+		explicit Developer_OptionKeyInvalidType(const std::string& message);
 	};
 
 }

@@ -14,6 +14,7 @@
 #include "kernel/auxillary_devices/chlorinator_status.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 #include "kernel/data_hub.h"
+#include "kernel/equipment_hub.h"
 #include "kernel/preferences_hub.h"
 #include "kernel/statistics_hub.h"
 #include "options/options_alerting_options.h"
@@ -601,6 +602,80 @@ BOOST_AUTO_TEST_CASE(BuildStateJson_ReflectsLatchedState)
 	BOOST_CHECK_EQUAL(state[std::string{ ConditionKeys::ChlorinatorWarning }], "false");
 	BOOST_CHECK_EQUAL(state[std::string{ ConditionKeys::SerialCommsLoss }], "false");
 	BOOST_CHECK_EQUAL(state[std::string{ ConditionKeys::TemperatureStale }], "false");
+}
+
+// AddSink ignores a null sink: the guard drops it, so a subsequent transition is
+// delivered only to the real sinks (no crash from invoking an empty std::function).
+BOOST_AUTO_TEST_CASE(AddSink_NullSink_IsIgnored)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+
+	// A default-constructed (empty) Sink is dropped by the guard in AddSink.
+	monitor.AddSink(AlertMonitor::Sink{});
+
+	// A real sink added afterwards still receives transitions, proving the null one
+	// was skipped rather than stored-and-invoked (which would have crashed).
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	Find<Kernel::DataHub>()->Mode = Kernel::EquipmentMode::Service;
+	monitor.EvaluateServiceMode();
+
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::ServiceMode));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::ServiceMode), 1u);
+}
+
+// IsRaised returns false for a condition key that is not in the latch map at all
+// (an unknown key never seeded by the catalogue) — the map-miss branch.
+BOOST_AUTO_TEST_CASE(IsRaised_UnknownKey_ReturnsFalse)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+
+	BOOST_CHECK(!monitor.IsRaised("not_a_real_condition_key"));
+}
+
+// Start() wires the DataHub and EquipmentHub signals to EvaluateAll: firing either
+// signal after Start() re-evaluates every condition (proven here by observing the
+// service_mode edge that a fired signal produces).
+BOOST_AUTO_TEST_CASE(Start_SubscribesHubSignals_EvaluateOnFire)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	std::int64_t now = 5000;
+	monitor.SetClock([&now] { return now; });
+
+	auto data_hub = Find<Kernel::DataHub>();
+	auto equipment_hub = Find<Kernel::EquipmentHub>();
+
+	monitor.Start();
+
+	// Put the controller into Service mode, then fire the DataHub config signal; the
+	// subscription lambda installed by Start() calls EvaluateAll(), raising service_mode.
+	// The AlertMonitor lambda ignores the event payload, so a null shared_ptr is fine.
+	data_hub->Mode = Kernel::EquipmentMode::Service;
+	data_hub->ConfigUpdateSignal(nullptr);
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::ServiceMode));
+	BOOST_REQUIRE_EQUAL(rec.CountFor(ConditionKeys::ServiceMode), 1u);
+
+	// Leaving Service mode and firing the EquipmentHub signal re-evaluates and clears it,
+	// proving the second subscription lambda is likewise wired.
+	data_hub->Mode = Kernel::EquipmentMode::Normal;
+	equipment_hub->EquipmentStatusChangeSignal(nullptr);
+	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ServiceMode));
+	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::ServiceMode), 2u);
+
+	monitor.Stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -12,11 +12,7 @@ namespace AqualinkAutomate::Messages
 
 	HeaterMessage_Request::HeaterMessage_Request() noexcept :
 		HeaterMessage(JandyMessageIds::Heater_Request),
-		Interfaces::IMessageSignalRecv<HeaterMessage_Request>(),
-		m_OperatingMode(HeaterOperatingModes::Unknown),
-		m_PoolSetpoint(0),
-		m_SpaSetpoint(0),
-		m_WaterTemperature(0)
+		Interfaces::IMessageSignalRecv<HeaterMessage_Request>()
 	{
 	}
 
