@@ -56,3 +56,9 @@ nul
 # produce an empty image.
 !docker/context
 !docker/context/**
+
+# Home Assistant add-on (not part of the app image)
+repository.yaml
+aqualink-automate
+aqualink-automate-edge
+homeassistant

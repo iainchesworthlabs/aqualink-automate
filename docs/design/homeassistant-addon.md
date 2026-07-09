@@ -22,6 +22,15 @@ treat this file as the reconciled record.*
 >
 > The tier tables and phasing further down predate this and are kept as the original plan.
 
+> **RECONCILED 2026-07-09 (add-on repo layout moved to root):** the first HAOS install test
+> rejected the repo with "*not a valid app repository*" — Home Assistant reads a custom
+> repository's `repository.yaml` and add-on folders from the **repo root**, not a
+> subdirectory. The manifests moved from `homeassistant/` to the root
+> (`repository.yaml`, `aqualink-automate/`, `aqualink-automate-edge/`); the dev harness and
+> art sources stay under `homeassistant/` (no `config.yaml`, so HA ignores them). All
+> generator/sync/CI/release paths were updated to match. This was a docs-only structural fix
+> (no image rebuild) landed on `main` so the custom-repo URL works.
+
 ## Goal
 
 Let a Home Assistant user run Aqualink Automate **without ever touching Docker themselves**.
@@ -57,7 +66,7 @@ this still covers the large majority of users.
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Add-on location | **In this repo** under `homeassistant/` | Single source of truth, versioned with the app, CI validates it against the same image it publishes. Users add this repo's URL as a custom repository. |
+| Add-on location | **In this repo** (manifests at the repo root — see the 2026-07-09 reconciliation note) | Single source of truth, versioned with the app, CI validates it against the same image it publishes. Users add this repo's URL as a custom repository. |
 | Web UI, first cut | **Direct mapped port now; ingress later** | Works against today's image with no frontend change. Ingress (sidebar-embedded, HA auth) needs a base-path refactor of the frontend — deferred to a later phase. |
 | Architectures | **`amd64` + `arm64` only for now** | Matches what CI already builds. `armv7` (Pi 3 / 32-bit HAOS) deferred. |
 | Matter sidecar | **Off by default in the add-on** | HA is already a Matter controller; add-on host-networking + mDNS is fiddly. HA users get devices via the MQTT discovery path. Advanced toggle can re-enable it. |
@@ -139,16 +148,21 @@ translates a form into flags and delegates to the entrypoint we already ship.
 
 ## Repository layout
 
+The manifests live at the **repo root** — Home Assistant reads a custom repository's
+`repository.yaml` and add-on folders from the root, not a subdirectory (see the
+2026-07-09 reconciliation note above):
+
 ```
-homeassistant/                      # users add THIS repo's URL as a custom repository
-  repository.yaml                   # repo metadata the Supervisor scans
-  aqualink-automate/
-    config.yaml                     # manifest: arch, options+schema, uart, services, ports, image ref, version
-    build.yaml                      # build_from per-arch (or reference the multi-arch manifest)
-    Dockerfile                      # FROM the published GHCR image + bashio/jq + run.sh
-    run.sh                          # options.json + MQTT service → argv → exec docker-entrypoint.sh
-    icon.png / logo.png
-    DOCS.md / README.md / CHANGELOG.md
+repository.yaml                     # repo metadata the Supervisor scans (MUST be at root)
+aqualink-automate/                  # stable channel add-on (top-level dir)
+  config.yaml                       # manifest: arch, options+schema, uart, services, ports, image ref, version
+  build.yaml                        # build_from per-arch (the base app image tag)
+  Dockerfile                        # FROM the published GHCR image + bashio/jq + run.sh
+  run.sh                            # options.json + MQTT service → argv → exec docker-entrypoint.sh
+  apparmor.txt.draft · icon.png · logo.png · DOCS.md · README.md · CHANGELOG.md · translations/
+aqualink-automate-edge/             # edge channel — GENERATED from the stable folder
+homeassistant/                      # NOT an add-on (no config.yaml) — dev harness + art sources
+  dev/  art/
 ```
 
 `config.yaml`'s `image:` points at the **already-published** GHCR tags, with the add-on
@@ -158,7 +172,7 @@ top of that image.
 
 ## Options form → flag mapping (as shipped, Phase 1)
 
-Assembled by `homeassistant/aqualink-automate/run.sh` (bashio → argv → the base image's
+Assembled by `aqualink-automate/run.sh` (bashio → argv → the base image's
 `docker-entrypoint.sh`).
 
 | Add-on option | App flag / behaviour | Notes |
@@ -225,7 +239,7 @@ step-by-step [HAOS test checklist](homeassistant-addon-haos-test.md)):
   **One-time op:** the two new GHCR packages default to PRIVATE on first push — make them
   PUBLIC once so anonymous Supervisor pulls work (same as the app image). Until the first
   release publishes them, comment out `image:` to fall back to local-build for testing.
-- **Add-on options translations — DONE.** `homeassistant/aqualink-automate/translations/en.yaml`
+- **Add-on options translations — DONE.** `aqualink-automate/translations/en.yaml`
   gives every option a friendly label + help text (and the port label). The
   `Home Assistant Add-on` CI job enforces coverage: each locale must document exactly the
   `config.yaml` `options:` (configuration:) and `ports:` (network:) keys — no missing, no
@@ -271,7 +285,7 @@ step-by-step [HAOS test checklist](homeassistant-addon-haos-test.md)):
   first (author `arm-linux` triplet + toolchain + a gated `vcpkg install` CI job) before
   committing to the full pipeline.
 - **AppArmor profile — AUTHORED, STAGED (not yet enforced).** One tailored profile at
-  `homeassistant/aqualink-automate/apparmor.txt.draft` covers both the add-on and the
+  `aqualink-automate/apparmor.txt.draft` covers both the add-on and the
   standalone image (same serial + network + exec surface; broad reads, writes confined to
   `/data`/`/tmp`/home). Shipped as `.draft` so the Supervisor does NOT auto-enforce it —
   the Supervisor loads `apparmor.txt` in enforce mode with no complain toggle, so it must

@@ -11,8 +11,8 @@
 #   3. the app release version the image was published under (no leading 'v')
 #
 # There are two channels (docs/design/homeassistant-addon.md):
-#   stable -> homeassistant/aqualink-automate       (tracks the latest stable release)
-#   edge   -> homeassistant/aqualink-automate-edge   (tracks the latest prerelease)
+#   stable -> aqualink-automate       (tracks the latest stable release)
+#   edge   -> aqualink-automate-edge   (tracks the latest prerelease)
 #
 # A stable release bumps the stable channel; a prerelease bumps edge. This script is
 # the single writer that keeps (1)==(2) aligned and the checker CI/release run.
@@ -40,8 +40,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $channelDirs = [ordered]@{
-    stable = Join-Path $Root 'homeassistant/aqualink-automate'
-    edge   = Join-Path $Root 'homeassistant/aqualink-automate-edge'
+    stable = Join-Path $Root 'aqualink-automate'
+    edge   = Join-Path $Root 'aqualink-automate-edge'
 }
 
 # Accepted release version (no leading 'v'): M.M.P[-(alpha|beta|rc).N], mirroring
