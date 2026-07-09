@@ -35,7 +35,6 @@ jobs:
         run: |
           for f in repository.yaml \
                    aqualink-automate*/config.yaml \
-                   aqualink-automate*/build.yaml \
                    aqualink-automate*/translations/*.yaml; do
             echo "::group::$f"
             python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$f"
@@ -69,7 +68,9 @@ jobs:
           python3 - <<'PY'
           import glob, sys, yaml
           cfg = yaml.safe_load(open('aqualink-automate/config.yaml'))
-          options = set((cfg.get('options') or {}).keys())
+          # Key off the SCHEMA (the complete field list) — optional (`?`) fields are
+          # intentionally absent from `options` per the HA app schema.
+          options = set((cfg.get('schema') or {}).keys())
           ports = set((cfg.get('ports') or {}).keys())
           rc = 0
           for path in sorted(glob.glob('aqualink-automate/translations/*.yaml')):

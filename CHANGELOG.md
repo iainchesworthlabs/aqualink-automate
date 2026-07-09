@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.12.0-beta.6] - 2026-07-09
+
+Home Assistant add-on refinements from the first real install testing — no changes to the core application. The add-on manifests also moved to the repository root (Home Assistant reads a custom repository from the root).
+
+### Changed
+
+- **Home Assistant add-on usability + schema conformance.** The serial connection collapses to a single auto-detecting field (a device path or a `host:port`); MQTT TLS gains certificate options (via the `/ssl` share); the internal/direct port moves to `8099`; a read-write `addon_config` mount is added; and the manifest is brought in line with the current Home Assistant "apps" schema — modern `map` syntax, no defaults on optional fields, and `BUILD_VERSION` in the Dockerfile in place of the deprecated `build.yaml`. See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
 ## [0.12.0-beta.5] - 2026-07-08
 
 The first release of the **Home Assistant add-on**. This is a pre-release intended for testing the add-on on real Home Assistant OS.

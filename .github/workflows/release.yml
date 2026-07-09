@@ -419,7 +419,9 @@ jobs:
         env:
           IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
           IMAGE_LABELS: ${{ steps.meta.outputs.labels }}
-          BUILD_FROM: ghcr.io/${{ github.repository }}:${{ needs.resolve-version.outputs.version }}
+          # The Dockerfile's FROM is ghcr.io/…/aqualink-automate:${BUILD_VERSION}; pass
+          # this release's version so the wrapper is built on the matching base image.
+          BUILD_VERSION: ${{ needs.resolve-version.outputs.version }}
         with:
           shell: bash
           timeout_minutes: 30
@@ -430,7 +432,7 @@ jobs:
             cmd=(docker buildx build
               --file aqualink-automate/Dockerfile
               --platform ${{ matrix.platform }}
-              --build-arg BUILD_FROM="$BUILD_FROM"
+              --build-arg BUILD_VERSION="$BUILD_VERSION"
               --provenance=false
               --push
               --metadata-file "$RUNNER_TEMP/addon-meta.json")
