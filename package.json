@@ -17,6 +17,6 @@
   "type": "commonjs",
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "aedes": "^0.51.3"
+    "aedes": "^1.1.1"
   }
 }
