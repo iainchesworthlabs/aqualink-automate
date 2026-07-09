@@ -3,8 +3,8 @@
 # Generate the Edge (beta) Home Assistant add-on from the stable one.
 #
 # The two channels (docs/design/homeassistant-addon.md) are near-identical add-ons:
-#   - homeassistant/aqualink-automate/       — stable channel (the single source of truth)
-#   - homeassistant/aqualink-automate-edge/  — GENERATED beta channel (this script's output)
+#   - aqualink-automate/       — stable channel (the single source of truth)
+#   - aqualink-automate-edge/  — GENERATED beta channel (this script's output)
 #
 # They differ ONLY in identity (name/slug/stage/panel_title) and in the version they
 # track (stable → latest stable release; edge → latest prerelease). Everything else
@@ -25,8 +25,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$src  = Join-Path $Root 'homeassistant/aqualink-automate'
-$dest = Join-Path $Root 'homeassistant/aqualink-automate-edge'
+$src  = Join-Path $Root 'aqualink-automate'
+$dest = Join-Path $Root 'aqualink-automate-edge'
 
 if (-not (Test-Path (Join-Path $src 'config.yaml'))) {
     Write-Error "Stable add-on not found at $src"

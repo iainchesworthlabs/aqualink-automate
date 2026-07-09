@@ -1,6 +1,7 @@
 name: Home Assistant Add-on
 
-# Validates the add-on wrapper under homeassistant/ whenever it changes: YAML
+# Validates the add-on wrapper (repo-root repository.yaml + aqualink-automate[-edge]/)
+# whenever it changes: YAML
 # parses, run.sh passes shellcheck, and the add-on version stays in lock-step with
 # the base-image tag it builds from (config.yaml `version` == build.yaml build_from
 # tag). Cheap, self-contained (no third-party actions to pin), and catches the
@@ -8,10 +9,10 @@ name: Home Assistant Add-on
 on:
   push:
     branches: ["main", "develop"]
-    paths: ["homeassistant/**", ".github/workflows/homeassistant-addon.yml"]
+    paths: ["repository.yaml", "aqualink-automate/**", "aqualink-automate-edge/**", "scripts/gen-homeassistant-edge-addon.ps1", "scripts/sync-homeassistant-addon-version.ps1", ".github/workflows/homeassistant-addon.yml"]
   pull_request:
     branches: ["develop", "main"]
-    paths: ["homeassistant/**", ".github/workflows/homeassistant-addon.yml"]
+    paths: ["repository.yaml", "aqualink-automate/**", "aqualink-automate-edge/**", "scripts/gen-homeassistant-edge-addon.ps1", "scripts/sync-homeassistant-addon-version.ps1", ".github/workflows/homeassistant-addon.yml"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -32,10 +33,10 @@ jobs:
 
       - name: YAML parses
         run: |
-          for f in homeassistant/repository.yaml \
-                   homeassistant/*/config.yaml \
-                   homeassistant/*/build.yaml \
-                   homeassistant/*/translations/*.yaml; do
+          for f in repository.yaml \
+                   aqualink-automate*/config.yaml \
+                   aqualink-automate*/build.yaml \
+                   aqualink-automate*/translations/*.yaml; do
             echo "::group::$f"
             python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1]))" "$f"
             echo "OK"
@@ -51,11 +52,11 @@ jobs:
           # Compare CONTENT only: -c core.fileMode=false ignores the run.sh exec bit,
           # which the Dockerfile sets anyway and which pwsh Copy-Item may or may not
           # preserve across OSes. The generator writes LF, so content is deterministic.
-          $dirty = git -c core.fileMode=false status --porcelain -- homeassistant/aqualink-automate-edge
+          $dirty = git -c core.fileMode=false status --porcelain -- aqualink-automate-edge
           if ($dirty) {
-            Write-Host "::error::homeassistant/aqualink-automate-edge is stale. Run scripts/gen-homeassistant-edge-addon.ps1 and commit."
-            git -c core.fileMode=false --no-pager diff -- homeassistant/aqualink-automate-edge
-            git -c core.fileMode=false --no-pager status --porcelain -- homeassistant/aqualink-automate-edge
+            Write-Host "::error::aqualink-automate-edge is stale. Run scripts/gen-homeassistant-edge-addon.ps1 and commit."
+            git -c core.fileMode=false --no-pager diff -- aqualink-automate-edge
+            git -c core.fileMode=false --no-pager status --porcelain -- aqualink-automate-edge
             exit 1
           }
           Write-Host "Edge channel matches the generator output."
@@ -67,11 +68,11 @@ jobs:
         run: |
           python3 - <<'PY'
           import glob, sys, yaml
-          cfg = yaml.safe_load(open('homeassistant/aqualink-automate/config.yaml'))
+          cfg = yaml.safe_load(open('aqualink-automate/config.yaml'))
           options = set((cfg.get('options') or {}).keys())
           ports = set((cfg.get('ports') or {}).keys())
           rc = 0
-          for path in sorted(glob.glob('homeassistant/aqualink-automate/translations/*.yaml')):
+          for path in sorted(glob.glob('aqualink-automate/translations/*.yaml')):
               tr = yaml.safe_load(open(path)) or {}
               conf = set((tr.get('configuration') or {}).keys())
               net = set((tr.get('network') or {}).keys())
@@ -85,7 +86,7 @@ jobs:
           PY
 
       - name: run.sh passes shellcheck
-        run: shellcheck --shell=bash homeassistant/aqualink-automate/run.sh
+        run: shellcheck --shell=bash aqualink-automate/run.sh
 
       # Internal lock-step for BOTH channels: each config.yaml `version` == every
       # build.yaml build_from tag. Same script the release pipeline uses as the single
