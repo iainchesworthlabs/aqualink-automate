@@ -49,15 +49,19 @@ release exists yet, so both are marked experimental and track the newest release
 The options form maps directly onto the application's settings (full reference:
 [Configuration reference](configuration.md)). Key choices:
 
-- **Serial** — one `serial_port` field, auto-detected: a **device path** (`/dev/serial/by-id/…`,
-  preferred; or any non-standard path) maps to `--serial-port`, while a **`host:port`**
-  is treated as a network adapter (`--remote-serial-port`) with `remote_protocol`
-  (`rfc2217` / `rawtcp` / `plain`).
+- **Serial** — pick the **protocol** (`serial_protocol`): **`usb`** for a local device
+  (a USB-RS485 adapter or a built-in UART → `--serial-port`), or **`rfc2217`** / **`rawtcp`**
+  for a serial-to-ethernet adapter (→ `--remote-serial-port` with the matching transport;
+  `rfc2217` suits most adapters, `rawtcp` is a plain TCP stream). Then set the **device or
+  address** (`serial_port`): a path (`/dev/serial/by-id/…`, preferred; or any non-standard
+  path) for `usb`, or a **`host:port`** for the network protocols.
 - **MQTT** — `mqtt_mode: auto` (recommended) discovers the broker Home Assistant already
   uses (e.g. the Mosquitto add-on) through the Supervisor, so you enter **no** MQTT
   credentials. `manual` exposes the broker fields; `disabled` turns MQTT off.
   `home_assistant_discovery` publishes auto-discovery so your equipment appears as
-  Home Assistant entities.
+  Home Assistant entities. A stable, unique device identifier is generated automatically
+  on first start and persisted under `/data`, so your equipment stays the **same** Home
+  Assistant device across restarts and add-on updates (no `ha-device-id` to set).
 - **Web UI** — served through Home Assistant **ingress**: it appears in the sidebar and
   via **Open Web UI**, secured by your Home Assistant login and **not exposed on the
   LAN**. Because ingress provides authentication, the app's own auth is left off. For

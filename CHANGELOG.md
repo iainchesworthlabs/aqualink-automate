@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.12.0-beta.7] - 2026-07-09
+
+Further Home Assistant add-on refinements from real install testing — no changes to the core application.
+
+### Fixed
+
+- **The serial field is visible again.** beta.6 made the serial field optional, which Home Assistant hides from the options form. Serial configuration is now a required **Serial protocol** selector (`usb` / `rfc2217` / `rawtcp`) plus the device or address (`serial_port`), both always shown. `plain` is dropped — it is the same transport as `rawtcp`. See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
+### Added
+
+- **Automatic Home Assistant device identity.** The add-on generates a stable, unique device identifier on first start and persists it under `/data`, so your equipment stays the **same** Home Assistant device across restarts and updates — no `ha-device-id` to configure.
+
 ## [0.12.0-beta.6] - 2026-07-09
 
 Home Assistant add-on refinements from the first real install testing — no changes to the core application. The add-on manifests also moved to the repository root (Home Assistant reads a custom repository from the root).
