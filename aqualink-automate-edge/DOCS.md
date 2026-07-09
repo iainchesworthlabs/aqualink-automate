@@ -30,12 +30,16 @@ command line. The Supervisor runs and manages the container for you.
 The UI is served through Home Assistant **ingress**: it appears in the sidebar and via
 the add-on's **Open Web UI** button, secured by your Home Assistant login — it is **not
 exposed on your LAN**, and the app's own authentication is left off because Home
-Assistant provides it.
+Assistant provides it. Ingress is **only** for the web UI (browser access); nothing else
+talks to the add-on through it — MQTT, serial, and Home Assistant discovery all work
+independently.
 
-If you specifically want direct LAN access (e.g. a wall tablet that bypasses HA), set a
-host port for `80/tcp` in the add-on's **Network** panel. That direct port is
-**unauthenticated by default** — either put it behind your firewall, or turn on
-**Require web UI login** (below) so the app enforces its own login there.
+The direct LAN port is a **separate, optional** thing. By default it's left unmapped, so
+in the **Network** panel you'll only see it under **"Show disabled ports"** — that's
+expected, and the sidebar UI works fine without it. If you *also* want to reach the UI
+directly on your LAN (e.g. a wall tablet that bypasses HA), set a host port for
+`8099/tcp` there. That direct path is **unauthenticated by default** — either firewall
+it, or turn on **Require web UI login** (below) so the app enforces its own login.
 
 ### Require web UI login
 
@@ -51,23 +55,36 @@ The `/api/health` liveness endpoint stays open, so the add-on watchdog keeps wor
 
 ### Serial connection
 
-| Option | Description |
+One field — **`serial_port`** — accepts *either* kind of connection, auto-detected:
+
+| You have… | Enter |
 |---|---|
-| `serial_mode` | `usb` for a local USB-RS485 adapter, `network` for serial-over-ethernet. |
-| `serial_port` | (`usb`) Pick your adapter from the device list. Prefer a `/dev/serial/by-id/...` entry — it survives reboots. |
-| `remote_serial_port` | (`network`) The adapter's `host:port`, e.g. `192.168.1.50:8899`. |
-| `remote_protocol` | (`network`) `rfc2217` (default; most adapters), `rawtcp`, or `plain` (a plain socket). |
+| A **local** USB-RS485 adapter | A device path — **prefer `/dev/serial/by-id/usb-…`** (it survives reboots) or `/dev/ttyUSB0`. Non-standard paths work too; just type them. |
+| A **network** serial adapter | Its **`host:port`**, e.g. `192.168.1.50:8899` or `adapter.example.com:9001`. Anything that isn't a `/dev/…` path is treated as a network address. |
+
+`remote_protocol` (`rfc2217` default / `rawtcp` / `plain`) applies only to a network address. USB adapters are mapped into the container automatically (`uart`).
+
+*Finding a device path:* **Settings → System → Hardware** lists the host's serial devices, or use the Terminal add-on (`ls -l /dev/serial/by-id/`).
 
 ### MQTT / Home Assistant
 
 | Option | Description |
 |---|---|
 | `mqtt_mode` | `auto` (recommended): use the broker Home Assistant already knows about — nothing else to fill in. `manual`: enter the broker details below. `disabled`: no MQTT. |
-| `mqtt_host`, `mqtt_port`, `mqtt_username`, `mqtt_password`, `mqtt_tls` | Only used when `mqtt_mode` is `manual`. |
+| `mqtt_host`, `mqtt_port`, `mqtt_username`, `mqtt_password`, `mqtt_tls` | Only used when `mqtt_mode` is `manual` (`auto` gets them from the Supervisor). |
 | `home_assistant_discovery` | Publish auto-discovery so your pool devices appear in Home Assistant automatically. |
 
 With `mqtt_mode: auto` and the Mosquitto add-on running, the add-on discovers the
 broker through the Supervisor — you do **not** enter any MQTT credentials.
+
+**TLS with certificates.** When the broker uses TLS, place the certificate files in Home
+Assistant's **`/ssl`** share (via Samba / the File editor) and give just the **filename**:
+
+| Option | Description |
+|---|---|
+| `mqtt_tls_skip_verify` | Skip broker certificate verification. Quick for a self-signed broker, but insecure — prefer a CA below. |
+| `mqtt_ca_cert` | Filename in `/ssl` of a CA cert that signs the broker (for a private/self-signed broker). |
+| `mqtt_client_cert` / `mqtt_client_key` | Filenames in `/ssl` for mutual TLS — set **both or neither**. |
 
 ### App features that default to Home Assistant's
 

@@ -2,29 +2,21 @@
 #
 # Provides the friendly label (`name`) and help text (`description`) shown under each
 # field in the add-on's Configuration tab, plus the Network port label. Every key here
-# MUST match an option in config.yaml `options:` — the `Home Assistant Add-on` CI job
+# MUST match a field in config.yaml `schema:` — the `Home Assistant Add-on` CI job
 # fails on any missing or extra key.
 configuration:
-  serial_mode:
-    name: Serial connection type
-    description: >-
-      How the software reaches the RS-485 bus. "usb" for a USB-RS485 adapter plugged
-      into this machine; "network" for a serial-over-ethernet adapter on your LAN.
   serial_port:
-    name: USB serial device
+    name: Serial connection
     description: >-
-      The USB-RS485 adapter to use (when Serial connection type is "usb"). Prefer a
-      /dev/serial/by-id/... entry — it survives reboots and re-plugging.
-  remote_serial_port:
-    name: Remote serial endpoint
-    description: >-
-      host:port of the serial-over-ethernet adapter (when Serial connection type is
-      "network"), e.g. 192.168.1.50:8899.
+      Either a local serial device — a path like /dev/serial/by-id/usb-... (preferred;
+      it survives reboots) or /dev/ttyUSB0 — OR a network serial adapter as host:port
+      (e.g. 192.168.1.50:8899). Anything that isn't a /dev path is treated as a network
+      address. USB adapters are mapped in automatically.
   remote_protocol:
-    name: Remote serial protocol
+    name: Network serial protocol
     description: >-
-      Transport for the remote endpoint. "rfc2217" suits most serial-to-ethernet
-      adapters; "rawtcp" for a raw TCP stream; "plain" for a plain socket.
+      Only used when the connection above is a network address. "rfc2217" suits most
+      serial-to-ethernet adapters; "rawtcp" for a raw TCP stream; "plain" for a plain socket.
   mqtt_mode:
     name: MQTT mode
     description: >-
@@ -45,7 +37,25 @@ configuration:
     description: Broker password. Sent only alongside a username. Used only when MQTT mode is "manual".
   mqtt_tls:
     name: MQTT TLS
-    description: Connect to the broker over TLS. Used only when MQTT mode is "manual".
+    description: Connect to the broker over TLS. Used only when MQTT mode is "manual" (auto mode takes TLS from the broker Home Assistant provides).
+  mqtt_tls_skip_verify:
+    name: MQTT TLS — skip verification
+    description: >-
+      Do not verify the broker's certificate. Handy for a self-signed broker on your LAN,
+      but insecure — prefer providing a CA certificate below.
+  mqtt_ca_cert:
+    name: MQTT CA certificate
+    description: >-
+      Filename of a CA certificate in Home Assistant's /ssl share, used to verify a
+      broker with a private/self-signed certificate. Leave empty for public CAs.
+  mqtt_client_cert:
+    name: MQTT client certificate
+    description: >-
+      Filename of a client certificate in /ssl for mutual TLS. Set together with the
+      client key below (both or neither).
+  mqtt_client_key:
+    name: MQTT client key
+    description: Filename of the client private key in /ssl for mutual TLS. Pairs with the client certificate.
   home_assistant_discovery:
     name: Home Assistant discovery
     description: >-
@@ -98,4 +108,4 @@ configuration:
       The bus address the software presents (e.g. 0x41). The default suits most
       panels — change only if you know you need to.
 network:
-  80/tcp: Optional direct web UI / HTTP API (unauthenticated; ingress is preferred)
+  8099/tcp: Optional direct web UI / HTTP API on your LAN (unauthenticated unless you enable the login option)

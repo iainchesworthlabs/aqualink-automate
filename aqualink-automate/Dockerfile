@@ -2,11 +2,16 @@
 # (HA's options/services helper) + run.sh, and re-point the entrypoint at run.sh so
 # it translates the add-on options form into the app's CLI flags at start.
 #
-# BUILD_FROM is supplied by the Supervisor from build.yaml (the published multi-arch
-# app image). The base image already ships tini (PID 1), curl, and the app
-# entrypoint (docker-entrypoint.sh); we only add jq + bashio here.
-ARG BUILD_FROM
-FROM ${BUILD_FROM}
+# The base is the published multi-arch app image at THIS add-on's version. The
+# Supervisor provides BUILD_VERSION (= config.yaml `version`) on a local build; CI and
+# the dev harness pass it explicitly. (`build.yaml`/`BUILD_FROM` auto-injection was
+# removed in Supervisor 2026.04.) Docker resolves the correct arch from the manifest.
+# The base already ships tini (PID 1), curl, and docker-entrypoint.sh; we add jq + bashio.
+ARG BUILD_VERSION
+FROM ghcr.io/iainchesworth/aqualink-automate:${BUILD_VERSION}
+
+LABEL org.opencontainers.image.title="Aqualink Automate" \
+      org.opencontainers.image.source="https://github.com/iainchesworth/aqualink-automate"
 
 # bashio is a distro-agnostic bash library, so it runs fine on the app's Ubuntu
 # (glibc) base — no musl/Alpine assumptions. jq is bashio's only runtime dep.
