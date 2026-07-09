@@ -139,7 +139,7 @@ its default form — starts as root to drop privileges. A tailored AppArmor prof
 confines that surface to only what it needs (serial devices, `/data`, TCP for the HTTP
 server / MQTT client / remote serial, and the exec chain), so a compromise cannot roam
 the host. The canonical profile lives with the Home Assistant add-on at
-[`homeassistant/aqualink-automate/apparmor.txt.draft`](../homeassistant/aqualink-automate/apparmor.txt.draft).
+[`aqualink-automate/apparmor.txt.draft`](../aqualink-automate/apparmor.txt.draft).
 
 - **Home Assistant add-on.** The Supervisor auto-loads and **enforces** a file named
   exactly `apparmor.txt` in the add-on folder. The profile currently ships as
@@ -153,7 +153,7 @@ the host. The canonical profile lives with the Home Assistant add-on at
   and select it per container:
 
   ```bash
-  sudo apparmor_parser -r -W homeassistant/aqualink-automate/apparmor.txt.draft
+  sudo apparmor_parser -r -W aqualink-automate/apparmor.txt.draft
   docker run --security-opt apparmor=aqualink_automate ... ghcr.io/iainchesworth/aqualink-automate
   ```
 

@@ -18,7 +18,7 @@ The rendered PNGs live in the **stable** add-on folder; the edge channel gets th
 npm install @resvg/resvg-js
 node -e '
   const { Resvg } = require("@resvg/resvg-js"); const fs = require("fs");
-  const out = "../aqualink-automate";
+  const out = "../../aqualink-automate";
   for (const [svg, png, w] of [["icon.svg","icon.png",256],["logo.svg","logo.png",640]]) {
     const r = new Resvg(fs.readFileSync(svg), {
       fitTo: { mode: "width", value: w },

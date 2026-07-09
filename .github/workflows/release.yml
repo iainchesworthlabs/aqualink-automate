@@ -362,7 +362,7 @@ jobs:
   # Build + push the Home Assistant add-on WRAPPER images (one single-arch image per
   # HA arch), so the Supervisor can PULL the add-on (config.yaml `image:`) instead of
   # building it on the user's device. Each image is this release's published app image
-  # with bashio + run.sh layered on (homeassistant/aqualink-automate/Dockerfile). HA
+  # with bashio + run.sh layered on (aqualink-automate/Dockerfile). HA
   # substitutes {arch} (aarch64/amd64) and pulls the add-on `version` tag, so each name
   # must be a single-arch image — NOT a multi-arch manifest — hence the per-arch matrix.
   #
@@ -428,7 +428,7 @@ jobs:
           retry_on: error
           command: |
             cmd=(docker buildx build
-              --file homeassistant/aqualink-automate/Dockerfile
+              --file aqualink-automate/Dockerfile
               --platform ${{ matrix.platform }}
               --build-arg BUILD_FROM="$BUILD_FROM"
               --provenance=false
@@ -436,7 +436,7 @@ jobs:
               --metadata-file "$RUNNER_TEMP/addon-meta.json")
             while IFS= read -r tag;   do [ -n "$tag" ]   && cmd+=(--tag   "$tag");   done <<< "${IMAGE_TAGS}"
             while IFS= read -r label; do [ -n "$label" ] && cmd+=(--label "$label"); done <<< "${IMAGE_LABELS}"
-            cmd+=(homeassistant/aqualink-automate)
+            cmd+=(aqualink-automate)
             printf 'Running:'; printf ' %q' "${cmd[@]}"; echo
             "${cmd[@]}"
 

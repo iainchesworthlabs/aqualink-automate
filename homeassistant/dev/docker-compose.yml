@@ -44,9 +44,9 @@ services:
   # The add-on wrapper, built from the stable Dockerfile, pointed at the mock Supervisor.
   addon:
     build:
-      context: ../aqualink-automate
+      context: ../../aqualink-automate
       args:
-        BUILD_FROM: "${BUILD_FROM:-ghcr.io/iainchesworth/aqualink-automate:0.12.0-beta.4}"
+        BUILD_FROM: "${BUILD_FROM:-ghcr.io/iainchesworth/aqualink-automate:0.12.0-beta.5}"
     environment:
       SUPERVISOR_TOKEN: dev-token
     ports:

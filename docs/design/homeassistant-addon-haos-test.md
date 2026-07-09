@@ -120,7 +120,7 @@ These are the specific things authored blind that most need eyes-on:
 The profile ships as `apparmor.txt.draft` (**inert**). Activate and tune only once the baseline
 above works, so a profile bug is distinguishable from other issues.
 
-- [ ] Rename `homeassistant/aqualink-automate/apparmor.txt.draft` → `apparmor.txt`, run
+- [ ] Rename `aqualink-automate/apparmor.txt.draft` → `apparmor.txt`, run
       `pwsh scripts/gen-homeassistant-edge-addon.ps1` (edge gets it as `aqualink_automate_edge`),
       commit, and update the add-on.
 - [ ] The Supervisor **loads** the profile (no "invalid profile / name" error) — ⚠ confirm the
