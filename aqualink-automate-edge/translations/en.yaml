@@ -5,18 +5,19 @@
 # MUST match a field in config.yaml `schema:` — the `Home Assistant Add-on` CI job
 # fails on any missing or extra key.
 configuration:
+  serial_protocol:
+    name: Serial protocol
+    description: >-
+      How Aqualink Automate reaches the panel: "usb" for a local serial device on this
+      host (a USB-RS485 adapter or a built-in UART), or "rfc2217" / "rawtcp" for a
+      serial-to-ethernet adapter on your LAN. "rfc2217" suits most adapters; "rawtcp" is
+      a plain TCP stream. This decides how the address below is used.
   serial_port:
-    name: Serial connection
+    name: Serial device or network address
     description: >-
-      Either a local serial device — a path like /dev/serial/by-id/usb-... (preferred;
-      it survives reboots) or /dev/ttyUSB0 — OR a network serial adapter as host:port
-      (e.g. 192.168.1.50:8899). Anything that isn't a /dev path is treated as a network
-      address. USB adapters are mapped in automatically.
-  remote_protocol:
-    name: Network serial protocol
-    description: >-
-      Only used when the connection above is a network address. "rfc2217" suits most
-      serial-to-ethernet adapters; "rawtcp" for a raw TCP stream; "plain" for a plain socket.
+      For "usb": a local device path — /dev/serial/by-id/usb-... (preferred; it survives
+      reboots) or /dev/ttyUSB0 (USB adapters are mapped in automatically). For "rfc2217"
+      or "rawtcp": the adapter's address as host:port (e.g. 192.168.1.50:8899).
   mqtt_mode:
     name: MQTT mode
     description: >-

@@ -55,14 +55,15 @@ The `/api/health` liveness endpoint stays open, so the add-on watchdog keeps wor
 
 ### Serial connection
 
-One field — **`serial_port`** — accepts *either* kind of connection, auto-detected:
+Two fields: pick the **`serial_protocol`**, then enter the **`serial_port`** (the device or address):
 
-| You have… | Enter |
+| `serial_protocol` | `serial_port` to enter |
 |---|---|
-| A **local** USB-RS485 adapter | A device path — **prefer `/dev/serial/by-id/usb-…`** (it survives reboots) or `/dev/ttyUSB0`. Non-standard paths work too; just type them. |
-| A **network** serial adapter | Its **`host:port`**, e.g. `192.168.1.50:8899` or `adapter.example.com:9001`. Anything that isn't a `/dev/…` path is treated as a network address. |
+| **`usb`** — a local USB-RS485 adapter or built-in UART | A device path — **prefer `/dev/serial/by-id/usb-…`** (it survives reboots) or `/dev/ttyUSB0`. Non-standard paths work too; just type them. |
+| **`rfc2217`** — a network serial adapter (telnet transport; suits most) | Its **`host:port`**, e.g. `192.168.1.50:8899` or `adapter.example.com:9001`. |
+| **`rawtcp`** — a network serial adapter (plain TCP stream) | Its **`host:port`**, as above. |
 
-`remote_protocol` (`rfc2217` default / `rawtcp` / `plain`) applies only to a network address. USB adapters are mapped into the container automatically (`uart`).
+USB adapters are mapped into the container automatically (`uart`).
 
 *Finding a device path:* **Settings → System → Hardware** lists the host's serial devices, or use the Terminal add-on (`ls -l /dev/serial/by-id/`).
 
@@ -76,6 +77,10 @@ One field — **`serial_port`** — accepts *either* kind of connection, auto-de
 
 With `mqtt_mode: auto` and the Mosquitto add-on running, the add-on discovers the
 broker through the Supervisor — you do **not** enter any MQTT credentials.
+
+The add-on generates a stable, unique Home Assistant device identifier on first start
+and stores it under `/data`, so your equipment stays the **same** device across restarts
+and updates — there is no device ID to configure.
 
 **TLS with certificates.** When the broker uses TLS, place the certificate files in Home
 Assistant's **`/ssl`** share (via Samba / the File editor) and give just the **filename**:

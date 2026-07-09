@@ -32,25 +32,24 @@ args=("--address" "0.0.0.0" "--http-port" "8099" "--disable-https")
 args+=("--preferences-file" "${DATA}/preferences.json")
 args+=("--equipment-cache-file" "${DATA}/equipment-cache.json")
 
-# ── Serial transport (one field, auto-detected) ────────────────────────────────
-# A value starting with "/" is a local device path (--serial-port); anything else is
-# treated as a network address host:port (--remote-serial-port + the chosen protocol).
-# uart:true maps host TTY devices into the container so /dev/... paths resolve.
+# ── Serial protocol (one explicit choice: usb / rfc2217 / rawtcp) ───────────────
+# serial_protocol picks local (--serial-port) vs a network serial-to-ethernet adapter
+# (--remote-serial-port + the transport flag); serial_port is the device path or
+# host:port. Both are required. uart:true maps host TTY devices into the container so
+# /dev/... paths resolve.
 if ! bashio::config.has_value 'serial_port'; then
-    bashio::exit.nok "serial_port is required — set a device path (e.g. /dev/serial/by-id/...) or a network address (host:port)."
+    bashio::exit.nok "serial_port is required — for USB set the device path (e.g. /dev/serial/by-id/...); for a network adapter set the address (host:port)."
 fi
 serial_port="$(bashio::config 'serial_port')"
-case "${serial_port}" in
-    /*)
+case "$(bashio::config 'serial_protocol')" in
+    usb)
         args+=("--serial-port" "${serial_port}")
         ;;
-    *)
-        args+=("--remote-serial-port" "${serial_port}")
-        case "$(bashio::config 'remote_protocol')" in
-            rfc2217) args+=("--rfc2217") ;;
-            rawtcp)  args+=("--rawtcp") ;;
-            plain)   args+=("--no-rfc2217") ;;
-        esac
+    rfc2217)
+        args+=("--remote-serial-port" "${serial_port}" "--rfc2217")
+        ;;
+    rawtcp)
+        args+=("--remote-serial-port" "${serial_port}" "--rawtcp")
         ;;
 esac
 
@@ -109,7 +108,17 @@ fi
 
 # Home Assistant MQTT discovery rides on top of MQTT (never valid when disabled).
 if [ "${mqtt_mode}" != "disabled" ] && bashio::config.true 'home_assistant_discovery'; then
-    args+=("--home-assistant")
+    # Stable, unique device identity. HA groups all discovered entities under one
+    # device keyed by --ha-device-id. Persist a random id to /data on first boot so it
+    # stays constant across restarts AND add-on updates (unlike anything derived from
+    # the serial endpoint or container state, which would orphan the device on change),
+    # and is unique per install so two add-on instances on one broker never collide.
+    # Regenerates only if /data is wiped (a full uninstall).
+    ha_device_id_file="${DATA}/ha-device-id"
+    if [ ! -s "${ha_device_id_file}" ]; then
+        printf 'aqualink_%s\n' "$(tr -d '-' < /proc/sys/kernel/random/uuid | cut -c1-12)" > "${ha_device_id_file}"
+    fi
+    args+=("--home-assistant" "--ha-device-id" "$(cat "${ha_device_id_file}")")
 fi
 
 # ── History (opt-in; default OFF → use HA's Recorder) ──────────────────────────

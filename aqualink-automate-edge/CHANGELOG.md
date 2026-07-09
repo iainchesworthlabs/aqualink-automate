@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0-beta.7
+
+- **Serial is one "Serial protocol" field.** Pick `usb`, `rfc2217`, or `rawtcp`, then enter the device path or `host:port`. Both fields are required, so Home Assistant always shows them (beta.6's optional field was hidden from the form). `plain` is dropped — it is the same transport as `rawtcp`.
+- **Automatic device identity.** A stable, unique Home Assistant device id is generated on first start and stored under `/data`, so your equipment stays the same device across restarts and updates — nothing to configure.
+
 ## 0.12.0-beta.6
 
 - **Serial is now one field.** `serial_port` takes either a device path (`/dev/serial/by-id/…`, or any non-standard path) or a network `host:port`, auto-detected — no more mode selector. This also fixes a "Device '' does not exist" error when saving.
