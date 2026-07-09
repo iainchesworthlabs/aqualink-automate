@@ -82,11 +82,17 @@ watchdog: "http://[HOST]:8099/api/health"
 # toggle for users who want the app's own versions. Preferences + the equipment
 # cache persist to /data automatically (wired in run.sh), so they are not surfaced.
 # Only REQUIRED fields (no `?` in the schema) carry a default here. Optional (`?`)
-# fields — serial_port, mqtt_host/username/password, the mqtt cert paths, auth_password
-# — MUST NOT have a default (per the HA app schema; an empty-string default on an
-# optional field is what made the device picker reject '').
+# fields — mqtt_host/username/password, the mqtt cert paths, auth_password — MUST NOT
+# have a default (an empty-string default on an OPTIONAL field is what made the old
+# device picker reject ''). The serial fields (serial_protocol + serial_port) are the
+# deliberate exception: they are REQUIRED BECAUSE Home Assistant hides UNUSED optional
+# options from the form — an optional serial field simply doesn't appear, and it is the
+# essential thing to configure. serial_port is a plain `str` (not the `device()` type)
+# with an empty default, so it renders a normal, always-visible text box with no device
+# validation (no '' save error); run.sh rejects an empty value at start.
 options:
-  remote_protocol: rfc2217
+  serial_protocol: usb
+  serial_port: ""
   mqtt_mode: auto
   mqtt_port: 1883
   mqtt_tls: false
@@ -101,14 +107,19 @@ options:
   jandy_device_type: onetouch
   jandy_device_id: "0x41"
 schema:
-  # ONE field, auto-detected in run.sh: a value starting with "/" is a local device
-  # path (--serial-port); anything else is a network address host:port
-  # (--remote-serial-port). Free text so any path (incl. /dev/serial/by-id/...) or a
-  # non-standard device works. uart:true still maps host TTY devices into the container.
-  serial_port: str?
-  # Only applies when serial_port is a network address. rfc2217 -> --rfc2217 ;
-  # rawtcp -> --rawtcp ; plain -> --no-rfc2217.
-  remote_protocol: list(rfc2217|rawtcp|plain)
+  # Serial protocol: ONE explicit choice of how to reach the panel — `usb` for a local
+  # device (--serial-port), or `rfc2217` / `rawtcp` for a serial-to-ethernet adapter
+  # (--remote-serial-port + the matching transport flag). The app has only these two
+  # network transports: rfc2217 (telnet) and raw TCP; `--no-rfc2217` ("plain") is just
+  # another spelling of rawtcp (both set use_rfc2217=false), so it is NOT surfaced.
+  # REQUIRED so Home Assistant always renders it (HA hides UNUSED optional fields).
+  serial_protocol: list(usb|rfc2217|rawtcp)
+  # The device to connect to. For `usb`: a local path (--serial-port) like
+  # /dev/serial/by-id/usb-... (preferred) or /dev/ttyUSB0 (uart:true maps host TTYs in).
+  # For `rfc2217` / `rawtcp`: a host:port (--remote-serial-port). REQUIRED plain `str`
+  # (NOT the `device()` type, so no '' validation error and it is always visible);
+  # run.sh rejects an empty value.
+  serial_port: str
   # auto -> discover the HA broker ; manual -> the fields below ; disabled -> no MQTT
   mqtt_mode: list(auto|manual|disabled)
   mqtt_host: str?
