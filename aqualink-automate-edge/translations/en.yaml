@@ -101,12 +101,14 @@ configuration:
   jandy_device_type:
     name: Jandy device type (advanced)
     description: >-
-      The device the software emulates on the RS-485 bus. The default suits most
-      panels — change only if you know you need to.
+      What the software emulates on the RS-485 bus. "auto" (default, recommended) stands
+      up the full default set — OneTouch, IAQ, and Serial Adapter — which suits most
+      panels. Pick a single type (e.g. "onetouch") only to restrict emulation to that one
+      device.
   jandy_device_id:
     name: Jandy device ID (advanced)
     description: >-
-      The bus address the software presents (e.g. 0x41). The default suits most
-      panels — change only if you know you need to.
+      Optional bus address for a single chosen device type (e.g. 0x41). Leave blank to
+      use that type's default, and ignored entirely when the type is "auto".
 network:
   8099/tcp: Optional direct web UI / HTTP API on your LAN (unauthenticated unless you enable the login option)

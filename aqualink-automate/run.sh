@@ -55,8 +55,17 @@ esac
 
 # ── Equipment / Jandy (advanced) ───────────────────────────────────────────────
 args+=("--pool-configuration" "$(bashio::config 'pool_configuration')")
-args+=("--jandy-device-type" "$(bashio::config 'jandy_device_type')")
-args+=("--jandy-device-id" "$(bashio::config 'jandy_device_id')")
+# jandy_device_type=auto (default): omit --jandy-device-type so the app stands up its
+# full default emulation set (OneTouch + IAQ + SerialAdapter). A specific type restricts
+# emulation to that one device; jandy_device_id optionally overrides its bus address
+# (blank = the type's default, e.g. OneTouch -> 0x41).
+jandy_device_type="$(bashio::config 'jandy_device_type')"
+if [ "${jandy_device_type}" != "auto" ]; then
+    args+=("--jandy-device-type" "${jandy_device_type}")
+    if bashio::config.has_value 'jandy_device_id'; then
+        args+=("--jandy-device-id" "$(bashio::config 'jandy_device_id')")
+    fi
+fi
 
 # ── MQTT ───────────────────────────────────────────────────────────────────────
 mqtt_mode="$(bashio::config 'mqtt_mode')"
@@ -77,6 +86,9 @@ if [ "${mqtt_mode}" = "auto" ]; then
         bashio::log.warning "mqtt_mode=auto but no MQTT service is available; running without MQTT."
     fi
 elif [ "${mqtt_mode}" = "manual" ]; then
+    if ! bashio::config.has_value 'mqtt_host'; then
+        bashio::exit.nok "mqtt_mode is 'manual' but mqtt_host is empty — enter the broker hostname or IP (or switch mqtt_mode to 'auto' to use the Home Assistant broker)."
+    fi
     args+=("--mqtt" "--mqtt-host" "$(bashio::config 'mqtt_host')" "--mqtt-port" "$(bashio::config 'mqtt_port')")
     if bashio::config.has_value 'mqtt_username'; then
         args+=("--mqtt-username" "$(bashio::config 'mqtt_username')")

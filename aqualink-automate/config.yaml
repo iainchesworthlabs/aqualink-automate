@@ -81,20 +81,27 @@ watchdog: "http://[HOST]:8099/api/health"
 # and the scheduler are off (use HA's Recorder and automations); each is an opt-in
 # toggle for users who want the app's own versions. Preferences + the equipment
 # cache persist to /data automatically (wired in run.sh), so they are not surfaced.
-# Only REQUIRED fields (no `?` in the schema) carry a default here. Optional (`?`)
-# fields — mqtt_host/username/password, the mqtt cert paths, auth_password — MUST NOT
-# have a default (an empty-string default on an OPTIONAL field is what made the old
-# device picker reject ''). The serial fields (serial_protocol + serial_port) are the
-# deliberate exception: they are REQUIRED BECAUSE Home Assistant hides UNUSED optional
-# options from the form — an optional serial field simply doesn't appear, and it is the
-# essential thing to configure. serial_port is a plain `str` (not the `device()` type)
-# with an empty default, so it renders a normal, always-visible text box with no device
-# validation (no '' save error); run.sh rejects an empty value at start.
+# Most fields carry a default here, but the real driver is VISIBILITY: Home Assistant
+# hides from the options form any schema field that is NOT listed in this block — so an
+# option a user must be able to reach has to appear here, even an optional one. That is
+# why the manual MQTT broker fields (mqtt_host/username/password) are surfaced with empty
+# defaults: without them the form offers no place to enter a broker when mqtt_mode=manual.
+# Empty defaults are safe on these because they are plain `str`/`password`, not the
+# `device()` type — a `device()` picker is what rejected an empty-string default in the
+# old serial field. mqtt_host is required in manual mode (run.sh rejects an empty host
+# there); username/password stay genuinely optional and are only sent when set. The serial
+# fields follow the same reasoning: serial_port is a plain `str` with an empty default so
+# it always renders, and run.sh rejects an empty value at start. Fields deliberately left
+# OUT of this block (the TLS cert paths, auth_password) stay hidden until their feature is
+# turned on — set those via the YAML editor.
 options:
   serial_protocol: usb
   serial_port: ""
   mqtt_mode: auto
+  mqtt_host: ""
   mqtt_port: 1883
+  mqtt_username: ""
+  mqtt_password: ""
   mqtt_tls: false
   mqtt_tls_skip_verify: false
   home_assistant_discovery: true
@@ -104,8 +111,8 @@ options:
   enable_history: false
   enable_scheduler: false
   pool_configuration: auto
-  jandy_device_type: onetouch
-  jandy_device_id: "0x41"
+  jandy_device_type: auto
+  jandy_device_id: ""
 schema:
   # Serial protocol: ONE explicit choice of how to reach the panel — `usb` for a local
   # device (--serial-port), or `rfc2217` / `rawtcp` for a serial-to-ethernet adapter
@@ -122,7 +129,10 @@ schema:
   serial_port: str
   # auto -> discover the HA broker ; manual -> the fields below ; disabled -> no MQTT
   mqtt_mode: list(auto|manual|disabled)
-  mqtt_host: str?
+  # Broker host for manual mode. Plain `str` (surfaced with an empty default in `options`
+  # so the form always shows it); run.sh rejects an empty value when mqtt_mode=manual and
+  # ignores it otherwise.
+  mqtt_host: str
   mqtt_port: port
   mqtt_username: str?
   mqtt_password: password?
@@ -148,5 +158,12 @@ schema:
   enable_scheduler: bool
   # Advanced (defaults suit most installs).
   pool_configuration: list(auto|pool-only|spa-only|combo|dual)
-  jandy_device_type: str
-  jandy_device_id: str
+  # `auto` (default) emulates the app's full default device set — OneTouch (menu
+  # scraping) + IAQ (status) + SerialAdapter (commands) — by omitting --jandy-device-type
+  # entirely. Pick a single type to restrict emulation to just that device (e.g.
+  # `onetouch`). run.sh maps `auto` to "no flag".
+  jandy_device_type: list(auto|onetouch|iaq|pda|rs_keypad|serialadapter)
+  # Optional bus-address override for a single chosen type. Leave blank to use that
+  # type's default instance (OneTouch -> 0x41, IAQ -> 0xA1, ...). Ignored when
+  # jandy_device_type is `auto`.
+  jandy_device_id: str?

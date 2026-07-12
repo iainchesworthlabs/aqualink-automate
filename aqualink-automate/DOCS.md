@@ -107,7 +107,8 @@ only if you want the app's own version (it is then persisted under `/data`):
 |---|---|
 | `log_level` | `info` (default), `debug`, or `trace`. Logs appear in the add-on's **Log** tab. |
 | `pool_configuration` | `auto` (default), or force `pool-only` / `spa-only` / `combo` / `dual`. |
-| `jandy_device_type`, `jandy_device_id` | Advanced: the identity the software presents on the RS-485 bus. Defaults suit most panels. |
+| `jandy_device_type` | Advanced: what the software emulates on the bus. `auto` (default) stands up the full default set — OneTouch + IAQ + Serial Adapter — and suits most panels. Choose a single type only to restrict emulation to that one device. |
+| `jandy_device_id` | Advanced: optional bus-address override for a single chosen type. Blank uses the type's default (OneTouch → 0x41); ignored when the type is `auto`. |
 
 Your UI preferences and an equipment cache (for an instant dashboard after a restart)
 are always persisted under `/data` — no configuration needed.
