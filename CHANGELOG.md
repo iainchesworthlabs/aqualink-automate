@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.12.0-beta.8] - 2026-07-12
+
+More Home Assistant add-on fixes from real install testing — no changes to the core application.
+
+### Fixed
+
+- **Manual MQTT mode is configurable again.** The broker fields (`mqtt_host`, `mqtt_username`, `mqtt_password`) are now shown in the options form. Home Assistant hides optional fields that carry no default, so `mqtt_mode: manual` previously offered nowhere to enter the broker. The add-on now also fails fast with a clear message if the host is left blank in manual mode. See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
+### Changed
+
+- **Jandy emulation defaults to `auto`.** `jandy_device_type` now defaults to `auto`, standing up the app's full default device set (OneTouch + IAQ + Serial Adapter) instead of forcing a single OneTouch device — the previous default suppressed IAQ status and Serial Adapter commands. Choose a specific type to restrict emulation to one device; `jandy_device_id` becomes an optional per-type bus-address override (blank uses the type's default, e.g. OneTouch → 0x41).
+
 ## [0.12.0-beta.7] - 2026-07-09
 
 Further Home Assistant add-on refinements from real install testing — no changes to the core application.

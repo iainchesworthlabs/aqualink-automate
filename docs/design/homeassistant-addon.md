@@ -185,7 +185,9 @@ Assembled by `aqualink-automate/run.sh` (bashio → argv → the base image's
 | `log_level` | `--debug` / `--trace` (else default) | Console sink → the add-on Log tab. |
 | `enable_history` | `--history-db /data/history.db` (else off) | Off by default → HA Recorder. |
 | `enable_scheduler` | `--schedules-file /data/schedules.json` (else off) | Off by default → HA automations. |
-| `pool_configuration`, `jandy_device_type`, `jandy_device_id` | `--pool-configuration` / `--jandy-device-*` | Advanced; defaults suit most. |
+| `pool_configuration` | `--pool-configuration` | Advanced; default `auto`. |
+| `jandy_device_type` = `auto` | _(no flag)_ | Default — app stands up its full default emulation set (OneTouch + IAQ + SerialAdapter). |
+| `jandy_device_type` = a single type (+ optional `jandy_device_id`) | `--jandy-device-type <type>` (+ `--jandy-device-id`) | Restricts emulation to one device; blank id → the type's default (OneTouch → 0x41). |
 | _(not surfaced)_ | `--preferences-file /data/preferences.json`, `--equipment-cache-file /data/equipment-cache.json` | Always persisted to `/data`. |
 | _(not surfaced)_ | `MATTER_ENABLED=false`, `PUID/PGID=0`, `--address 0.0.0.0 --http-port 80 --disable-https` | Fixed by the add-on. Auth stays off — ingress authenticates. |
 

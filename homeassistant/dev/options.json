@@ -12,6 +12,6 @@
   "enable_history": false,
   "enable_scheduler": false,
   "pool_configuration": "auto",
-  "jandy_device_type": "onetouch",
-  "jandy_device_id": "0x41"
+  "jandy_device_type": "auto",
+  "jandy_device_id": ""
 }
