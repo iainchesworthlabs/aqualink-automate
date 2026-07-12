@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0-beta.8
+
+- **Manual MQTT mode is configurable again.** The broker fields (`mqtt_host`, `mqtt_username`, `mqtt_password`) now appear in the options form — Home Assistant hides optional fields that carry no default, so `mqtt_mode: manual` previously had nowhere to enter the broker. An empty host in manual mode is now rejected with a clear message.
+- **Jandy emulation defaults to `auto`.** `jandy_device_type` now defaults to `auto`, standing up the full default device set (OneTouch + IAQ + Serial Adapter) instead of a single OneTouch device (which suppressed IAQ status and Serial Adapter commands). Pick a specific type to restrict emulation to one device; `jandy_device_id` is now an optional per-type bus-address override (blank = the type's default, e.g. OneTouch → 0x41).
+
 ## 0.12.0-beta.7
 
 - **Serial is one "Serial protocol" field.** Pick `usb`, `rfc2217`, or `rawtcp`, then enter the device path or `host:port`. Both fields are required, so Home Assistant always shows them (beta.6's optional field was hidden from the form). `plain` is dropped — it is the same transport as `rawtcp`.
