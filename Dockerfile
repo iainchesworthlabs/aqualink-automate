@@ -156,7 +156,7 @@ RUN DESTDIR=/src/install/config-linux-gcc cmake --install build/config-linux-gcc
 # the glibc Node installed in the runtime stage. @matter/main and ws are pure JS, so
 # this is belt-and-braces, but it keeps the door open for any future native dep.
 
-FROM node:26-bookworm-slim@sha256:b16ca7b4dcfb20184e1c70f9ee30c6a75ed1da669cfafd6d2add4761b123d79f AS matter-builder
+FROM node:26-bookworm-slim@sha256:e999d087492c7227c85adc70574cf9d3cce774c3e6d7b8dfe473ee6b142c8f2c AS matter-builder
 
 WORKDIR /opt/matter-bridge
 
