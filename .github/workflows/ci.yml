@@ -77,8 +77,11 @@ jobs:
   # Enforce the branch naming convention on every PR. Branches must be
   # <type>/<name> with an allowed Conventional Commit type (see CONTRIBUTING.md).
   # develop/main are accepted as PR heads so the develop->main release-promotion
-  # PR (head_ref == develop) is never blocked. This "Branch Name" check is a
-  # required status check on develop/main, so a misnamed branch cannot merge. (A
+  # PR (head_ref == develop) is never blocked, and dependabot/** is accepted
+  # because Dependabot's branch names are not configurable (and this check being
+  # required would otherwise permanently block every Dependabot PR — see the
+  # dependabot-auto-merge workflow). This "Branch Name" check is a required
+  # status check on develop/main, so a misnamed branch cannot merge. (A
   # server-side branch-name ruleset would also block at push/creation time, but
   # that rule type needs a GitHub organization plan — unavailable on a user repo.)
   branch-name:
@@ -93,6 +96,10 @@ jobs:
         run: |
           if [[ "$HEAD_REF" == "develop" || "$HEAD_REF" == "main" ]]; then
             echo "Core branch '$HEAD_REF' — allowed (release promotion)."
+            exit 0
+          fi
+          if [[ "$HEAD_REF" == dependabot/* ]]; then
+            echo "Dependabot branch '$HEAD_REF' — allowed (branch names are not configurable)."
             exit 0
           fi
           pattern='^(feat|fix|docs|ci|test|refactor|chore|build|perf)/[a-z0-9._-]+$'
