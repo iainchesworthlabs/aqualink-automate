@@ -1,0 +1,43 @@
+# Enable GitHub auto-merge on routine Dependabot PRs so grouped dependency bumps
+# land on develop without manual intervention.
+#
+# How it works: this job only flips the PR's auto-merge bit — GitHub itself then
+# merges (squash) once every REQUIRED status check passes. The required checks on
+# develop are "Branch Name" (which exempts dependabot/** heads — Dependabot's
+# branch names are not configurable) and the aggregated "CI Status", so nothing
+# merges without the full build/test matrix going green. Non-required checks
+# (e.g. SonarCloud, which cannot pass on Dependabot PRs — Dependabot-triggered
+# runs receive Dependabot secrets, not repo secrets like SONAR_TOKEN) do not
+# block it.
+#
+# Scope: only non-major updates auto-merge. For grouped PRs fetch-metadata
+# reports the HIGHEST bump in the group, so a group containing any semver-major
+# update stays open for manual review; digest-only bumps (the docker group's
+# pinned base images) report no semver level and auto-merge. The squash commit
+# takes the PR title, which is already Conventional-Commit shaped via the
+# commit-message prefixes in .github/dependabot.yml.
+name: Dependabot Auto-Merge
+
+on: pull_request
+
+permissions: {}
+
+jobs:
+  auto-merge:
+    name: Enable auto-merge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'iainchesworth/aqualink-automate'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      - name: Enable auto-merge (non-major updates only)
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --auto --squash "$PR_URL"

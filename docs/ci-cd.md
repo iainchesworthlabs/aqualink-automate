@@ -4,7 +4,7 @@
 
 ## Workflow set
 
-The pipeline is nine workflow files plus two composite actions, all under `.github/`.
+The pipeline is ten workflow files plus two composite actions, all under `.github/`.
 
 | File | Kind | Purpose |
 |------|------|---------|
@@ -17,6 +17,7 @@ The pipeline is nine workflow files plus two composite actions, all under `.gith
 | `.github/workflows/osv-scanner.yml` | Workflow | OSV-Scanner CVE check of declared dependencies, incl. the vcpkg C++ manifest → Security tab. |
 | `.github/workflows/scorecard.yml` | Workflow | OpenSSF Scorecard supply-chain posture grade → Security tab. |
 | `.github/workflows/fuzzing.yml` | Workflow | Bounded libFuzzer run over the RS-485 protocol decoders on a weekly cron + decoder-touching PRs. Feeds Scorecard's Fuzzing check. See [fuzzing.md](fuzzing.md). |
+| `.github/workflows/dependabot-auto-merge.yml` | Workflow | Flags non-major Dependabot PRs for GitHub auto-merge; they land on `develop` once the required checks pass. |
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 
@@ -44,7 +45,7 @@ Concurrency is keyed on the PR number (or the ref for branch pushes) with `cance
 
 | Job | Runs on | What it does |
 |-----|---------|--------------|
-| `branch-name` | `ubuntu-latest` | PR only. Validates the PR head branch matches `<type>/<name>` with an allowed commit type, failing a non-conforming name. `develop`/`main` heads are accepted so the `develop` -> `main` release-promotion PR passes. A **required** status check on `develop`/`main`, so a misnamed branch cannot merge. |
+| `branch-name` | `ubuntu-latest` | PR only. Validates the PR head branch matches `<type>/<name>` with an allowed commit type, failing a non-conforming name. `develop`/`main` heads are accepted so the `develop` -> `main` release-promotion PR passes, and `dependabot/**` heads are accepted because Dependabot's branch names are not configurable (see [Dependabot auto-merge](#dependabot-auto-merge-dependabot-auto-mergeyml)). A **required** status check on `develop`/`main`, so a misnamed branch cannot merge. |
 | `build-and-test` | Per-OS matrix (see [_build.yml](#_buildyml)) | Calls `_build.yml` with no packaging. Configures, builds, and runs the full test suite on Linux, Windows, and macOS. |
 | `e2e-ui` | Linux | Builds only the app binary, then runs the Playwright UI suite once per mode (see the mode table below). |
 | `matter-bridge` | Linux | Node job in `matter-bridge/`: `npm ci`, typecheck (including the matter.js bridge), build, and unit tests. |
@@ -252,6 +253,15 @@ This workflow keeps the Actions cache from filling up with stale per-PR entries.
 
 - **Trigger:** `pull_request` with `types: [closed]`.
 - **Action:** On `ubuntu-latest` with `actions: write`, it installs the `gh-actions-cache` extension and deletes every cache key scoped to the closed PR's merge ref (`refs/pull/<number>/merge`). Deletion failures do not fail the workflow.
+
+## Dependabot auto-merge (dependabot-auto-merge.yml)
+
+Routine dependency bumps merge themselves. `.github/dependabot.yml` raises one grouped weekly PR per ecosystem (GitHub Actions, npm root, npm `matter-bridge/`, Docker digests) against `develop`; `dependabot-auto-merge.yml` runs on each Dependabot PR and — for non-major updates — enables GitHub **auto-merge** (squash) via `gh pr merge --auto`. GitHub then performs the merge only once every **required** status check passes ("Branch Name", which exempts `dependabot/**` heads, and the aggregated "CI Status"), so nothing lands without the full build/test matrix going green.
+
+- **Major bumps stay manual.** `dependabot/fetch-metadata` reports the *highest* update type in a grouped PR, so any group containing a semver-major update is left open for review. Digest-only bumps (the Docker group) carry no semver level and auto-merge.
+- **SonarCloud is expected to fail on Dependabot PRs** (Dependabot-triggered runs receive Dependabot secrets, not repo secrets such as `SONAR_TOKEN`). It is not a required check, so it does not hold up the merge.
+- The squash commit takes the PR title, which Dependabot already emits in Conventional Commit form (`ci:`/`build:` prefixes configured in `.github/dependabot.yml`).
+- Requires the repository setting **Allow auto-merge** (Settings > General > Pull Requests), which is enabled on this repo.
 
 ## Self-hosted runners
 
