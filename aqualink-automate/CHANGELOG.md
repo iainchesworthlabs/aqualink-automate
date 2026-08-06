@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Storage map renamed `addon_config` → `app_config`**, following the Supervisor's
+  add-ons→apps rename (silences the "uses legacy map type 'addon_config'" deprecation
+  warning logged on every store refresh). Same mount, same paths — but the new name
+  needs Supervisor 2026.07.1 (2026-07-08) or newer; an older Supervisor will not list
+  or update the add-on until it self-updates.
+
 ## 0.12.0-beta.8
 
 - **Manual MQTT mode is configurable again.** The broker fields (`mqtt_host`, `mqtt_username`, `mqtt_password`) now appear in the options form — Home Assistant hides optional fields that carry no default, so `mqtt_mode: manual` previously had nowhere to enter the broker. An empty host in manual mode is now rejected with a clear message.
