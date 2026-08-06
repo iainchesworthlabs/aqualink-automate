@@ -46,13 +46,19 @@ services:
 # Storage maps:
 #   - ssl (read-only): HA's /ssl share, so the MQTT TLS certificate options
 #     (mqtt_ca_cert / mqtt_client_cert / mqtt_client_key) can point at files there.
-#   - addon_config (read-write): the add-on's own user-accessible config directory
-#     (/config in the container; /addon_configs/<slug> on the host, editable via Samba /
-#     the File editor) for user-managed files.
+#   - app_config (read-write): the add-on's own user-accessible config directory
+#     (/config in the container; /app_configs/<slug> on the host — /addon_configs/
+#     before Supervisor 2026.07 — editable via Samba / the File editor) for
+#     user-managed files. `app_config` is the add-ons→apps rename of `addon_config`
+#     (Supervisor 2026.07.1, 2026-07-08); the old name still works but logs a
+#     deprecation warning on every store refresh, while the new name requires
+#     Supervisor >= 2026.07.1 (an older Supervisor rejects the manifest and hides
+#     the add-on until it auto-updates — acceptable, since the Supervisor
+#     self-updates and only the latest version is supported).
 map:
   - type: ssl
     read_only: true
-  - type: addon_config
+  - type: app_config
     read_only: false
 # Web UI via INGRESS: Home Assistant serves the UI through its own authenticated
 # proxy and shows it in the sidebar — not published on the LAN, and secured by HA's
