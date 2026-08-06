@@ -4,7 +4,7 @@
 
 ## Workflow set
 
-The pipeline is ten workflow files plus two composite actions, all under `.github/`.
+The core pipeline comprises the workflow files below plus two composite actions, all under `.github/` (further self-contained workflows — docs publishing, repo publishing, versioning helpers, the Home Assistant add-on and companion-package validators — are described in their own docs).
 
 | File | Kind | Purpose |
 |------|------|---------|
@@ -18,6 +18,7 @@ The pipeline is ten workflow files plus two composite actions, all under `.githu
 | `.github/workflows/scorecard.yml` | Workflow | OpenSSF Scorecard supply-chain posture grade → Security tab. |
 | `.github/workflows/fuzzing.yml` | Workflow | Bounded libFuzzer run over the RS-485 protocol decoders on a weekly cron + decoder-touching PRs. Feeds Scorecard's Fuzzing check. See [fuzzing.md](fuzzing.md). |
 | `.github/workflows/dependabot-auto-merge.yml` | Workflow | Flags non-major Dependabot PRs for GitHub auto-merge; they land on `develop` once the required checks pass. |
+| `.github/workflows/ha-companion.yml` | Workflow | Validates the Home Assistant companion package (`homeassistant/companion/`): yamllint, entity references vs `entity-manifest.json` (`scripts/check-ha-companion-entities.ps1`), and blueprint/package schema via `check_config` in the official Home Assistant container. See [Home Assistant companion package](homeassistant-companion.md). |
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 

@@ -1,0 +1,42 @@
+# CI-only: one automation per companion blueprint so `hass --script check_config`
+# expands and validates every blueprint's schema, inputs, and templates.
+# Dummy entity ids are fine — check_config validates structure, not existence.
+- id: companion_ci_salt_level_low
+  alias: "CI: salt-level-low"
+  use_blueprint:
+    path: aqualink-automate/salt-level-low.yaml
+
+- id: companion_ci_equipment_problem
+  alias: "CI: equipment-problem"
+  use_blueprint:
+    path: aqualink-automate/equipment-problem.yaml
+
+- id: companion_ci_app_offline
+  alias: "CI: app-offline"
+  use_blueprint:
+    path: aqualink-automate/app-offline.yaml
+
+- id: companion_ci_pump_runtime_shortfall
+  alias: "CI: pump-runtime-shortfall"
+  use_blueprint:
+    path: aqualink-automate/pump-runtime-shortfall.yaml
+    input:
+      pump_switch: switch.aqualink_automate_filter_pump
+
+- id: companion_ci_chlorinator_self_heal
+  alias: "CI: chlorinator-self-heal"
+  use_blueprint:
+    path: aqualink-automate/chlorinator-self-heal.yaml
+    input:
+      pump_switch: switch.aqualink_automate_filter_pump
+      chlorinator_switch: switch.aqualink_automate_aquapure
+
+- id: companion_ci_swim_ready
+  alias: "CI: swim-ready"
+  use_blueprint:
+    path: aqualink-automate/swim-ready.yaml
+
+- id: companion_ci_freeze_advisory
+  alias: "CI: freeze-advisory"
+  use_blueprint:
+    path: aqualink-automate/freeze-advisory.yaml

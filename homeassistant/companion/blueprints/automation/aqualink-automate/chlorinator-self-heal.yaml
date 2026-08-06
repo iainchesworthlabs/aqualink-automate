@@ -1,0 +1,119 @@
+blueprint:
+  name: "AquaLink Automate: Chlorinator self-heal"
+  description: >-
+    Turns the chlorinator back on when the filter pump has been running for a
+    while inside your chosen window but the chlorinator is off — for panels that
+    drop the chlorinator when other equipment cycles the pump. Optionally gated
+    on a low ORP reading so it only re-sanitises when the water actually needs
+    it. Notifies after acting.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/chlorinator-self-heal.yaml
+  input:
+    pump_switch:
+      name: Filter pump switch
+      description: Your panel's filter-pump switch published by aqualink-automate.
+      selector:
+        entity:
+          filter:
+            - domain: switch
+    chlorinator_switch:
+      name: Chlorinator switch
+      description: Your chlorinator's on/off switch published by aqualink-automate.
+      selector:
+        entity:
+          filter:
+            - domain: switch
+    pump_on_minutes:
+      name: Pump running for (minutes)
+      description: How long the pump must have been on before acting (lets the panel settle).
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 60
+          step: 1
+          unit_of_measurement: min
+    window_start:
+      name: Window start
+      description: Only act between these times (e.g. your cheap/solar power period).
+      default: "10:00:00"
+      selector:
+        time: {}
+    window_end:
+      name: Window end
+      default: "16:00:00"
+      selector:
+        time: {}
+    orp_sensor:
+      name: ORP sensor (optional)
+      description: >-
+        When set together with a floor above 0, the chlorinator is only
+        re-enabled while ORP reads below the floor.
+      default: sensor.aqualink_automate_orp
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+    orp_floor:
+      name: ORP floor (mV, 0 = ignore ORP)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 900
+          step: 10
+          unit_of_measurement: mV
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+
+mode: single
+max_exceeded: silent
+
+variables:
+  chlorinator_entity: !input chlorinator_switch
+  orp_entity: !input orp_sensor
+  orp_min: !input orp_floor
+
+triggers:
+  - trigger: state
+    entity_id: !input pump_switch
+    to: "on"
+    for:
+      minutes: !input pump_on_minutes
+
+conditions:
+  - alias: "Inside the action window"
+    condition: time
+    after: !input window_start
+    before: !input window_end
+  - alias: "Chlorinator is off"
+    condition: state
+    entity_id: !input chlorinator_switch
+    state: "off"
+  - alias: "ORP is below the floor (when ORP gating is configured)"
+    condition: template
+    value_template: >-
+      {% if orp_min | float(0) <= 0 %}
+        true
+      {% else %}
+        {% set orp = states(orp_entity) | float(none) %}
+        {{ orp is not none and orp < orp_min | float(0) }}
+      {% endif %}
+
+actions:
+  - action: switch.turn_on
+    target:
+      entity_id: !input chlorinator_switch
+  - action: !input notify_service
+    data:
+      title: "Chlorinator re-enabled"
+      message: >-
+        The filter pump is running but the chlorinator was off — it has been
+        turned back on to keep sanitising
+        {%- if orp_min | float(0) > 0 %} (ORP {{ states(orp_entity) }} mV, floor {{ orp_min }} mV)
+        {%- endif %}.

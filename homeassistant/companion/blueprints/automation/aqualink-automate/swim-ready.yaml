@@ -1,0 +1,120 @@
+blueprint:
+  name: "AquaLink Automate: Swim ready"
+  description: >-
+    Tells you when the pool has warmed to your swim temperature. Triggers when
+    the water temperature rises past the threshold (held for a few minutes to
+    ignore blips), optionally only while the filter pump is running (the panel
+    only reports live water temperature while water is circulating). Includes
+    quiet hours and a repeat interval.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/swim-ready.yaml
+  input:
+    temp_sensor:
+      name: Water temperature sensor
+      default: sensor.aqualink_automate_pool_temperature
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+            - device_class: temperature
+    swim_temperature:
+      name: Swim temperature
+      description: Threshold in the same unit your Home Assistant displays (°C or °F).
+      default: 26
+      selector:
+        number:
+          min: 0
+          max: 110
+          step: 0.5
+    pump_switch:
+      name: Filter pump switch (optional)
+      description: When set, only notifies while this switch is on.
+      default: ""
+      selector:
+        entity:
+          filter:
+            - domain: switch
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+    quiet_hours_start:
+      name: Quiet hours start
+      description: >-
+        input_datetime marking the start of the no-notification window (installed
+        by the companion helpers package). Leave the helper's value unset to
+        disable quiet hours.
+      default: input_datetime.aqualink_quiet_hours_start
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    quiet_hours_end:
+      name: Quiet hours end
+      default: input_datetime.aqualink_quiet_hours_end
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    notify_interval_hours:
+      name: Minimum hours between notifications
+      default: 12
+      selector:
+        number:
+          min: 0
+          max: 168
+          step: 1
+          unit_of_measurement: h
+
+mode: single
+max_exceeded: silent
+
+variables:
+  temp_entity: !input temp_sensor
+  pump_entity: !input pump_switch
+  quiet_start: !input quiet_hours_start
+  quiet_end: !input quiet_hours_end
+  notify_every: !input notify_interval_hours
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input temp_sensor
+    above: !input swim_temperature
+    for:
+      minutes: 5
+
+conditions:
+  - alias: "Pump is running (when a pump switch is configured)"
+    condition: template
+    value_template: "{{ pump_entity in ['', none] or is_state(pump_entity, 'on') }}"
+  - alias: "Outside the quiet-hours window (if configured)"
+    condition: template
+    value_template: >-
+      {% set qs_state = states(quiet_start) %}
+      {% set qe_state = states(quiet_end) %}
+      {% if qs_state in ['unknown', 'unavailable'] or qe_state in ['unknown', 'unavailable'] %}
+        true
+      {% else %}
+        {% set now_ts = now().timestamp() %}
+        {% set qs = today_at(qs_state) | as_timestamp %}
+        {% set qe = today_at(qe_state) | as_timestamp %}
+        {% if qe < qs %}
+          {{ not (now_ts >= qs or now_ts <= qe) }}
+        {% else %}
+          {{ not (qs <= now_ts <= qe) }}
+        {% endif %}
+      {% endif %}
+  - alias: "Respect the minimum interval between notifications"
+    condition: template
+    value_template: >-
+      {% set lt = this.attributes.last_triggered %}
+      {{ lt is none or (now() - lt).total_seconds() >= (notify_every | float(12) * 3600) }}
+
+actions:
+  - action: !input notify_service
+    data:
+      title: "Pool is ready for a swim"
+      message: "The water has reached {{ states(temp_entity) }}°."

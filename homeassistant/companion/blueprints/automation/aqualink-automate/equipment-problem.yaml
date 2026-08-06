@@ -1,0 +1,119 @@
+blueprint:
+  name: "AquaLink Automate: Equipment problem alert"
+  description: >-
+    Notifies when any of the app's problem binary sensors (chlorinator fault or
+    warning, salt low, service mode, serial comms loss, stale temperatures) stays
+    on for a debounce period, and optionally when it clears again. Includes quiet
+    hours; repeats are naturally limited because each sensor latches until its
+    fault clears.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/equipment-problem.yaml
+  input:
+    problem_entities:
+      name: Problem sensors
+      description: The alert binary sensors to watch (defaults to all six published by aqualink-automate).
+      default:
+        - binary_sensor.aqualink_automate_chlorinator_fault
+        - binary_sensor.aqualink_automate_chlorinator_warning
+        - binary_sensor.aqualink_automate_salt_low
+        - binary_sensor.aqualink_automate_service_mode
+        - binary_sensor.aqualink_automate_serial_comms_loss
+        - binary_sensor.aqualink_automate_temperature_stale
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: binary_sensor
+    problem_minutes:
+      name: Debounce (minutes)
+      description: The problem must persist this long before notifying.
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 120
+          step: 1
+          unit_of_measurement: min
+    notify_on_clear:
+      name: Notify when a problem clears
+      default: false
+      selector:
+        boolean: {}
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+    quiet_hours_start:
+      name: Quiet hours start
+      description: >-
+        input_datetime marking the start of the no-notification window (installed
+        by the companion helpers package). Leave the helper's value unset to
+        disable quiet hours.
+      default: input_datetime.aqualink_quiet_hours_start
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    quiet_hours_end:
+      name: Quiet hours end
+      default: input_datetime.aqualink_quiet_hours_end
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+
+mode: queued
+max: 10
+max_exceeded: silent
+
+variables:
+  quiet_start: !input quiet_hours_start
+  quiet_end: !input quiet_hours_end
+  notify_clear: !input notify_on_clear
+
+triggers:
+  - trigger: state
+    entity_id: !input problem_entities
+    to: "on"
+    for:
+      minutes: !input problem_minutes
+    id: raised
+  - trigger: state
+    entity_id: !input problem_entities
+    from: "on"
+    to: "off"
+    id: cleared
+
+conditions:
+  - alias: "Clear notifications only when enabled"
+    condition: template
+    value_template: "{{ trigger.id == 'raised' or notify_clear }}"
+  - alias: "Outside the quiet-hours window (if configured)"
+    condition: template
+    value_template: >-
+      {% set qs_state = states(quiet_start) %}
+      {% set qe_state = states(quiet_end) %}
+      {% if qs_state in ['unknown', 'unavailable'] or qe_state in ['unknown', 'unavailable'] %}
+        true
+      {% else %}
+        {% set now_ts = now().timestamp() %}
+        {% set qs = today_at(qs_state) | as_timestamp %}
+        {% set qe = today_at(qe_state) | as_timestamp %}
+        {% if qe < qs %}
+          {{ not (now_ts >= qs or now_ts <= qe) }}
+        {% else %}
+          {{ not (qs <= now_ts <= qe) }}
+        {% endif %}
+      {% endif %}
+
+actions:
+  - action: !input notify_service
+    data:
+      title: >-
+        {{ 'Pool equipment problem' if trigger.id == 'raised' else 'Pool equipment problem cleared' }}
+      message: >-
+        {{ trigger.to_state.attributes.friendly_name | default(trigger.entity_id) }}
+        {{ 'is reporting a problem.' if trigger.id == 'raised' else 'has cleared.' }}

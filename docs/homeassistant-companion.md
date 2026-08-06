@@ -1,0 +1,124 @@
+# Home Assistant companion package
+
+Ready-made Home Assistant content that works out of the box with aqualink-automate:
+a pool dashboard, a set of alert and self-healing automation **blueprints**, and a
+**helpers package** they build on. It lives in the repository under
+[`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)
+and ships with every release as `aqualink-automate-homeassistant-companion-<version>.zip`.
+
+**Prerequisites:** aqualink-automate running with MQTT and Home Assistant discovery
+enabled — `--mqtt --home-assistant` (see [MQTT & Home Assistant](mqtt-home-assistant.md)),
+or the [Home Assistant add-on](homeassistant-addon.md), which enables discovery by
+default. Once discovery runs, Home Assistant shows an **aqualink-automate** device
+under Settings → Devices & Services → MQTT.
+
+!!! note "Why the entity ids just work"
+    Home Assistant derives entity ids from the discovery device name, which
+    aqualink-automate fixes as `aqualink-automate` — so ids like
+    `sensor.aqualink_automate_pool_temperature` are **identical on every install**
+    and everything below works unedited. The only install-specific entities are
+    your panel's own devices (pumps, aux circuits, chlorinator, heaters), whose
+    ids follow your panel labels; the companion content asks for those via
+    blueprint inputs or clearly marked placeholders.
+
+## Blueprints
+
+Each blueprint carries the same hygiene scaffold: quiet hours (via the helpers
+package), a minimum interval between notifications, guards against
+`unknown`/`unavailable` sensors, and actionable message content. Import with the
+buttons below (Home Assistant fetches the blueprint straight from this repository's
+`main` branch — re-import later to pick up fixes), then create an automation from
+it under **Settings → Automations & scenes → Blueprints**.
+
+| Blueprint | What it does |
+|---|---|
+| **Salt level low** | Below-target salt sends a notification that includes roughly **how many kg of salt to add**, computed from the ppm deficit and your pool volume. |
+| **Equipment problem** | Any of the app's six problem sensors (chlorinator fault/warning, salt low, service mode, serial comms loss, stale temperatures) raises a notification; optionally notifies on clear. |
+| **App offline** | The app stopping publishing (crash, broker loss, host down) notifies after a grace period; optionally notifies on recovery. |
+| **Pump runtime shortfall** | A daily check compares filtration hours against your target — advisory, or (opt-in) turns the pump back on and tells you it did. |
+| **Chlorinator self-heal** | Pump running in your chosen window but chlorinator off → turns it back on (optionally only while ORP is low) and notifies. |
+| **Swim ready** | The water warming past your swim temperature sends a "pool is ready" note. |
+| **Freeze advisory** | Air temperature at the pad dropping to freeze risk sends an advisory (deliberately ignores quiet hours). |
+
+[Import: Salt level low](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fsalt-level-low.yaml){ .md-button }
+[Import: Equipment problem](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fequipment-problem.yaml){ .md-button }
+[Import: App offline](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fapp-offline.yaml){ .md-button }
+[Import: Pump runtime shortfall](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fpump-runtime-shortfall.yaml){ .md-button }
+[Import: Chlorinator self-heal](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fchlorinator-self-heal.yaml){ .md-button }
+[Import: Swim ready](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fswim-ready.yaml){ .md-button }
+[Import: Freeze advisory](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Ffreeze-advisory.yaml){ .md-button }
+
+No My-Home-Assistant? Copy the files from
+`homeassistant/companion/blueprints/automation/aqualink-automate/` into
+`<config>/blueprints/automation/aqualink-automate/` and reload automations.
+
+## Helpers package
+
+[`packages/aqualink_automate.yaml`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/packages/aqualink_automate.yaml)
+provides what the blueprints and dashboard expect:
+
+- `input_datetime.aqualink_quiet_hours_start` / `_end` — the shared no-notification
+  window (set your times once under Settings → Devices & Services → Helpers; a
+  window wrapping midnight works).
+- `input_number.aqualink_pool_volume`, `input_number.aqualink_target_salt_ppm`,
+  `input_number.aqualink_pump_runtime_target` — pool volume (litres), the salt
+  level you top up towards, and your daily filtration goal.
+- `sensor.aqualink_salt_to_add` — kilograms of salt to reach the target
+  (`deficit_ppm × volume_L ÷ 1 000 000`).
+- `sensor.aqualink_pool_temperature_delta_today` — how much the water has warmed
+  since midnight (with a restart-safe midnight baseline sensor behind it).
+- Commented `history_stats` recipes for pump-runtime / heater-heating-time
+  counters — these reference your panel's own device entities, so uncomment and
+  point them at yours.
+
+Install: enable [packages](https://www.home-assistant.io/docs/configuration/packages/)
+once in `configuration.yaml`, drop the file into `<config>/packages/`, and restart:
+
+```yaml
+homeassistant:
+  packages: !include_dir_named packages
+```
+
+The blueprints' quiet-hours/target inputs default to these helpers, and the
+dashboard's "Salt to add" / "Warmed today" tiles appear automatically once the
+package is installed. Everything still works without it — pick different entities
+at blueprint-import time instead.
+
+## Dashboard
+
+[`dashboards/aqualink-pool.yaml`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool.yaml)
+is a two-view pool dashboard (Overview + Trends) built **only from stock cards** —
+no HACS or custom cards required. Water temperatures and setpoints, body switching
+on dual-body systems, chemistry, a self-hiding alerts section, and history/statistics
+graphs. Cards for entities your system doesn't publish (e.g. spa entities on a
+pool-only panel) hide themselves.
+
+Install: **Settings → Dashboards → Add dashboard → Start from scratch**, open it,
+enter edit mode, open the three-dot menu → **Raw configuration editor**, and replace
+the content with the file. Then personalise the *Equipment* section with your
+panel's own switches (commented examples are in the file). Alternatively register
+it as a [YAML-mode dashboard](https://www.home-assistant.io/dashboards/dashboards-and-views/)
+pointing at the file.
+
+## Customisation notes
+
+- **Fahrenheit panels**: temperature *sensors* convert automatically to your Home
+  Assistant unit system; blueprint temperature thresholds are plain numbers in
+  **your display unit**, so just enter °F values there.
+- **Renamed entities**: if you've renamed the app's entities, override the
+  blueprint defaults at import time and adjust the dashboard/package references
+  to match.
+- **Multiple installs**: a second aqualink-automate instance gets `_2`-suffixed
+  entity ids from Home Assistant; point a second copy of the content at those.
+- The full machine-readable list of the app's fixed entity ids is
+  [`entity-manifest.json`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/entity-manifest.json)
+  — CI validates the companion content against it, and a unit test keeps it in
+  lock-step with the discovery code, so it is always current for your release.
+
+## Getting the files
+
+- **Repository** (tracks `main`): [`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)
+- **Release bundle** (version-pinned, GPG-signed and attested like every other
+  release artifact): `aqualink-automate-homeassistant-companion-<version>.zip` on
+  the [releases page](https://github.com/iainchesworth/aqualink-automate/releases) —
+  see [Releasing](releasing.md) for signature verification.
