@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.12.0-beta.9] - 2026-08-07
+
+Home Assistant add-on maintenance release — no changes to the core application.
+
+### Fixed
+
+- **Add-on storage map renamed `addon_config` → `app_config`**, following the Supervisor's add-ons→apps rename. This silences the deprecation warning the Supervisor logged on every store refresh ("uses legacy map type 'addon_config'; use 'app_config' instead."). Same mount, same paths — but the add-on now needs Supervisor 2026.07.1 (2026-07-08) or newer; an older Supervisor will not list or update the add-on until it self-updates. See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
+### Changed
+
+- Dependency updates: Matter bridge (matter.js group) and Playwright test tooling (Dependabot).
+
 ## [0.12.0-beta.8] - 2026-07-12
 
 More Home Assistant add-on fixes from real install testing — no changes to the core application.
