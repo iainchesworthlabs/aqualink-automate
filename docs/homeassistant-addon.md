@@ -65,7 +65,7 @@ The options form maps directly onto the application's settings (full reference:
 - **Web UI** — served through Home Assistant **ingress**: it appears in the sidebar and
   via **Open Web UI**, secured by your Home Assistant login and **not exposed on the
   LAN**. Because ingress provides authentication, the app's own auth is left off. For
-  direct LAN access (e.g. a wall tablet), assign a host port to `80/tcp` in the add-on's
+  direct LAN access (e.g. a wall tablet), assign a host port to `8099/tcp` in the add-on's
   **Network** panel — that port is unauthenticated by default, so firewall it **or** turn
   on `enable_auth` (with `auth_username`/`auth_password`) to make the app enforce its own
   login there. The admin is bootstrapped on first enable; `/api/health` stays open so the
