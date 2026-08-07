@@ -14,7 +14,7 @@ failure, and applying updates. The add-on is a thin wrapper around the same mult
 image the project already publishes; it does not rebuild the application.
 
 The add-on manifests live at the root of this repository
-([`aqualink-automate/`](../aqualink-automate/) and `aqualink-automate-edge/`, with
+([`aqualink-automate/`](https://github.com/iainchesworth/aqualink-automate/tree/main/aqualink-automate) and `aqualink-automate-edge/`, with
 `repository.yaml`); the design rationale is in
 [docs/design/homeassistant-addon.md](design/homeassistant-addon.md).
 
