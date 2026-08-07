@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.12.0-beta.9
 
 - **Storage map renamed `addon_config` → `app_config`**, following the Supervisor's
   add-ons→apps rename (silences the "uses legacy map type 'addon_config'" deprecation
