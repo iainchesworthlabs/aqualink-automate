@@ -3,6 +3,11 @@
 ## Unreleased
 
 - **The add-on now reaches "Running", and the Watchdog no longer kill-loops it.** The container health probe inherited from the app image still pointed at the app's default port `80`, but the add-on runs the app on `8099` (since 0.12.0-beta.6) — so the container never reported healthy: the add-on sat in "Starting" forever and, with **Watchdog** enabled, was restarted every ~80 seconds. The probe now targets the add-on's real port. If you disabled the Watchdog toggle to work around this, it is safe to turn back on.
+- **Storage map renamed `addon_config` → `app_config`**, following the Supervisor's
+  add-ons→apps rename (silences the "uses legacy map type 'addon_config'" deprecation
+  warning logged on every store refresh). Same mount, same paths — but the new name
+  needs Supervisor 2026.07.1 (2026-07-08) or newer; an older Supervisor will not list
+  or update the add-on until it self-updates.
 
 ## 0.12.0-beta.8
 
