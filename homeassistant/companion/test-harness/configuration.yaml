@@ -1,0 +1,31 @@
+# CI-only Home Assistant configuration used to validate the companion package
+# inside the official Home Assistant container (see .github/workflows/ha-companion.yml).
+# The workflow copies this file, automations.yaml, the packages/ folder, and the
+# blueprints into a scratch config dir and runs `hass --script check_config`.
+# NOT part of the shipped companion content.
+homeassistant:
+  name: AquaLink Companion CI
+  packages: !include_dir_named packages
+
+automation: !include automations.yaml
+
+recorder:
+
+# Exercise the commented history_stats recipes from packages/aqualink_automate.yaml
+# so schema drift in the documented snippet fails CI. The entity ids are dummies —
+# check_config validates schema, not entity existence.
+sensor:
+  - platform: history_stats
+    name: "AquaLink Pump Runtime Today"
+    entity_id: switch.aqualink_automate_filter_pump
+    state: "on"
+    type: time
+    start: "{{ today_at() }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    name: "AquaLink Heater Heating Today"
+    entity_id: sensor.aqualink_automate_pool_heater
+    state: "Heating"
+    type: time
+    start: "{{ today_at() }}"
+    end: "{{ now() }}"

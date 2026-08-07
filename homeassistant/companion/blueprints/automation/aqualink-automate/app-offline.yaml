@@ -1,0 +1,115 @@
+blueprint:
+  name: "AquaLink Automate: App offline"
+  description: >-
+    Notifies when aqualink-automate stops publishing to Home Assistant. All of the
+    app's entities share one MQTT availability topic (with a last-will message), so
+    a crashed app, dead broker connection, or powered-off host shows up as the
+    sentinel entity going unavailable. Optionally notifies again on recovery.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/app-offline.yaml
+  input:
+    sentinel_entity:
+      name: Sentinel entity
+      description: Any always-published aqualink-automate entity; Uptime is a good default.
+      default: sensor.aqualink_automate_uptime
+      selector:
+        entity: {}
+    offline_minutes:
+      name: Grace period (minutes)
+      description: How long the app must be unavailable before notifying (rides out restarts).
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 120
+          step: 1
+          unit_of_measurement: min
+    notify_on_recovery:
+      name: Notify when the app comes back
+      default: true
+      selector:
+        boolean: {}
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+    quiet_hours_start:
+      name: Quiet hours start
+      description: >-
+        input_datetime marking the start of the no-notification window (installed
+        by the companion helpers package). Leave the helper's value unset to
+        disable quiet hours.
+      default: input_datetime.aqualink_quiet_hours_start
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    quiet_hours_end:
+      name: Quiet hours end
+      default: input_datetime.aqualink_quiet_hours_end
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+
+mode: queued
+max: 5
+max_exceeded: silent
+
+variables:
+  quiet_start: !input quiet_hours_start
+  quiet_end: !input quiet_hours_end
+  notify_recovery: !input notify_on_recovery
+
+triggers:
+  - trigger: state
+    entity_id: !input sentinel_entity
+    to: "unavailable"
+    for:
+      minutes: !input offline_minutes
+    id: offline
+  - trigger: state
+    entity_id: !input sentinel_entity
+    from: "unavailable"
+    id: online
+
+conditions:
+  - alias: "Recovery notifications only when enabled (and only after a real outage)"
+    condition: template
+    value_template: >-
+      {{ trigger.id == 'offline'
+         or (notify_recovery and trigger.to_state.state not in ['unavailable', 'unknown']) }}
+  - alias: "Outside the quiet-hours window (if configured)"
+    condition: template
+    value_template: >-
+      {% set qs_state = states(quiet_start) %}
+      {% set qe_state = states(quiet_end) %}
+      {% if qs_state in ['unknown', 'unavailable'] or qe_state in ['unknown', 'unavailable'] %}
+        true
+      {% else %}
+        {% set now_ts = now().timestamp() %}
+        {% set qs = today_at(qs_state) | as_timestamp %}
+        {% set qe = today_at(qe_state) | as_timestamp %}
+        {% if qe < qs %}
+          {{ not (now_ts >= qs or now_ts <= qe) }}
+        {% else %}
+          {{ not (qs <= now_ts <= qe) }}
+        {% endif %}
+      {% endif %}
+
+actions:
+  - action: !input notify_service
+    data:
+      title: >-
+        {{ 'AquaLink Automate is offline' if trigger.id == 'offline' else 'AquaLink Automate is back online' }}
+      message: >-
+        {% if trigger.id == 'offline' %}
+          aqualink-automate has not reported for over
+          {{ (trigger.for.total_seconds() / 60) | round(0) if trigger.for is defined else 'several' }}
+          minutes. Pool monitoring and control from Home Assistant is unavailable.
+        {% else %}
+          aqualink-automate is publishing again; pool entities are live.
+        {% endif %}

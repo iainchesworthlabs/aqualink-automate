@@ -23,6 +23,7 @@ The table below is the complete inventory of everything under `.github/` — the
 | `.github/workflows/dependabot-auto-merge.yml` | Workflow | Flags non-major Dependabot PRs for GitHub auto-merge; they land on `develop` once the required checks pass. |
 | `.github/workflows/docs.yml` | Workflow | Build the MkDocs site (`mkdocs build --strict`) and publish it to the root of `gh-pages` on docs-affecting pushes to `main`. |
 | `.github/workflows/homeassistant-addon.yml` | Workflow | Validate the Home Assistant add-on wrapper (YAML, shellcheck, translation coverage, generated-Edge-channel drift, version lock-step) on add-on-touching pushes and PRs. |
+| `.github/workflows/ha-companion.yml` | Workflow | Validate the Home Assistant companion package (`homeassistant/companion/`): yamllint, entity references vs `entity-manifest.json`, and blueprint/package schema via `check_config` in the official Home Assistant container. |
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 | `.github/actions/setup-msvc-env` | Composite action | Load the MSVC environment on self-hosted Windows runners (sources `vcvars64.bat`, exports the env delta to `$GITHUB_ENV`). |
@@ -326,6 +327,18 @@ One `validate` job (GitHub-hosted, no third-party actions to pin) checks, in ord
 5. **Version lock-step** — each channel's `config.yaml` `version` equals every `build.yaml` base-image tag, via `scripts/sync-homeassistant-addon-version.ps1 -Check` (the same script the release process uses as the single writer in set mode, and which `release.yml` re-checks — so CI and release can never disagree).
 
 The add-on wrapper **images** are published by `release.yml`'s `homeassistant-addon-publish` job, not by this workflow.
+
+## Home Assistant companion package validation (ha-companion.yml)
+
+Validates the Home Assistant companion package — the blueprints, helpers package, and dashboard under `homeassistant/companion/` (see [homeassistant-companion.md](homeassistant-companion.md)) — on `push` to `main`/`develop` and `pull_request` into `develop`/`main`, path-filtered to the companion tree, `scripts/check-ha-companion-entities.ps1`, and the workflow itself.
+
+One `validate` job (GitHub-hosted) checks, in order:
+
+1. **YAML lint** — `yamllint` with the relaxed profile and line-length off (Home Assistant YAML carries custom tags like `!input` and long Jinja lines).
+2. **Entity references match the manifest** — `scripts/check-ha-companion-entities.ps1`: every active `*.aqualink_automate_*` reference in companion YAML must exist in `entity-manifest.json`; install-specific (panel-label) entities may only appear in commented examples or as blueprint inputs. The manifest itself is locked to `src/core/mqtt/ha_discovery.cpp` by `TestSuite_HaDiscovery_CompanionManifest` in the unit suite, closing the loop code → manifest → shipped YAML.
+3. **Real schema validation** — assembles a scratch config (the helpers package, every blueprint instantiated by the `test-harness/` automations, and the documented `history_stats` recipes) and runs `hass --script check_config` in the official Home Assistant container. The step fails on a non-zero exit **or any logged ERROR line**: `check_config` exits 0 when a blueprint expands into an invalid automation, so the exit code alone is not a sufficient gate.
+
+The companion **bundle** (`aqualink-automate-homeassistant-companion-<version>.zip`) is shipped by `release.yml`, not by this workflow — see [releasing.md](releasing.md).
 
 ## Self-hosted runners
 

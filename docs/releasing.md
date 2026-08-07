@@ -166,6 +166,7 @@ Additionally:
 - **SBOM**: an SPDX SBOM for the release artifacts and one for the Docker image, each attached as a signed SBOM attestation (the image SBOM is also pushed to GHCR).
 - **Bundled runtime libraries**: the vcpkg-provided shared libraries ship inside each package (private lib dir with RPATH/loader-path), so the binary runs without a separate dependency install.
 - **Example configs**: the `examples/*.conf` files are bundled in each package.
+- **Home Assistant companion package**: `aqualink-automate-homeassistant-companion-<version>.zip` — the dashboard, blueprints, and helpers package from `homeassistant/companion/` (minus the CI test harness, plus a `VERSION` stamp). It sits in `release-artifacts/` before the signing/attestation steps, so it is GPG-signed and attested like the binaries. See [Home Assistant companion package](homeassistant-companion.md).
 - **Docker image**: Published to `ghcr.io/<owner>/aqualink-automate`. Each release publishes:
 
   | Tag | Example | When | Mutability |

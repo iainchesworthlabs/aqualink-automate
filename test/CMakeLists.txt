@@ -514,6 +514,17 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${PROJECT_SOURCE_DIR}/test/fixtures" "${CMAKE_CURRENT_BINARY_DIR}/fixtures"
 )
 
+# The HA companion entity manifest must sit next to the test exe so that the
+# discovery <-> manifest lock test (TestSuite_HaDiscovery_CompanionManifest)
+# can read companion/entity-manifest.json from the test working dir.
+add_custom_command(
+	TARGET testaqualink-automate
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E echo "Copying HA companion entity manifest to test folder..."
+	COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/companion"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/homeassistant/companion/entity-manifest.json" "${CMAKE_CURRENT_BINARY_DIR}/companion/entity-manifest.json"
+)
+
 add_custom_command(
 	TARGET intaqualink-automate
 	POST_BUILD

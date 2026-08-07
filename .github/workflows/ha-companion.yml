@@ -1,0 +1,76 @@
+name: HA Companion Package
+
+# Validates the Home Assistant companion package (homeassistant/companion/):
+# YAML lints, every active entity reference matches the entity manifest (the
+# manifest itself is locked to src/core/mqtt/ha_discovery.cpp by a unit test),
+# and the blueprints + helpers package load cleanly inside the official Home
+# Assistant container via `hass --script check_config` (schema-level validation
+# of every blueprint through a CI automation instantiating it).
+on:
+  push:
+    branches: ["main", "develop"]
+    paths: ["homeassistant/companion/**", "scripts/check-ha-companion-entities.ps1", ".github/workflows/ha-companion.yml"]
+  pull_request:
+    branches: ["develop", "main"]
+    paths: ["homeassistant/companion/**", "scripts/check-ha-companion-entities.ps1", ".github/workflows/ha-companion.yml"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate companion package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install yamllint
+        run: sudo apt-get update && sudo apt-get install -y yamllint
+
+      # Lexical lint only — Home Assistant YAML carries custom tags (!input,
+      # !include_dir_named) and long Jinja lines, so line-length is off and the
+      # relaxed profile applies.
+      - name: YAML lint
+        run: |
+          yamllint -d "{extends: relaxed, rules: {line-length: disable}}" homeassistant/companion
+
+      # Active *.aqualink_automate_* references must exist in the entity
+      # manifest; install-specific (panel-label) entities may only appear in
+      # commented examples or as blueprint inputs.
+      - name: Entity references match the manifest
+        shell: pwsh
+        run: ./scripts/check-ha-companion-entities.ps1 -Root $PWD
+
+      # Real-schema validation: assemble a scratch HA config embedding the
+      # helpers package, every blueprint (instantiated by the test-harness
+      # automations), and the documented history_stats recipes, then run the
+      # official container's check_config. The exit code alone is NOT enough:
+      # check_config exits 0 when a blueprint expands into an invalid automation
+      # (it only logs ERROR lines), so the step also fails on any logged ERROR.
+      - name: Home Assistant check_config
+        run: |
+          set -euo pipefail
+          CFG=$(mktemp -d)
+          cp homeassistant/companion/test-harness/configuration.yaml "$CFG/"
+          cp homeassistant/companion/test-harness/automations.yaml "$CFG/"
+          mkdir -p "$CFG/packages" "$CFG/blueprints/automation"
+          cp homeassistant/companion/packages/*.yaml "$CFG/packages/"
+          cp -r homeassistant/companion/blueprints/automation/aqualink-automate "$CFG/blueprints/automation/"
+          set +e
+          OUT=$(docker run --rm -v "$CFG":/config ghcr.io/home-assistant/home-assistant:stable \
+            python -m homeassistant --script check_config --config /config 2>&1)
+          RC=$?
+          set -e
+          echo "$OUT"
+          if [ "$RC" -ne 0 ]; then
+            echo "::error::check_config exited with $RC"
+            exit 1
+          fi
+          if grep -qE 'ERROR[:.]|Failed config' <<< "$OUT"; then
+            echo "::error::check_config logged errors (see output above) - blueprint/package schema is invalid even though the exit code was 0"
+            exit 1
+          fi

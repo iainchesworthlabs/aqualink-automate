@@ -1,0 +1,139 @@
+blueprint:
+  name: "AquaLink Automate: Pump runtime shortfall"
+  description: >-
+    At a daily check time, compares today's filter-pump runtime against your
+    filtration target. Below target it either just advises you, or (opt-in
+    self-healing) turns the pump back on and tells you it did. Needs a runtime
+    sensor — the companion helpers package ships a commented history_stats recipe
+    that creates sensor.aqualink_pump_runtime_today from your pump switch.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/pump-runtime-shortfall.yaml
+  input:
+    pump_switch:
+      name: Filter pump switch
+      description: Your panel's filter-pump switch published by aqualink-automate.
+      selector:
+        entity:
+          filter:
+            - domain: switch
+    runtime_sensor:
+      name: Pump runtime sensor (hours today)
+      description: >-
+        A history_stats (or equivalent) sensor measuring hours the pump has run
+        today. See the commented recipe in the companion helpers package.
+      default: sensor.aqualink_pump_runtime_today
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+    runtime_target_helper:
+      name: Runtime target helper
+      description: input_number holding the daily filtration goal in hours (installed by the companion helpers package).
+      default: input_number.aqualink_pump_runtime_target
+      selector:
+        entity:
+          filter:
+            - domain: input_number
+    check_time:
+      name: Daily check time
+      description: When to evaluate the day's runtime — late enough that a shortfall is real, early enough to still act.
+      default: "17:00:00"
+      selector:
+        time: {}
+    self_heal:
+      name: Turn the pump back on
+      description: When enabled, a shortfall turns the pump on instead of only advising.
+      default: false
+      selector:
+        boolean: {}
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+    quiet_hours_start:
+      name: Quiet hours start
+      description: >-
+        input_datetime marking the start of the no-notification window (installed
+        by the companion helpers package). Leave the helper's value unset to
+        disable quiet hours.
+      default: input_datetime.aqualink_quiet_hours_start
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    quiet_hours_end:
+      name: Quiet hours end
+      default: input_datetime.aqualink_quiet_hours_end
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+
+mode: single
+max_exceeded: silent
+
+variables:
+  runtime_entity: !input runtime_sensor
+  target_entity: !input runtime_target_helper
+  quiet_start: !input quiet_hours_start
+  quiet_end: !input quiet_hours_end
+  do_self_heal: !input self_heal
+  runtime_hours: "{{ states(runtime_entity) | float(none) }}"
+  target_hours: "{{ states(target_entity) | float(none) }}"
+
+triggers:
+  - trigger: time
+    at: !input check_time
+
+conditions:
+  - alias: "Runtime sensor and target are reporting"
+    condition: template
+    value_template: "{{ runtime_hours is not none and target_hours is not none and target_hours > 0 }}"
+  - alias: "Today's runtime is below the target"
+    condition: template
+    value_template: "{{ runtime_hours < target_hours }}"
+  - alias: "Outside the quiet-hours window (if configured)"
+    condition: template
+    value_template: >-
+      {% set qs_state = states(quiet_start) %}
+      {% set qe_state = states(quiet_end) %}
+      {% if qs_state in ['unknown', 'unavailable'] or qe_state in ['unknown', 'unavailable'] %}
+        true
+      {% else %}
+        {% set now_ts = now().timestamp() %}
+        {% set qs = today_at(qs_state) | as_timestamp %}
+        {% set qe = today_at(qe_state) | as_timestamp %}
+        {% if qe < qs %}
+          {{ not (now_ts >= qs or now_ts <= qe) }}
+        {% else %}
+          {{ not (qs <= now_ts <= qe) }}
+        {% endif %}
+      {% endif %}
+
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ do_self_heal }}"
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: !input pump_switch
+          - action: !input notify_service
+            data:
+              title: "Pool pump turned back on"
+              message: >-
+                Filtration was {{ runtime_hours | round(1) }} h of the
+                {{ target_hours | round(1) }} h target today — the filter pump has
+                been switched back on to make up the shortfall.
+    default:
+      - action: !input notify_service
+        data:
+          title: "Pool filtration below target"
+          message: >-
+            The filter pump has only run {{ runtime_hours | round(1) }} h of the
+            {{ target_hours | round(1) }} h target today. Consider running it
+            longer or adjusting the panel schedule.

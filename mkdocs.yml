@@ -121,6 +121,7 @@ nav:
       - Usage, HTTP API & WebSocket: usage-and-api.md
       - MQTT & Home Assistant: mqtt-home-assistant.md
       - Home Assistant add-on: homeassistant-addon.md
+      - Home Assistant companion package: homeassistant-companion.md
       - Matter (smart home): MATTER.md
       - Raspberry Pi: raspberry-pi.md
       - RS-485 wiring: hardware-rs485-connectivity.md

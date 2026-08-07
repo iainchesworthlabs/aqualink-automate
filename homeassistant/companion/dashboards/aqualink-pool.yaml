@@ -1,0 +1,287 @@
+# =============================================================================
+# AquaLink Automate — pool dashboard (stock cards only, no HACS dependencies)
+#
+# Install: Settings -> Dashboards -> Add dashboard -> "Start from scratch",
+# open it, top-right pencil -> three-dot menu -> "Raw configuration editor",
+# replace the content with this file. (Or register it as a YAML-mode dashboard —
+# see docs/homeassistant-companion.md.)
+#
+# It references only the app-published entities whose ids are identical on every
+# install. Cards for entities your system does not have (spa on a pool-only
+# panel, the dual-body mode selector, the optional companion helpers package)
+# hide themselves automatically. Your panel's own devices (pumps, aux circuits,
+# chlorinator, heaters) have install-specific ids — add them in the Equipment
+# section; commented examples below.
+# =============================================================================
+title: Pool
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:pool
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Water
+            heading_style: title
+            icon: mdi:thermometer
+          - type: tile
+            entity: sensor.aqualink_automate_pool_temperature
+            name: Pool
+            visibility:
+              - condition: state
+                entity: sensor.aqualink_automate_pool_temperature
+                state_not: unavailable
+          - type: tile
+            entity: sensor.aqualink_automate_spa_temperature
+            name: Spa
+            visibility:
+              - condition: state
+                entity: sensor.aqualink_automate_spa_temperature
+                state_not: unavailable
+          - type: tile
+            entity: sensor.aqualink_automate_air_temperature
+            name: Air
+          - type: tile
+            entity: number.aqualink_automate_pool_setpoint
+            name: Pool setpoint
+            features:
+              - type: numeric-input
+                style: buttons
+            visibility:
+              - condition: state
+                entity: number.aqualink_automate_pool_setpoint
+                state_not: unavailable
+          - type: tile
+            entity: number.aqualink_automate_spa_setpoint
+            name: Spa setpoint
+            features:
+              - type: numeric-input
+                style: buttons
+            visibility:
+              - condition: state
+                entity: number.aqualink_automate_spa_setpoint
+                state_not: unavailable
+          # From the optional companion helpers package; hidden until installed.
+          - type: tile
+            entity: sensor.aqualink_pool_temperature_delta_today
+            name: Warmed today
+            icon: mdi:thermometer-chevron-up
+            visibility:
+              - condition: state
+                entity: sensor.aqualink_pool_temperature_delta_today
+                state_not: unavailable
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Mode & status
+            heading_style: title
+            icon: mdi:swap-horizontal
+          - type: tile
+            entity: sensor.aqualink_automate_circulation_mode
+            name: Circulation
+            icon: mdi:pump
+          # Dual-body (pool + spa) systems only; hidden elsewhere.
+          - type: tile
+            entity: select.aqualink_automate_circulation_mode
+            name: Switch body
+            features:
+              - type: select-options
+            visibility:
+              - condition: state
+                entity: select.aqualink_automate_circulation_mode
+                state_not: unavailable
+          - type: tile
+            entity: sensor.aqualink_automate_equipment_mode
+            name: Panel mode
+            icon: mdi:cog
+          - type: tile
+            entity: binary_sensor.aqualink_automate_spa_mode
+            name: Spa mode
+            icon: mdi:hot-tub
+          - type: tile
+            entity: binary_sensor.aqualink_automate_clean_mode
+            name: Clean mode
+            icon: mdi:robot-vacuum
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Chemistry & chlorinator
+            heading_style: title
+            icon: mdi:flask-outline
+          - type: tile
+            entity: sensor.aqualink_automate_salt_level
+            name: Salt
+          - type: tile
+            entity: sensor.aqualink_automate_ph
+            name: pH
+          - type: tile
+            entity: sensor.aqualink_automate_orp
+            name: ORP
+          # From the optional companion helpers package; hidden until installed.
+          - type: tile
+            entity: sensor.aqualink_salt_to_add
+            name: Salt to add
+            icon: mdi:shaker-outline
+            visibility:
+              - condition: state
+                entity: sensor.aqualink_salt_to_add
+                state_not: unavailable
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Alerts
+            heading_style: title
+            icon: mdi:alert-circle-outline
+          - type: tile
+            entity: binary_sensor.aqualink_automate_chlorinator_fault
+            name: Chlorinator fault
+            color: red
+            visibility:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_chlorinator_fault
+                state: "on"
+          - type: tile
+            entity: binary_sensor.aqualink_automate_chlorinator_warning
+            name: Chlorinator warning
+            color: orange
+            visibility:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_chlorinator_warning
+                state: "on"
+          - type: tile
+            entity: binary_sensor.aqualink_automate_salt_low
+            name: Salt low
+            color: orange
+            visibility:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_salt_low
+                state: "on"
+          - type: tile
+            entity: binary_sensor.aqualink_automate_service_mode
+            name: Service mode
+            color: orange
+            visibility:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_service_mode
+                state: "on"
+          - type: tile
+            entity: binary_sensor.aqualink_automate_serial_comms_loss
+            name: Serial comms loss
+            color: red
+            visibility:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_serial_comms_loss
+                state: "on"
+          - type: tile
+            entity: binary_sensor.aqualink_automate_temperature_stale
+            name: Temperatures stale
+            color: orange
+            visibility:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_temperature_stale
+                state: "on"
+          - type: markdown
+            content: >-
+              No active alerts — chlorinator, salt, comms, and sensor-freshness
+              problems will appear here.
+            visibility:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_chlorinator_fault
+                state_not: "on"
+              - condition: state
+                entity: binary_sensor.aqualink_automate_chlorinator_warning
+                state_not: "on"
+              - condition: state
+                entity: binary_sensor.aqualink_automate_salt_low
+                state_not: "on"
+              - condition: state
+                entity: binary_sensor.aqualink_automate_service_mode
+                state_not: "on"
+              - condition: state
+                entity: binary_sensor.aqualink_automate_serial_comms_loss
+                state_not: "on"
+              - condition: state
+                entity: binary_sensor.aqualink_automate_temperature_stale
+                state_not: "on"
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Equipment
+            heading_style: title
+            icon: mdi:pump
+          - type: markdown
+            content: >-
+              Your panel's pumps, aux circuits, chlorinator and heaters appear as
+              switches on the **aqualink-automate** MQTT device (Settings ->
+              Devices & Services -> MQTT). Their ids follow your panel labels, so
+              add tiles for them here — examples are in this dashboard's YAML.
+          # Examples — replace the entity ids with YOUR devices, then uncomment:
+          # - type: tile
+          #   entity: switch.aqualink_automate_filter_pump
+          #   name: Filter pump
+          # - type: tile
+          #   entity: switch.aqualink_automate_pool_light
+          #   name: Pool light
+          # - type: tile
+          #   entity: switch.aqualink_automate_aquapure
+          #   name: Chlorinator
+          # - type: tile
+          #   entity: number.aqualink_automate_aquapure_generating_setpoint
+          #   name: Chlorinator output
+          #   features:
+          #     - type: numeric-input
+          #       style: slider
+
+  - title: Trends
+    path: trends
+    icon: mdi:chart-line
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Temperatures (24 h)
+            heading_style: title
+          - type: history-graph
+            hours_to_show: 24
+            entities:
+              - entity: sensor.aqualink_automate_pool_temperature
+                name: Pool
+              - entity: sensor.aqualink_automate_spa_temperature
+                name: Spa
+              - entity: sensor.aqualink_automate_air_temperature
+                name: Air
+      - type: grid
+        cards:
+          - type: heading
+            heading: Salt (7 days)
+            heading_style: title
+          - type: statistics-graph
+            days_to_show: 7
+            period: hour
+            stat_types:
+              - mean
+            entities:
+              - sensor.aqualink_automate_salt_level
+      - type: grid
+        cards:
+          - type: heading
+            heading: Water chemistry (7 days)
+            heading_style: title
+          - type: statistics-graph
+            days_to_show: 7
+            period: hour
+            stat_types:
+              - mean
+            entities:
+              - sensor.aqualink_automate_ph
+              - sensor.aqualink_automate_orp

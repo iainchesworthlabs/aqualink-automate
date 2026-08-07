@@ -504,6 +504,25 @@ jobs:
           pattern: packages-*
           merge-multiple: true
 
+      # Bundle the Home Assistant companion package (blueprints + helpers package
+      # + dashboard) as a versioned release asset. Dropped into release-artifacts/
+      # ahead of the signing/attestation steps below, whose *.zip globs pick it up
+      # deliberately: the companion zip is shipped content and gets the same GPG
+      # signature + provenance/SBOM attestation as the binaries. The CI-only
+      # test-harness/ folder is excluded; a VERSION stamp records the app release
+      # the bundle shipped with.
+      - name: Bundle Home Assistant companion package
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.resolve-version.outputs.version }}"
+          mkdir -p "$GITHUB_WORKSPACE/release-artifacts"
+          STAGE=$(mktemp -d)
+          cp -r homeassistant/companion "$STAGE/aqualink-automate-homeassistant-companion"
+          rm -rf "$STAGE/aqualink-automate-homeassistant-companion/test-harness"
+          echo "$VERSION" > "$STAGE/aqualink-automate-homeassistant-companion/VERSION"
+          (cd "$STAGE" && zip -qr "$GITHUB_WORKSPACE/release-artifacts/aqualink-automate-homeassistant-companion-${VERSION}.zip" aqualink-automate-homeassistant-companion)
+          echo "Bundled homeassistant/companion as aqualink-automate-homeassistant-companion-${VERSION}.zip"
+
       # GPG-sign every shipped artifact with the project key (the same
       # REPO_GPG_PRIVATE_KEY that signs the APT/DNF repos). Produces a detached
       # armored `.asc` beside each binary, plus a signed SHA512SUMS manifest, and
