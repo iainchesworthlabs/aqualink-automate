@@ -353,6 +353,8 @@ Runner VM images are built with Packer under `cicd/packer/`. See [cicd/packer/RE
 
 The Linux runner base is **Ubuntu 26.04 LTS** (GCC 15, Clang/LLVM 21), provisioned by `cicd/packer/linux-runner.pkr.hcl` (boots `ISOs/ubuntu-26.04-autoinstall.iso`) and the `cicd/packer/scripts/linux/0{2,3}-*-toolchain.sh` scripts. Both the Architecture table in `cicd/packer/README.md` and the Packer template agree on this base. The Windows runner base is Windows Server 2022.
 
+The Linux image is hardened against OS-disk creep: Docker's `data-root` **and** containerd's `root` live on the dedicated `/data` disk, `~/.cache` and `~/.sonar` are symlinked into the size-capped `/data/cache`, `unattended-upgrades` is removed (background dpkg runs also raced CI's own `apt-get` calls), and the ephemeral supervisor's per-job reset additionally deletes superseded self-updated runner-agent versions and runs apt hygiene (`apt-get clean`, wipe `/var/lib/apt/lists`). See `cicd/packer/README.md` ("Disk layout & the pristine ephemeral model").
+
 ## Caching
 
 ### vcpkg binary cache
