@@ -57,8 +57,12 @@ nul
 !docker/context
 !docker/context/**
 
-# Home Assistant add-on (not part of the app image)
+# Home Assistant add-on + companion content (not part of the app image) — except
+# the companion entity manifest: the in-image test build copies it beside the
+# test exe (test/CMakeLists.txt) for the discovery <-> manifest lock test that
+# `ctest` runs in the ci stage.
 repository.yaml
 aqualink-automate
 aqualink-automate-edge
 homeassistant
+!homeassistant/companion/entity-manifest.json
