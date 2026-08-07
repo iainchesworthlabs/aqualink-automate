@@ -117,6 +117,17 @@ pointing at the file.
 
 ## Getting the files
 
+- **Your running instance** — every install serves its own copy under `/homeassistant/`
+  on the app's web port (through Home Assistant ingress on the add-on), matching the
+  exact version you're running and requiring no internet access to GitHub:
+    - `/homeassistant/blueprints/automation/aqualink-automate/<name>.yaml` — the seven blueprints
+    - `/homeassistant/packages/aqualink_automate.yaml` — the helpers package
+    - `/homeassistant/dashboards/aqualink-pool.yaml` — the dashboard
+    - `/homeassistant/entity-manifest.json`, `/homeassistant/README.md`
+
+    Handy for air-gapped or LAN-only installs: download from your own instance and
+    paste into Home Assistant's raw configuration editor or `blueprints/automation/`
+    folder — no My-Home-Assistant redirect or GitHub reachability required.
 - **Repository** (tracks `main`): [`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)
 - **Release bundle** (version-pinned, GPG-signed and attested like every other
   release artifact): `aqualink-automate-homeassistant-companion-<version>.zip` on
