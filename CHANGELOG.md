@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [Unreleased]
+
+### Added
+
+- **Home Assistant companion package.** A ready-to-use bundle for the app's Home Assistant integration — seven automation blueprints, a helpers package, and a pre-built dashboard — so you no longer have to hand-build entities and automations from the MQTT discovery payloads. Get it two ways:
+  - **From your running instance** at `/homeassistant/` (through add-on ingress too) — matches the exact version you're running and needs no GitHub reachability, useful for air-gapped or LAN-only installs.
+  - **From the repository** (tracks `main`) or as a version-pinned, signed release bundle.
+
+  See [docs/homeassistant-companion.md](docs/homeassistant-companion.md).
+
 ## [0.12.0-beta.9] - 2026-08-07
 
 Home Assistant add-on maintenance release — no changes to the core application.
