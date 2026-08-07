@@ -29,6 +29,14 @@ RUN apt-get update \
 COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 
+# The base image's HEALTHCHECK curls ${AQUALINK_API_URL}/api/health, and the base
+# default points at the app's default port 80 — but run.sh starts the app on the
+# add-on's fixed port 8099. Without this override the probe fails forever, Docker
+# reports the container "unhealthy", the Supervisor never shows the add-on as
+# "Running", and the add-on Watchdog kill/restarts it every ~80s. (The Matter
+# sidecar, the env's other consumer, is disabled in the add-on.)
+ENV AQUALINK_API_URL=http://127.0.0.1:8099
+
 # tini (from the base image) stays PID 1 and now supervises run.sh, which builds the
 # argv and execs the base image's docker-entrypoint.sh.
 ENTRYPOINT ["/usr/bin/tini", "--", "/run.sh"]

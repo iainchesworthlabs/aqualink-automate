@@ -100,7 +100,7 @@ jobs:
           fi
           rm -rf build install
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
           fetch-depth: ${{ inputs.fetch_depth }}
@@ -182,13 +182,21 @@ jobs:
       # image bakes these in (cicd/packer/scripts/linux/06-dev-tools.sh), but install
       # them here too so the build also works on a not-yet-rebuilt image and on the
       # GitHub-hosted macOS runner. Windows builds libbacktrace without this path.
+      # On Linux, skip apt entirely when the packages are already present (the baked
+      # image case) and otherwise wait for the dpkg lock instead of failing — the
+      # self-hosted runners run unattended-upgrades, which briefly holds
+      # /var/lib/dpkg/lock-frontend and made a bare apt-get die with exit 100.
       - name: Install autotools for libbacktrace (Linux/macOS)
         if: ${{ runner.os != 'Windows' && !(inputs.do_package && runner.os == 'Linux') }}
         shell: bash
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq autoconf autoconf-archive automake libtool
+            if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+              echo "autotools already installed; skipping apt-get"
+            else
+              sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+              sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+            fi
           elif [ "$RUNNER_OS" = "macOS" ]; then
             brew install autoconf autoconf-archive automake libtool
           fi

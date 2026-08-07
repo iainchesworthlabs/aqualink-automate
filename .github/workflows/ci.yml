@@ -77,8 +77,11 @@ jobs:
   # Enforce the branch naming convention on every PR. Branches must be
   # <type>/<name> with an allowed Conventional Commit type (see CONTRIBUTING.md).
   # develop/main are accepted as PR heads so the develop->main release-promotion
-  # PR (head_ref == develop) is never blocked. This "Branch Name" check is a
-  # required status check on develop/main, so a misnamed branch cannot merge. (A
+  # PR (head_ref == develop) is never blocked, and dependabot/** is accepted
+  # because Dependabot's branch names are not configurable (and this check being
+  # required would otherwise permanently block every Dependabot PR — see the
+  # dependabot-auto-merge workflow). This "Branch Name" check is a required
+  # status check on develop/main, so a misnamed branch cannot merge. (A
   # server-side branch-name ruleset would also block at push/creation time, but
   # that rule type needs a GitHub organization plan — unavailable on a user repo.)
   branch-name:
@@ -93,6 +96,10 @@ jobs:
         run: |
           if [[ "$HEAD_REF" == "develop" || "$HEAD_REF" == "main" ]]; then
             echo "Core branch '$HEAD_REF' — allowed (release promotion)."
+            exit 0
+          fi
+          if [[ "$HEAD_REF" == dependabot/* ]]; then
+            echo "Dependabot branch '$HEAD_REF' — allowed (branch names are not configurable)."
             exit 0
           fi
           pattern='^(feat|fix|docs|ci|test|refactor|chore|build|perf)/[a-z0-9._-]+$'
@@ -112,7 +119,7 @@ jobs:
     name: I18n Catalogs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check catalog completeness and locale parity
         shell: pwsh
         run: ./scripts/check-i18n-keys.ps1 -Root $PWD
@@ -127,7 +134,7 @@ jobs:
     name: Platform Macros
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check for OS macros in shared code
         shell: pwsh
         run: ./scripts/check-os-macros.ps1 -Root $PWD
@@ -161,7 +168,7 @@ jobs:
     runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -178,7 +185,7 @@ jobs:
           tar xzf installtree-art/installtree-linux-gcc.tar.gz -C installtree
           chmod +x installtree/bin/aqualink-automate
 
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: npm
@@ -270,9 +277,9 @@ jobs:
         working-directory: matter-bridge
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: npm
@@ -297,7 +304,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -342,7 +349,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -354,7 +361,7 @@ jobs:
       # receive no secrets) still build anonymously.
       - name: Login to Docker Hub
         if: env.DOCKERHUB_USERNAME != ''
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}

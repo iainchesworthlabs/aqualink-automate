@@ -40,7 +40,7 @@ git switch -c fix/heater-setpoint-decode  # a bug fix
 
 This convention is checked automatically:
 
-- A **Branch Name** check runs on every pull request and fails a non-conforming head branch (`.github/workflows/ci.yml`). `develop` and `main` are accepted as heads so the `develop` -> `main` release-promotion PR is never blocked. It is a [required status check](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging) on `develop` and `main`, so a non-conforming branch cannot merge.
+- A **Branch Name** check runs on every pull request and fails a non-conforming head branch (`.github/workflows/ci.yml`). `develop` and `main` are accepted as heads so the `develop` -> `main` release-promotion PR is never blocked, and `dependabot/**` heads are accepted because Dependabot's branch names are not configurable. It is a [required status check](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging) on `develop` and `main`, so a non-conforming branch cannot merge.
 - Push/creation-time enforcement (a server-side branch-name **ruleset**) is a GitHub organization feature and is not available on this user-owned repository, so a misnamed branch can exist locally — it just fails CI and, once the check is required, cannot merge.
 
 Continuous integration builds on a `push` only to the long-lived branches `main` and `develop`. Feature branches build via their **pull request** into `develop`/`main` instead — so a work-in-progress push to a branch that has no open PR runs no CI (see `.github/workflows/ci.yml`).

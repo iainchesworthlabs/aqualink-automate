@@ -87,7 +87,7 @@ jobs:
           fi
           rm -rf build install
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
           fetch-depth: 1
@@ -101,22 +101,29 @@ jobs:
       # runtimes (libclang_rt.fuzzer.a / libclang_rt.asan*.a). Neither aminya/setup-cpp's
       # apt.llvm.org clang (hosted) NOR the self-hosted runner image ships them, so install
       # the matching libclang-rt-<major>-dev for the selected clang. Runs on EVERY Linux
-      # runner (the autotools step below likewise apt-installs unconditionally); if the
-      # package isn't already indexed, add the apt.llvm.org source for that version + codename.
+      # runner, installing only when the package is missing; if it isn't already
+      # indexed, add the apt.llvm.org source for that version + codename.
       - name: Install LLVM compiler-rt runtimes (fuzzer + sanitizers)
         if: runner.os == 'Linux'
         shell: bash
         run: |
+          # -o DPkg::Lock::Timeout waits out transient dpkg-lock holders on the
+          # persistent self-hosted runners (unattended-upgrades) instead of exit 100.
+          apt_get() { sudo apt-get -o DPkg::Lock::Timeout=600 "$@"; }
           ver="$(clang --version | sed -n 's/.*clang version \([0-9][0-9]*\).*/\1/p' | head -1)"
-          echo "Installing compiler-rt runtimes for clang major version ${ver}"
-          sudo apt-get update -qq
-          if ! sudo apt-get install -y -qq "libclang-rt-${ver}-dev"; then
-            echo "libclang-rt-${ver}-dev not indexed; adding apt.llvm.org source"
-            . /etc/os-release
-            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
-            echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-${ver} main" | sudo tee "/etc/apt/sources.list.d/llvm-${ver}.list" >/dev/null
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq "libclang-rt-${ver}-dev"
+          if dpkg -s "libclang-rt-${ver}-dev" >/dev/null 2>&1; then
+            echo "libclang-rt-${ver}-dev already installed; skipping apt-get"
+          else
+            echo "Installing compiler-rt runtimes for clang major version ${ver}"
+            apt_get update -qq
+            if ! apt_get install -y -qq "libclang-rt-${ver}-dev"; then
+              echo "libclang-rt-${ver}-dev not indexed; adding apt.llvm.org source"
+              . /etc/os-release
+              wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+              echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-${ver} main" | sudo tee "/etc/apt/sources.list.d/llvm-${ver}.list" >/dev/null
+              apt_get update -qq
+              apt_get install -y -qq "libclang-rt-${ver}-dev"
+            fi
           fi
           echo "compiler-rt libs:"; ls "/usr/lib/llvm-${ver}/lib/clang/${ver}/lib/"*/ 2>/dev/null | grep -i "fuzzer\|asan" || true
 
@@ -131,11 +138,18 @@ jobs:
         env:
           VCPKG_BINARY_SOURCES: "clear;default,readwrite"
 
+      # Skip apt when the packages are already baked into the runner image; otherwise
+      # wait for the dpkg lock (unattended-upgrades briefly holds it on the
+      # self-hosted runners) instead of failing with exit 100. Mirrors _build.yml.
       - name: Install autotools for libbacktrace
         shell: bash
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq autoconf autoconf-archive automake libtool
+          if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+            echo "autotools already installed; skipping apt-get"
+          else
+            sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+            sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+          fi
 
       - name: Configure
         uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
