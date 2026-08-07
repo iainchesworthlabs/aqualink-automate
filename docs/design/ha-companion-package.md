@@ -1,6 +1,6 @@
 # Home Assistant Companion Package — Design & Delivery Plan
 
-**Date:** 2026-08-06 · **Status:** proposed (not yet implemented)
+**Date:** 2026-08-06 · **Status:** Phase 1 merged to `develop` 2026-08-07 (PR #128, [`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)); Phase 2 (app-served copy) in progress; Phase 3 not started.
 
 > Design/analysis snapshot. File/symbol citations were verified against the code on the
 > date above; re-verify before relying on them.

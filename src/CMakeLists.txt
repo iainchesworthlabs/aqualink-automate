@@ -88,12 +88,21 @@ file(GLOB_RECURSE SSL_ASSET_FILES
 	"${CMAKE_SOURCE_DIR}/assets/ssl/*"
 )
 
+# Collect the Home Assistant companion package files for dependency tracking (see
+# the POST_BUILD copy below). Excludes test-harness/, which is CI-only fixture
+# content that is never copied into the served web root.
+file(GLOB_RECURSE HA_COMPANION_ASSET_FILES
+	CONFIGURE_DEPENDS
+	"${CMAKE_SOURCE_DIR}/homeassistant/companion/*"
+)
+list(FILTER HA_COMPANION_ASSET_FILES EXCLUDE REGEX "/test-harness/")
+
 # Make the main source file depend on all asset files.
 # When any asset changes, this triggers a relink of the executable,
 # which in turn runs the POST_BUILD commands.
 set_property(
 	SOURCE aqualink-automate.cpp
-	APPEND PROPERTY OBJECT_DEPENDS ${WEB_ASSET_FILES} ${SSL_ASSET_FILES}
+	APPEND PROPERTY OBJECT_DEPENDS ${WEB_ASSET_FILES} ${SSL_ASSET_FILES} ${HA_COMPANION_ASSET_FILES}
 )
 
 # Copy web assets after the executable is built
@@ -108,6 +117,22 @@ add_custom_command(
 	# per build whose old offline shells purge on activate (see cmake/stamp_sw_version.cmake).
 	COMMAND ${CMAKE_COMMAND} -D "SW_JS=$<TARGET_FILE_DIR:aqualink-automate>/web/sw.js" -D "AQ_VERSION=${PROJECT_VERSION}" -P "${CMAKE_SOURCE_DIR}/cmake/stamp_sw_version.cmake"
 	COMMENT "Syncing web assets"
+)
+
+# Copy the Home Assistant companion package (blueprints, helpers package, dashboard)
+# into the served web root, so a running instance can offer it for download without
+# needing GitHub reachability (e.g. an air-gapped install) — see
+# docs/homeassistant-companion.md. Served by the same generic StaticFileHandler as
+# the rest of web/, with no C++ changes (same mechanism as api/swagger.yaml).
+# test-harness/ is CI-only fixture content; copy_directory_if_different has no
+# exclude option, so it is stripped immediately after the copy.
+add_custom_command(
+	TARGET aqualink-automate
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E echo "Copying HA companion package to build folder..."
+	COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${CMAKE_SOURCE_DIR}/homeassistant/companion" "$<TARGET_FILE_DIR:aqualink-automate>/web/homeassistant"
+	COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:aqualink-automate>/web/homeassistant/test-harness"
+	COMMENT "Syncing HA companion package"
 )
 
 # Copy SSL assets after the executable is built
