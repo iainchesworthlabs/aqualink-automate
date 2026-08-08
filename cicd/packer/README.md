@@ -26,19 +26,26 @@ cruft between jobs. Two design changes fix that:
 - **Two thin disks per VM — OS is protected from build junk.** `disk0` holds only the OS
   + toolchains; `disk1` is a data volume (Linux `/data`, Windows `D:`) split into:
   - `work/` — the runner work dir (checkout + build tree), **wiped every job**;
-  - `cache/` — the persistent **vcpkg binary cache + ccache**, kept across jobs but
-    **size-capped** (ccache 3 GB; each vcpkg archive/download cache pruned to 3 GB / 2 GB)
-    so it can't grow without bound. `~/.cache` is redirected onto `cache/` (Linux symlink /
-    Windows junction) so vcpkg and ccache land there with no workflow change.
-  - `docker/` (Linux only) — Docker's `data-root`, so multi-GB base images pulled by
-    release builds never touch the OS disk; the supervisor prunes them each job.
+  - `cache/` — the persistent **vcpkg binary cache + ccache + sonar-scanner cache**, kept
+    across jobs but **size-capped** (ccache 3 GB; each vcpkg archive/download cache pruned
+    to 3 GB / 2 GB; sonar 1 GB) so it can't grow without bound. `~/.cache` is redirected
+    onto `cache/` (Linux symlink / Windows junction) so vcpkg and ccache land there with
+    no workflow change; on Linux `~/.sonar` (which is *not* under `~/.cache`) is likewise
+    symlinked to `cache/sonar`.
+  - `docker/` + `containerd/` (Linux only) — Docker's `data-root` **and** containerd's
+    `root`, so multi-GB base images/layers pulled by release builds never touch the OS
+    disk (moving only Docker's data-root is not enough — buildx/BuildKit park content in
+    containerd's own store); the supervisor prunes them each job.
 
   Build artifacts can therefore never fill the OS disk, and the thin vmdks stay near
   actual usage (`discard`/`fstrim` on Linux, `Optimize-Volume -ReTrim` on Windows).
 
 - **Ephemeral runners that recycle themselves.** A supervisor (Linux `github-runner.service`,
   Windows `GitHubRunnerEphemeral` scheduled task) runs a loop: reset the workspace + Docker
-  + temp, cap the caches, `fstrim`, mint a fresh registration token from an on-box
+  + temp + the runner's `_diag` logs, delete superseded self-updated agent versions
+  (`bin.<ver>`/`externals.<ver>`, ~680 MB each on the OS disk), run apt hygiene
+  (`apt-get clean` + wipe `/var/lib/apt/lists`), cap the caches, `fstrim`, mint a fresh
+  registration token from an on-box
   credential, then register a one-shot `--ephemeral` runner and run **exactly one job**.
   After the job the runner deregisters and the loop recycles. Every build starts from a
   clean slate, and GitHub can never hand a runner a second job in a dirty state. Throughput
@@ -241,12 +248,12 @@ Workflows automatically use self-hosted runners when these variables are set. Re
 
 | Script | Packages |
 |--------|----------|
-| `00-data-volume.sh` | Partitions/formats the data disk, mounts it at `/data` (`discard`), creates `work/` + `cache/`, symlinks `~/.cache` → `/data/cache` |
-| `01-base-packages.sh` | build-essential, ca-certificates, curl, git, gpg, jq, pkg-config, tar, unzip, wget, zip; enables `discard` (continuous TRIM) on the root fs **and** sets `fstrim.timer` to hourly so the thin vmdk stays lean under churny CI |
+| `00-data-volume.sh` | Partitions/formats the data disk, mounts it at `/data` (`discard`), creates `work/` + `cache/` + `docker/` + `containerd/`, symlinks `~/.cache` → `/data/cache` and `~/.sonar` → `/data/cache/sonar` |
+| `01-base-packages.sh` | build-essential, ca-certificates, curl, git, gpg, jq, pkg-config, tar, unzip, wget, zip; purges `unattended-upgrades` + masks the apt-daily timers (background dpkg runs race CI's apt calls and creep the OS disk); sets a default `DPkg::Lock::Timeout`; enables `discard` (continuous TRIM) on the root fs **and** sets `fstrim.timer` to hourly so the thin vmdk stays lean under churny CI |
 | `02-gcc-toolchain.sh` | gcc-15, g++-15, gcov-15 (from 26.04 LTS main repos; PPA fallback only on older bases), update-alternatives symlinks |
 | `03-llvm-toolchain.sh` | clang-21, clang-tidy-21, lld-21, libc++-21-dev, libc++abi-21-dev (from 26.04 LTS `universe`; apt.llvm.org fallback only on older bases), update-alternatives symlinks |
 | `04-cmake-ninja.sh` | CMake 3.31.12 (Kitware binary), ninja-build |
-| `05-docker.sh` | Docker Engine CE + buildx plugin; `data-root` → `/data/docker` (off the OS disk) |
+| `05-docker.sh` | Docker Engine CE + buildx plugin; Docker `data-root` → `/data/docker` **and** containerd `root` → `/data/containerd` (both off the OS disk, both ordered after `data.mount`) |
 | `06-dev-tools.sh` | python3, gcovr, autoconf, automake, libtool |
 | `07-ccache.sh` | ccache (4 GB max on `/data/cache/ccache`, compression enabled) |
 | `08-github-runner.sh` | GitHub Actions runner agent + **ephemeral supervisor** (`github-runner.service`) |
