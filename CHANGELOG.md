@@ -12,9 +12,15 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
 
 ### Added
 
-- **Home Assistant companion package.** A ready-to-use bundle for the app's Home Assistant integration — seven automation blueprints, a helpers package, and a pre-built dashboard — so you no longer have to hand-build entities and automations from the MQTT discovery payloads. Get it two ways:
+- **Home Assistant companion package.** A ready-to-use bundle for the app's Home Assistant integration — nine automation blueprints, a script blueprint, a helpers package, and a pre-built dashboard — so you no longer have to hand-build entities and automations from the MQTT discovery payloads. Includes:
+  - **Activity scenes** — a script blueprint (equipment/timer/boolean/dark-only-lights) plus an auto-off automation that fires when its timer finishes.
+  - **Spa readiness** — an Off/Warming Up/Ready sensor (with a `percent_ready` attribute) plus a "spa ready" notification blueprint.
+  - **A showcase dashboard** — an alternative, HACS-styled layout (button-card/card-mod/layout-card/mushroom/bar-card) for installs that already use those custom cards.
+
+  Get it three ways:
   - **From your running instance** at `/homeassistant/` (through add-on ingress too) — matches the exact version you're running and needs no GitHub reachability, useful for air-gapped or LAN-only installs.
   - **From the repository** (tracks `main`) or as a version-pinned, signed release bundle.
+  - **Installed automatically by the add-on** — enable the opt-in **Install companion package** option (off by default, since it reaches into Home Assistant's own `blueprints/` folder rather than just the add-on's own storage) and blueprints sync in on every start/update.
 
   See [docs/homeassistant-companion.md](docs/homeassistant-companion.md).
 
