@@ -1,0 +1,209 @@
+# =============================================================================
+# AquaLink Automate — Home Assistant helpers package
+#
+# Install: copy this file to <config>/packages/ and enable packages once in
+# configuration.yaml:
+#
+#   homeassistant:
+#     packages: !include_dir_named packages
+#
+# Everything here works untouched. The only install-specific pieces are the
+# commented history_stats recipes at the bottom, which need YOUR panel's device
+# entity ids (see the note there).
+#
+# Naming: entities created by this package use the `aqualink_` prefix; entities
+# published by the app itself use `aqualink_automate_`. Docs:
+# https://iainchesworth.github.io/aqualink-automate/homeassistant-companion/
+# =============================================================================
+
+input_datetime:
+  # Shared quiet-hours window used by the companion alert blueprints (their
+  # quiet-hours inputs default to these two helpers). Set your preferred window
+  # once in Settings -> Devices & Services -> Helpers; a window that wraps
+  # midnight (e.g. 22:00 -> 08:00) is handled.
+  aqualink_quiet_hours_start:
+    name: "AquaLink Quiet Hours Start"
+    has_date: false
+    has_time: true
+    icon: mdi:bell-sleep
+  aqualink_quiet_hours_end:
+    name: "AquaLink Quiet Hours End"
+    has_date: false
+    has_time: true
+    icon: mdi:bell-ring
+
+input_number:
+  # Total water volume treated by the chlorinator, in litres. Used to turn a
+  # salt ppm deficit into "add N kg of salt" (1 ppm deficit in 1 L needs 1 mg).
+  aqualink_pool_volume:
+    name: "AquaLink Pool Volume"
+    min: 0
+    max: 500000
+    step: 500
+    unit_of_measurement: "L"
+    mode: box
+    icon: mdi:pool
+  # The salt concentration you top up towards (your chlorinator manual's ideal,
+  # typically 3000-4000 ppm for Jandy AquaPure systems).
+  aqualink_target_salt_ppm:
+    name: "AquaLink Target Salt Level"
+    min: 0
+    max: 10000
+    step: 100
+    unit_of_measurement: "ppm"
+    mode: box
+    icon: mdi:shaker-outline
+  # Daily filtration goal used by the pump-runtime-shortfall blueprint.
+  aqualink_pump_runtime_target:
+    name: "AquaLink Pump Runtime Target"
+    min: 0
+    max: 24
+    step: 0.5
+    unit_of_measurement: "h"
+    mode: box
+    icon: mdi:pump
+
+template:
+  - sensor:
+      # Kilograms of pool salt needed to lift the current level to the target,
+      # given the pool volume: kg = deficit_ppm x volume_L / 1,000,000.
+      # Reads 0 when at/above target; unavailable while the salt sensor is not
+      # reporting (pump off / chlorinator idle) or the helpers are unset.
+      - name: "AquaLink Salt To Add"
+        unique_id: aqualink_companion_salt_to_add_kg
+        unit_of_measurement: "kg"
+        state_class: measurement
+        icon: mdi:shaker-outline
+        availability: >-
+          {{ states('sensor.aqualink_automate_salt_level') | float(none) is not none
+             and states('input_number.aqualink_pool_volume') | float(0) > 0
+             and states('input_number.aqualink_target_salt_ppm') | float(0) > 0 }}
+        state: >-
+          {% set cur = states('sensor.aqualink_automate_salt_level') | float(0) %}
+          {% set target = states('input_number.aqualink_target_salt_ppm') | float(0) %}
+          {% set vol = states('input_number.aqualink_pool_volume') | float(0) %}
+          {{ ([target - cur, 0] | max * vol / 1000000) | round(1) }}
+
+  # Midnight baseline for "how much has the water warmed today". A trigger-based
+  # sensor restores over restarts; the template re-baselines only at the actual
+  # midnight trigger (or on first run while still unknown), so an afternoon HA
+  # restart keeps the morning's baseline.
+  - trigger:
+      - trigger: time
+        at: "00:00:00"
+      - trigger: homeassistant
+        event: start
+    sensor:
+      - name: "AquaLink Pool Temperature Baseline"
+        unique_id: aqualink_companion_pool_temperature_baseline
+        unit_of_measurement: "°C"
+        icon: mdi:thermometer-low
+        state: >-
+          {% set live = states('sensor.aqualink_automate_pool_temperature') %}
+          {% set prev = this.state | default('unknown') %}
+          {% if trigger.platform == 'time' or prev in ['unknown', 'unavailable', 'None', ''] %}
+            {{ live if live not in ['unknown', 'unavailable'] else prev }}
+          {% else %}
+            {{ prev }}
+          {% endif %}
+
+  - sensor:
+      # Water temperature change since midnight (positive = warmed). Handy for
+      # judging heater/solar performance day to day.
+      - name: "AquaLink Pool Temperature Delta Today"
+        unique_id: aqualink_companion_pool_temperature_delta_today
+        unit_of_measurement: "°C"
+        state_class: measurement
+        icon: mdi:thermometer-chevron-up
+        availability: >-
+          {{ states('sensor.aqualink_automate_pool_temperature') | float(none) is not none
+             and states('sensor.aqualink_pool_temperature_baseline') | float(none) is not none }}
+        state: >-
+          {{ (states('sensor.aqualink_automate_pool_temperature') | float(0)
+              - states('sensor.aqualink_pool_temperature_baseline') | float(0)) | round(1) }}
+
+  # Water temperature captured the moment spa mode turns on — the "start point" the
+  # spa-readiness sensor below measures progress from. A trigger-based sensor
+  # restores its last value across restarts; it only re-baselines on a genuine
+  # off/unknown/unavailable -> on transition, not on every poll while spa mode
+  # stays on.
+  - trigger:
+      - trigger: state
+        entity_id: binary_sensor.aqualink_automate_spa_mode
+        to: "on"
+    sensor:
+      - name: "AquaLink Spa Readiness Baseline"
+        unique_id: aqualink_companion_spa_readiness_baseline
+        unit_of_measurement: "°C"
+        icon: mdi:thermometer-low
+        state: "{{ states('sensor.aqualink_automate_spa_temperature') }}"
+
+  - sensor:
+      # Spa warm-up status built only from what the app publishes: spa mode,
+      # live spa temperature, and the spa setpoint. "Off" outside spa mode,
+      # "Warming Up" while below setpoint, "Ready" once at/above it.
+      # percent_ready tracks progress from the temperature captured when spa mode
+      # turned on (baseline above) to the setpoint — 100 once at/above target,
+      # 0 if the setpoint is at/below the baseline (nothing to warm up).
+      - name: "AquaLink Spa Readiness"
+        unique_id: aqualink_companion_spa_readiness
+        icon: mdi:hot-tub
+        availability: >-
+          {{ states('binary_sensor.aqualink_automate_spa_mode') not in ['unknown', 'unavailable'] }}
+        state: >-
+          {% if is_state('binary_sensor.aqualink_automate_spa_mode', 'off') %}
+            Off
+          {% else %}
+            {% set current = states('sensor.aqualink_automate_spa_temperature') | float(none) %}
+            {% set target = states('number.aqualink_automate_spa_setpoint') | float(none) %}
+            {% if current is none or target is none %}
+              Warming Up
+            {% elif current >= target %}
+              Ready
+            {% else %}
+              Warming Up
+            {% endif %}
+          {% endif %}
+        attributes:
+          current_temperature: "{{ states('sensor.aqualink_automate_spa_temperature') | float(none) }}"
+          target_temperature: "{{ states('number.aqualink_automate_spa_setpoint') | float(none) }}"
+          percent_ready: >-
+            {% if is_state('binary_sensor.aqualink_automate_spa_mode', 'off') %}
+              0
+            {% else %}
+              {% set current = states('sensor.aqualink_automate_spa_temperature') | float(none) %}
+              {% set target = states('number.aqualink_automate_spa_setpoint') | float(none) %}
+              {% set baseline = states('sensor.aqualink_spa_readiness_baseline') | float(none) %}
+              {% if current is none or target is none or baseline is none or target <= baseline %}
+                {{ 100 if (current is not none and target is not none and current >= target) else 0 }}
+              {% else %}
+                {% set raw_percent = ((current - baseline) / (target - baseline)) * 100 %}
+                {{ [[raw_percent, 0] | max, 100] | min | round(0) }}
+              {% endif %}
+            {% endif %}
+
+# -----------------------------------------------------------------------------
+# Runtime counters (OPTIONAL — needs YOUR entity ids)
+#
+# Pump/heater/chlorinator devices take their entity ids from your panel's
+# labels, so they differ per install and these ship commented out. Find yours
+# under Settings -> Devices & Services -> MQTT -> aqualink-automate, replace
+# the entity_id lines, then uncomment. The pump-runtime-shortfall blueprint
+# expects the first sensor's name (sensor.aqualink_pump_runtime_today).
+#
+# sensor:
+#   - platform: history_stats
+#     name: "AquaLink Pump Runtime Today"        # -> sensor.aqualink_pump_runtime_today
+#     entity_id: switch.aqualink_automate_filter_pump   # <- YOUR pump switch
+#     state: "on"
+#     type: time
+#     start: "{{ today_at() }}"
+#     end: "{{ now() }}"
+#   - platform: history_stats
+#     name: "AquaLink Heater Heating Today"      # -> sensor.aqualink_heater_heating_today
+#     entity_id: sensor.aqualink_automate_pool_heater   # <- YOUR heater status sensor
+#     state: "Heating"
+#     type: time
+#     start: "{{ today_at() }}"
+#     end: "{{ now() }}"
+# -----------------------------------------------------------------------------

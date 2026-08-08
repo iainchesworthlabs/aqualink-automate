@@ -8,7 +8,18 @@ echo "==> Installing base packages"
 # flaky fetch — apt.llvm.org and the Ubuntu mirrors are intermittently unreliable.
 cat > /etc/apt/apt.conf.d/80-retries <<'EOF'
 Acquire::Retries "5";
+DPkg::Lock::Timeout "600";
 EOF
+
+# The stock server image ships unattended-upgrades + the apt-daily timers. On an
+# ephemeral CI runner they are pure downside: a background dpkg run holds
+# /var/lib/dpkg/lock-frontend and races CI's own apt-get calls (a real job
+# failure on 2026-08-06, since worked around in workflows with
+# DPkg::Lock::Timeout), and the packages/metadata they pull creep the small OS
+# disk between recycles. Security currency comes from template rebuilds instead.
+apt-get purge -y unattended-upgrades 2>/dev/null || true
+systemctl disable --now apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+systemctl mask apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
 
 apt-get update
 apt-get install -y --no-install-recommends \

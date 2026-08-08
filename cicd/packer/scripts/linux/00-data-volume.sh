@@ -72,9 +72,10 @@ fi
 mount "$DATA_MNT" 2>/dev/null || mount -a
 
 # work/ (wiped each job) and cache/ (persistent). vcpkg lives under cache/vcpkg,
-# ccache under cache/ccache (see 07-ccache.sh). docker/ is Docker's data-root so
-# images pulled by release builds land here, not on the OS disk (see 05-docker.sh).
-mkdir -p "${DATA_MNT}/work" "${DATA_MNT}/cache" "${DATA_MNT}/docker"
+# ccache under cache/ccache (see 07-ccache.sh). docker/ is Docker's data-root and
+# containerd/ is containerd's root, so images/layers pulled by release builds
+# land here, not on the OS disk (see 05-docker.sh).
+mkdir -p "${DATA_MNT}/work" "${DATA_MNT}/cache" "${DATA_MNT}/docker" "${DATA_MNT}/containerd"
 chown -R "${RUNNER_USER}:${RUNNER_USER}" "${DATA_MNT}/work" "${DATA_MNT}/cache"
 
 # Redirect ~/.cache onto the persistent cache area. Replace a real dir if one
@@ -86,4 +87,16 @@ fi
 ln -sfn "${DATA_MNT}/cache" "${RUNNER_HOME}/.cache"
 chown -h "${RUNNER_USER}:${RUNNER_USER}" "${RUNNER_HOME}/.cache"
 
-echo "==> Data volume ready: ${DATA_MNT}/work (ephemeral) + ${DATA_MNT}/cache (persistent); ~/.cache -> ${DATA_MNT}/cache"
+# sonar-scanner caches its JRE/plugins under ~/.sonar (NOT ~/.cache, so the
+# symlink above doesn't cover it) and it grows past 1 GB on the OS disk.
+# Redirect it into the size-capped cache area (the supervisor prunes
+# /data/cache/sonar — see 08-github-runner.sh).
+install -d -o "${RUNNER_USER}" -g "${RUNNER_USER}" "${DATA_MNT}/cache/sonar"
+if [ -e "${RUNNER_HOME}/.sonar" ] && [ ! -L "${RUNNER_HOME}/.sonar" ]; then
+    cp -a "${RUNNER_HOME}/.sonar/." "${DATA_MNT}/cache/sonar/" 2>/dev/null || true
+    rm -rf "${RUNNER_HOME}/.sonar"
+fi
+ln -sfn "${DATA_MNT}/cache/sonar" "${RUNNER_HOME}/.sonar"
+chown -h "${RUNNER_USER}:${RUNNER_USER}" "${RUNNER_HOME}/.sonar"
+
+echo "==> Data volume ready: ${DATA_MNT}/work (ephemeral) + ${DATA_MNT}/cache (persistent); ~/.cache -> ${DATA_MNT}/cache; ~/.sonar -> ${DATA_MNT}/cache/sonar"

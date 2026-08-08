@@ -1,0 +1,144 @@
+blueprint:
+  name: "AquaLink Automate: Salt level low"
+  description: >-
+    Checks the chlorinator's reported salt level hourly (and on Home Assistant
+    start) and sends an actionable notification when it drops below your target:
+    the message includes roughly how many kilograms of salt to add, computed from
+    the ppm deficit and your pool volume (kg = deficit_ppm x volume_L / 1,000,000).
+    Includes quiet hours and a minimum interval between notifications. Pairs with
+    the aqualink-automate companion helpers package for the target/volume/quiet-hours
+    defaults.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/salt-level-low.yaml
+  input:
+    salt_sensor:
+      name: Salt level sensor
+      description: The salt concentration sensor published by aqualink-automate (ppm).
+      default: sensor.aqualink_automate_salt_level
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+    target_ppm_helper:
+      name: Target salt level helper
+      description: >-
+        input_number holding the salt concentration you top up towards. Installed
+        by the companion helpers package.
+      default: input_number.aqualink_target_salt_ppm
+      selector:
+        entity:
+          filter:
+            - domain: input_number
+    pool_volume_helper:
+      name: Pool volume helper
+      description: >-
+        input_number holding the treated water volume in litres. Installed by the
+        companion helpers package. If unset (0), the notification omits the
+        kilogram advice.
+      default: input_number.aqualink_pool_volume
+      selector:
+        entity:
+          filter:
+            - domain: input_number
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+    quiet_hours_start:
+      name: Quiet hours start
+      description: >-
+        input_datetime marking the start of the no-notification window (installed
+        by the companion helpers package). Leave the helper's value unset to
+        disable quiet hours.
+      default: input_datetime.aqualink_quiet_hours_start
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    quiet_hours_end:
+      name: Quiet hours end
+      default: input_datetime.aqualink_quiet_hours_end
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    notify_interval_hours:
+      name: Minimum hours between notifications
+      description: Suppress repeats until this many hours have passed (24 = at most daily).
+      default: 24
+      selector:
+        number:
+          min: 0
+          max: 168
+          step: 1
+          unit_of_measurement: h
+
+mode: single
+max_exceeded: silent
+
+variables:
+  salt_entity: !input salt_sensor
+  target_entity: !input target_ppm_helper
+  volume_entity: !input pool_volume_helper
+  quiet_start: !input quiet_hours_start
+  quiet_end: !input quiet_hours_end
+  notify_every: !input notify_interval_hours
+  current_ppm: "{{ states(salt_entity) | float(none) }}"
+  target_ppm: "{{ states(target_entity) | float(none) }}"
+  volume_l: "{{ states(volume_entity) | float(0) }}"
+  salt_kg: >-
+    {% if current_ppm is not none and target_ppm is not none and volume_l > 0 %}
+      {{ (([target_ppm - current_ppm, 0] | max) * volume_l / 1000000) | round(1) }}
+    {% else %}
+      0
+    {% endif %}
+
+triggers:
+  - trigger: time_pattern
+    hours: "*"
+  - trigger: homeassistant
+    event: start
+
+conditions:
+  - alias: "Salt sensor is online and reporting"
+    condition: template
+    value_template: "{{ current_ppm is not none and target_ppm is not none }}"
+  - alias: "Salt level is below the target"
+    condition: template
+    value_template: "{{ current_ppm < target_ppm }}"
+  - alias: "Outside the quiet-hours window (if configured)"
+    condition: template
+    value_template: >-
+      {% set qs_state = states(quiet_start) %}
+      {% set qe_state = states(quiet_end) %}
+      {% if qs_state in ['unknown', 'unavailable'] or qe_state in ['unknown', 'unavailable'] %}
+        true
+      {% else %}
+        {% set now_ts = now().timestamp() %}
+        {% set qs = today_at(qs_state) | as_timestamp %}
+        {% set qe = today_at(qe_state) | as_timestamp %}
+        {% if qe < qs %}
+          {{ not (now_ts >= qs or now_ts <= qe) }}
+        {% else %}
+          {{ not (qs <= now_ts <= qe) }}
+        {% endif %}
+      {% endif %}
+  - alias: "Respect the minimum interval between notifications"
+    condition: template
+    value_template: >-
+      {% set lt = this.attributes.last_triggered %}
+      {{ lt is none or (now() - lt).total_seconds() >= (notify_every | float(24) * 3600) }}
+
+actions:
+  - action: !input notify_service
+    data:
+      title: "Pool salt level low"
+      message: >-
+        Pool salt level is {{ current_ppm | round(0) }} ppm (target
+        {{ target_ppm | round(0) }} ppm).
+        {%- if salt_kg | float(0) > 0 %}
+        Add approximately {{ salt_kg }} kg of pool salt.
+        {%- endif %}

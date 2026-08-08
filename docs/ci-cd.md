@@ -23,6 +23,7 @@ The table below is the complete inventory of everything under `.github/` — the
 | `.github/workflows/dependabot-auto-merge.yml` | Workflow | Flags non-major Dependabot PRs for GitHub auto-merge; they land on `develop` once the required checks pass. |
 | `.github/workflows/docs.yml` | Workflow | Build the MkDocs site (`mkdocs build --strict`) and publish it to the root of `gh-pages` on docs-affecting pushes to `main`. |
 | `.github/workflows/homeassistant-addon.yml` | Workflow | Validate the Home Assistant add-on wrapper (YAML, shellcheck, translation coverage, generated-Edge-channel drift, version lock-step) on add-on-touching pushes and PRs. |
+| `.github/workflows/ha-companion.yml` | Workflow | Validate the Home Assistant companion package (`homeassistant/companion/`): yamllint, entity references vs `entity-manifest.json`, and blueprint/package schema via `check_config` in the official Home Assistant container. |
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 | `.github/actions/setup-msvc-env` | Composite action | Load the MSVC environment on self-hosted Windows runners (sources `vcvars64.bat`, exports the env delta to `$GITHUB_ENV`). |
@@ -311,6 +312,8 @@ The documentation site (MkDocs Material — the published subset is selected by 
 
 - **Triggers:** push to `main` touching `docs/**`, `overrides/**`, `mkdocs.yml`, `README.md`, or the workflow itself; plus `workflow_dispatch`.
 - **Build:** `pip install "mkdocs-material[imaging]>=9.7"` (a floor, no upper cap) plus the Cairo imaging libraries for the social-cards plugin, then `mkdocs build --strict` — broken internal links and other warnings **fail the build** instead of shipping a broken page.
+- **Linking to files outside `docs/`.** `--strict` resolves every relative link against the *documentation* tree, not the repository. A link like `../docker-compose.yml` resolves on GitHub but 404s on the published site, so MkDocs rejects it — use an absolute `https://github.com/iainchesworth/aqualink-automate/blob/main/…` URL for repo files, and likewise for docs deliberately held back by `exclude_docs` (`design/`, `refactoring/`, `i18n-scoping.md`). Note the asymmetry: an unresolvable link to a *file* is a build-failing `WARNING`, but a link to a *directory* or to an excluded page is only logged at `INFO` — it ships broken and silent. Read the whole build log, not just the failures.
+- **The MkDocs 2.0 banner is not an error.** Recent Material releases print a red "Warning from the Material for MkDocs team" block about the upstream MkDocs 2.0 rewrite. It is advocacy written to stderr, is not a MkDocs warning, and does **not** count toward `--strict`; the "Aborted with N warnings" tally counts only the `WARNING -` lines. MkDocs 2.0 also cannot arrive unannounced — `mkdocs-material` itself pins `mkdocs<2,>=1.6`.
 - **Publish:** `peaceiris/actions-gh-pages` with `keep_files: true`, preserving the APT/DNF package tree that `publish-repos.yml` owns on the same branch (`apt/`, `rpm/`, `key.gpg`, `install-*.sh`); the filename sets are disjoint, so neither workflow deletes the other's files. Its `publish-docs` concurrency group is separate from `publish-repos`, so a docs build and a package publish can run at the same time.
 
 ## Home Assistant add-on validation (homeassistant-addon.yml)
@@ -326,6 +329,18 @@ One `validate` job (GitHub-hosted, no third-party actions to pin) checks, in ord
 5. **Version lock-step** — each channel's `config.yaml` `version` equals every `build.yaml` base-image tag, via `scripts/sync-homeassistant-addon-version.ps1 -Check` (the same script the release process uses as the single writer in set mode, and which `release.yml` re-checks — so CI and release can never disagree).
 
 The add-on wrapper **images** are published by `release.yml`'s `homeassistant-addon-publish` job, not by this workflow.
+
+## Home Assistant companion package validation (ha-companion.yml)
+
+Validates the Home Assistant companion package — the blueprints, helpers package, and dashboard under `homeassistant/companion/` (see [homeassistant-companion.md](homeassistant-companion.md)) — on `push` to `main`/`develop` and `pull_request` into `develop`/`main`, path-filtered to the companion tree, `scripts/check-ha-companion-entities.ps1`, and the workflow itself.
+
+One `validate` job (GitHub-hosted) checks, in order:
+
+1. **YAML lint** — `yamllint` with the relaxed profile and line-length off (Home Assistant YAML carries custom tags like `!input` and long Jinja lines).
+2. **Entity references match the manifest** — `scripts/check-ha-companion-entities.ps1`: every active `*.aqualink_automate_*` reference in companion YAML must exist in `entity-manifest.json`; install-specific (panel-label) entities may only appear in commented examples or as blueprint inputs. The manifest itself is locked to `src/core/mqtt/ha_discovery.cpp` by `TestSuite_HaDiscovery_CompanionManifest` in the unit suite, closing the loop code → manifest → shipped YAML.
+3. **Real schema validation** — assembles a scratch config (the helpers package, every blueprint instantiated by the `test-harness/` automations, and the documented `history_stats` recipes) and runs `hass --script check_config` in the official Home Assistant container. The step fails on a non-zero exit **or any logged ERROR line**: `check_config` exits 0 when a blueprint expands into an invalid automation, so the exit code alone is not a sufficient gate.
+
+The companion **bundle** (`aqualink-automate-homeassistant-companion-<version>.zip`) is shipped by `release.yml`, not by this workflow — see [releasing.md](releasing.md).
 
 ## Self-hosted runners
 
@@ -352,6 +367,8 @@ Self-hosted jobs also run extra steps the hosted jobs skip — they clean the wo
 Runner VM images are built with Packer under `cicd/packer/`. See [cicd/packer/README.md](https://github.com/iainchesworth/aqualink-automate/blob/main/cicd/packer/README.md) for the full provisioning, deployment, and registration procedure.
 
 The Linux runner base is **Ubuntu 26.04 LTS** (GCC 15, Clang/LLVM 21), provisioned by `cicd/packer/linux-runner.pkr.hcl` (boots `ISOs/ubuntu-26.04-autoinstall.iso`) and the `cicd/packer/scripts/linux/0{2,3}-*-toolchain.sh` scripts. Both the Architecture table in `cicd/packer/README.md` and the Packer template agree on this base. The Windows runner base is Windows Server 2022.
+
+The Linux image is hardened against OS-disk creep: Docker's `data-root` **and** containerd's `root` live on the dedicated `/data` disk, `~/.cache` and `~/.sonar` are symlinked into the size-capped `/data/cache`, `unattended-upgrades` is removed (background dpkg runs also raced CI's own `apt-get` calls), and the ephemeral supervisor's per-job reset additionally deletes superseded self-updated runner-agent versions and runs apt hygiene (`apt-get clean`, wipe `/var/lib/apt/lists`). See `cicd/packer/README.md` ("Disk layout & the pristine ephemeral model").
 
 ## Caching
 

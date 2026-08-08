@@ -113,6 +113,23 @@ only if you want the app's own version (it is then persisted under `/data`):
 Your UI preferences and an equipment cache (for an instant dashboard after a restart)
 are always persisted under `/data` — no configuration needed.
 
+### Home Assistant companion package (optional)
+
+The add-on ships with a set of ready-made Home Assistant blueprints, a helpers
+package, and a dashboard — see the [companion package
+docs](https://iainchesworth.github.io/aqualink-automate/homeassistant-companion/)
+for what's in it. There are three ways to get them, and only the last needs the
+add-on's own settings:
+
+- Import a blueprint with one click from the docs page.
+- Download `aqualink-automate-homeassistant-companion-<version>.zip` from a
+  [GitHub release](https://github.com/iainchesworth/aqualink-automate/releases).
+- Turn on **`install_companion_package`** below.
+
+| Option | Description |
+|---|---|
+| `install_companion_package` | Off by default. When on, the add-on copies its bundled blueprints straight into Home Assistant's `blueprints/` folder on every start, so they show up under **Settings → Automations & Scenes → Blueprints** with no import step. **This requests a read-write view of Home Assistant's own configuration directory** — broader than anything else this add-on asks for — so it stays opt-in. It only ever adds or updates files under `blueprints/`; it never touches `configuration.yaml` or anything else in your config, and re-running it (a restart, an update) just re-syncs the current files. |
+
 ## Notes
 
 - The Matter bridge that the container image can run is **disabled** in this add-on —

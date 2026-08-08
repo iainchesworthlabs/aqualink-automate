@@ -1,6 +1,10 @@
 #include <boost/test/unit_test.hpp>
 
+#include <filesystem>
+#include <format>
+#include <fstream>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1490,6 +1494,95 @@ BOOST_AUTO_TEST_CASE(Test_ChlorinatorComponents_LabelledChlorinator_EmitsRichEnt
 		BOOST_CHECK_EQUAL(boost_cmd["payload_off"], "OFF");
 		BOOST_CHECK_EQUAL(boost_cmd["state_on"], "Boost");
 		BOOST_CHECK_EQUAL(boost_cmd["state_off"], "Off");
+	}
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+//=============================================================================
+// Companion package entity-manifest lock
+//=============================================================================
+
+// The Home Assistant companion package (homeassistant/companion/) hardcodes the
+// app's static entity ids, which Home Assistant derives from this payload as
+// <platform>.<slug(device name)>_<slug(component name)> (has_entity_name
+// semantics; the device name is the fixed literal in BuildDeviceObject, so the
+// ids are identical on every install). This suite locks entity-manifest.json to
+// the payload actually built here: changing the published component set fails CI
+// until the manifest - and therefore the companion YAML, which
+// scripts/check-ha-companion-entities.ps1 validates against the manifest - is
+// updated in the same change.
+
+BOOST_AUTO_TEST_SUITE(TestSuite_HaDiscovery_CompanionManifest)
+
+BOOST_AUTO_TEST_CASE(Test_StaticEntityIds_MatchCompanionManifest)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	// A combo system emits the maximal static set: the pool AND spa gated
+	// components plus the dual-body switch/select. No aux devices are registered,
+	// so the payload holds exactly the static + alert components.
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	data_hub->ApplyPoolConfiguration(Kernel::PoolConfigurations::DualBody_SharedEquipment, Kernel::ConfigurationSource::UserSpecified);
+	ha.ConnectDataHub(data_hub);
+
+	ha.PublishDiscoveryConfigs();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+	BOOST_REQUIRE_EQUAL(queue.size(), 1);
+	auto payload = nlohmann::json::parse(queue[0].payload);
+	BOOST_REQUIRE(payload.contains("cmps"));
+	BOOST_REQUIRE(payload.contains("dev"));
+
+	const auto device_slug = Mqtt::HomeAssistantDiscovery::Slugify(payload["dev"]["name"].get<std::string>());
+
+	std::set<std::string> derived;
+	for (const auto& [key, cmp] : payload["cmps"].items())
+	{
+		if (!cmp.contains("name"))
+		{
+			continue; // tombstoned component
+		}
+
+		auto id = std::format("{}.{}_{}",
+			cmp["p"].get<std::string>(), device_slug,
+			Mqtt::HomeAssistantDiscovery::Slugify(cmp["name"].get<std::string>()));
+
+		// Two components in the same platform with the same name would collide;
+		// Home Assistant would de-duplicate one to a '_2' entity id the manifest
+		// (and every companion YAML reference) knows nothing about.
+		BOOST_CHECK_MESSAGE(derived.insert(id).second,
+			"duplicate derived entity id '" + id + "' (component '" + key + "') - a same-platform name collision breaks the companion package's entity-id contract");
+	}
+
+	const std::filesystem::path manifest_path{ "companion/entity-manifest.json" };
+	BOOST_REQUIRE_MESSAGE(std::filesystem::exists(manifest_path),
+		"companion/entity-manifest.json not found next to the test executable (test/CMakeLists.txt copies it from homeassistant/companion/)");
+
+	std::ifstream manifest_file{ manifest_path };
+	auto manifest = nlohmann::json::parse(manifest_file);
+	BOOST_REQUIRE(manifest.contains("static_entities"));
+
+	std::set<std::string> expected;
+	for (const auto& entry : manifest["static_entities"])
+	{
+		expected.insert(entry["entity_id"].get<std::string>());
+	}
+
+	for (const auto& id : derived)
+	{
+		BOOST_CHECK_MESSAGE(expected.contains(id),
+			"published component derives '" + id + "' which is missing from homeassistant/companion/entity-manifest.json - add it there (and consider surfacing it in the companion content)");
+	}
+
+	for (const auto& id : expected)
+	{
+		BOOST_CHECK_MESSAGE(derived.contains(id),
+			"manifest lists '" + id + "' but the discovery payload no longer publishes it - remove it from the manifest AND from any companion YAML that references it");
 	}
 }
 

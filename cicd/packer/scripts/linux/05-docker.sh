@@ -52,9 +52,34 @@ After=data.mount
 Requires=data.mount
 DROPIN
 
+# containerd keeps its own content/snapshotter store, and it defaults to
+# /var/lib/containerd on the OS disk — moving Docker's data-root does NOT move
+# it, and buildx/BuildKit park gigabytes of Docker-managed content there (it
+# exhausted a 9.5 GB OS disk in production). Point containerd's root at the
+# data volume too (/data/containerd, created by 00-data-volume.sh).
+mkdir -p /etc/containerd /data/containerd
+cat > /etc/containerd/config.toml <<'TOML'
+# Managed by packer (05-docker.sh). Matches the containerd.io package default
+# (CRI disabled; Docker drives containerd over its own socket) with the content
+# root moved onto the data volume so image/snapshotter content stays off the
+# small OS disk.
+disabled_plugins = ["cri"]
+root = "/data/containerd"
+TOML
+
+# Same mount-ordering constraint as docker.service: containerd must not start
+# until /data is mounted, or it would initialise its root on the OS disk and
+# then be shadowed by the mount.
+mkdir -p /etc/systemd/system/containerd.service.d
+cat > /etc/systemd/system/containerd.service.d/data-root.conf <<'DROPIN'
+[Unit]
+After=data.mount
+Requires=data.mount
+DROPIN
+
 systemctl daemon-reload
 
 # Enable and start Docker (data-root takes effect on the next start).
 systemctl enable docker
 
-echo "==> Docker $(docker --version) installed (data-root on /data/docker)"
+echo "==> Docker $(docker --version) installed (data-root on /data/docker, containerd root on /data/containerd)"

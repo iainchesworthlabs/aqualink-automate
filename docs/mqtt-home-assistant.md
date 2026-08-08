@@ -6,6 +6,8 @@ This guide covers the MQTT control and telemetry surface: how to connect, the co
 
 **On Home Assistant OS / Supervised?** The [Home Assistant add-on](homeassistant-addon.md) wires all of this up for you — it auto-discovers the broker through the Supervisor and enables discovery by default, so you can skip the manual MQTT setup below.
 
+**Want ready-made dashboards and alerts?** Once discovery is running, the [companion package](homeassistant-companion.md) provides a stock-cards pool dashboard, alert/self-healing automation blueprints, and the helpers they build on — no YAML authoring required.
+
 ## Overview
 
 MQTT is **off by default**. It is opt-in via the `--mqtt` flag; with MQTT disabled the integration is never created. Once enabled, the application connects to your broker and publishes:
@@ -100,7 +102,7 @@ These carry current state and are published **retained**, so a subscriber that c
 | `aqualink/system/status` | `{ "online": true, "uptime_seconds": ... }` |
 | `aqualink/system/version` | Application version and build date. |
 | `aqualink/system/equipment` | `model_number`, `firmware_revision`. |
-| `aqualink/pool/temperatures` | `air`, `pool`, `spa`, `freeze_protect`, `pool_setpoint`, `spa_setpoint`. |
+| `aqualink/pool/temperatures` | `air`, `pool`, `spa`, `freeze_protect`, `pool_setpoint`, `pool_setpoint_2`, `spa_setpoint`, `pool_heater_2_enabled`. Each temperature is an object with `celsius`/`fahrenheit` (null when not reported); all except `pool_setpoint_2` add a `last_updated` timestamp and a `stale` flag, which is only ever true for the live readings (`air`, `pool`, `spa`). |
 | `aqualink/pool/chemistry` | `orp.value_mv`, `ph.value`, `salt.value_ppm`. |
 | `aqualink/pool/circulation` | `mode`, `spa_mode`, `clean_mode`, `pool_configuration`, optional `active_body`, optional `timeout_remaining_seconds`. |
 | `aqualink/pool/configuration` | `pool_type`, `system_board`, `equipment_mode`, `date`, `time`. |
@@ -168,8 +170,9 @@ Inbound payloads are parsed as JSON. If a payload is not valid JSON, the raw str
 | `aqualink/command/chlorinator/percentage` | number `0`–`100` | Set the chlorinator output percentage. |
 | `aqualink/command/chlorinator/boost` | `ON` or `OFF` | Enable or disable chlorinator boost. |
 | `aqualink/command/circulation/mode` | `pool`, `spa`, or `spillover` | Set the circulation mode. |
+| `aqualink/command/heater/{slug}` | `ON` or `OFF` | Enable or disable one discovered heater's thermostat (routed to the heater's body of water; the controller decides when to actually fire). |
 
-**Note:** The `device/{slug}`, `chlorinator/*`, and per-device commands are registered once the matching pool devices are discovered on the wire. Until a device is seen, its command topic has no handler.
+**Note:** The `device/{slug}`, `heater/{slug}`, `chlorinator/*`, and per-device commands are registered once the matching pool devices are discovered on the wire. Until a device is seen, its command topic has no handler.
 
 ### Responses
 
@@ -216,12 +219,17 @@ Each entity's `unique_id` follows the pattern `<ha-device-id>_<suffix>`.
 
 ### Static entity types
 
-These entities are always published:
+These entities are always published (pool-/spa-specific rows are omitted on systems without that body; before the pool configuration is detected, both bodies' entities are emitted):
 
 | Entity | Platform | Notes |
 | --- | --- | --- |
 | Pool / Spa / Air / Freeze Protect temperatures | `sensor` | `device_class: temperature`, unit degC. |
+| Pool / Spa / Air Temperature Last Updated | `sensor` | `device_class: timestamp`, `entity_category: diagnostic`. Freshness companion for each live temperature, reading its `last_updated` field. |
+| Pool / Spa / Air Temperature Stale | `binary_sensor` | `device_class: problem`, `entity_category: diagnostic`. On when the reading is older than `--temperature-staleness-threshold` (a never-seen reading is null, not stale). Lets you see a reading has gone old without the value disappearing — the controller only reports temperatures while the filter pump runs. |
 | Pool / Spa setpoint | `number` | Follows the `temperature_units` preference: min 15, max 41, step 0.5, °C (default), or min 59, max 106, step 1, °F. Command on `command/setpoint/{pool,spa}`, interpreted in the declared unit. Changing the preference republishes discovery so HA picks up the new unit/range. (Temperature *sensors* stay declared °C — their payload is Celsius and HA converts sensors to its own unit system.) |
+| Pool Setpoint 2 | `sensor` | The POOLSP2 / panel "TEMP2" maintenance setpoint (reported only on single-body systems). Read-only — a `sensor`, not a writable `number` — because the POOLSP2 write path is not yet validated on live hardware. Shows a value only when the panel reports it. |
+| Pool Heater 2 (TEMP2) | `binary_sensor` | Whether TEMP2 maintenance heating is enabled. Read-only, `payload_on: true` / `payload_off: false`. |
+| Spa Mode (switch) | `switch` | Dual-body systems only. Convenient pool↔spa toggle: on sends `spa`, off sends `pool` on `command/circulation/mode` (the same handler as the select below). |
 | ORP | `sensor` | `device_class: voltage`, unit mV. |
 | pH | `sensor` | `device_class: ph`. |
 | Salt Level | `sensor` | unit ppm. |
@@ -256,7 +264,7 @@ One entity (or a small set) is published per discovered pool device:
 | --- | --- | --- |
 | Pump | `switch` | `state_on: Running`, `state_off: Off`. |
 | Auxiliary | `switch` | `state_on: On`, `state_off: Off`. |
-| Heater | `sensor` | `Off` / `Heating` / `Enabled`. |
+| Heater | `sensor` + `switch` | Sensor: `Off` / `Heating` / `Enabled`. Switch "{label} Enable": on when the heater is `Heating` or `Enabled`, command on `command/heater/{slug}` — it enables/disables the heater's thermostat; the controller decides when to actually fire and enforces its own preconditions (e.g. spa heat requires spa mode + pump). |
 | Chlorinator | `switch` + extras | `state_on: On`, `state_off: Off`, plus the entities below. |
 
 Switch entities use `payload_on: ON` / `payload_off: OFF` on their command topic.

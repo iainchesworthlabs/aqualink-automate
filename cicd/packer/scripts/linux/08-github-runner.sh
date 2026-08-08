@@ -60,6 +60,7 @@ CACHE="${DATA}/cache"
 CCACHE_MAX="${CCACHE_MAX:-3G}"
 VCPKG_ARCHIVES_CAP_GB="${VCPKG_ARCHIVES_CAP_GB:-3}"
 VCPKG_DOWNLOADS_CAP_GB="${VCPKG_DOWNLOADS_CAP_GB:-2}"
+SONAR_CACHE_CAP_GB="${SONAR_CACHE_CAP_GB:-1}"
 
 # Deterministic PATH for jobs: ccache shims first, then CMake (/usr/local/bin)
 # and the apt toolchain (/usr/bin). Mirrors what `svc.sh install` used to capture.
@@ -100,6 +101,28 @@ prune_vcpkg_cache() {
     prune_dir_to_cap "${CACHE}/vcpkg/archives" "$VCPKG_ARCHIVES_CAP_GB"
     prune_dir_to_cap "${CACHE}/vcpkg-bookworm" "$VCPKG_ARCHIVES_CAP_GB"
     prune_dir_to_cap "${CACHE}/vcpkg/downloads" "$VCPKG_DOWNLOADS_CAP_GB"
+    # sonar-scanner's JRE/plugin cache (~/.sonar -> /data/cache/sonar, see
+    # 00-data-volume.sh) — old scanner/JRE versions accumulate forever otherwise.
+    prune_dir_to_cap "${CACHE}/sonar" "$SONAR_CACHE_CAP_GB"
+}
+
+prune_old_runner_versions() {
+    # The runner agent self-updates by laying down versioned bin.<ver>/
+    # externals.<ver> dirs next to the live ones and repointing itself;
+    # superseded versions (~680 MB each) are never removed and creep the OS
+    # disk. Delete every versioned dir that isn't what the live bin/externals
+    # resolve to. Safe here: a self-update only stages between job assignment
+    # and job start, never while the supervisor is resetting between jobs.
+    local keep="" link d
+    for link in "${RUNNER_DIR}/bin" "${RUNNER_DIR}/externals"; do
+        keep="${keep} $(readlink -f "$link" 2>/dev/null)"
+    done
+    for d in "${RUNNER_DIR}"/bin.* "${RUNNER_DIR}"/externals.*; do
+        [ -d "$d" ] || continue
+        case " $keep " in *" $(readlink -f "$d") "*) continue ;; esac
+        log "removing superseded runner agent dir ${d##*/}"
+        rm -rf "$d" 2>/dev/null || true
+    done
 }
 
 reset_workspace() {
@@ -125,6 +148,13 @@ reset_workspace() {
     # The runner's _diag logs live on the OS disk and accumulate per job; the
     # previous job's are already uploaded, so clear them to bound OS-disk growth.
     rm -rf "${RUNNER_DIR}/_diag"/* >/dev/null 2>&1 || true
+    # Superseded self-updated agent versions also live on the OS disk.
+    prune_old_runner_versions
+    # apt hygiene: downloaded .debs and list metadata sit on the OS disk and
+    # creep between recycles (lists alone reached ~144 MB). Safe to wipe the
+    # lists — every workflow that installs packages runs `apt-get update` first.
+    sudo apt-get clean >/dev/null 2>&1 || true
+    sudo rm -rf /var/lib/apt/lists/* >/dev/null 2>&1 || true
     # Preserve caches but bound their size.
     command -v ccache >/dev/null 2>&1 && ccache --max-size="$CCACHE_MAX" >/dev/null 2>&1 || true
     prune_vcpkg_cache

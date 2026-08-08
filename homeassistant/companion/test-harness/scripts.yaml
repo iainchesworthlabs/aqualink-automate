@@ -1,0 +1,14 @@
+# CI-only: instantiates the "Activity scene" script blueprint so
+# `hass --script check_config` validates its schema and templates.
+# Dummy entity ids are fine — check_config validates structure, not existence.
+companion_ci_activity_scene:
+  alias: "CI: activity-scene"
+  use_blueprint:
+    path: aqualink-automate/activity-scene.yaml
+    input:
+      equipment:
+        - switch.companion_ci_equipment
+      activity_boolean: input_boolean.companion_ci_activity_active
+      duration_timer: timer.companion_ci_activity_timer
+      lights:
+        - light.companion_ci_activity_light

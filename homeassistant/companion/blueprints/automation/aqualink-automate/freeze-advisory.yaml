@@ -1,0 +1,77 @@
+blueprint:
+  name: "AquaLink Automate: Freeze advisory"
+  description: >-
+    Advises you when the air temperature at the equipment pad drops to a
+    freeze-risk threshold, so you can confirm the panel's freeze protection is
+    doing its job (the app also publishes the panel's own freeze-protect
+    setpoint as sensor.aqualink_automate_freeze_protect_temperature). Includes
+    quiet-hours-aware delivery and a repeat interval.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/freeze-advisory.yaml
+  input:
+    air_sensor:
+      name: Air temperature sensor
+      default: sensor.aqualink_automate_air_temperature
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+            - device_class: temperature
+    freeze_temperature:
+      name: Advisory threshold
+      description: Notify at or below this temperature, in the unit your Home Assistant displays (°C or °F).
+      default: 2
+      selector:
+        number:
+          min: -20
+          max: 60
+          step: 0.5
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+    notify_interval_hours:
+      name: Minimum hours between notifications
+      default: 12
+      selector:
+        number:
+          min: 0
+          max: 168
+          step: 1
+          unit_of_measurement: h
+
+mode: single
+max_exceeded: silent
+
+variables:
+  air_entity: !input air_sensor
+  notify_every: !input notify_interval_hours
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input air_sensor
+    below: !input freeze_temperature
+    for:
+      minutes: 10
+
+conditions:
+  - alias: "Respect the minimum interval between notifications"
+    condition: template
+    value_template: >-
+      {% set lt = this.attributes.last_triggered %}
+      {{ lt is none or (now() - lt).total_seconds() >= (notify_every | float(12) * 3600) }}
+
+actions:
+  - action: !input notify_service
+    data:
+      title: "Pool freeze advisory"
+      message: >-
+        Air temperature at the pool equipment is {{ states(air_entity) }}° —
+        check that freeze protection is circulating water
+        {%- if states('sensor.aqualink_automate_freeze_protect_temperature') not in ['unknown', 'unavailable'] %}
+        (panel freeze-protect setpoint:
+        {{ states('sensor.aqualink_automate_freeze_protect_temperature') }}°)
+        {%- endif %}.

@@ -55,10 +55,25 @@ services:
 #     Supervisor >= 2026.07.1 (an older Supervisor rejects the manifest and hides
 #     the add-on until it auto-updates — acceptable, since the Supervisor
 #     self-updates and only the latest version is supported).
+#   - homeassistant_config (read-write): a view of Home Assistant's OWN /config
+#     (mounted at /homeassistant_config in the container — the Supervisor's
+#     default for an unqualified map type, https://developers.home-assistant.io/docs/apps/configuration/#map —
+#     same rule the `ssl` map above already relies on), used ONLY when the opt-in
+#     `install_companion_package` option (below) is on, to copy the bundled
+#     Home Assistant companion blueprints (docs/homeassistant-companion.md) into
+#     Home Assistant's blueprints/ folder — see run.sh. This is a materially
+#     broader permission than the other two maps (it reaches Home Assistant's own
+#     configuration, not just this add-on's own storage), so it is requested here
+#     but only ACTED on when the user explicitly opts in; run.sh never writes
+#     anywhere under this map unless `install_companion_package: true`, and even
+#     then only ever adds/overwrites files under blueprints/ — configuration.yaml
+#     and everything else in /config is never touched.
 map:
   - type: ssl
     read_only: true
   - type: app_config
+    read_only: false
+  - type: homeassistant_config
     read_only: false
 # Web UI via INGRESS: Home Assistant serves the UI through its own authenticated
 # proxy and shows it in the sidebar — not published on the LAN, and secured by HA's
@@ -119,6 +134,7 @@ options:
   pool_configuration: auto
   jandy_device_type: auto
   jandy_device_id: ""
+  install_companion_package: false
 schema:
   # Serial protocol: ONE explicit choice of how to reach the panel — `usb` for a local
   # device (--serial-port), or `rfc2217` / `rawtcp` for a serial-to-ethernet adapter
@@ -173,3 +189,10 @@ schema:
   # type's default instance (OneTouch -> 0x41, IAQ -> 0xA1, ...). Ignored when
   # jandy_device_type is `auto`.
   jandy_device_id: str?
+  # Off by default. Turning this on installs the bundled Home Assistant companion
+  # blueprints (see docs/homeassistant-companion.md) directly into Home Assistant's
+  # blueprints/ folder on every start, using the homeassistant_config map above —
+  # a real, broader permission than this add-on otherwise needs, requested only
+  # for this feature. See run.sh for exactly what it does (additive-only, never
+  # touches configuration.yaml).
+  install_companion_package: bool

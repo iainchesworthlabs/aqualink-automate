@@ -133,6 +133,35 @@ if [ "${mqtt_mode}" != "disabled" ] && bashio::config.true 'home_assistant_disco
     args+=("--home-assistant" "--ha-device-id" "$(cat "${ha_device_id_file}")")
 fi
 
+# ── Home Assistant companion package (opt-in) ────────────────────────────────
+# Installs the blueprints already bundled in this image (built from
+# homeassistant/companion/ — see docs/homeassistant-companion.md) directly into
+# Home Assistant's own blueprints/ folder, so they appear under Settings ->
+# Automations & Scenes -> Blueprints without a manual import. Off by default:
+# turning it on requires the homeassistant_config map (see config.yaml), a
+# read-write view of Home Assistant's own /config. Idempotent — a restart or
+# add-on update just re-syncs the current files — and additive only: it never
+# touches configuration.yaml, and never removes a blueprint you've deleted.
+if bashio::config.true 'install_companion_package'; then
+    companion_blueprints="/opt/aqualink-automate/share/aqualink-automate/web/homeassistant/blueprints"
+    # The Supervisor mounts an unqualified map `type:` at /<type-name> by default
+    # (https://developers.home-assistant.io/docs/apps/configuration/#map)  —
+    # confirmed against the same rule this add-on already relies on for `ssl`
+    # (mounted at /ssl, see the mqtt_ca_cert/mqtt_client_cert/mqtt_client_key
+    # handling above) — so `homeassistant_config` mounts at
+    # /homeassistant_config, NOT /homeassistant.
+    ha_config="/homeassistant_config"
+    if [ ! -d "${ha_config}" ]; then
+        bashio::log.warning "install_companion_package is on but ${ha_config} is not mounted (is the homeassistant_config map missing?) — skipping."
+    elif [ ! -d "${companion_blueprints}" ]; then
+        bashio::log.warning "No companion blueprints found in this image at ${companion_blueprints} — skipping."
+    else
+        mkdir -p "${ha_config}/blueprints"
+        cp -r "${companion_blueprints}/." "${ha_config}/blueprints/"
+        bashio::log.info "Installed the Home Assistant companion blueprints into ${ha_config}/blueprints/."
+    fi
+fi
+
 # ── History (opt-in; default OFF → use HA's Recorder) ──────────────────────────
 if bashio::config.true 'enable_history'; then
     args+=("--history-db" "${DATA}/history.db")

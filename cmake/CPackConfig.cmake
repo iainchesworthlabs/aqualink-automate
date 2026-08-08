@@ -241,6 +241,16 @@ install(CODE "
         -P \"${CMAKE_SOURCE_DIR}/cmake/stamp_sw_version.cmake\")
 " COMPONENT WebAssets)
 
+# Home Assistant companion package (blueprints, helpers package, dashboard) —
+# served by the running app for download without needing GitHub reachability
+# (e.g. an air-gapped install). Mirrors the dev-tree POST_BUILD copy in
+# src/CMakeLists.txt. test-harness/ is CI-only fixture content, excluded from
+# the shipped package.
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/homeassistant/companion/
+    DESTINATION ${AQ_WEB_DESTINATION}/homeassistant
+    COMPONENT WebAssets
+    PATTERN "test-harness" EXCLUDE)
+
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/examples/
     DESTINATION ${AQ_EXAMPLES_DESTINATION}
     COMPONENT ExampleConfigs

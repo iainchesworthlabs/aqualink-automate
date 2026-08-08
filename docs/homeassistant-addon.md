@@ -14,15 +14,15 @@ failure, and applying updates. The add-on is a thin wrapper around the same mult
 image the project already publishes; it does not rebuild the application.
 
 The add-on manifests live at the root of this repository
-([`aqualink-automate/`](../aqualink-automate/) and `aqualink-automate-edge/`, with
+([`aqualink-automate/`](https://github.com/iainchesworth/aqualink-automate/tree/main/aqualink-automate) and `aqualink-automate-edge/`, with
 `repository.yaml`); the design rationale is in
-[docs/design/homeassistant-addon.md](design/homeassistant-addon.md).
+[docs/design/homeassistant-addon.md](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/homeassistant-addon.md).
 
 ## Requirements and scope
 
 - **Home Assistant OS** or **Home Assistant Supervised**. Add-ons require the
   Supervisor, so **HA Container** and **HA Core** cannot install them — on those, run
-  the application with the project's [`docker-compose.yml`](../docker-compose.yml) or a
+  the application with the project's [`docker-compose.yml`](https://github.com/iainchesworth/aqualink-automate/blob/main/docker-compose.yml) or a
   native package instead (see [INSTALL.md](INSTALL.md)).
 - A host architecture of **`aarch64`** (64-bit Pi 4/5, most HAOS installs) or
   **`amd64`**. 32-bit `armv7`/`armhf` (Pi 3 and older 32-bit HAOS) is **not supported** —
@@ -77,6 +77,15 @@ The options form maps directly onto the application's settings (full reference:
   under `/data`.
 - **Logging** — `log_level` (`info` / `debug` / `trace`); output appears in the add-on's
   **Log** tab (the app logs to stdout).
+- **Home Assistant companion package** — `install_companion_package` (off by default)
+  copies the add-on's bundled [companion blueprints](homeassistant-companion.md) straight
+  into Home Assistant's `blueprints/` folder on every start, so they appear under
+  **Settings → Automations & Scenes → Blueprints** with no import step. This requests a
+  **read-write view of Home Assistant's own configuration directory** — broader than
+  anything else the add-on asks for — so it stays opt-in; it only ever adds or updates
+  files under `blueprints/` and never touches `configuration.yaml`. The companion
+  package is also reachable without it: one-click import from the
+  [docs](homeassistant-companion.md#blueprints), or the release zip.
 
 ## Notes
 
