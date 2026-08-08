@@ -404,6 +404,30 @@ jobs:
       - name: Verify Matter sidecar is bundled
         run: docker run --rm --entrypoint sh aqualink-automate:verify -c "node --version && test -f /opt/matter-bridge/dist/index.js && echo sidecar-present"
 
+      # Regression guard for the class of bug fixed by PR #138: a stale
+      # .dockerignore rule silently dropped blueprints/packages/dashboards from
+      # every Docker-built image (re-including only entity-manifest.json), and
+      # went undetected through two merged PRs because nothing checked image
+      # CONTENT beyond `--version`. Asserting each companion subdirectory is
+      # non-empty inside the built image closes that class, not just this one
+      # instance -- any future .dockerignore change that drops shipped web
+      # assets should fail here too.
+      - name: Verify HA companion package is bundled
+        shell: bash
+        run: |
+          HA_DIR=/opt/aqualink-automate/share/aqualink-automate/web/homeassistant
+          docker run --rm --entrypoint sh aqualink-automate:verify -c "
+            set -e
+            for d in blueprints packages dashboards; do
+              if [ -z \"\$(find $HA_DIR/\$d -mindepth 1 2>/dev/null)\" ]; then
+                echo \"missing or empty: $HA_DIR/\$d\" >&2
+                exit 1
+              fi
+            done
+            test -f $HA_DIR/entity-manifest.json
+            echo companion-present
+          "
+
   # Single aggregated gate. This is the required status check on develop/main
   # (alongside "Branch Name") INSTEAD of the individual matrix leaves, because
   # those leaves come from the reusable _build.yml and never report when the
