@@ -12,13 +12,13 @@
         <meta name="author" content="Iain Chesworth">
       
       
-        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/platform-isolation/">
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/fuzzing/">
       
       
-        <link rel="prev" href="../logging-sinks-redesign/">
+        <link rel="prev" href="../platform-isolation/">
       
       
-        <link rel="next" href="../fuzzing/">
+        <link rel="next" href="../auth-redesign/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Platform isolation - Aqualink Automate</title>
+        <title>Fuzzing - Aqualink Automate</title>
       
     
     
@@ -63,17 +63,17 @@
 
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Platform isolation - Aqualink Automate" />
+<meta property="og:title" content="Fuzzing - Aqualink Automate" />
 <meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/platform-isolation.png" />
+<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/fuzzing.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/platform-isolation/" />
+<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/fuzzing/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Platform isolation - Aqualink Automate" />
+<meta property="twitter:title" content="Fuzzing - Aqualink Automate" />
 <meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/platform-isolation.png" />
+<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/fuzzing.png" />
 </head>
   
   
@@ -93,7 +93,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#platform-isolation--no-os-macros-in-shared-code" class="md-skip">
+        <a href="#fuzzing-the-rs-485-protocol-decoders" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Platform isolation
+              Fuzzing
             
           </span>
         </div>
@@ -1096,6 +1096,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../platform-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1115,7 +1143,7 @@
   <span class="md-ellipsis">
     
   
-    Platform isolation
+    Fuzzing
   
 
     
@@ -1133,7 +1161,7 @@
   <span class="md-ellipsis">
     
   
-    Platform isolation
+    Fuzzing
   
 
     
@@ -1159,10 +1187,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-preprocessor-is-the-last-resort" class="md-nav__link">
+  <a href="#what-is-fuzzed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The preprocessor is the last resort
+        What is fuzzed
       
     </span>
   </a>
@@ -1170,10 +1198,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why" class="md-nav__link">
+  <a href="#build--run-linuxclang--the-primary-path" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why
+        Build &amp; run (Linux/clang — the primary path)
       
     </span>
   </a>
@@ -1181,22 +1209,44 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-mechanism" class="md-nav__link">
+  <a href="#build--run-windows--non-clang--standalone-replay" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The mechanism
+        Build &amp; run (Windows / non-Clang — standalone replay)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="The mechanism">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corpus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Corpus
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-fuzzing-is-tied-to-the-test-suite-rs-485-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How fuzzing is tied to the test suite (RS-485 changes)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How fuzzing is tied to the test suite (RS-485 changes)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#os-section-directories" class="md-nav__link">
+  <a href="#1-always-on-in-suite-regression-guard-every-build-every-platform" class="md-nav__link">
     <span class="md-ellipsis">
       
-        OS-section directories
+        1. Always-on in-suite regression guard (every build, every platform)
       
     </span>
   </a>
@@ -1204,21 +1254,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cmake-source-selection" class="md-nav__link">
+  <a href="#2-coverage-guided-libfuzzer-on-decoder-touching-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CMake source selection
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#compiler--arch--stdlib-concerns-live-in-toolchains" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Compiler / arch / stdlib concerns live in toolchains
+        2. Coverage-guided libFuzzer on decoder-touching changes
       
     </span>
   </a>
@@ -1231,10 +1270,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rules" class="md-nav__link">
+  <a href="#future-targets--web--http--api-inputs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rules
+        Future targets — web / HTTP / API inputs
       
     </span>
   </a>
@@ -1242,43 +1281,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#worked-examples" class="md-nav__link">
+  <a href="#if-the-fuzzer-finds-a-crash" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Worked examples
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#allowed-exceptions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allowed exceptions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#enforcement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Enforcement
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#remediation-log" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Remediation log
+        If the fuzzer finds a crash
       
     </span>
   </a>
@@ -1289,34 +1295,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../fuzzing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Fuzzing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1507,10 +1485,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-preprocessor-is-the-last-resort" class="md-nav__link">
+  <a href="#what-is-fuzzed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The preprocessor is the last resort
+        What is fuzzed
       
     </span>
   </a>
@@ -1518,10 +1496,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why" class="md-nav__link">
+  <a href="#build--run-linuxclang--the-primary-path" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why
+        Build &amp; run (Linux/clang — the primary path)
       
     </span>
   </a>
@@ -1529,22 +1507,44 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-mechanism" class="md-nav__link">
+  <a href="#build--run-windows--non-clang--standalone-replay" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The mechanism
+        Build &amp; run (Windows / non-Clang — standalone replay)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="The mechanism">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corpus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Corpus
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-fuzzing-is-tied-to-the-test-suite-rs-485-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How fuzzing is tied to the test suite (RS-485 changes)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How fuzzing is tied to the test suite (RS-485 changes)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#os-section-directories" class="md-nav__link">
+  <a href="#1-always-on-in-suite-regression-guard-every-build-every-platform" class="md-nav__link">
     <span class="md-ellipsis">
       
-        OS-section directories
+        1. Always-on in-suite regression guard (every build, every platform)
       
     </span>
   </a>
@@ -1552,21 +1552,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cmake-source-selection" class="md-nav__link">
+  <a href="#2-coverage-guided-libfuzzer-on-decoder-touching-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CMake source selection
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#compiler--arch--stdlib-concerns-live-in-toolchains" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Compiler / arch / stdlib concerns live in toolchains
+        2. Coverage-guided libFuzzer on decoder-touching changes
       
     </span>
   </a>
@@ -1579,10 +1568,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rules" class="md-nav__link">
+  <a href="#future-targets--web--http--api-inputs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rules
+        Future targets — web / HTTP / API inputs
       
     </span>
   </a>
@@ -1590,43 +1579,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#worked-examples" class="md-nav__link">
+  <a href="#if-the-fuzzer-finds-a-crash" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Worked examples
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#allowed-exceptions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allowed exceptions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#enforcement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Enforcement
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#remediation-log" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Remediation log
+        If the fuzzer finds a crash
       
     </span>
   </a>
@@ -1652,7 +1608,7 @@
 
 
   
-    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/platform-isolation.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/fuzzing.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1660,302 +1616,229 @@
   
 
 
-<h1 id="platform-isolation--no-os-macros-in-shared-code">Platform Isolation — No OS Macros in Shared Code<a class="headerlink" href="#platform-isolation--no-os-macros-in-shared-code" title="Permanent link">&para;</a></h1>
-<blockquote>
-<p><strong>Principle.</strong> OS-specific preprocessor conditionals are a defect in shared code.
-In this codebase <strong>the operating system is a CMake decision, not a preprocessor
-decision.</strong> OS-divergent behaviour is expressed as <em>one shared interface header</em>
-plus <em>one implementation <code>.cpp</code> per OS</em> under <code>src/core/platform/&lt;os&gt;/</code>, and
-<code>src/core/CMakeLists.txt</code> selects which of those <code>.cpp</code> files compile via plain
-<code>if(WIN32)</code> / <code>if(LINUX)</code> / <code>if(APPLE)</code> <code>target_sources()</code> blocks. Any shared,
-non-platform source file — anything outside <code>src/core/platform/**</code> and the
-third-party trees — <strong>must be free of OS macros</strong> (<code>_WIN32</code>, <code>__APPLE__</code>,
-<code>__linux__</code>, <code>__unix__</code>, <code>__MACH__</code>, <code>_WIN64</code>, <code>__ANDROID__</code>, <code>__FreeBSD__</code>, …).
-In the ideal state a line such as <code>#elif !defined(__APPLE__)</code> appears <strong>nowhere</strong>
-in the tree.</p>
-</blockquote>
-<p>This is a principle for <strong>both AI agents and human contributors</strong>. It is enforced
-by CI (see <a href="#enforcement">Enforcement</a>) — a newly introduced OS <code>#if</code> in shared
-code turns the build red.</p>
-<p>OS macros are the strongest instance of a broader rule; the <a href="#the-preprocessor-is-the-last-resort">next section</a>
-generalizes it. Compiler, CPU-architecture, and build-feature macros are a
-<em>separate</em> concern from OS selection and are permitted under a narrow bar — see
-<a href="#allowed-exceptions">Allowed exceptions</a> — but even they should prefer a runtime
-seam where one is feasible.</p>
-<h2 id="the-preprocessor-is-the-last-resort">The preprocessor is the last resort<a class="headerlink" href="#the-preprocessor-is-the-last-resort" title="Permanent link">&para;</a></h2>
-<p>The deeper goal is to <strong>eliminate conditional-compilation <code>#if</code> blocks wherever
-possible</strong>, not just OS ones. Variation in behaviour should be resolved by the build
-graph or at runtime — not by the preprocessor carving different code out of one
-file. Prefer, in this order:</p>
-<ol>
-<li><strong>Runtime polymorphism / factory / registry (most preferred).</strong> One code path,
-   compiled everywhere; behaviour is chosen at runtime by injecting an interface
-   implementation, registering into a factory/registry, or probing a capability at
-   runtime. Use this whenever the variation is a <em>backend</em> or <em>capability</em> that can
-   coexist in one binary. Established examples in this tree:</li>
-<li><code>Logging::Sinks::SinkRegistry</code> + the <code>Make*Sink()</code> factories — sinks are chosen
-     at runtime from the resolved policy, and <strong>journald availability is probed at
-     runtime via <code>dlopen</code></strong> (no build-time libsystemd dependency, no <code>#if</code> on
-     whether systemd is present).</li>
-<li><code>ProfilingUnitFactory</code> with a <strong>no-op fallback</strong> — a zone/frame object is always
-     returnable; when no profiler backend is active the factory hands back a no-op,
-     so call sites need no <code>#ifdef</code> to <em>use</em> profiling.</li>
-<li><code>Protocol::MessageGeneratorRegistry</code> — Pentair registers at priority 0 ahead of
-     Jandy; protocol selection is a runtime registry, not <code>#if PENTAIR</code>.</li>
-<li><strong>CMake source selection.</strong> For divergence that genuinely cannot share a
-   translation unit — an OS API or a symbol/header absent on other platforms — put
-   one <code>.cpp</code> per variant under <code>src/core/platform/&lt;os&gt;/</code> and let
-   <code>if(WIN32)/if(LINUX)/if(APPLE)</code> pick it. This is the OS rule above. No <code>#ifdef</code>.</li>
-<li><strong>Preprocessor <code>#if</code> (least preferred — last resort).</strong> Justified only when
-   neither of the above can work:</li>
-<li>the code names a symbol/header that <strong>does not exist</strong> on the target, so the
-     other arm literally cannot compile (this is the residual reason a whole
-     platform <code>.cpp</code> may still open with a guard), <strong>or</strong></li>
-<li>the feature must expand to <em>nothing</em> for <strong>zero measured overhead when disabled</strong>
-     (e.g. Tracy instrumentation macros) and no runtime seam can match that.</li>
-</ol>
-<p>Even then: confine the <code>#if</code> to the <strong>smallest possible file</strong> — ideally a single
-   platform or feature translation unit — never threaded through shared logic, and
-   never as a negative-OS <code>#else</code>.</p>
-<p>The test to apply before writing any <code>#if</code>: <em>"Could a factory, a registry, an
-injected interface, or a CMake source choice express this instead?"</em> If yes, do
-that. A <code>#if</code> that survives this question is the exception, and it should be able to
-say which of the two last-resort reasons above applies.</p>
-<hr />
-<h2 id="why">Why<a class="headerlink" href="#why" title="Permanent link">&para;</a></h2>
-<p>Four forces make CMake, not the preprocessor, the single source of OS truth.</p>
-<ol>
-<li>
-<p><strong>Correctness under real compilers.</strong> An inline <code>#ifdef _WIN32</code> branch means the
-   non-Windows arm is <em>never seen by MSVC</em> and the Windows arm is <em>never seen by
-   GCC/Clang</em> — each compiler silently ignores half the code. That is exactly the
-   class of MSVC-tolerated UB this project has repeatedly caught only on GCC/glibc
-   (nlohmann brace-init decaying to an array, <code>.items()</code>-on-a-temporary
-   use-after-free, the Boost.Log syslog teardown heap corruption). A per-OS <code>.cpp</code>
-   is compiled <strong>in full</strong> by the toolchain that owns that OS, so both arms get real
-   diagnostics.</p>
-</li>
-<li>
-<p><strong>Single responsibility.</strong> A file that calls <code>gmtime_r</code> / <code>localtime_r</code> /
-   <code>ioctl(TIOCGWINSZ)</code> unbranched is about <em>one</em> platform and is trivially
-   reviewable. A file laced with negative-OS <code>#elif</code>s (e.g. "not Apple ⇒ assume
-   Linux") silently mislabels or miscompiles the next port (BSD, another Unix) with
-   no failing test.</p>
-</li>
-<li>
-<p><strong>Single source of OS truth.</strong> When the OS→source mapping lives entirely in the
-   CMake <code>if()</code> blocks, adding or auditing platform support is <em>one file to read</em>.
-   Scattering it across <code>#ifdef</code>s in shared <code>.cpp</code> files makes the real platform
-   matrix unknowable without grepping the whole tree.</p>
-</li>
-<li>
-<p><strong>Testability &amp; readability.</strong> Platform seams behind a shared header (<code>SafeCtime</code>,
-   <code>get_terminal_column_width</code>, the serial <code>*_timeout</code> methods, the logging native
-   sinks) can be swapped, stubbed, and reasoned about. Buried <code>#ifdef</code>s cannot.</p>
-</li>
-</ol>
-<p>The mechanism already exists and is proven. The work is to <strong>conform the last
-stragglers to it</strong>, not to invent anything.</p>
-<hr />
-<h2 id="the-mechanism">The mechanism<a class="headerlink" href="#the-mechanism" title="Permanent link">&para;</a></h2>
-<h3 id="os-section-directories">OS-section directories<a class="headerlink" href="#os-section-directories" title="Permanent link">&para;</a></h3>
+<h1 id="fuzzing-the-rs-485-protocol-decoders">Fuzzing the RS-485 protocol decoders<a class="headerlink" href="#fuzzing-the-rs-485-protocol-decoders" title="Permanent link">&para;</a></h1>
+<p>The application parses <strong>untrusted wire data</strong> off the RS-485 bus in the Jandy and
+Pentair message deserialisers. That is exactly the class of code — a malformed
+length field or truncated frame turning into an out-of-bounds read — that
+coverage-guided fuzzing catches and example-based unit tests miss. This page
+describes the libFuzzer harnesses that exercise those decoders, how to build and
+run them, where the corpus lives, and the discipline for acting on a crash.</p>
+<p>This also satisfies the OpenSSF Scorecard <strong>Fuzzing</strong> check with a real signal
+rather than a posture tick: <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/.github/workflows/fuzzing.yml"><code>fuzzing.yml</code></a> runs
+the harnesses on a schedule (see <a href="../ci-cd/">ci-cd.md</a>).</p>
+<h2 id="what-is-fuzzed">What is fuzzed<a class="headerlink" href="#what-is-fuzzed" title="Permanent link">&para;</a></h2>
+<p>The harnesses target the highest-level "raw bytes → message" entry points, so one
+harness covers many message types:</p>
 <table>
 <thead>
 <tr>
-<th>Directory</th>
-<th>Role</th>
+<th>Harness (<code>fuzz/</code>)</th>
+<th>Entry points exercised</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>src/core/platform/windows/</code></td>
-<td>Windows implementations. Also the home of Windows-only functions with no POSIX counterpart (e.g. <code>uac_elevation.cpp</code>).</td>
+<td><code>fuzz-jandy-message</code></td>
+<td><code>Generators::GenerateMessageFromRawData</code> (framing, DLE-null de-escaping, checksum, packet-boundary scanning, buffer cleanup) + <code>Factory::JandyMessageFactoryT::CreateFromSerialData</code> → every registered <code>JandyMessage</code> subtype's <code>DeserializeContents</code></td>
 </tr>
 <tr>
-<td><code>src/core/platform/posix/</code></td>
-<td>The <strong>shared Unix</strong> implementation, reused by <strong>both</strong> Linux and macOS.</td>
+<td><code>fuzz-pentair-message</code></td>
+<td><code>Pentair::Generators::GenerateMessageFromRawData</code> (0xA5 preamble scan, 16-bit BE checksum) + <code>Pentair::Factory::PentairMessageFactory::CreateFromSerialData</code> → every <code>PentairMessage</code> subtype's <code>DeserializeContents</code></td>
 </tr>
 <tr>
-<td><code>src/core/platform/linux/</code></td>
-<td>Leaf dir — <strong>only</strong> files where the single Unix impl genuinely diverges on Linux.</td>
+<td><code>fuzz-schedule-json</code></td>
+<td>the web-API schedule request-body validators <code>Scheduling::FromJson</code> + <code>ControllerScheduleFromJson</code> (POST/PUT <code>/api/schedules</code> and <code>/api/controller/schedules</code>), fed arbitrary bytes parsed as JSON exactly as the handlers do</td>
 </tr>
 <tr>
-<td><code>src/core/platform/macos/</code></td>
-<td>Leaf dir — <strong>only</strong> files where the single Unix impl genuinely diverges on macOS.</td>
+<td><code>fuzz-websocket-json</code></td>
+<td>the inbound WebSocket message-envelope parser <code>HTTP::WebSocket_Event::ConvertFromStringView</code> (<code>{type, payload}</code> JSON + case-insensitive event-type enum-cast) that every browser frame flows through</td>
+</tr>
+<tr>
+<td><code>fuzz-mqtt-payload</code></td>
+<td>the untrusted MQTT command-payload parsers <code>Mqtt::PayloadParsing::ParsePayloadNumber&lt;T&gt;</code> / <code>ParsePayloadString</code> / <code>SanitiseForLog</code> (range-checked numeric extraction, string extraction, log sanitising)</td>
+</tr>
+<tr>
+<td><code>fuzz-config-parse</code></td>
+<td>config-file reading + option-value validation: arbitrary INI text through <code>boost::program_options::parse_config_file</code> + the project's custom validators (<code>Severity</code> / <code>ProfilerTypes</code> / <code>SyslogFacility</code> / MQTT <code>ProtocolVersion</code>) over a representative options grammar</td>
+</tr>
+<tr>
+<td><code>fuzz-query-string</code></td>
+<td>HTTP request-target / query-string parsing — <code>HTTP::ParseQueryString</code> (<code>boost::urls::parse_origin_form</code> + param lookup) over a fuzzed Boost.Beast request target</td>
+</tr>
+<tr>
+<td><code>fuzz-jwt</code></td>
+<td>JWT bearer-token verify robustness — <code>Auth::JwtCodec::Verify</code> (backed by an empty key store) must return <code>std::nullopt</code> on any malformed token, never throw/crash</td>
+</tr>
+<tr>
+<td><code>fuzz-duration</code></td>
+<td>the <code>HH:MM:SS</code> timeout-duration option parser <code>Utility::TimeoutDurationStringConverter</code> (fixed-width, <code>std::from_chars</code>; <code>noexcept</code>, so this catches OOB indexing)</td>
+</tr>
+<tr>
+<td><code>fuzz-replay-line</code></td>
+<td>the record/replay <code>.cap</code> capture-file parser, driven through the public <code>MockSerialPortImpl</code> file path (line parse + multi-read buffering); a dev/local input</td>
 </tr>
 </tbody>
 </table>
-<p>Reach for a leaf <code>linux/</code> or <code>macos/</code> file <strong>only</strong> when <code>posix/</code> cannot be shared.
-Today the canonical divergence example is <code>physical_serial_port_timeout.cpp</code>
-(termios vs IOKit) and the logging sinks (<code>native_log_sink.cpp</code>,
-<code>journald_log_sink.cpp</code> differ per Unix).</p>
-<h3 id="cmake-source-selection">CMake source selection<a class="headerlink" href="#cmake-source-selection" title="Permanent link">&para;</a></h3>
-<p><code>src/core/CMakeLists.txt</code> lists the OS-agnostic sources first in one
-<code>target_sources(... PRIVATE ...)</code> block, then appends platform sources in three
-sibling blocks. <strong>No <code>$&lt;PLATFORM_ID&gt;</code> / <code>$&lt;CXX_COMPILER_ID&gt;</code> generator expressions</strong>
-— plain <code>if()</code> only:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">if</span><span class="p">(</span><span class="s">WIN32</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">target_sources</span><span class="p">(</span><span class="s">libaqualink-automate</span><span class="w"> </span><span class="s">PRIVATE</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="s">platform/windows/safe_ctime.cpp</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="s">platform/windows/get_terminal_column_width.cpp</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="s">platform/windows/native_log_sink.cpp</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="s">...</span><span class="p">)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c"># Windows-only defines and link libs are scoped INSIDE this block, never in the</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c"># shared unconditional target_compile_definitions() below:</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nb">target_compile_definitions</span><span class="p">(</span><span class="s">libaqualink-automate</span><span class="w"> </span><span class="s">PUBLIC</span><span class="w"> </span><span class="s">-D_WIN32_WINNT=0x0A00</span><span class="w"> </span><span class="s">-DWIN32_LEAN_AND_MEAN</span><span class="w"> </span><span class="s">...</span><span class="p">)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">libaqualink-automate</span><span class="w"> </span><span class="s">PUBLIC</span><span class="w"> </span><span class="s">comsuppw</span><span class="w"> </span><span class="s">ole32</span><span class="w"> </span><span class="s">oleaut32</span><span class="p">)</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nb">endif</span><span class="p">(</span><span class="s">WIN32</span><span class="p">)</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="nb">if</span><span class="p">(</span><span class="s">LINUX</span><span class="p">)</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nb">target_sources</span><span class="p">(</span><span class="s">libaqualink-automate</span><span class="w"> </span><span class="s">PRIVATE</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="s">platform/posix/safe_ctime.cpp</span><span class="w">            </span><span class="c"># &lt;-- shared Unix impl</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="s">platform/posix/get_terminal_column_width.cpp</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="s">platform/linux/physical_serial_port_timeout.cpp</span><span class="w">   </span><span class="c"># &lt;-- leaf: genuinely Linux-specific</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="s">...</span><span class="p">)</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="nb">endif</span><span class="p">(</span><span class="s">LINUX</span><span class="p">)</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nb">if</span><span class="p">(</span><span class="s">APPLE</span><span class="p">)</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="nb">target_sources</span><span class="p">(</span><span class="s">libaqualink-automate</span><span class="w"> </span><span class="s">PRIVATE</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span><span class="s">platform/posix/safe_ctime.cpp</span><span class="w">            </span><span class="c"># &lt;-- SAME shared Unix impl as Linux</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="s">platform/posix/get_terminal_column_width.cpp</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="s">platform/macos/physical_serial_port_timeout.cpp</span><span class="w">   </span><span class="c"># &lt;-- leaf: genuinely macOS-specific</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="s">...</span><span class="p">)</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nb">endif</span><span class="p">(</span><span class="s">APPLE</span><span class="p">)</span>
+<p>Each harness does two things per input (see <code>fuzz/fuzz_jandy_message.cpp</code> /
+<code>fuzz/fuzz_pentair_message.cpp</code>):</p>
+<ol>
+<li><strong>Raw</strong> — the fuzzer bytes are pushed straight into the generator. Most random
+   inputs are rejected at framing/checksum, but the scan/cleanup code itself is
+   fuzzed on every input.</li>
+<li><strong>Wrapped</strong> — a <em>valid, checksum-correct, wire-escaped</em> frame is built around a
+   mutated <code>(address bytes, payload)</code> triple (<code>fuzz/fuzz_frame_builders.h</code>, which
+   reuses the production serialisers) and pushed through the factory <strong>and</strong> the
+   generator, so a mutated payload actually reaches the per-type deserialiser past
+   the checksum gate.</li>
+</ol>
+<h2 id="build--run-linuxclang--the-primary-path">Build &amp; run (Linux/clang — the primary path)<a class="headerlink" href="#build--run-linuxclang--the-primary-path" title="Permanent link">&para;</a></h2>
+<p>libFuzzer is a Clang feature, so coverage-guided fuzzing uses the LLVM toolchain —
+the same environment OSS-Fuzz builds in. The <code>config-linux-llvm-fuzzing</code> preset
+builds the decode libraries with <code>-fsanitize=fuzzer-no-link,address</code> and the
+harnesses with <code>-fsanitize=fuzzer,address</code> (wired in <code>cmake/Fuzzing.cmake</code>, kept
+out of <code>src/</code> CMake per <a href="../platform-isolation/">platform-isolation.md</a>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Configure + build the harnesses (target: fuzzers).</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-linux-llvm-fuzzing
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>build-linux-llvm-fuzzing
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Seed the corpus from the recorded capture fixtures (idempotent).</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>python3<span class="w"> </span>fuzz/seed_corpus.py
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Fuzz a harness (Ctrl-C to stop; -max_total_time bounds it).</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>./build/config-linux-llvm-fuzzing/fuzz/fuzz-jandy-message<span class="w">  </span>fuzz/corpus/jandy<span class="w">   </span>-max_total_time<span class="o">=</span><span class="m">120</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>./build/config-linux-llvm-fuzzing/fuzz/fuzz-pentair-message<span class="w"> </span>fuzz/corpus/pentair<span class="w"> </span>-max_total_time<span class="o">=</span><span class="m">120</span>
 </code></pre></div>
-<p>Note the Linux and Apple blocks <strong>both</strong> list the same <code>platform/posix/&lt;name&gt;.cpp</code>,
-and each <em>additionally</em> lists its leaf-dir file when one exists.</p>
-<h3 id="compiler--arch--stdlib-concerns-live-in-toolchains">Compiler / arch / stdlib concerns live in toolchains<a class="headerlink" href="#compiler--arch--stdlib-concerns-live-in-toolchains" title="Permanent link">&para;</a></h3>
-<p>Compiler discovery, linker flags, stdlib selection, per-arch flags, and platform
-link libs belong in <code>cmake/toolchains/{platform}.{compiler}.toolchain.cmake</code>
-(and vcpkg triplets in <code>cmake/vcpkg/triplets/</code>) — <strong>never</strong> in <code>src/</code> CMakeLists,
-which must stay platform-independent. The sole in-<code>src</code> exception is genuinely
-OS-API-tied defines and link libs scoped <em>inside</em> the <code>if(WIN32)</code> block.</p>
-<hr />
-<h2 id="rules">Rules<a class="headerlink" href="#rules" title="Permanent link">&para;</a></h2>
-<p><strong>Do</strong></p>
-<ul>
-<li><strong>Declare</strong> the OS-agnostic interface in a shared header — either
-  <code>src/core/platform/&lt;name&gt;.h</code> (like <code>safe_ctime.h</code>) or the owning subsystem's own
-  header — in <code>namespace AqualinkAutomate::Platform</code> or the subsystem namespace.</li>
-<li><strong>Implement</strong> one <code>.cpp</code> per OS: <code>platform/windows/&lt;name&gt;.cpp</code> for Windows and
-  <code>platform/posix/&lt;name&gt;.cpp</code> as the shared Unix impl. Add a leaf
-  <code>platform/linux/</code> or <code>platform/macos/</code> file <strong>only</strong> on genuine divergence.</li>
-<li><strong>Wire</strong> every new <code>.cpp</code> into the correct <code>if(WIN32)</code>/<code>if(LINUX)</code>/<code>if(APPLE)</code>
-  block. Remember the Linux and Apple blocks both list the same <code>posix/</code> file.</li>
-<li><strong>Reuse an existing seam</strong> before inventing a file. Adding <code>SafeGmTime</code> to
-  <code>safe_ctime.h</code> needs <strong>zero</strong> CMake change — <code>safe_ctime.cpp</code> is already compiled
-  into all three blocks.</li>
-</ul>
-<p><strong>Don't</strong></p>
-<ul>
-<li><strong>Don't</strong> add an OS <code>#if</code>/<code>#ifdef</code>/<code>#elif</code> (<code>_WIN32</code>, <code>__APPLE__</code>, <code>__linux__</code>,
-  <code>__unix__</code>, <code>__MACH__</code>, <code>_WIN64</code>, <code>__ANDROID__</code>, …) to any shared, non-platform
-  <code>.cpp</code>/<code>.h</code>. If you catch yourself writing one in shared code, stop and extract
-  the divergence behind a header + per-OS <code>.cpp</code>.</li>
-<li><strong>Don't</strong> use a negative-OS test (<code>#else</code> / <code>#elif !defined(...)</code>) as a catch-all
-  for "some other Unix". The <code>#else</code> that means "assume Linux" is the worst-offender
-  pattern and is <strong>banned</strong> — name each OS explicitly via its own CMake block.</li>
-<li><strong>Don't</strong> put <code>$&lt;PLATFORM_ID&gt;</code> / <code>$&lt;CXX_COMPILER_ID&gt;</code> in <code>src/</code> CMakeLists.</li>
-<li><strong>Don't</strong> put compiler/arch/stdlib/linker concerns in shared <code>.cpp</code> files — those
-  belong in the toolchain files.</li>
-</ul>
-<hr />
-<h2 id="worked-examples">Worked examples<a class="headerlink" href="#worked-examples" title="Permanent link">&para;</a></h2>
-<p><strong>Reusing a seam (zero CMake change).</strong> To format a UTC timestamp, don't write
-<code>#ifdef _WIN32 gmtime_s … #else gmtime_r</code>. Add
-<code>bool SafeGmTime(std::tm&amp; out, const std::time_t&amp; t);</code> to <code>platform/safe_ctime.h</code>,
-implement <code>gmtime_s</code> in <code>platform/windows/safe_ctime.cpp</code> and <code>gmtime_r</code> in
-<code>platform/posix/safe_ctime.cpp</code>, and call <code>Platform::SafeGmTime(...)</code>. No
-CMakeLists edit — those files already compile everywhere.</p>
-<p><strong>Reference implementation — the logging native sinks.</strong> The OS-native log sinks
-(<code>MakeNativeSink</code>, <code>MakeJournaldSink</code>) are the model to copy. The header
-<code>logging/sinks/sink_native.h</code> declares an OS-agnostic factory over an OS-neutral
-<code>NativeSinkConfig</code> (carrying both a POSIX <code>SyslogFacility</code> and a
-<code>WindowsEventSource</code>). The implementations live in
-<code>platform/windows/native_log_sink.cpp</code> (Event Log),
-<code>platform/{linux,macos}/native_log_sink.cpp</code> (syslog / os_log), each CMake-selected
-— <strong>no <code>#if</code> in any of them.</strong> This replaced an earlier single
-<code>sink_native.cpp</code> that switched backends with nested
-<code>#if defined(_WIN32)</code> / <code>#elif !defined(__APPLE__)</code> / <code>#if defined(__APPLE__)</code> —
-the precise anti-pattern this principle exists to prevent.</p>
-<hr />
-<h2 id="allowed-exceptions">Allowed exceptions<a class="headerlink" href="#allowed-exceptions" title="Permanent link">&para;</a></h2>
-<p>These macro classes are <strong>not</strong> OS selection and may remain, under a narrow bar.
-The enforcement check deliberately does <strong>not</strong> flag them.</p>
-<table>
-<thead>
-<tr>
-<th>Class</th>
-<th>Examples</th>
-<th>Bar for use</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Compiler</strong></td>
-<td><code>_MSC_VER</code>, <code>__GNUC__</code>, <code>__clang__</code></td>
-<td>Only for genuinely toolchain-specific concerns that cannot be a source-file choice — e.g. <code>#pragma warning(disable: 26449)</code> PREfast suppressions in <code>routing/node.h</code>. Must gate a diagnostic/pragma or an intrinsic-availability shim, never OS behaviour (clang-cl also defines <code>_MSC_VER</code>). Prefer a small compiler-shim header over spreading raw guards.</td>
-</tr>
-<tr>
-<td><strong>Architecture</strong></td>
-<td><code>__x86_64__</code>, <code>__i386__</code>, <code>__aarch64__</code></td>
-<td>ISA-tied intrinsic selection — e.g. <code>&lt;intrin.h&gt;</code> vs <code>&lt;immintrin.h&gt;</code> and the <code>_mm_pause()</code> spin-hint in <code>tracy_memory.cpp</code>. Must be about the CPU/ISA, not the OS; ideally consolidated behind a cross-compiler shim (e.g. <code>CpuPause()</code>).</td>
-</tr>
-<tr>
-<td><strong>Build-feature</strong></td>
-<td><code>TRACY_ENABLE</code>, <code>TRACY_ON_DEMAND</code>, <code>ENABLE_PROFILING</code>, sanitizer/coverage toggles</td>
-<td>Selects an optional build configuration set by a CMake option, not a platform. Whole-TU feature gates like <code>#if defined(TRACY_ENABLE)</code> are fine. When a platform <code>.cpp</code> is extracted from such a TU, the new <code>.cpp</code> must carry the same feature guard.</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="enforcement">Enforcement<a class="headerlink" href="#enforcement" title="Permanent link">&para;</a></h2>
-<p>A CI job (and a mirrored <code>scripts/check-os-macros.ps1</code> for local runs) fails the
-build when an OS macro appears in a preprocessor directive in any non-exempt source
-file. It scans <code>#if</code>/<code>#ifdef</code>/<code>#ifndef</code>/<code>#elif</code> lines for <strong>OS tokens only</strong> — it
-does <em>not</em> flag the allowed compiler/arch/feature classes.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>rg<span class="w"> </span>-n<span class="w"> </span>--pcre2<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-g<span class="w"> </span><span class="s1">&#39;!src/core/platform/**&#39;</span><span class="w"> </span>-g<span class="w"> </span><span class="s1">&#39;!deps/**&#39;</span><span class="w"> </span>-g<span class="w"> </span><span class="s1">&#39;!third_party/**&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>-g<span class="w"> </span><span class="s1">&#39;!**/vcpkg_installed/**&#39;</span><span class="w"> </span>-g<span class="w"> </span><span class="s1">&#39;!build*/**&#39;</span><span class="w"> </span>-g<span class="w"> </span><span class="s1">&#39;!cmake/toolchains/**&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>-g<span class="w"> </span><span class="s1">&#39;*.h&#39;</span><span class="w"> </span>-g<span class="w"> </span><span class="s1">&#39;*.hpp&#39;</span><span class="w"> </span>-g<span class="w"> </span><span class="s1">&#39;*.cpp&#39;</span><span class="w"> </span>-g<span class="w"> </span><span class="s1">&#39;*.cc&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>-e<span class="w"> </span><span class="s1">&#39;^\s*#\s*(if|ifdef|ifndef|elif)\b.*\b(_WIN32|_WIN64|WIN32|__APPLE__|__MACH__|__linux__|__unix__|__ANDROID__|__FreeBSD__|__NetBSD__|__OpenBSD__)\b&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span>src/
+<p>libFuzzer grows <code>fuzz/corpus/&lt;protocol&gt;/</code> in place. A crash writes a reproducer to
+<code>crash-&lt;sha1&gt;</code>; re-run the harness with that file as the sole argument to reproduce.</p>
+<p>macOS/clang works identically via <code>config-macos-llvm-fuzzing</code>.</p>
+<h2 id="build--run-windows--non-clang--standalone-replay">Build &amp; run (Windows / non-Clang — standalone replay)<a class="headerlink" href="#build--run-windows--non-clang--standalone-replay" title="Permanent link">&para;</a></h2>
+<p>MSVC has no libFuzzer engine, so on Windows (and any non-Clang compiler) the
+harnesses build as <strong>standalone corpus-replay drivers</strong> (<code>fuzz/standalone_main.cpp</code>
+supplies <code>main()</code>): they replay every input in a directory / every file named
+through <code>LLVMFuzzerTestOneInput</code> under a normal build — no coverage-guided mutation,
+but exactly the right tool for <strong>reproducing a crash</strong> or a <strong>CI smoke test</strong>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">cmake</span> <span class="p">-</span><span class="n">-preset</span> <span class="n">config-windows-msvc-fuzzing</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">cmake</span> <span class="p">-</span><span class="n">-build</span> <span class="p">-</span><span class="n">-preset</span> <span class="n">build-windows-msvc-fuzzing</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">python</span> <span class="n">fuzz</span><span class="p">/</span><span class="n">seed_corpus</span><span class="p">.</span><span class="n">py</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">.\</span><span class="n">build</span><span class="p">\</span><span class="n">config-windows-msvc-fuzzing</span><span class="p">\</span><span class="n">fuzz</span><span class="p">\</span><span class="n">fuzz-jandy-message</span><span class="p">.</span><span class="n">exe</span> <span class="n">fuzz</span><span class="p">\</span><span class="n">corpus</span><span class="p">\</span><span class="n">jandy</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c"># Reproduce a specific crash found on Linux:</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">.\</span><span class="n">build</span><span class="p">\</span><span class="n">config-windows-msvc-fuzzing</span><span class="p">\</span><span class="n">fuzz</span><span class="p">\</span><span class="n">fuzz-jandy-message</span><span class="p">.</span><span class="n">exe</span> <span class="n">crash-abc123</span>
 </code></pre></div>
-<p>Any match is a violation (exit non-zero, print <code>file:line</code>). Wire it as a required
-check on PRs to <code>main</code>/<code>develop</code>.</p>
-<p><strong>Exempt paths</strong> (matches allowed, not scanned): <code>src/core/platform/**</code> (the
-OS-section dirs — though even there, prefer none), <code>cmake/toolchains/**</code>, <code>deps/**</code>,
-<code>third_party/**</code>, <code>**/vcpkg_installed/**</code>, <code>build*/**</code>.</p>
-<hr />
-<h2 id="remediation-log">Remediation log<a class="headerlink" href="#remediation-log" title="Permanent link">&para;</a></h2>
-<p>Every OS macro previously living in shared code has been migrated onto the
-mechanism above; <code>scripts/check-os-macros.ps1</code> now passes (959 files scanned) and
-CI keeps it that way. (The logging native-sink split was done separately — see the
-worked example.)</p>
+<h2 id="corpus">Corpus<a class="headerlink" href="#corpus" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[x] <strong><code>src/core/http/webroute_version.cpp</code></strong> — <code>#ifdef _WIN32</code> (<code>gmtime_s</code> vs
-  <code>gmtime_r</code>) → <code>Platform::SafeGmTime</code> on the existing <code>safe_ctime.h</code> seam (no CMake
-  change).</li>
-<li>[x] <strong><code>src/core/scheduling/scheduler_service.cpp</code></strong> — <code>#ifdef _WIN32</code>
-  (<code>localtime_s</code> vs <code>localtime_r</code>) → <code>Platform::SafeLocalTime</code> on <code>safe_ctime.h</code>
-  (no CMake change).</li>
-<li>[x] <strong><code>src/core/platform/posix/get_terminal_column_width.cpp</code></strong> — banned
-  <code>#if defined(__APPLE__)/#else</code> "macOS:"/"LINUX:" prefix → <code>Utility::PLATFORM_LOG_PREFIX</code>
-  declared in the header, defined per-OS in leaf <code>platform/linux/</code> +
-  <code>platform/macos/get_terminal_column_width_prefix.cpp</code>.</li>
-<li>[x] <strong><code>src/core/logging/sinks/log_environment.cpp</code></strong> — three <code>#if defined(_WIN32)</code>
-  guards → <code>PlatformStderrIsTty</code>/<code>PlatformStatStderr</code> behind
-  <code>log_environment_probes.h</code> with <code>platform/windows/</code> + <code>platform/posix/</code> impls.</li>
-<li>[x] <strong><code>src/core/profiling/memory/tracy_memory.cpp</code></strong> — <code>#ifdef _WIN32</code>
-  aligned-alloc cluster → <code>Platform::AlignedMalloc</code>/<code>AlignedFree</code> behind
-  <code>platform/aligned_alloc.h</code> with <code>platform/windows/</code> + <code>platform/posix/aligned_alloc.cpp</code>.
-  The <code>_MSC_VER</code>/arch conditionals in the same file are allowed exceptions and stay.</li>
-<li>[x] <strong><code>src/core/options/options_app_options.cpp</code></strong> — <code>#if defined(_WIN32)</code> around
-  the log-source-registration CLI action (caught by the new check, not the initial
-  inventory) → <code>LogSourceRegistrationResult</code> tri-state; Windows registers, a
-  <code>platform/posix/log_source_registration.cpp</code> stub returns <code>Unsupported</code>, and the
-  shared handler branches on the result.</li>
+<li><strong>Seed source:</strong> <code>fuzz/seed_corpus.py</code> parses every <code>test/fixtures/**/*.cap</code>
+  recording, extracts the on-the-wire byte frames, and sorts them into
+  <code>fuzz/corpus/jandy/</code> and <code>fuzz/corpus/pentair/</code> (Pentair identified by its
+  <code>FF 00 FF A5</code> preamble; everything else Jandy). It also writes a handful of
+  representative schedule/controller-schedule request bodies to
+  <code>fuzz/corpus/schedule-json/</code> (these are not from <code>.cap</code> — they seed the
+  schedule-json harness with valid structure). Files are named by SHA-1, so
+  re-running de-duplicates.</li>
+<li><strong>Not committed:</strong> <code>fuzz/corpus/</code> is git-ignored (<code>fuzz/.gitignore</code>) — it is
+  generated from the fixtures and grown by the fuzzer. Regenerate it any time with
+  the seed script.</li>
 </ul>
+<h2 id="how-fuzzing-is-tied-to-the-test-suite-rs-485-changes">How fuzzing is tied to the test suite (RS-485 changes)<a class="headerlink" href="#how-fuzzing-is-tied-to-the-test-suite-rs-485-changes" title="Permanent link">&para;</a></h2>
+<p>Fuzzing the decoders is guaranteed on any change to RS-485 processing by <strong>two
+layers</strong>, so you never have to remember to run it:</p>
+<h3 id="1-always-on-in-suite-regression-guard-every-build-every-platform">1. Always-on in-suite regression guard (every build, every platform)<a class="headerlink" href="#1-always-on-in-suite-regression-guard-every-build-every-platform" title="Permanent link">&para;</a></h3>
+<p>The unit test
+<a href="https://github.com/iainchesworth/aqualink-automate/blob/main/test/unit/fuzz/test_protocol_fuzz_smoke.cpp"><code>test/unit/fuzz/test_protocol_fuzz_smoke.cpp</code></a>
+runs in the normal test suite (<code>testaqualink-automate</code>) — so it executes on <strong>every</strong>
+<code>ctest</code>/CI run on every platform, with <strong>no Clang or fuzzing preset required</strong>. It
+drives the same decode paths with:</p>
+<ul>
+<li>the shared frame builders, asserting a built frame round-trips through the
+  factories (guards the harnesses themselves against rot),</li>
+<li>a large <strong>deterministic</strong> pseudo-random corpus of malformed frames,</li>
+<li>a sweep of <strong>every</strong> message-type / command byte at edge-length payloads, and</li>
+<li>the real recorded <code>.cap</code> wire frames.</li>
+</ul>
+<p>Because that sweep drives the message <strong>factories</strong> over the whole <code>0x00–0xFF</code>
+command space, a newly added message type is fuzzed <strong>automatically</strong> — you do not
+have to extend the test when you add a decoder. Under a debug STL
+(<code>_ITERATOR_DEBUG_LEVEL</code>, <code>_GLIBCXX_ASSERTIONS</code>) an out-of-bounds access aborts, so
+this test crashes in CI if a decoder is ever made unsafe. This is the gate that
+covers the <code>ci.yml</code> build-and-test on every PR.</p>
+<h3 id="2-coverage-guided-libfuzzer-on-decoder-touching-changes">2. Coverage-guided libFuzzer on decoder-touching changes<a class="headerlink" href="#2-coverage-guided-libfuzzer-on-decoder-touching-changes" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/iainchesworth/aqualink-automate/blob/main/.github/workflows/fuzzing.yml"><code>fuzzing.yml</code></a> runs the real libFuzzer harnesses
+on a weekly cron <strong>and</strong> on every PR whose diff touches <code>src/jandy/**</code>,
+<code>src/pentair/**</code>, <code>src/core/protocol/**</code>, <code>fuzz/**</code>, or the fuzzing scaffolding — so
+a change to how RS-485 is processed triggers an actual mutation-based fuzz run, not
+just the deterministic in-suite pass.</p>
+<p>The harnesses are also registered as <strong>CTest</strong> tests under a fuzzing preset, so a
+local fuzzing-preset test run exercises them too (bounded per <code>AQ_FUZZ_CTEST_SECONDS</code>,
+default 30s each; the corpus is auto-seeded first via a CTest fixture):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-linux-llvm-fuzzing
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>build-linux-llvm-fuzzing
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>ctest<span class="w"> </span>--preset<span class="w"> </span>test-linux-llvm-fuzzing<span class="w">        </span><span class="c1"># runs fuzz-seed-corpus + each *-fuzz test</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># or just the fuzz tests:  ctest --test-dir build/config-linux-llvm-fuzzing -L fuzz</span>
+</code></pre></div>
+<p>On a non-Clang toolchain (Windows/MSVC) the same <code>ctest</code> runs the standalone
+<strong>corpus-replay</strong> variant instead of a coverage-guided run.</p>
+<h2 id="future-targets--web--http--api-inputs">Future targets — web / HTTP / API inputs<a class="headerlink" href="#future-targets--web--http--api-inputs" title="Permanent link">&para;</a></h2>
+<p>The web/HTTP/API/WebSocket surface <strong>should</strong> be fuzzed too — it also parses
+untrusted input — but the split matters: the HTTP framing (Boost.Beast), the raw
+JSON parse (<code>nlohmann::json</code>), URL parsing (Boost.URL) and JWT decode (jwt-cpp) are
+<strong>third-party libraries that are already fuzzed upstream</strong>. The first-party value is
+in the code that turns a <em>parsed</em> request into a domain object — the validators and
+dispatchers. The same <code>ENABLE_FUZZING</code> scaffolding extends to these with a new
+harness per target; they are ranked by value × isolatability:</p>
+<p>Implemented so far (beyond the RS-485 decoders):</p>
+<ol>
+<li><strong>Schedule request bodies</strong> — ✅ <code>fuzz-schedule-json</code> (<code>Scheduling::FromJson</code> /
+   <code>ControllerScheduleFromJson</code>). This harness immediately found a real bug:
+   <code>FromJson</code> read optional fields via nlohmann <code>json.value(key, default)</code>, which
+   <strong>throws</strong> <code>type_error.302</code> on a present-but-wrong-typed field (e.g.
+   <code>{"name": 5}</code>) instead of returning <code>nullopt</code> per its contract — an uncaught
+   exception on the untrusted <code>/api/schedules</code> body. Fixed (type-safe reads,
+   matching <code>ControllerScheduleFromJson</code>) + regression tests in
+   <code>test/unit/scheduling/test_schedule.cpp</code>.</li>
+<li><strong>WebSocket message envelope</strong> — ✅ <code>fuzz-websocket-json</code>
+   (<code>WebSocket_Event::ConvertFromStringView</code>, <code>src/core/http/websocket_event.cpp</code>).</li>
+<li><strong>MQTT command payloads</strong> — ✅ <code>fuzz-mqtt-payload</code> (the pure helpers in
+   <code>src/core/mqtt/mqtt_payload_parsing.h</code>).</li>
+<li>
+<p><strong>Config file + option values</strong> — ✅ <code>fuzz-config-parse</code>. Note the config file is
+   operator-controlled (a weaker threat model than the wire/HTTP surfaces), so the
+   goal here is robustness: a malformed value must not crash startup. The custom
+   validators only throw <code>boost::program_options::error</code> (the one exception type the
+   production config path catches); this harness guards that invariant — any <em>other</em>
+   escaping exception is a real startup-crash bug.</p>
+</li>
+<li>
+<p><strong>Query string / request target</strong> — ✅ <code>fuzz-query-string</code>.</p>
+</li>
+<li><strong>JWT verify</strong> — ✅ <code>fuzz-jwt</code>. Note: with an empty key store every signature
+   check fails, so this fuzzes the jwt-cpp decode + the first-party <code>kid</code> extraction
+   and guards the "<code>Verify</code> never throws" contract; the claim-extraction path past
+   signature verification is only reachable with a validly-signed token, which a
+   mutation fuzzer cannot forge.</li>
+<li><strong><code>HH:MM:SS</code> duration</strong> — ✅ <code>fuzz-duration</code>.</li>
+<li><strong><code>.cap</code> replay parser</strong> — ✅ <code>fuzz-replay-line</code> (via the public <code>MockSerialPortImpl</code>
+   file path, since the line parser is private).</li>
+</ol>
+<p>That covers the input surfaces worth fuzzing. What remains is genuinely third-party
+and already fuzzed upstream — the Boost.Beast HTTP framing, the nlohmann JSON parser
+itself, Boost.URL, Boost.program_options' own INI tokeniser, and jwt-cpp's base64/
+decode — so a first-party harness would mostly re-test someone else's code. Add a new
+harness when a new first-party parser of untrusted input appears (a new wire message
+type is already covered automatically; a new request-body validator or inbound
+message format is not).</p>
+<h2 id="if-the-fuzzer-finds-a-crash">If the fuzzer finds a crash<a class="headerlink" href="#if-the-fuzzer-finds-a-crash" title="Permanent link">&para;</a></h2>
+<p>A crash is a <strong>real bug</strong> in an untrusted-input parser. Per the project's bug-fix
+discipline:</p>
+<ol>
+<li>Reproduce it (<code>&lt;harness&gt; crash-&lt;sha1&gt;</code>), then <strong>fix the production
+   deserialiser</strong> — bound the read, guard the length, reject the frame.</li>
+<li><strong>Never weaken the parser to silence the fuzzer</strong> (do not delete a field, widen
+   a buffer past the wire contract, or swallow the input).</li>
+<li>Add a <strong>regression test</strong> — add the crashing frame to
+   <code>test_protocol_fuzz_smoke.cpp</code> (or a targeted message test) so it fails before
+   the fix and passes after.</li>
+<li>Commit the minimised reproducer into the corpus so the fuzzer never re-explores
+   it from scratch.</li>
+</ol>
 
 
 
@@ -1994,7 +1877,7 @@ worked example.)</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../logging-sinks-redesign/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Logging sinks">
+          <a href="../platform-isolation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Platform isolation">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2004,20 +1887,20 @@ worked example.)</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Logging sinks
+                Platform isolation
               </div>
             </div>
           </a>
         
         
           
-          <a href="../fuzzing/" class="md-footer__link md-footer__link--next" aria-label="Next: Fuzzing">
+          <a href="../auth-redesign/" class="md-footer__link md-footer__link--next" aria-label="Next: Auth system design">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Fuzzing
+                Auth system design
               </div>
             </div>
             <div class="md-footer__button md-icon">

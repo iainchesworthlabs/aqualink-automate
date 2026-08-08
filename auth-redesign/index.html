@@ -15,21 +15,25 @@
         <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/auth-redesign/">
       
       
+        <link rel="prev" href="../fuzzing/">
+      
+      
+        <link rel="next" href="../schedules-design/">
       
       
         
       
       
       <link rel="icon" href="../assets/brand/favicon.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Authentication & Authorization Redesign — Scope & Design - Aqualink Automate</title>
+        <title>Auth system design - Aqualink Automate</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -59,7 +63,7 @@
 
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Authentication &amp; Authorization Redesign — Scope &amp; Design - Aqualink Automate" />
+<meta property="og:title" content="Auth system design - Aqualink Automate" />
 <meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
 <meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/auth-redesign.png" />
 <meta property="og:image:type" content="image/png" />
@@ -67,7 +71,7 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/auth-redesign/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Authentication &amp; Authorization Redesign — Scope &amp; Design - Aqualink Automate" />
+<meta property="twitter:title" content="Auth system design - Aqualink Automate" />
 <meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
 <meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/auth-redesign.png" />
 </head>
@@ -124,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Authentication &amp; Authorization Redesign — Scope &amp; Design
+              Auth system design
             
           </span>
         </div>
@@ -293,6 +297,30 @@
   
 
       
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Design & protocol notes
+
+        </a>
+      </li>
+    
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -378,6 +406,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -561,6 +593,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../homeassistant-addon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home Assistant add-on
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../homeassistant-companion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home Assistant companion package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../MATTER/" class="md-nav__link">
         
   
@@ -709,6 +797,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -982,6 +1074,625 @@
     
   
     Logging sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../platform-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fuzzing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fuzzing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design & protocol notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design & protocol notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth system design
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth system design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-goals-from-the-requester" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Goals (from the requester)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-decisions-locked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Decisions locked
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-the-three-layer-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. The three-layer model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. The three-layer model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#global-posture-d3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global posture (D3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-authorization-abac-over-entitlements-d5-d9-d10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Authorization: ABAC over entitlements (D5, D9, D10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Authorization: ABAC over entitlements (D5, D9, D10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#entitlements-the-vocabulary--v1-set-confirmed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entitlements (the vocabulary — v1 set, confirmed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subject-attributes--resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subject attributes &amp; resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policy-engine-pdp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy engine (PDP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-gating-d14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule gating (D14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enforcement-change-the-core-refactor--slice-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enforcement change (the core refactor — Slice 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-sessions--tokens-d2-d11-d15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Sessions &amp; tokens (D2, D11, D15)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-identity-providers-d1-d4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Identity providers (D1, D4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-api-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. API keys
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. API keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trust-boundary--integration-channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trust boundary — integration channels
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-preferences-global-vs-per-user-d7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Preferences: global vs per-user (D7)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-ui-surface-d6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. UI surface (D6)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-persistence-audit-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Persistence, audit, config
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Persistence, audit, config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#persistence-layout-d12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Persistence layout (D12)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#audit-d17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit (D17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-surface-newchanged-cli--config-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config surface (new/changed CLI + config keys)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-migration--back-compat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Migration &amp; back-compat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-testing-strategy--full-surface-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Testing strategy — full-surface coverage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Testing strategy — full-surface coverage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mock-idp--provider-harness-test-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mock IdP / provider harness (test-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entitlement-assertions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entitlement assertions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unit-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e2e-matrix-playwright" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E2E matrix (Playwright)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-surface-control-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full-surface control matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docs-to-update-per-claudemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docs to update (per CLAUDE.md)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-slices-delivery-units--d19-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Slices (delivery units — D19 order)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-decision-log--resolved--remaining" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Decision log — resolved &amp; remaining
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schedules-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schedules design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../iaq_schedule_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    iAQ schedule protocol
   
 
     
@@ -1891,6 +2602,44 @@ SW no-cache-auth rule (§9), OIDC v1 bounds (§6), backup guidance (§11).</p>
         <footer class="md-footer">
   
     
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../fuzzing/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Fuzzing">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Fuzzing
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../schedules-design/" class="md-footer__link md-footer__link--next" aria-label="Next: Schedules design">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Schedules design
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -1922,7 +2671,7 @@ SW no-cache-auth rule (§9), OIDC v1 bounds (§6), backup guidance (§11).</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "navigation.indexes", "toc.follow", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight", "search.share"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

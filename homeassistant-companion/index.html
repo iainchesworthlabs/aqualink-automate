@@ -12,13 +12,13 @@
         <meta name="author" content="Iain Chesworth">
       
       
-        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/profiling/">
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/homeassistant-companion/">
       
       
-        <link rel="prev" href="../RECORD_REPLAY/">
+        <link rel="prev" href="../homeassistant-addon/">
       
       
-        <link rel="next" href="../logging-sinks-redesign/">
+        <link rel="next" href="../MATTER/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Profiling - Aqualink Automate</title>
+        <title>Home Assistant companion package - Aqualink Automate</title>
       
     
     
@@ -63,17 +63,17 @@
 
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Profiling - Aqualink Automate" />
+<meta property="og:title" content="Home Assistant companion package - Aqualink Automate" />
 <meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/profiling.png" />
+<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/homeassistant-companion.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/profiling/" />
+<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/homeassistant-companion/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Profiling - Aqualink Automate" />
+<meta property="twitter:title" content="Home Assistant companion package - Aqualink Automate" />
 <meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/profiling.png" />
+<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/homeassistant-companion.png" />
 </head>
   
   
@@ -93,7 +93,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#performance-profiling" class="md-skip">
+        <a href="#home-assistant-companion-package" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Profiling
+              Home Assistant companion package
             
           </span>
         </div>
@@ -257,10 +257,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../INSTALL/" class="md-tabs__link">
           
   
@@ -279,12 +281,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../CONTRIBUTING/" class="md-tabs__link">
           
   
@@ -402,8 +402,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -433,19 +435,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -463,7 +468,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -618,10 +623,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../homeassistant-companion/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home Assistant companion package
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -637,6 +669,126 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#blueprints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blueprints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Blueprints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#script-blueprint-activity-scene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Script blueprint: activity scene
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#helpers-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helpers package
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dashboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#showcase-dashboard-optional-needs-hacs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Showcase dashboard (optional, needs HACS)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#add-on-auto-install-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add-on auto-install (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#customisation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Customisation notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-the-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting the files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -793,10 +945,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -824,22 +974,19 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -857,7 +1004,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1040,37 +1187,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiling
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
         
   
   
@@ -1086,120 +1206,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#building-a-profiling-enabled-binary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Building a profiling-enabled binary
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Building a profiling-enabled binary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#network-hardened-diagnostic-preset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Network-hardened "diagnostic" preset
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#selecting-a-backend-at-runtime" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selecting a backend at runtime
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#runtime-control-surface" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Runtime control surface
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-instrumented" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is instrumented
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tracy-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tracy workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#vtune-workflow-incl-amd-hosts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        VTune workflow (incl. AMD hosts)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#uprof-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        uProf workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1474,22 +1480,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#building-a-profiling-enabled-binary" class="md-nav__link">
+  <a href="#blueprints" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Building a profiling-enabled binary
+        Blueprints
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Building a profiling-enabled binary">
+    <nav class="md-nav" aria-label="Blueprints">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#network-hardened-diagnostic-preset" class="md-nav__link">
+  <a href="#script-blueprint-activity-scene" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Network-hardened "diagnostic" preset
+        Script blueprint: activity scene
       
     </span>
   </a>
@@ -1502,10 +1508,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#selecting-a-backend-at-runtime" class="md-nav__link">
+  <a href="#helpers-package" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Selecting a backend at runtime
+        Helpers package
       
     </span>
   </a>
@@ -1513,10 +1519,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#runtime-control-surface" class="md-nav__link">
+  <a href="#dashboard" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Runtime control surface
+        Dashboard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dashboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#showcase-dashboard-optional-needs-hacs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Showcase dashboard (optional, needs HACS)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#add-on-auto-install-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add-on auto-install (optional)
       
     </span>
   </a>
@@ -1524,10 +1558,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-instrumented" class="md-nav__link">
+  <a href="#customisation-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is instrumented
+        Customisation notes
       
     </span>
   </a>
@@ -1535,32 +1569,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tracy-workflow" class="md-nav__link">
+  <a href="#getting-the-files" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tracy workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#vtune-workflow-incl-amd-hosts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        VTune workflow (incl. AMD hosts)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#uprof-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        uProf workflow
+        Getting the files
       
     </span>
   </a>
@@ -1586,7 +1598,7 @@
 
 
   
-    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/profiling.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/homeassistant-companion.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1594,168 +1606,213 @@
   
 
 
-<h1 id="performance-profiling">Performance Profiling<a class="headerlink" href="#performance-profiling" title="Permanent link">&para;</a></h1>
-<p>Aqualink-Automate ships a single profiling facade with three interchangeable
-backends:</p>
+<h1 id="home-assistant-companion-package">Home Assistant companion package<a class="headerlink" href="#home-assistant-companion-package" title="Permanent link">&para;</a></h1>
+<p>Ready-made Home Assistant content that works out of the box with aqualink-automate:
+a pool dashboard, a set of alert and self-healing automation <strong>blueprints</strong>, and a
+<strong>helpers package</strong> they build on. It lives in the repository under
+<a href="https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion"><code>homeassistant/companion/</code></a>
+and ships with every release as <code>aqualink-automate-homeassistant-companion-&lt;version&gt;.zip</code>.</p>
+<p><strong>Prerequisites:</strong> aqualink-automate running with MQTT and Home Assistant discovery
+enabled — <code>--mqtt --home-assistant</code> (see <a href="../mqtt-home-assistant/">MQTT &amp; Home Assistant</a>),
+or the <a href="../homeassistant-addon/">Home Assistant add-on</a>, which enables discovery by
+default. Once discovery runs, Home Assistant shows an <strong>aqualink-automate</strong> device
+under Settings → Devices &amp; Services → MQTT.</p>
+<div class="admonition note">
+<p class="admonition-title">Why the entity ids just work</p>
+<p>Home Assistant derives entity ids from the discovery device name, which
+aqualink-automate fixes as <code>aqualink-automate</code> — so ids like
+<code>sensor.aqualink_automate_pool_temperature</code> are <strong>identical on every install</strong>
+and everything below works unedited. The only install-specific entities are
+your panel's own devices (pumps, aux circuits, chlorinator, heaters), whose
+ids follow your panel labels; the companion content asks for those via
+blueprint inputs or clearly marked placeholders.</p>
+</div>
+<h2 id="blueprints">Blueprints<a class="headerlink" href="#blueprints" title="Permanent link">&para;</a></h2>
+<p>Each blueprint carries the same hygiene scaffold: quiet hours (via the helpers
+package), a minimum interval between notifications, guards against
+<code>unknown</code>/<code>unavailable</code> sensors, and actionable message content. Import with the
+buttons below (Home Assistant fetches the blueprint straight from this repository's
+<code>main</code> branch — re-import later to pick up fixes), then create an automation from
+it under <strong>Settings → Automations &amp; scenes → Blueprints</strong>.</p>
 <table>
 <thead>
 <tr>
-<th>Backend</th>
-<th>Vendor</th>
-<th>How it's found</th>
-<th>What it gives you</th>
+<th>Blueprint</th>
+<th>What it does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Tracy</strong></td>
-<td>open source</td>
-<td>vcpkg port <code>tracy</code> (always available in a profiling build)</td>
-<td>live frame/zone/plot timeline, memory tracking, connect-on-demand</td>
+<td><strong>Salt level low</strong></td>
+<td>Below-target salt sends a notification that includes roughly <strong>how many kg of salt to add</strong>, computed from the ppm deficit and your pool volume.</td>
 </tr>
 <tr>
-<td><strong>Intel VTune</strong> (ITT)</td>
-<td>Intel</td>
-<td><code>find_package(VTune)</code> → <code>ittnotify.h</code> + <code>libittnotify</code></td>
-<td>ITT tasks (zones), frames, counters (plots), markers; full hotspot sampling on Intel CPUs</td>
+<td><strong>Equipment problem</strong></td>
+<td>Any of the app's six problem sensors (chlorinator fault/warning, salt low, service mode, serial comms loss, stale temperatures) raises a notification; optionally notifies on clear.</td>
 </tr>
 <tr>
-<td><strong>AMD uProf</strong></td>
-<td>AMD</td>
-<td><code>find_package(UProf)</code> → <code>AMDProfileController.h</code> (+ optional <code>AMDTActivityLogger.h</code>)</td>
-<td>resume/pause control; ActivityLogger markers for zones/events when the component is present</td>
+<td><strong>App offline</strong></td>
+<td>The app stopping publishing (crash, broker loss, host down) notifies after a grace period; optionally notifies on recovery.</td>
+</tr>
+<tr>
+<td><strong>Pump runtime shortfall</strong></td>
+<td>A daily check compares filtration hours against your target — advisory, or (opt-in) turns the pump back on and tells you it did.</td>
+</tr>
+<tr>
+<td><strong>Chlorinator self-heal</strong></td>
+<td>Pump running in your chosen window but chlorinator off → turns it back on (optionally only while ORP is low) and notifies.</td>
+</tr>
+<tr>
+<td><strong>Swim ready</strong></td>
+<td>The water warming past your swim temperature sends a "pool is ready" note.</td>
+</tr>
+<tr>
+<td><strong>Freeze advisory</strong></td>
+<td>Air temperature at the pad dropping to freeze risk sends an advisory (deliberately ignores quiet hours).</td>
+</tr>
+<tr>
+<td><strong>Spa ready</strong></td>
+<td>The spa reaching its setpoint sends a "spa is ready" note — reads the <em>Spa readiness</em> helper sensor below.</td>
+</tr>
+<tr>
+<td><strong>Activity scene auto-off</strong></td>
+<td>Pairs with the <em>Activity scene</em> script (below): when its duration timer finishes, turns everything the scene started back off.</td>
 </tr>
 </tbody>
 </table>
-<p>All instrumentation goes through two factories (see the <code>backend-observability</code>
-skill for the call-site conventions):</p>
+<p><a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fsalt-level-low.yaml">Import: Salt level low</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fequipment-problem.yaml">Import: Equipment problem</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fapp-offline.yaml">Import: App offline</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fpump-runtime-shortfall.yaml">Import: Pump runtime shortfall</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fchlorinator-self-heal.yaml">Import: Chlorinator self-heal</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fswim-ready.yaml">Import: Swim ready</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Ffreeze-advisory.yaml">Import: Freeze advisory</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fspa-ready.yaml">Import: Spa ready</a>
+<a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Factivity-scene-autooff.yaml">Import: Activity scene auto-off</a></p>
+<p>No My-Home-Assistant? Copy the files from
+<code>homeassistant/companion/blueprints/automation/aqualink-automate/</code> into
+<code>&lt;config&gt;/blueprints/automation/aqualink-automate/</code> and reload automations.</p>
+<h3 id="script-blueprint-activity-scene">Script blueprint: activity scene<a class="headerlink" href="#script-blueprint-activity-scene" title="Permanent link">&para;</a></h3>
+<p>Unlike the alert blueprints above, <strong>Activity scene</strong> is a <em>script</em> blueprint —
+a reusable start/stop scene (swim, spa, jet pool, whatever you like) for any
+switches you point it at, with an optional duration timer and dark-only extra
+lighting. Create one script instance per activity under <strong>Settings →
+Automations &amp; scenes → Blueprints</strong> (it'll ask you to create an <code>input_boolean</code>
+helper first, if you don't already have one to track that activity). A
+dashboard tile's tap action toggles it; its hold action can call the same
+script with <code>turn_off</code> to force it off. Pair each instance that uses a
+duration timer with an <strong>Activity scene auto-off</strong> automation (above) pointed
+at the same timer and script, so running out turns everything off
+automatically.</p>
+<p><a class="md-button" href="https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fscript%2Faqualink-automate%2Factivity-scene.yaml">Import: Activity scene (script)</a></p>
+<p>No My-Home-Assistant? Copy the file from
+<code>homeassistant/companion/blueprints/script/aqualink-automate/</code> into
+<code>&lt;config&gt;/blueprints/script/aqualink-automate/</code> and reload scripts.</p>
+<h2 id="helpers-package">Helpers package<a class="headerlink" href="#helpers-package" title="Permanent link">&para;</a></h2>
+<p><a href="https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/packages/aqualink_automate.yaml"><code>packages/aqualink_automate.yaml</code></a>
+provides what the blueprints and dashboard expect:</p>
 <ul>
-<li><strong>Call-site API</strong> — <code>Factory::ProfilingUnitFactory::Instance().CreateZone/CreateFrame/CreateDomain</code>.</li>
-<li><strong>Process API</strong> — <code>Factory::ProfilerFactory::Instance().Get()-&gt;{PlotValue,Message,EmitFrameMark,AppInfo,SetThreadName,Resume,Pause}</code>.</li>
+<li><code>input_datetime.aqualink_quiet_hours_start</code> / <code>_end</code> — the shared no-notification
+  window (set your times once under Settings → Devices &amp; Services → Helpers; a
+  window wrapping midnight works).</li>
+<li><code>input_number.aqualink_pool_volume</code>, <code>input_number.aqualink_target_salt_ppm</code>,
+  <code>input_number.aqualink_pump_runtime_target</code> — pool volume (litres), the salt
+  level you top up towards, and your daily filtration goal.</li>
+<li><code>sensor.aqualink_salt_to_add</code> — kilograms of salt to reach the target
+  (<code>deficit_ppm × volume_L ÷ 1 000 000</code>).</li>
+<li><code>sensor.aqualink_pool_temperature_delta_today</code> — how much the water has warmed
+  since midnight (with a restart-safe midnight baseline sensor behind it).</li>
+<li><code>sensor.aqualink_spa_readiness</code> — <code>Off</code> / <code>Warming Up</code> / <code>Ready</code>, with
+  <code>current_temperature</code>, <code>target_temperature</code>, and a <code>percent_ready</code> attribute
+  measuring progress from the temperature captured when spa mode last turned on.
+  Feeds the <strong>Spa ready</strong> blueprint above.</li>
+<li>Commented <code>history_stats</code> recipes for pump-runtime / heater-heating-time
+  counters — these reference your panel's own device entities, so uncomment and
+  point them at yours.</li>
 </ul>
-<p>When profiling is compiled out, or no backend is selected, both factories return
-no-op objects — every call site stays valid and costs effectively nothing.</p>
-<h2 id="building-a-profiling-enabled-binary">Building a profiling-enabled binary<a class="headerlink" href="#building-a-profiling-enabled-binary" title="Permanent link">&para;</a></h2>
-<p>Profiling is <strong>off</strong> in the default <code>release</code>/<code>debug</code> presets (the shipped
-binary carries no profiler hooks). Use a dedicated profiling preset:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-windows-msvc-profiling<span class="w">      </span><span class="c1"># or -linux-gcc-/-linux-llvm-/-windows-llvm-/-macos-llvm-</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cmake<span class="w"> </span>--build<span class="w">  </span>build/config-windows-msvc-profiling<span class="w"> </span>--target<span class="w"> </span>aqualink-automate
+<p>Install: enable <a href="https://www.home-assistant.io/docs/configuration/packages/">packages</a>
+once in <code>configuration.yaml</code>, drop the file into <code>&lt;config&gt;/packages/</code>, and restart:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">homeassistant</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">packages</span><span class="p">:</span><span class="w"> </span><span class="kt">!include_dir_named</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">packages</span>
 </code></pre></div>
-<p>These presets set <code>ENABLE_PROFILING=ON</code>, build <code>RelWithDebInfo</code> (optimised +
-symbols — the right shape for a profiler) and force sanitizers off
-(<code>ENABLE_PROFILING</code> and <code>ENABLE_SANITIZERS</code> are mutually exclusive — a
-configure-time <code>FATAL_ERROR</code>). To flip profiling on for an existing build tree
-instead, reconfigure any preset with <code>-DENABLE_PROFILING=ON</code>.</p>
-<h3 id="network-hardened-diagnostic-preset">Network-hardened "diagnostic" preset<a class="headerlink" href="#network-hardened-diagnostic-preset" title="Permanent link">&para;</a></h3>
-<p>A profiling build links the Tracy client, whose server thread <strong>listens on a TCP
-data port and answers UDP discovery broadcasts</strong> — i.e. it opens a profiler
-endpoint reachable from the LAN, independent of <code>--profiler</code>. For a shipped
-beta / field-diagnostic build that should be permanently attachable but <strong>not</strong>
-LAN-exposed, use the <code>*-diagnostic</code> presets instead
-(<code>config-windows-msvc-diagnostic</code>, <code>-linux-gcc-</code>, …):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-windows-msvc-diagnostic
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cmake<span class="w"> </span>--build<span class="w">  </span>build/config-windows-msvc-diagnostic<span class="w"> </span>--target<span class="w"> </span>aqualink-automate
-</code></pre></div>
-<p>These are identical to the <code>*-profiling</code> presets except they build via a
-<code>*-diagnostic</code> vcpkg triplet (<code>cmake/vcpkg/triplets/*-diagnostic.cmake</code>) that
-compiles the Tracy client with <strong><code>TRACY_ONLY_LOCALHOST</code></strong> (the TCP data port
-binds to loopback only — <code>TracySocket.cpp</code> skips <code>AI_PASSIVE</code>) and
-<strong><code>TRACY_NO_BROADCAST</code></strong> (no UDP discovery beacon at all). These are compile-time
-Tracy macros, <strong>not</strong> runtime env vars, so they must be baked into the prebuilt
-TracyClient via the triplet — they cannot be enabled by the application or a
-<code>-D</code> on our own target. A profiler then connects only over loopback (e.g. an
-SSH tunnel: <code>ssh -L 8086:127.0.0.1:8086 host</code>).</p>
-<p>Trade-off: the distinct triplet changes the vcpkg ABI, so the first configure
-with a <code>*-diagnostic</code> preset rebuilds the dependency set into its own installed
-tree. The always-on memory-hook cost (below) still applies — this is a
-deliberate diagnostic build, not a default release.</p>
-<p><strong>Tracy</strong> needs nothing extra. <strong>VTune</strong> and <strong>uProf</strong> are compiled in only when
-their SDKs are found:</p>
+<p>The blueprints' quiet-hours/target inputs default to these helpers, and the
+dashboard's "Salt to add" / "Warmed today" tiles appear automatically once the
+package is installed. Everything still works without it — pick different entities
+at blueprint-import time instead.</p>
+<h2 id="dashboard">Dashboard<a class="headerlink" href="#dashboard" title="Permanent link">&para;</a></h2>
+<p><a href="https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool.yaml"><code>dashboards/aqualink-pool.yaml</code></a>
+is a two-view pool dashboard (Overview + Trends) built <strong>only from stock cards</strong> —
+no HACS or custom cards required. Water temperatures and setpoints, body switching
+on dual-body systems, chemistry, a self-hiding alerts section, and history/statistics
+graphs. Cards for entities your system doesn't publish (e.g. spa entities on a
+pool-only panel) hide themselves.</p>
+<p>Install: <strong>Settings → Dashboards → Add dashboard → Start from scratch</strong>, open it,
+enter edit mode, open the three-dot menu → <strong>Raw configuration editor</strong>, and replace
+the content with the file. Then personalise the <em>Equipment</em> section with your
+panel's own switches (commented examples are in the file). Alternatively register
+it as a <a href="https://www.home-assistant.io/dashboards/dashboards-and-views/">YAML-mode dashboard</a>
+pointing at the file.</p>
+<h3 id="showcase-dashboard-optional-needs-hacs">Showcase dashboard (optional, needs HACS)<a class="headerlink" href="#showcase-dashboard-optional-needs-hacs" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool-showcase.yaml"><code>dashboards/aqualink-pool-showcase.yaml</code></a>
+is a more polished alternative demonstrating what's possible with a few popular
+HACS custom cards — <a href="https://github.com/custom-cards/button-card">button-card</a>,
+<a href="https://github.com/thomasloven/lovelace-card-mod">card-mod</a>,
+<a href="https://github.com/thomasloven/lovelace-layout-card">layout-card</a>,
+<a href="https://github.com/piitaya/lovelace-mushroom">lovelace-mushroom</a>, and
+<a href="https://github.com/custom-cards/bar-card">bar-card</a>. It's not a drop-in
+replacement for the stock dashboard above — install those five via HACS first,
+then follow the same install steps. Like the stock dashboard, it uses only
+entities the app and the helpers package publish, with commented sections for
+your own equipment and any <em>Activity scene</em> instances.</p>
+<h2 id="add-on-auto-install-optional">Add-on auto-install (optional)<a class="headerlink" href="#add-on-auto-install-optional" title="Permanent link">&para;</a></h2>
+<p>Running the <a href="../homeassistant-addon/">Home Assistant add-on</a>? Its
+<strong><code>install_companion_package</code></strong> option (off by default) copies the bundled
+blueprints straight into Home Assistant's <code>blueprints/</code> folder on every start,
+so they appear under <strong>Settings → Automations &amp; Scenes → Blueprints</strong> with no
+import step. It requests a read-write view of Home Assistant's own
+configuration directory to do this — broader than anything else the add-on
+asks for — so it stays opt-in, and it only ever adds or updates files under
+<code>blueprints/</code>; it never touches <code>configuration.yaml</code> or anything else in your
+config. See the <a href="../homeassistant-addon/#configuration">Home Assistant add-on's Configuration
+section</a> for details.</p>
+<h2 id="customisation-notes">Customisation notes<a class="headerlink" href="#customisation-notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Intel VTune: install the standalone VTune Profiler or the oneAPI Base Toolkit,
-  or point <code>VTUNE_PROFILER_DIR</code> at it (the finder also checks the default
-  <code>C:\Program Files (x86)\Intel\oneAPI\vtune\latest</code> and <code>/opt/intel/oneapi/vtune/latest</code>).</li>
-<li>AMD uProf: install AMD uProf, or point <code>AMD_UPROF_SDK_PATH</code> at it (default
-  <code>C:\Program Files\AMD\AMDuProf</code> / <code>/opt/AMDuProf_*</code>). The ActivityLogger
-  component (zones/markers) is optional; without it uProf still provides
-  resume/pause control.</li>
+<li><strong>Fahrenheit panels</strong>: temperature <em>sensors</em> convert automatically to your Home
+  Assistant unit system; blueprint temperature thresholds are plain numbers in
+  <strong>your display unit</strong>, so just enter °F values there.</li>
+<li><strong>Renamed entities</strong>: if you've renamed the app's entities, override the
+  blueprint defaults at import time and adjust the dashboard/package references
+  to match.</li>
+<li><strong>Multiple installs</strong>: a second aqualink-automate instance gets <code>_2</code>-suffixed
+  entity ids from Home Assistant; point a second copy of the content at those.</li>
+<li>The full machine-readable list of the app's fixed entity ids is
+  <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/entity-manifest.json"><code>entity-manifest.json</code></a>
+  — CI validates the companion content against it, and a unit test keeps it in
+  lock-step with the discovery code, so it is always current for your release.</li>
 </ul>
-<p>The configure output prints whether each backend was found; the chosen backend
-is also logged at startup (see the warning below).</p>
-<h2 id="selecting-a-backend-at-runtime">Selecting a backend at runtime<a class="headerlink" href="#selecting-a-backend-at-runtime" title="Permanent link">&para;</a></h2>
-<p>Pass <code>--profiler tracy|uprof|vtune</code> (case-insensitive). The selector is applied
-<em>after</em> options are parsed, then capture is started and the trace is stamped
-with the version string and the main thread name.</p>
-<p>If you request a backend that was <strong>not</strong> compiled into this build, a warning is
-logged on the <code>Profiling</code> channel and profiling stays disabled (it does not fall
-back to a different backend):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[Profiling] Requested profiler &#39;VTune&#39; is not available in this build; profiling is disabled. Compiled-in backends: [Tracy]
-</code></pre></div>
-<h2 id="runtime-control-surface">Runtime control surface<a class="headerlink" href="#runtime-control-surface" title="Permanent link">&para;</a></h2>
-<p><code>GET/POST /api/diagnostics/profiling</code> (and the <strong>Profiling</strong> card on the
-Diagnostics page) report and control the profiler at runtime:</p>
+<h2 id="getting-the-files">Getting the files<a class="headerlink" href="#getting-the-files" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>GET</code> → <code>{ "enabled": bool, "running": bool, "backend": "tracy", "available": ["tracy","vtune"] }</code></li>
-<li><code>POST {"action":"start"}</code> / <code>{"action":"stop"}</code> → resume / pause capture</li>
-<li><code>POST {"action":"select","backend":"vtune"}</code> → switch the active backend (only backends compiled in)</li>
-</ul>
-<p><code>enabled</code> reflects whether any backend was compiled in; <code>running</code> reflects
-resumed-vs-paused. Pause/resume map to each backend's native gating
-(<code>__itt_pause</code>/<code>__itt_resume</code> for VTune, <code>amdProfilePause</code>/<code>amdProfileResume</code> for
-uProf); Tracy is client-driven so they are no-ops for it.</p>
-<h2 id="what-is-instrumented">What is instrumented<a class="headerlink" href="#what-is-instrumented" title="Permanent link">&para;</a></h2>
+<li>
+<p><strong>Your running instance</strong> — every install serves its own copy under <code>/homeassistant/</code>
+  on the app's web port (through Home Assistant ingress on the add-on), matching the
+  exact version you're running and requiring no internet access to GitHub:</p>
 <ul>
-<li><strong>Main loop</strong> — one <code>MainLoop</code> frame mark per iteration, with the iteration
-  decomposed into zones: <code>main -&gt; io_poll</code>, <code>-&gt; protocol_poll</code>, <code>-&gt; watchdogs</code>,
-  <code>-&gt; http_poll</code>, <code>-&gt; https_poll</code>, <code>-&gt; mqtt_poll</code>, <code>-&gt; io_poll_drain</code>. The
-  per-frame Asio handler count is plotted as <code>Main Loop Handlers</code>.</li>
-<li><strong>Protocol / serial</strong> — <code>ProtocolTask::Poll</code>, read/write primitives, the Jandy
-  message generator phases, and many serial-port operations; plots for serial
-  bytes, queue depth, parse/error counters, message-processing time.</li>
-<li><strong>Devices</strong> — every Jandy/Pentair device message-slot handler.</li>
-<li><strong>Navigation</strong> — <code>Navigator::OnPageUpdate</code>/<code>ComputePath</code>,
-  <code>MenuModel::DetectPage</code>/<code>FindPath</code>, <code>SpiderEngine::ProcessStep</code>.</li>
-<li><strong>State hubs</strong> — <code>DataHub::EmitTemperatureEvent</code>/<code>EmitChemistryEvent</code> (the
-  signals2 listener fan-out), <code>EquipmentHub::AddEquipment</code>/<code>AddDevice</code>, plus
-  temperature/chemistry/<code>Active Devices</code> plots.</li>
-<li><strong>Web / MQTT</strong> — HTTP route handlers, JSON generation, MQTT hub publish paths,
-  connection/queue plots.</li>
+<li><code>/homeassistant/blueprints/automation/aqualink-automate/&lt;name&gt;.yaml</code> — the nine automation blueprints</li>
+<li><code>/homeassistant/blueprints/script/aqualink-automate/activity-scene.yaml</code> — the script blueprint</li>
+<li><code>/homeassistant/packages/aqualink_automate.yaml</code> — the helpers package</li>
+<li><code>/homeassistant/dashboards/aqualink-pool.yaml</code>, <code>/homeassistant/dashboards/aqualink-pool-showcase.yaml</code> — the two dashboards</li>
+<li><code>/homeassistant/entity-manifest.json</code>, <code>/homeassistant/README.md</code></li>
 </ul>
-<h2 id="tracy-workflow">Tracy workflow<a class="headerlink" href="#tracy-workflow" title="Permanent link">&para;</a></h2>
-<p>The Tracy <strong>server tools</strong> (the <code>tracy-profiler</code> GUI plus the <code>tracy-capture</code> /
-<code>tracy-csvexport</code> / <code>tracy-import-*</code> CLIs) are a developer-side dependency and
-are <strong>not</strong> part of the build — the application only links the Tracy <em>client</em>
-(via the vcpkg <code>tracy</code> port). Download the matching prebuilt Windows tools from
-the upstream release that matches the client version — for the pinned
-<strong>v0.13.1</strong>, <a href="https://github.com/wolfpld/tracy/releases/tag/v0.13.1">https://github.com/wolfpld/tracy/releases/tag/v0.13.1</a> — or build
-them from that tag, and put them anywhere on your <code>PATH</code>. They were previously
-committed under <code>cmake/tools/tracy-0.13.1/</code>; that copy was removed (unauditable
-committed binaries), so fetch your own and keep it in step with the port version
-above.</p>
-<ol>
-<li>Build &amp; run a profiling binary with <code>--profiler tracy</code>.</li>
-<li>Open the Tracy profiler GUI and connect (the client streams on demand — the
-   vcpkg port uses the <code>on-demand</code> feature, so capture begins when the GUI
-   attaches).</li>
-<li>Frames appear under <code>MainLoop</code>; expand a frame to see the per-subsystem
-   zones; plots show the queue depths / counters listed above. Memory allocation
-   tracking is wired via global <code>operator new</code>/<code>delete</code> overrides.</li>
-</ol>
-<h2 id="vtune-workflow-incl-amd-hosts">VTune workflow (incl. AMD hosts)<a class="headerlink" href="#vtune-workflow-incl-amd-hosts" title="Permanent link">&para;</a></h2>
-<p>The ITT instrumentation API (tasks/frames/counters/markers) is <strong>CPU-agnostic</strong>
-and is collected in VTune's software/user-mode collection, so it works on AMD
-CPUs too — only PMU <strong>hardware-event sampling</strong> requires an Intel CPU.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># software-mode collection that captures the ITT API timeline</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>vtune<span class="w"> </span>-collect<span class="w"> </span>hotspots<span class="w"> </span>-knob<span class="w"> </span>sampling-mode<span class="o">=</span>sw<span class="w"> </span>--<span class="w"> </span>./aqualink-automate<span class="w"> </span>--profiler<span class="w"> </span>vtune<span class="w"> </span>...
-</code></pre></div>
-<p>Open the result in <code>vtune-gui</code>; the <code>AqualinkAutomate</code> ITT domain shows the
-zones (tasks), the <code>MainLoop</code> frames, and the counters from <code>PlotValue</code>.</p>
-<h2 id="uprof-workflow">uProf workflow<a class="headerlink" href="#uprof-workflow" title="Permanent link">&para;</a></h2>
-<p>Build with the uProf SDK present and run with <code>--profiler uprof</code>. uProf controls
-collection via resume/pause (<code>amdProfileResume</code>/<code>amdProfilePause</code>), driven at
-startup and by the runtime control surface above. When the ActivityLogger
-component is installed, zones and events also appear as markers; otherwise uProf
-provides sampling with resume/pause gating only.</p>
+<p>Handy for air-gapped or LAN-only installs: download from your own instance and
+paste into Home Assistant's raw configuration editor or <code>blueprints/automation/</code>
+folder — no My-Home-Assistant redirect or GitHub reachability required.
+- <strong>Repository</strong> (tracks <code>main</code>): <a href="https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion"><code>homeassistant/companion/</code></a>
+- <strong>Release bundle</strong> (version-pinned, GPG-signed and attested like every other
+  release artifact): <code>aqualink-automate-homeassistant-companion-&lt;version&gt;.zip</code> on
+  the <a href="https://github.com/iainchesworth/aqualink-automate/releases">releases page</a> —
+  see <a href="../releasing/">Releasing</a> for signature verification.</p>
+</li>
+</ul>
 
 
 
@@ -1794,7 +1851,7 @@ provides sampling with resume/pause gating only.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../RECORD_REPLAY/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Record / replay">
+          <a href="../homeassistant-addon/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Home Assistant add-on">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1804,20 +1861,20 @@ provides sampling with resume/pause gating only.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Record / replay
+                Home Assistant add-on
               </div>
             </div>
           </a>
         
         
           
-          <a href="../logging-sinks-redesign/" class="md-footer__link md-footer__link--next" aria-label="Next: Logging sinks">
+          <a href="../MATTER/" class="md-footer__link md-footer__link--next" aria-label="Next: Matter (smart home)">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Logging sinks
+                Matter (smart home)
               </div>
             </div>
             <div class="md-footer__button md-icon">

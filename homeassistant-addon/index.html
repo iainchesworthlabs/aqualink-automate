@@ -12,13 +12,13 @@
         <meta name="author" content="Iain Chesworth">
       
       
-        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/profiling/">
+        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/homeassistant-addon/">
       
       
-        <link rel="prev" href="../RECORD_REPLAY/">
+        <link rel="prev" href="../mqtt-home-assistant/">
       
       
-        <link rel="next" href="../logging-sinks-redesign/">
+        <link rel="next" href="../homeassistant-companion/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Profiling - Aqualink Automate</title>
+        <title>Home Assistant add-on - Aqualink Automate</title>
       
     
     
@@ -63,17 +63,17 @@
 
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Profiling - Aqualink Automate" />
+<meta property="og:title" content="Home Assistant add-on - Aqualink Automate" />
 <meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/profiling.png" />
+<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/homeassistant-addon.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/profiling/" />
+<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/homeassistant-addon/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Profiling - Aqualink Automate" />
+<meta property="twitter:title" content="Home Assistant add-on - Aqualink Automate" />
 <meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/profiling.png" />
+<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/homeassistant-addon.png" />
 </head>
   
   
@@ -93,7 +93,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#performance-profiling" class="md-skip">
+        <a href="#running-as-a-home-assistant-add-on" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Profiling
+              Home Assistant add-on
             
           </span>
         </div>
@@ -257,10 +257,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../INSTALL/" class="md-tabs__link">
           
   
@@ -279,12 +281,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../CONTRIBUTING/" class="md-tabs__link">
           
   
@@ -402,8 +402,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -433,19 +435,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -463,7 +468,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -590,10 +595,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../homeassistant-addon/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home Assistant add-on
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -609,6 +641,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements-and-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements and scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -793,10 +900,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -824,22 +929,19 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -857,7 +959,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1040,37 +1142,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiling
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
         
   
   
@@ -1086,120 +1161,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#building-a-profiling-enabled-binary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Building a profiling-enabled binary
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Building a profiling-enabled binary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#network-hardened-diagnostic-preset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Network-hardened "diagnostic" preset
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#selecting-a-backend-at-runtime" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selecting a backend at runtime
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#runtime-control-surface" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Runtime control surface
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-instrumented" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is instrumented
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tracy-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tracy workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#vtune-workflow-incl-amd-hosts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        VTune workflow (incl. AMD hosts)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#uprof-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        uProf workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1474,38 +1435,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#building-a-profiling-enabled-binary" class="md-nav__link">
+  <a href="#what-this-is" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Building a profiling-enabled binary
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Building a profiling-enabled binary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#network-hardened-diagnostic-preset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Network-hardened "diagnostic" preset
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#selecting-a-backend-at-runtime" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selecting a backend at runtime
+        What this is
       
     </span>
   </a>
@@ -1513,10 +1446,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#runtime-control-surface" class="md-nav__link">
+  <a href="#requirements-and-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Runtime control surface
+        Requirements and scope
       
     </span>
   </a>
@@ -1524,10 +1457,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-instrumented" class="md-nav__link">
+  <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is instrumented
+        Install
       
     </span>
   </a>
@@ -1535,10 +1468,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tracy-workflow" class="md-nav__link">
+  <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tracy workflow
+        Configuration
       
     </span>
   </a>
@@ -1546,21 +1479,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#vtune-workflow-incl-amd-hosts" class="md-nav__link">
+  <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        VTune workflow (incl. AMD hosts)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#uprof-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        uProf workflow
+        Notes
       
     </span>
   </a>
@@ -1586,7 +1508,7 @@
 
 
   
-    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/profiling.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/homeassistant-addon.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1594,168 +1516,95 @@
   
 
 
-<h1 id="performance-profiling">Performance Profiling<a class="headerlink" href="#performance-profiling" title="Permanent link">&para;</a></h1>
-<p>Aqualink-Automate ships a single profiling facade with three interchangeable
-backends:</p>
-<table>
-<thead>
-<tr>
-<th>Backend</th>
-<th>Vendor</th>
-<th>How it's found</th>
-<th>What it gives you</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Tracy</strong></td>
-<td>open source</td>
-<td>vcpkg port <code>tracy</code> (always available in a profiling build)</td>
-<td>live frame/zone/plot timeline, memory tracking, connect-on-demand</td>
-</tr>
-<tr>
-<td><strong>Intel VTune</strong> (ITT)</td>
-<td>Intel</td>
-<td><code>find_package(VTune)</code> → <code>ittnotify.h</code> + <code>libittnotify</code></td>
-<td>ITT tasks (zones), frames, counters (plots), markers; full hotspot sampling on Intel CPUs</td>
-</tr>
-<tr>
-<td><strong>AMD uProf</strong></td>
-<td>AMD</td>
-<td><code>find_package(UProf)</code> → <code>AMDProfileController.h</code> (+ optional <code>AMDTActivityLogger.h</code>)</td>
-<td>resume/pause control; ActivityLogger markers for zones/events when the component is present</td>
-</tr>
-</tbody>
-</table>
-<p>All instrumentation goes through two factories (see the <code>backend-observability</code>
-skill for the call-site conventions):</p>
+<h1 id="running-as-a-home-assistant-add-on">Running as a Home Assistant add-on<a class="headerlink" href="#running-as-a-home-assistant-add-on" title="Permanent link">&para;</a></h1>
+<p><em>For pool owners who run </em><em>Home Assistant OS</em><em> or </em><em>Supervised</em><em> and want Aqualink
+Automate managed by Home Assistant — installed from the add-on store, configured from
+a form, run and updated by the Supervisor — without touching Docker themselves. For
+the MQTT/entity details this feeds into, see <a href="../mqtt-home-assistant/">MQTT and Home Assistant integration</a>.</em></p>
+<h2 id="what-this-is">What this is<a class="headerlink" href="#what-this-is" title="Permanent link">&para;</a></h2>
+<p>A Home Assistant <strong>add-on</strong> is a container the <strong>Supervisor</strong> runs on your behalf. You
+add this project as a custom repository, click <strong>Install</strong>, fill in a settings form,
+and Home Assistant handles the rest — pulling the image, starting it, restarting it on
+failure, and applying updates. The add-on is a thin wrapper around the same multi-arch
+image the project already publishes; it does not rebuild the application.</p>
+<p>The add-on manifests live at the root of this repository
+(<a href="https://github.com/iainchesworth/aqualink-automate/tree/main/aqualink-automate"><code>aqualink-automate/</code></a> and <code>aqualink-automate-edge/</code>, with
+<code>repository.yaml</code>); the design rationale is in
+<a href="https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/homeassistant-addon.md">docs/design/homeassistant-addon.md</a>.</p>
+<h2 id="requirements-and-scope">Requirements and scope<a class="headerlink" href="#requirements-and-scope" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Call-site API</strong> — <code>Factory::ProfilingUnitFactory::Instance().CreateZone/CreateFrame/CreateDomain</code>.</li>
-<li><strong>Process API</strong> — <code>Factory::ProfilerFactory::Instance().Get()-&gt;{PlotValue,Message,EmitFrameMark,AppInfo,SetThreadName,Resume,Pause}</code>.</li>
+<li><strong>Home Assistant OS</strong> or <strong>Home Assistant Supervised</strong>. Add-ons require the
+  Supervisor, so <strong>HA Container</strong> and <strong>HA Core</strong> cannot install them — on those, run
+  the application with the project's <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/docker-compose.yml"><code>docker-compose.yml</code></a> or a
+  native package instead (see <a href="../INSTALL/">INSTALL.md</a>).</li>
+<li>A host architecture of <strong><code>aarch64</code></strong> (64-bit Pi 4/5, most HAOS installs) or
+  <strong><code>amd64</code></strong>. 32-bit <code>armv7</code>/<code>armhf</code> (Pi 3 and older 32-bit HAOS) is <strong>not supported</strong> —
+  the add-on won't appear in the store on those hosts. Use a 64-bit host (Pi 4/5, a
+  64-bit OS on a Pi 3, or an x86 box).</li>
+<li>An RS-485 link to the panel: a USB-RS485 adapter on the Home Assistant host, or a
+  serial-over-ethernet adapter on the LAN. See
+  <a href="../hardware-rs485-connectivity/">RS-485 connectivity</a> for wiring.</li>
 </ul>
-<p>When profiling is compiled out, or no backend is selected, both factories return
-no-op objects — every call site stays valid and costs effectively nothing.</p>
-<h2 id="building-a-profiling-enabled-binary">Building a profiling-enabled binary<a class="headerlink" href="#building-a-profiling-enabled-binary" title="Permanent link">&para;</a></h2>
-<p>Profiling is <strong>off</strong> in the default <code>release</code>/<code>debug</code> presets (the shipped
-binary carries no profiler hooks). Use a dedicated profiling preset:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-windows-msvc-profiling<span class="w">      </span><span class="c1"># or -linux-gcc-/-linux-llvm-/-windows-llvm-/-macos-llvm-</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cmake<span class="w"> </span>--build<span class="w">  </span>build/config-windows-msvc-profiling<span class="w"> </span>--target<span class="w"> </span>aqualink-automate
-</code></pre></div>
-<p>These presets set <code>ENABLE_PROFILING=ON</code>, build <code>RelWithDebInfo</code> (optimised +
-symbols — the right shape for a profiler) and force sanitizers off
-(<code>ENABLE_PROFILING</code> and <code>ENABLE_SANITIZERS</code> are mutually exclusive — a
-configure-time <code>FATAL_ERROR</code>). To flip profiling on for an existing build tree
-instead, reconfigure any preset with <code>-DENABLE_PROFILING=ON</code>.</p>
-<h3 id="network-hardened-diagnostic-preset">Network-hardened "diagnostic" preset<a class="headerlink" href="#network-hardened-diagnostic-preset" title="Permanent link">&para;</a></h3>
-<p>A profiling build links the Tracy client, whose server thread <strong>listens on a TCP
-data port and answers UDP discovery broadcasts</strong> — i.e. it opens a profiler
-endpoint reachable from the LAN, independent of <code>--profiler</code>. For a shipped
-beta / field-diagnostic build that should be permanently attachable but <strong>not</strong>
-LAN-exposed, use the <code>*-diagnostic</code> presets instead
-(<code>config-windows-msvc-diagnostic</code>, <code>-linux-gcc-</code>, …):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-windows-msvc-diagnostic
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cmake<span class="w"> </span>--build<span class="w">  </span>build/config-windows-msvc-diagnostic<span class="w"> </span>--target<span class="w"> </span>aqualink-automate
-</code></pre></div>
-<p>These are identical to the <code>*-profiling</code> presets except they build via a
-<code>*-diagnostic</code> vcpkg triplet (<code>cmake/vcpkg/triplets/*-diagnostic.cmake</code>) that
-compiles the Tracy client with <strong><code>TRACY_ONLY_LOCALHOST</code></strong> (the TCP data port
-binds to loopback only — <code>TracySocket.cpp</code> skips <code>AI_PASSIVE</code>) and
-<strong><code>TRACY_NO_BROADCAST</code></strong> (no UDP discovery beacon at all). These are compile-time
-Tracy macros, <strong>not</strong> runtime env vars, so they must be baked into the prebuilt
-TracyClient via the triplet — they cannot be enabled by the application or a
-<code>-D</code> on our own target. A profiler then connects only over loopback (e.g. an
-SSH tunnel: <code>ssh -L 8086:127.0.0.1:8086 host</code>).</p>
-<p>Trade-off: the distinct triplet changes the vcpkg ABI, so the first configure
-with a <code>*-diagnostic</code> preset rebuilds the dependency set into its own installed
-tree. The always-on memory-hook cost (below) still applies — this is a
-deliberate diagnostic build, not a default release.</p>
-<p><strong>Tracy</strong> needs nothing extra. <strong>VTune</strong> and <strong>uProf</strong> are compiled in only when
-their SDKs are found:</p>
-<ul>
-<li>Intel VTune: install the standalone VTune Profiler or the oneAPI Base Toolkit,
-  or point <code>VTUNE_PROFILER_DIR</code> at it (the finder also checks the default
-  <code>C:\Program Files (x86)\Intel\oneAPI\vtune\latest</code> and <code>/opt/intel/oneapi/vtune/latest</code>).</li>
-<li>AMD uProf: install AMD uProf, or point <code>AMD_UPROF_SDK_PATH</code> at it (default
-  <code>C:\Program Files\AMD\AMDuProf</code> / <code>/opt/AMDuProf_*</code>). The ActivityLogger
-  component (zones/markers) is optional; without it uProf still provides
-  resume/pause control.</li>
-</ul>
-<p>The configure output prints whether each backend was found; the chosen backend
-is also logged at startup (see the warning below).</p>
-<h2 id="selecting-a-backend-at-runtime">Selecting a backend at runtime<a class="headerlink" href="#selecting-a-backend-at-runtime" title="Permanent link">&para;</a></h2>
-<p>Pass <code>--profiler tracy|uprof|vtune</code> (case-insensitive). The selector is applied
-<em>after</em> options are parsed, then capture is started and the trace is stamped
-with the version string and the main thread name.</p>
-<p>If you request a backend that was <strong>not</strong> compiled into this build, a warning is
-logged on the <code>Profiling</code> channel and profiling stays disabled (it does not fall
-back to a different backend):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[Profiling] Requested profiler &#39;VTune&#39; is not available in this build; profiling is disabled. Compiled-in backends: [Tracy]
-</code></pre></div>
-<h2 id="runtime-control-surface">Runtime control surface<a class="headerlink" href="#runtime-control-surface" title="Permanent link">&para;</a></h2>
-<p><code>GET/POST /api/diagnostics/profiling</code> (and the <strong>Profiling</strong> card on the
-Diagnostics page) report and control the profiler at runtime:</p>
-<ul>
-<li><code>GET</code> → <code>{ "enabled": bool, "running": bool, "backend": "tracy", "available": ["tracy","vtune"] }</code></li>
-<li><code>POST {"action":"start"}</code> / <code>{"action":"stop"}</code> → resume / pause capture</li>
-<li><code>POST {"action":"select","backend":"vtune"}</code> → switch the active backend (only backends compiled in)</li>
-</ul>
-<p><code>enabled</code> reflects whether any backend was compiled in; <code>running</code> reflects
-resumed-vs-paused. Pause/resume map to each backend's native gating
-(<code>__itt_pause</code>/<code>__itt_resume</code> for VTune, <code>amdProfilePause</code>/<code>amdProfileResume</code> for
-uProf); Tracy is client-driven so they are no-ops for it.</p>
-<h2 id="what-is-instrumented">What is instrumented<a class="headerlink" href="#what-is-instrumented" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Main loop</strong> — one <code>MainLoop</code> frame mark per iteration, with the iteration
-  decomposed into zones: <code>main -&gt; io_poll</code>, <code>-&gt; protocol_poll</code>, <code>-&gt; watchdogs</code>,
-  <code>-&gt; http_poll</code>, <code>-&gt; https_poll</code>, <code>-&gt; mqtt_poll</code>, <code>-&gt; io_poll_drain</code>. The
-  per-frame Asio handler count is plotted as <code>Main Loop Handlers</code>.</li>
-<li><strong>Protocol / serial</strong> — <code>ProtocolTask::Poll</code>, read/write primitives, the Jandy
-  message generator phases, and many serial-port operations; plots for serial
-  bytes, queue depth, parse/error counters, message-processing time.</li>
-<li><strong>Devices</strong> — every Jandy/Pentair device message-slot handler.</li>
-<li><strong>Navigation</strong> — <code>Navigator::OnPageUpdate</code>/<code>ComputePath</code>,
-  <code>MenuModel::DetectPage</code>/<code>FindPath</code>, <code>SpiderEngine::ProcessStep</code>.</li>
-<li><strong>State hubs</strong> — <code>DataHub::EmitTemperatureEvent</code>/<code>EmitChemistryEvent</code> (the
-  signals2 listener fan-out), <code>EquipmentHub::AddEquipment</code>/<code>AddDevice</code>, plus
-  temperature/chemistry/<code>Active Devices</code> plots.</li>
-<li><strong>Web / MQTT</strong> — HTTP route handlers, JSON generation, MQTT hub publish paths,
-  connection/queue plots.</li>
-</ul>
-<h2 id="tracy-workflow">Tracy workflow<a class="headerlink" href="#tracy-workflow" title="Permanent link">&para;</a></h2>
-<p>The Tracy <strong>server tools</strong> (the <code>tracy-profiler</code> GUI plus the <code>tracy-capture</code> /
-<code>tracy-csvexport</code> / <code>tracy-import-*</code> CLIs) are a developer-side dependency and
-are <strong>not</strong> part of the build — the application only links the Tracy <em>client</em>
-(via the vcpkg <code>tracy</code> port). Download the matching prebuilt Windows tools from
-the upstream release that matches the client version — for the pinned
-<strong>v0.13.1</strong>, <a href="https://github.com/wolfpld/tracy/releases/tag/v0.13.1">https://github.com/wolfpld/tracy/releases/tag/v0.13.1</a> — or build
-them from that tag, and put them anywhere on your <code>PATH</code>. They were previously
-committed under <code>cmake/tools/tracy-0.13.1/</code>; that copy was removed (unauditable
-committed binaries), so fetch your own and keep it in step with the port version
-above.</p>
+<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Build &amp; run a profiling binary with <code>--profiler tracy</code>.</li>
-<li>Open the Tracy profiler GUI and connect (the client streams on demand — the
-   vcpkg port uses the <code>on-demand</code> feature, so capture begins when the GUI
-   attaches).</li>
-<li>Frames appear under <code>MainLoop</code>; expand a frame to see the per-subsystem
-   zones; plots show the queue depths / counters listed above. Memory allocation
-   tracking is wired via global <code>operator new</code>/<code>delete</code> overrides.</li>
+<li><strong>Settings → Add-ons → Add-on Store</strong>.</li>
+<li><strong>⋮ → Repositories</strong>, add <code>https://github.com/iainchesworth/aqualink-automate</code>.</li>
+<li>Install <strong>Aqualink Automate</strong>, configure it, then <strong>Start</strong>.</li>
 </ol>
-<h2 id="vtune-workflow-incl-amd-hosts">VTune workflow (incl. AMD hosts)<a class="headerlink" href="#vtune-workflow-incl-amd-hosts" title="Permanent link">&para;</a></h2>
-<p>The ITT instrumentation API (tasks/frames/counters/markers) is <strong>CPU-agnostic</strong>
-and is collected in VTune's software/user-mode collection, so it works on AMD
-CPUs too — only PMU <strong>hardware-event sampling</strong> requires an Intel CPU.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># software-mode collection that captures the ITT API timeline</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>vtune<span class="w"> </span>-collect<span class="w"> </span>hotspots<span class="w"> </span>-knob<span class="w"> </span>sampling-mode<span class="o">=</span>sw<span class="w"> </span>--<span class="w"> </span>./aqualink-automate<span class="w"> </span>--profiler<span class="w"> </span>vtune<span class="w"> </span>...
-</code></pre></div>
-<p>Open the result in <code>vtune-gui</code>; the <code>AqualinkAutomate</code> ITT domain shows the
-zones (tasks), the <code>MainLoop</code> frames, and the counters from <code>PlotValue</code>.</p>
-<h2 id="uprof-workflow">uProf workflow<a class="headerlink" href="#uprof-workflow" title="Permanent link">&para;</a></h2>
-<p>Build with the uProf SDK present and run with <code>--profiler uprof</code>. uProf controls
-collection via resume/pause (<code>amdProfileResume</code>/<code>amdProfilePause</code>), driven at
-startup and by the runtime control surface above. When the ActivityLogger
-component is installed, zones and events also appear as markers; otherwise uProf
-provides sampling with resume/pause gating only.</p>
+<p>The repository offers two channels: <strong>Aqualink Automate</strong> (stable) and <strong>Aqualink
+Automate (Edge)</strong> (beta — tracks the newest prerelease). Install whichever you prefer;
+Edge is for trying the latest before it's stable. Don't run both against the same panel
+at once — they'd contend for the serial device and MQTT topics. <em>(Pre-1.0, no stable
+release exists yet, so both are marked experimental and track the newest release.)</em></p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>The options form maps directly onto the application's settings (full reference:
+<a href="../configuration/">Configuration reference</a>). Key choices:</p>
+<ul>
+<li><strong>Serial</strong> — pick the <strong>protocol</strong> (<code>serial_protocol</code>): <strong><code>usb</code></strong> for a local device
+  (a USB-RS485 adapter or a built-in UART → <code>--serial-port</code>), or <strong><code>rfc2217</code></strong> / <strong><code>rawtcp</code></strong>
+  for a serial-to-ethernet adapter (→ <code>--remote-serial-port</code> with the matching transport;
+  <code>rfc2217</code> suits most adapters, <code>rawtcp</code> is a plain TCP stream). Then set the <strong>device or
+  address</strong> (<code>serial_port</code>): a path (<code>/dev/serial/by-id/…</code>, preferred; or any non-standard
+  path) for <code>usb</code>, or a <strong><code>host:port</code></strong> for the network protocols.</li>
+<li><strong>MQTT</strong> — <code>mqtt_mode: auto</code> (recommended) discovers the broker Home Assistant already
+  uses (e.g. the Mosquitto add-on) through the Supervisor, so you enter <strong>no</strong> MQTT
+  credentials. <code>manual</code> exposes the broker fields; <code>disabled</code> turns MQTT off.
+  <code>home_assistant_discovery</code> publishes auto-discovery so your equipment appears as
+  Home Assistant entities. A stable, unique device identifier is generated automatically
+  on first start and persisted under <code>/data</code>, so your equipment stays the <strong>same</strong> Home
+  Assistant device across restarts and add-on updates (no <code>ha-device-id</code> to set).</li>
+<li><strong>Web UI</strong> — served through Home Assistant <strong>ingress</strong>: it appears in the sidebar and
+  via <strong>Open Web UI</strong>, secured by your Home Assistant login and <strong>not exposed on the
+  LAN</strong>. Because ingress provides authentication, the app's own auth is left off. For
+  direct LAN access (e.g. a wall tablet), assign a host port to <code>8099/tcp</code> in the add-on's
+  <strong>Network</strong> panel — that port is unauthenticated by default, so firewall it <strong>or</strong> turn
+  on <code>enable_auth</code> (with <code>auth_username</code>/<code>auth_password</code>) to make the app enforce its own
+  login there. The admin is bootstrapped on first enable; <code>/api/health</code> stays open so the
+  watchdog keeps working.</li>
+<li><strong>Deferring to Home Assistant</strong> — the app's own auth, history, and scheduler are
+  <strong>off by default</strong>: Home Assistant provides login (via ingress), Recorder/History,
+  and automations. <code>enable_history</code> / <code>enable_scheduler</code> turn the app's versions on
+  (persisted under <code>/data</code>). UI preferences and an equipment cache are always persisted
+  under <code>/data</code>.</li>
+<li><strong>Logging</strong> — <code>log_level</code> (<code>info</code> / <code>debug</code> / <code>trace</code>); output appears in the add-on's
+  <strong>Log</strong> tab (the app logs to stdout).</li>
+<li><strong>Home Assistant companion package</strong> — <code>install_companion_package</code> (off by default)
+  copies the add-on's bundled <a href="../homeassistant-companion/">companion blueprints</a> straight
+  into Home Assistant's <code>blueprints/</code> folder on every start, so they appear under
+  <strong>Settings → Automations &amp; Scenes → Blueprints</strong> with no import step. This requests a
+  <strong>read-write view of Home Assistant's own configuration directory</strong> — broader than
+  anything else the add-on asks for — so it stays opt-in; it only ever adds or updates
+  files under <code>blueprints/</code> and never touches <code>configuration.yaml</code>. The companion
+  package is also reachable without it: one-click import from the
+  <a href="../homeassistant-companion/#blueprints">docs</a>, or the release zip.</li>
+</ul>
+<h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The bundled <strong>Matter</strong> bridge is disabled in the add-on — Home Assistant is already a
+  Matter controller, and equipment is surfaced through MQTT discovery instead.</li>
+<li>The add-on version tracks the application release version; the image it runs is the
+  matching published release.</li>
+</ul>
 
 
 
@@ -1794,7 +1643,7 @@ provides sampling with resume/pause gating only.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../RECORD_REPLAY/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Record / replay">
+          <a href="../mqtt-home-assistant/" class="md-footer__link md-footer__link--prev" aria-label="Previous: MQTT &amp; Home Assistant">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1804,20 +1653,20 @@ provides sampling with resume/pause gating only.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Record / replay
+                MQTT & Home Assistant
               </div>
             </div>
           </a>
         
         
           
-          <a href="../logging-sinks-redesign/" class="md-footer__link md-footer__link--next" aria-label="Next: Logging sinks">
+          <a href="../homeassistant-companion/" class="md-footer__link md-footer__link--next" aria-label="Next: Home Assistant companion package">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Logging sinks
+                Home Assistant companion package
               </div>
             </div>
             <div class="md-footer__button md-icon">

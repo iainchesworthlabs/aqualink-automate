@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/brand/favicon.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -299,6 +299,28 @@
   
 
       
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../auth-redesign/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Design & protocol notes
+
+        </a>
+      </li>
+    
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -384,6 +406,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -567,6 +593,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../homeassistant-addon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home Assistant add-on
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../homeassistant-companion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home Assistant companion package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../MATTER/" class="md-nav__link">
         
   
@@ -717,6 +799,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -1292,6 +1378,213 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../platform-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fuzzing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fuzzing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design & protocol notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design & protocol notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../auth-redesign/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth system design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schedules-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schedules design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../iaq_schedule_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    iAQ schedule protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1635,7 +1928,7 @@
 </code></pre></div>
 <p>This convention is checked automatically:</p>
 <ul>
-<li>A <strong>Branch Name</strong> check runs on every pull request and fails a non-conforming head branch (<code>.github/workflows/ci.yml</code>). <code>develop</code> and <code>main</code> are accepted as heads so the <code>develop</code> -&gt; <code>main</code> release-promotion PR is never blocked. It is a <a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging">required status check</a> on <code>develop</code> and <code>main</code>, so a non-conforming branch cannot merge.</li>
+<li>A <strong>Branch Name</strong> check runs on every pull request and fails a non-conforming head branch (<code>.github/workflows/ci.yml</code>). <code>develop</code> and <code>main</code> are accepted as heads so the <code>develop</code> -&gt; <code>main</code> release-promotion PR is never blocked, and <code>dependabot/**</code> heads are accepted because Dependabot's branch names are not configurable. It is a <a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging">required status check</a> on <code>develop</code> and <code>main</code>, so a non-conforming branch cannot merge.</li>
 <li>Push/creation-time enforcement (a server-side branch-name <strong>ruleset</strong>) is a GitHub organization feature and is not available on this user-owned repository, so a misnamed branch can exist locally — it just fails CI and, once the check is required, cannot merge.</li>
 </ul>
 <p>Continuous integration builds on a <code>push</code> only to the long-lived branches <code>main</code> and <code>develop</code>. Feature branches build via their <strong>pull request</strong> into <code>develop</code>/<code>main</code> instead — so a work-in-progress push to a branch that has no open PR runs no CI (see <code>.github/workflows/ci.yml</code>).</p>
@@ -1783,6 +2076,7 @@
 </code></pre></div>
 <p>On Windows the equivalent presets are <code>config-windows-msvc-debug</code>, <code>build-windows-msvc-debug</code>, and <code>test-windows-msvc-debug</code>.</p>
 <p>All tests must pass and your change must include tests covering it. A bug fix must add a regression test that fails before the fix and passes after it.</p>
+<p>If you touch the RS-485 message decoders (<code>src/jandy/messages/**</code>, <code>src/pentair/messages/**</code>, the generators/factories, or the framing/checksum paths), these parse untrusted wire data and are additionally fuzzed — see <a href="../fuzzing/">docs/fuzzing.md</a> for the libFuzzer harnesses, how to run them locally, and the "a crash is a real bug, never weaken the parser" discipline. The <code>test_protocol_fuzz_smoke.cpp</code> unit test guards these paths in the normal suite even without a Clang build.</p>
 <h3 id="platform-specific-code">Platform-specific code<a class="headerlink" href="#platform-specific-code" title="Permanent link">&para;</a></h3>
 <p>The operating system is a CMake decision, not a preprocessor decision. Code that differs by OS goes in <code>src/core/platform/&lt;os&gt;/</code> behind a shared header and is selected by the <code>if(WIN32)/if(LINUX)/if(APPLE)</code> blocks in <code>src/core/CMakeLists.txt</code> — never behind an <code>#ifdef _WIN32</code>/<code>#elif !defined(__APPLE__)</code> in shared code. The full principle, the add-a-platform-function workflow, and the allowed exceptions (compiler/arch/build-feature macros) are in <a href="../platform-isolation/">docs/platform-isolation.md</a>. The <strong>Platform Macros</strong> CI check (<code>scripts/check-os-macros.ps1</code>) blocks a PR that introduces an OS macro into shared code.</p>
 <h2 id="keeping-documentation-in-sync">Keeping documentation in sync<a class="headerlink" href="#keeping-documentation-in-sync" title="Permanent link">&para;</a></h2>
@@ -1797,7 +2091,7 @@
 <li><strong>Wire-protocol opcodes or message types</strong> → update the relevant protocol doc under <code>docs/</code>.</li>
 <li><strong>Web UI appearance</strong> (layout, theme, navigation, new/renamed views or controls, auth screens, the language list) → regenerate the affected screenshots (see below).</li>
 </ul>
-<p>Prefer durable references (symbols, route URLs, option long-names, section headings) over bare <code>file.cpp:NNN</code> line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (<code>docs/async_migration_*.md</code>, <code>docs/cicd-redesign.md</code>) are dated snapshots — do not treat their line citations as current truth.</p>
+<p>Prefer durable references (symbols, route URLs, option long-names, section headings) over bare <code>file.cpp:NNN</code> line numbers, which rot as soon as code is inserted above them. The analysis/roadmap docs (<code>docs/design/async_migration_*.md</code>, <code>docs/design/cicd-redesign.md</code>) are dated snapshots — do not treat their line citations as current truth.</p>
 <h3 id="documentation-screenshots">Documentation screenshots<a class="headerlink" href="#documentation-screenshots" title="Permanent link">&para;</a></h3>
 <p>The PNGs in <code>docs/assets/</code> are embedded in the README and the docs (<code>index.md</code>, <code>usage-and-api.md</code>, <code>SECURITY.md</code>, this file) and are held to the same standard as prose: <strong>a screenshot showing a UI that no longer exists is a doc defect.</strong> They are not hand-taken — <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/scripts/capture-doc-screenshots.js"><code>scripts/capture-doc-screenshots.js</code></a> captures every one of them from the real binary replaying the recorded RS-485 fixtures (the same harness as the Playwright e2e suite).</p>
 <p>When your change alters what an embedded screenshot shows, regenerate and commit the affected images in the same pull request:</p>
@@ -1935,7 +2229,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "navigation.indexes", "toc.follow", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight", "search.share"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
