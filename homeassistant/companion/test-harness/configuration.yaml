@@ -1,13 +1,15 @@
 # CI-only Home Assistant configuration used to validate the companion package
 # inside the official Home Assistant container (see .github/workflows/ha-companion.yml).
-# The workflow copies this file, automations.yaml, the packages/ folder, and the
-# blueprints into a scratch config dir and runs `hass --script check_config`.
-# NOT part of the shipped companion content.
+# The workflow copies this file, automations.yaml, scripts.yaml, the packages/
+# folder, and the blueprints (both automation/ and script/) into a scratch
+# config dir and runs `hass --script check_config`. NOT part of the shipped
+# companion content.
 homeassistant:
   name: AquaLink Companion CI
   packages: !include_dir_named packages
 
 automation: !include automations.yaml
+script: !include scripts.yaml
 
 recorder:
 

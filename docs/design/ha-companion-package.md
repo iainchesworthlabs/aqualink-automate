@@ -1,6 +1,6 @@
 # Home Assistant Companion Package — Design & Delivery Plan
 
-**Date:** 2026-08-06 · **Status:** Phase 1 merged to `develop` 2026-08-07 (PR #128, [`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)); Phase 2 (app-served copy) in progress; Phase 3 not started.
+**Date:** 2026-08-06 · **Status:** Phase 1 merged to `develop` 2026-08-07 (PR #128, [`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)); Phase 2 merged 2026-08-07 (PR #134, app-served under `/homeassistant/*`); Phase 3 in progress 2026-08-08 (add-on installer approved — see §11.2 — plus activity-scene blueprints, spa-readiness, and the showcase dashboard; the analytics/energy module was dropped as non-generalizable, see §7).
 
 > Design/analysis snapshot. File/symbol citations were verified against the code on the
 > date above; re-verify before relying on them.
@@ -273,19 +273,40 @@ force the companion to be updated in the same PR — that is the compatibility m
 **Phase 2 — app integration:** build-time copy into `assets/web/homeassistant/` so the
 running app serves the bundle; docs note the local URLs (works through add-on ingress).
 
-**Phase 3 — richer content & add-on installer (each optional, decide separately):**
-- Add-on `install_companion_package` opt-in installer (permission expansion — needs an
-  explicit maintainer decision).
-- `activity-scene.yaml` script blueprint; spa-readiness module; analytics module
-  (runtime/energy); showcase dashboard (HACS deps, generalised).
-- Web-UI "Home Assistant" page linking the served bundle (full i18n required).
+**Phase 3 — richer content & add-on installer:**
+- Add-on `install_companion_package` opt-in installer — **approved** (§11.2): adds the
+  `homeassistant_config` map (rw) to `aqualink-automate/config.yaml`, off by default;
+  `run.sh` copies the blueprints already baked into the app's own install tree
+  (`share/aqualink-automate/web/homeassistant/blueprints/` — the same content Phase 2
+  serves over HTTP) into Home Assistant's `blueprints/`, additive-only, never touching
+  `configuration.yaml`.
+- `activity-scene.yaml` script blueprint + `activity-scene-autooff.yaml` automation
+  blueprint (generalised start/stop scene: equipment/timer/boolean/dark-only-lights as
+  inputs, a `fields.action` toggle/turn_on/turn_off runtime parameter).
+- Spa-readiness: two template sensors in the helpers package (trigger-based baseline +
+  derived Off/Warming Up/Ready sensor with a `percent_ready` attribute, built only from
+  `spa_mode`/`spa_temperature`/`spa_setpoint`) + a `spa-ready.yaml` notification
+  blueprint.
+- Showcase dashboard (`dashboards/aqualink-pool-showcase.yaml`, HACS deps: button-card,
+  card-mod, layout-card, mushroom, bar-card) — generalised from the evidence base,
+  using only app-published + companion-package entities; commented placeholders for
+  equipment/scenes.
+- Analytics module (heat-pump COP/energy-delivered) — **dropped**: depends on the
+  evidence-base install's specific heat pump + power meters, not generalizable (see §7,
+  [[open-source-generality]]).
+- Web-UI "Home Assistant" page linking the served bundle (full i18n required) —
+  **deferred again**, same reasoning as Phase 2.
 
 ## 11. Open questions (maintainer decisions)
 
 1. **Attestation**: include the companion zip in the build-provenance/SBOM attestation
    globs, or exclude it? (Recommend include — it is shipped content.)
 2. **Add-on installer** (Phase 3): is the `homeassistant_config` permission expansion
-   acceptable for an opt-in convenience? Store-listing optics matter here.
+   acceptable for an opt-in convenience? Store-listing optics matter here. —
+   **Decided 2026-08-08: yes, build it.** Off by default (`install_companion_package`);
+   the map/option/permission are documented in `aqualink-automate/config.yaml`,
+   `DOCS.md`, and `docs/homeassistant-addon.md` with the exact scope (adds/updates
+   files under `blueprints/` only, never touches `configuration.yaml`).
 3. **Blueprint URL channel**: main-branch raw URLs (fixes propagate on re-import) vs
    tag-pinned URLs (reproducible). Recommend main for the import buttons, with the
    release zip as the pinned alternative.

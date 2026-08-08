@@ -110,5 +110,16 @@ configuration:
     description: >-
       Optional bus address for a single chosen device type (e.g. 0x41). Leave blank to
       use that type's default, and ignored entirely when the type is "auto".
+  install_companion_package:
+    name: Install Home Assistant blueprints
+    description: >-
+      Off by default. When on, installs the bundled Home Assistant companion
+      blueprints (dashboard/automation helpers) directly into Home Assistant's
+      blueprints folder on every start, so they appear under Settings →
+      Automations & Scenes → Blueprints without a manual import. This requests a
+      read-write view of Home Assistant's own configuration directory — a
+      materially broader permission than this add-on otherwise needs — and only
+      ever adds or updates files under blueprints/; it never touches
+      configuration.yaml or anything else in your config.
 network:
   8099/tcp: Optional direct web UI / HTTP API on your LAN (unauthenticated unless you enable the login option)

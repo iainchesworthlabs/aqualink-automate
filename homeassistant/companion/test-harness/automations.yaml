@@ -40,3 +40,16 @@
   alias: "CI: freeze-advisory"
   use_blueprint:
     path: aqualink-automate/freeze-advisory.yaml
+
+- id: companion_ci_spa_ready
+  alias: "CI: spa-ready"
+  use_blueprint:
+    path: aqualink-automate/spa-ready.yaml
+
+- id: companion_ci_activity_scene_autooff
+  alias: "CI: activity-scene-autooff"
+  use_blueprint:
+    path: aqualink-automate/activity-scene-autooff.yaml
+    input:
+      duration_timer: timer.companion_ci_activity_timer
+      activity_script: script.companion_ci_activity_scene
