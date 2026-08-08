@@ -59,9 +59,21 @@ jobs:
 
       - name: Install MkDocs Material
         # Floor only (>=9.7) so the GitHub-compatible slugify and theme features
-        # this site relies on are present; no upper cap, so future majors
-        # (incl. the MkDocs 2.0 line) are adopted as they ship. The [imaging]
-        # extra pulls cairosvg + pillow for the social-cards plugin.
+        # this site relies on are present; no upper cap, so future Material majors
+        # are adopted as they ship. The [imaging] extra pulls cairosvg + pillow for
+        # the social-cards plugin.
+        #
+        # The red "Warning from the Material for MkDocs team" banner about MkDocs
+        # 2.0 that this step prints is ADVOCACY, not a build problem: it is written
+        # to stderr, is not a MkDocs warning, and does NOT count toward --strict.
+        # ("Aborted with N warnings" counts only the `WARNING -` lines.) Nor can
+        # MkDocs 2.0 land here by surprise — mkdocs-material itself pins
+        # `mkdocs<2,>=1.6`, so pip will never resolve the 2.0 line while that cap
+        # holds. Deliberately NOT adding our own `mkdocs<2` pin: it is redundant
+        # today and would hard-conflict the resolver if Material ever does move.
+        # If this build breaks on a MkDocs major, revisit here — the site depends
+        # on both the plugin system (`plugins:`) and theme overrides
+        # (`custom_dir: overrides`), which that line removes.
         run: pip install --disable-pip-version-check "mkdocs-material[imaging]>=9.7"
 
       # --strict turns broken internal links and other warnings into errors, so a

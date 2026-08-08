@@ -102,10 +102,16 @@ markdown_extensions:
 # Working notes, protocol reverse-engineering, and planning documents stay in the
 # repository as reference but are not part of the published site. Design/planning
 # snapshots (roadmaps, analyses, decompositions, the UI-reskin handoff) live under
-# docs/design/ and are excluded wholesale via the `design/` entry.
+# docs/design/ and are excluded wholesale via the `design/` entry; the generated
+# consteval/constexpr opportunity reports under docs/refactoring/ likewise.
+#
+# Links FROM a published page TO anything excluded here (or to a repo file outside
+# docs/) must be absolute https://github.com/... URLs: MkDocs only logs those at
+# INFO, so they ship broken and silent rather than failing --strict.
 exclude_docs: |
   alwin32/
   design/
+  refactoring/
   i18n-scoping.md
   alwin32_simulator_protocol.md
   aqualink_rs_revisions.md
