@@ -16,7 +16,7 @@ image the project already publishes; it does not rebuild the application.
 The add-on manifests live at the root of this repository
 ([`aqualink-automate/`](https://github.com/iainchesworth/aqualink-automate/tree/main/aqualink-automate) and `aqualink-automate-edge/`, with
 `repository.yaml`); the design rationale is in
-[docs/design/homeassistant-addon.md](design/homeassistant-addon.md).
+[docs/design/homeassistant-addon.md](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/homeassistant-addon.md).
 
 ## Requirements and scope
 
