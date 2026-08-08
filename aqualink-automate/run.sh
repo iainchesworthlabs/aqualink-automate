@@ -144,7 +144,13 @@ fi
 # touches configuration.yaml, and never removes a blueprint you've deleted.
 if bashio::config.true 'install_companion_package'; then
     companion_blueprints="/opt/aqualink-automate/share/aqualink-automate/web/homeassistant/blueprints"
-    ha_config="/homeassistant"
+    # The Supervisor mounts an unqualified map `type:` at /<type-name> by default
+    # (https://developers.home-assistant.io/docs/apps/configuration/#map)  —
+    # confirmed against the same rule this add-on already relies on for `ssl`
+    # (mounted at /ssl, see the mqtt_ca_cert/mqtt_client_cert/mqtt_client_key
+    # handling above) — so `homeassistant_config` mounts at
+    # /homeassistant_config, NOT /homeassistant.
+    ha_config="/homeassistant_config"
     if [ ! -d "${ha_config}" ]; then
         bashio::log.warning "install_companion_package is on but ${ha_config} is not mounted (is the homeassistant_config map missing?) — skipping."
     elif [ ! -d "${companion_blueprints}" ]; then

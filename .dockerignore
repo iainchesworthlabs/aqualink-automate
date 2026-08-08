@@ -57,12 +57,24 @@ nul
 !docker/context
 !docker/context/**
 
-# Home Assistant add-on + companion content (not part of the app image) — except
-# the companion entity manifest: the in-image test build copies it beside the
-# test exe (test/CMakeLists.txt) for the discovery <-> manifest lock test that
-# `ctest` runs in the ci stage.
+# Home Assistant add-on wrapper (not part of the app image; it wraps the
+# published app image separately — see aqualink-automate/Dockerfile).
 repository.yaml
 aqualink-automate
 aqualink-automate-edge
-homeassistant
-!homeassistant/companion/entity-manifest.json
+# Home Assistant dev harness + source art (not part of the app image).
+homeassistant/dev
+homeassistant/art
+# CI-only test scaffolding for the companion package (not part of the app
+# image). homeassistant/companion/ itself (blueprints, packages, dashboards,
+# entity-manifest.json, README.md) DOES need to reach the build context: the
+# `ci` stage's install(DIRECTORY ...) rule (cmake/CPackConfig.cmake) installs
+# it into the image so the running app can serve it under /homeassistant/*
+# (see docs/homeassistant-companion.md) and the add-on's opt-in installer can
+# copy it into Home Assistant's own blueprints/ folder (see
+# aqualink-automate/run.sh). Excluding the whole homeassistant/ tree and only
+# re-including entity-manifest.json (an earlier version of this rule) silently
+# dropped blueprints/packages/dashboards from every Docker-built image —
+# caught by an actual container inspection, not by CI, since docker-verify
+# only smoke-tests --version and never checked for this content's presence.
+homeassistant/companion/test-harness

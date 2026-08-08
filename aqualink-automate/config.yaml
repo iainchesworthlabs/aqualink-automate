@@ -56,7 +56,9 @@ services:
 #     the add-on until it auto-updates — acceptable, since the Supervisor
 #     self-updates and only the latest version is supported).
 #   - homeassistant_config (read-write): a view of Home Assistant's OWN /config
-#     (mounted at /homeassistant in the container), used ONLY when the opt-in
+#     (mounted at /homeassistant_config in the container — the Supervisor's
+#     default for an unqualified map type, https://developers.home-assistant.io/docs/apps/configuration/#map —
+#     same rule the `ssl` map above already relies on), used ONLY when the opt-in
 #     `install_companion_package` option (below) is on, to copy the bundled
 #     Home Assistant companion blueprints (docs/homeassistant-companion.md) into
 #     Home Assistant's blueprints/ folder — see run.sh. This is a materially
