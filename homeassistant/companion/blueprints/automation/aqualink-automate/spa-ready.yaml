@@ -1,0 +1,84 @@
+blueprint:
+  name: "AquaLink Automate: Spa ready"
+  description: >-
+    Notifies once the spa has warmed up to its setpoint. Reads the "AquaLink Spa
+    Readiness" sensor from the companion helpers package (packages/aqualink_automate.yaml)
+    — install that first. Includes quiet hours.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/spa-ready.yaml
+  input:
+    readiness_sensor:
+      name: Spa readiness sensor
+      description: The sensor installed by the companion helpers package.
+      default: sensor.aqualink_spa_readiness
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+    notify_service:
+      name: Notification action
+      description: "The notify action to call (e.g. notify.mobile_app_your_phone)."
+      default: notify.notify
+      selector:
+        text: {}
+    quiet_hours_start:
+      name: Quiet hours start
+      description: >-
+        input_datetime marking the start of the no-notification window (installed
+        by the companion helpers package). Leave the helper's value unset to
+        disable quiet hours.
+      default: input_datetime.aqualink_quiet_hours_start
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    quiet_hours_end:
+      name: Quiet hours end
+      default: input_datetime.aqualink_quiet_hours_end
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+
+mode: single
+max_exceeded: silent
+
+variables:
+  readiness_entity: !input readiness_sensor
+  quiet_start: !input quiet_hours_start
+  quiet_end: !input quiet_hours_end
+
+triggers:
+  - trigger: state
+    entity_id: !input readiness_sensor
+    to: "Ready"
+    for:
+      minutes: 2
+
+conditions:
+  - alias: "Outside the quiet-hours window (if configured)"
+    condition: template
+    value_template: >-
+      {% set qs_state = states(quiet_start) %}
+      {% set qe_state = states(quiet_end) %}
+      {% if qs_state in ['unknown', 'unavailable'] or qe_state in ['unknown', 'unavailable'] %}
+        true
+      {% else %}
+        {% set now_ts = now().timestamp() %}
+        {% set qs = today_at(qs_state) | as_timestamp %}
+        {% set qe = today_at(qe_state) | as_timestamp %}
+        {% if qe < qs %}
+          {{ not (now_ts >= qs or now_ts <= qe) }}
+        {% else %}
+          {{ not (qs <= now_ts <= qe) }}
+        {% endif %}
+      {% endif %}
+
+actions:
+  - action: !input notify_service
+    data:
+      title: "Spa is ready"
+      message: >-
+        The spa has reached {{ state_attr(readiness_entity, 'current_temperature') }}°
+        (target {{ state_attr(readiness_entity, 'target_temperature') }}°).

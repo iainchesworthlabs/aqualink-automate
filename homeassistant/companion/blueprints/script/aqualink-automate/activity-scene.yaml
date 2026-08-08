@@ -1,0 +1,124 @@
+blueprint:
+  name: "AquaLink Automate: Activity scene"
+  description: >-
+    A reusable start/stop scene for a pool activity (swim, spa, jet pool, whatever
+    you like) — not tied to any specific aqualink-automate entity, so it works with
+    any switches you point it at. Turns your chosen equipment on, optionally starts
+    a countdown timer, and optionally turns on extra lighting but only after dark.
+    Toggling re-runs with the opposite action, so one script instance covers both a
+    dashboard tile's tap (toggle) and its hold (call with the `turn_off` field) —
+    pair it with the companion "Activity scene auto-off" automation blueprint so a
+    timer running out turns everything off automatically.
+  domain: script
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/script/aqualink-automate/activity-scene.yaml
+  input:
+    equipment:
+      name: Equipment
+      description: Switches to turn on/off for this activity (e.g. a jet pump, an aux circuit).
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: switch
+    activity_boolean:
+      name: Activity indicator
+      description: >-
+        An input_boolean tracking whether this activity is active. Create one
+        under Settings -> Devices & Services -> Helpers before using this
+        blueprint.
+      selector:
+        entity:
+          filter:
+            - domain: input_boolean
+    duration_timer:
+      name: Duration timer (optional)
+      description: >-
+        An optional timer helper started when the activity begins. Pair with the
+        "Activity scene auto-off" automation blueprint so it turns everything off
+        when the timer finishes.
+      default: ""
+      selector:
+        entity:
+          filter:
+            - domain: timer
+    lights:
+      name: Lighting (optional, dark-only)
+      description: Extra lights/switches turned on only while the sun is below the horizon.
+      default: []
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: ["light", "switch"]
+
+fields:
+  action:
+    name: Action
+    description: "toggle (default) flips the current state; turn_on / turn_off force a direction."
+    default: toggle
+    selector:
+      select:
+        options:
+          - toggle
+          - turn_on
+          - turn_off
+
+mode: single
+max_exceeded: silent
+
+variables:
+  activity_boolean: !input activity_boolean
+  duration_timer: !input duration_timer
+  lights: !input lights
+  requested_action: "{{ action | default('toggle') }}"
+  turn_off: >-
+    {{ requested_action == 'turn_off'
+       or (requested_action == 'toggle' and is_state(activity_boolean, 'on')) }}
+
+sequence:
+  - choose:
+      - conditions: "{{ turn_off }}"
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: !input equipment
+          - if: "{{ lights | count > 0 }}"
+            then:
+              - action: homeassistant.turn_off
+                target:
+                  entity_id: "{{ lights }}"
+          - if: "{{ duration_timer not in [none, ''] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ duration_timer }}"
+          - action: input_boolean.turn_off
+            target:
+              entity_id: "{{ activity_boolean }}"
+    default:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: "{{ activity_boolean }}"
+      - if: "{{ duration_timer not in [none, ''] }}"
+        then:
+          - action: timer.start
+            target:
+              entity_id: "{{ duration_timer }}"
+      # A bare `condition:` step inside a sequence halts the WHOLE script on false
+      # (not just this step), so the dark-only gate lives in the `if:` list itself
+      # — if it's daytime, this step is skipped and the sequence still continues
+      # on to turn on the equipment below.
+      - if:
+          - condition: template
+            value_template: "{{ lights | count > 0 }}"
+          - condition: sun
+            after: sunset
+            before: sunrise
+        then:
+          - action: homeassistant.turn_on
+            target:
+              entity_id: "{{ lights }}"
+      - action: switch.turn_on
+        target:
+          entity_id: !input equipment

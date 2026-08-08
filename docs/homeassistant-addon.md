@@ -77,6 +77,15 @@ The options form maps directly onto the application's settings (full reference:
   under `/data`.
 - **Logging** — `log_level` (`info` / `debug` / `trace`); output appears in the add-on's
   **Log** tab (the app logs to stdout).
+- **Home Assistant companion package** — `install_companion_package` (off by default)
+  copies the add-on's bundled [companion blueprints](homeassistant-companion.md) straight
+  into Home Assistant's `blueprints/` folder on every start, so they appear under
+  **Settings → Automations & Scenes → Blueprints** with no import step. This requests a
+  **read-write view of Home Assistant's own configuration directory** — broader than
+  anything else the add-on asks for — so it stays opt-in; it only ever adds or updates
+  files under `blueprints/` and never touches `configuration.yaml`. The companion
+  package is also reachable without it: one-click import from the
+  [docs](homeassistant-companion.md#blueprints), or the release zip.
 
 ## Notes
 

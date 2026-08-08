@@ -39,6 +39,8 @@ it under **Settings → Automations & scenes → Blueprints**.
 | **Chlorinator self-heal** | Pump running in your chosen window but chlorinator off → turns it back on (optionally only while ORP is low) and notifies. |
 | **Swim ready** | The water warming past your swim temperature sends a "pool is ready" note. |
 | **Freeze advisory** | Air temperature at the pad dropping to freeze risk sends an advisory (deliberately ignores quiet hours). |
+| **Spa ready** | The spa reaching its setpoint sends a "spa is ready" note — reads the *Spa readiness* helper sensor below. |
+| **Activity scene auto-off** | Pairs with the *Activity scene* script (below): when its duration timer finishes, turns everything the scene started back off. |
 
 [Import: Salt level low](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fsalt-level-low.yaml){ .md-button }
 [Import: Equipment problem](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fequipment-problem.yaml){ .md-button }
@@ -47,10 +49,32 @@ it under **Settings → Automations & scenes → Blueprints**.
 [Import: Chlorinator self-heal](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fchlorinator-self-heal.yaml){ .md-button }
 [Import: Swim ready](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fswim-ready.yaml){ .md-button }
 [Import: Freeze advisory](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Ffreeze-advisory.yaml){ .md-button }
+[Import: Spa ready](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Fspa-ready.yaml){ .md-button }
+[Import: Activity scene auto-off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fautomation%2Faqualink-automate%2Factivity-scene-autooff.yaml){ .md-button }
 
 No My-Home-Assistant? Copy the files from
 `homeassistant/companion/blueprints/automation/aqualink-automate/` into
 `<config>/blueprints/automation/aqualink-automate/` and reload automations.
+
+### Script blueprint: activity scene
+
+Unlike the alert blueprints above, **Activity scene** is a *script* blueprint —
+a reusable start/stop scene (swim, spa, jet pool, whatever you like) for any
+switches you point it at, with an optional duration timer and dark-only extra
+lighting. Create one script instance per activity under **Settings →
+Automations & scenes → Blueprints** (it'll ask you to create an `input_boolean`
+helper first, if you don't already have one to track that activity). A
+dashboard tile's tap action toggles it; its hold action can call the same
+script with `turn_off` to force it off. Pair each instance that uses a
+duration timer with an **Activity scene auto-off** automation (above) pointed
+at the same timer and script, so running out turns everything off
+automatically.
+
+[Import: Activity scene (script)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworth%2Faqualink-automate%2Fmain%2Fhomeassistant%2Fcompanion%2Fblueprints%2Fscript%2Faqualink-automate%2Factivity-scene.yaml){ .md-button }
+
+No My-Home-Assistant? Copy the file from
+`homeassistant/companion/blueprints/script/aqualink-automate/` into
+`<config>/blueprints/script/aqualink-automate/` and reload scripts.
 
 ## Helpers package
 
@@ -67,6 +91,10 @@ provides what the blueprints and dashboard expect:
   (`deficit_ppm × volume_L ÷ 1 000 000`).
 - `sensor.aqualink_pool_temperature_delta_today` — how much the water has warmed
   since midnight (with a restart-safe midnight baseline sensor behind it).
+- `sensor.aqualink_spa_readiness` — `Off` / `Warming Up` / `Ready`, with
+  `current_temperature`, `target_temperature`, and a `percent_ready` attribute
+  measuring progress from the temperature captured when spa mode last turned on.
+  Feeds the **Spa ready** blueprint above.
 - Commented `history_stats` recipes for pump-runtime / heater-heating-time
   counters — these reference your panel's own device entities, so uncomment and
   point them at yours.
@@ -100,6 +128,33 @@ panel's own switches (commented examples are in the file). Alternatively registe
 it as a [YAML-mode dashboard](https://www.home-assistant.io/dashboards/dashboards-and-views/)
 pointing at the file.
 
+### Showcase dashboard (optional, needs HACS)
+
+[`dashboards/aqualink-pool-showcase.yaml`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool-showcase.yaml)
+is a more polished alternative demonstrating what's possible with a few popular
+HACS custom cards — [button-card](https://github.com/custom-cards/button-card),
+[card-mod](https://github.com/thomasloven/lovelace-card-mod),
+[layout-card](https://github.com/thomasloven/lovelace-layout-card),
+[lovelace-mushroom](https://github.com/piitaya/lovelace-mushroom), and
+[bar-card](https://github.com/custom-cards/bar-card). It's not a drop-in
+replacement for the stock dashboard above — install those five via HACS first,
+then follow the same install steps. Like the stock dashboard, it uses only
+entities the app and the helpers package publish, with commented sections for
+your own equipment and any *Activity scene* instances.
+
+## Add-on auto-install (optional)
+
+Running the [Home Assistant add-on](homeassistant-addon.md)? Its
+**`install_companion_package`** option (off by default) copies the bundled
+blueprints straight into Home Assistant's `blueprints/` folder on every start,
+so they appear under **Settings → Automations & Scenes → Blueprints** with no
+import step. It requests a read-write view of Home Assistant's own
+configuration directory to do this — broader than anything else the add-on
+asks for — so it stays opt-in, and it only ever adds or updates files under
+`blueprints/`; it never touches `configuration.yaml` or anything else in your
+config. See the [Home Assistant add-on's Configuration
+section](homeassistant-addon.md#configuration) for details.
+
 ## Customisation notes
 
 - **Fahrenheit panels**: temperature *sensors* convert automatically to your Home
@@ -120,9 +175,10 @@ pointing at the file.
 - **Your running instance** — every install serves its own copy under `/homeassistant/`
   on the app's web port (through Home Assistant ingress on the add-on), matching the
   exact version you're running and requiring no internet access to GitHub:
-    - `/homeassistant/blueprints/automation/aqualink-automate/<name>.yaml` — the seven blueprints
+    - `/homeassistant/blueprints/automation/aqualink-automate/<name>.yaml` — the nine automation blueprints
+    - `/homeassistant/blueprints/script/aqualink-automate/activity-scene.yaml` — the script blueprint
     - `/homeassistant/packages/aqualink_automate.yaml` — the helpers package
-    - `/homeassistant/dashboards/aqualink-pool.yaml` — the dashboard
+    - `/homeassistant/dashboards/aqualink-pool.yaml`, `/homeassistant/dashboards/aqualink-pool-showcase.yaml` — the two dashboards
     - `/homeassistant/entity-manifest.json`, `/homeassistant/README.md`
 
     Handy for air-gapped or LAN-only installs: download from your own instance and

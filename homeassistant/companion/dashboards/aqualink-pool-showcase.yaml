@@ -1,0 +1,352 @@
+# =============================================================================
+# AquaLink Automate — showcase pool dashboard
+#
+# A more polished alternative to dashboards/aqualink-pool.yaml, demonstrating
+# what's possible with a few popular HACS custom cards. It is NOT a drop-in
+# replacement — install these first via HACS (Settings -> Add-ons/Integrations
+# -> HACS, "Frontend" category), then reload your browser:
+#
+#   - button-card      https://github.com/custom-cards/button-card
+#   - card-mod          https://github.com/thomasloven/lovelace-card-mod
+#   - layout-card       https://github.com/thomasloven/lovelace-layout-card
+#   - lovelace-mushroom https://github.com/piitaya/lovelace-mushroom
+#   - bar-card          https://github.com/custom-cards/bar-card
+#
+# Install: Settings -> Dashboards -> Add dashboard -> Start from scratch, open
+# it, three-dot menu -> Raw configuration editor, paste this file's content.
+# Then personalise the two commented sections near the bottom (Scenes,
+# Equipment) with your own panel devices and any activity-scene scripts you've
+# created (see the "Activity scene" blueprint) — everything above that line
+# works unedited, using only entities aqualink-automate itself publishes plus
+# the companion helpers package's derived sensors (install that too — see
+# packages/aqualink_automate.yaml — for the Salt to Add / Warmed Today / Spa
+# Readiness cards below to show real values).
+# =============================================================================
+title: Pool (Showcase)
+button_card_templates:
+  aq_base:
+    show_icon: false
+    styles:
+      card:
+        - font-family: "'Hanken Grotesk', var(--primary-font-family, sans-serif)"
+        - box-shadow: none
+  aq_tile:
+    template: aq_base
+    show_name: true
+    show_label: true
+    tap_action:
+      action: toggle
+    styles:
+      card:
+        - padding: 14px
+        - border-radius: 16px
+        - border: >-
+            [[[ return (entity && entity.state === 'on') ? '1px solid #2e8b86' : '1px solid var(--divider-color)'; ]]]
+        - background: >-
+            [[[ return (entity && entity.state === 'on') ? 'rgba(46,139,134,0.14)' : 'var(--card-background-color)'; ]]]
+      grid:
+        - grid-template-areas: '"n" "l"'
+        - align-items: center
+      name:
+        - justify-self: start
+        - font-size: 14.5px
+        - font-weight: "700"
+        - color: var(--primary-text-color)
+      label:
+        - justify-self: start
+        - font-family: "'Space Mono', ui-monospace, monospace"
+        - font-size: 11.5px
+        - color: var(--secondary-text-color)
+  aq_chip:
+    template: aq_base
+    show_name: false
+    show_label: true
+    tap_action:
+      action: more-info
+    styles:
+      card:
+        - padding: 12px 14px
+        - border-radius: 12px
+        - border: 1px solid var(--divider-color)
+        - background: var(--card-background-color)
+      grid:
+        - grid-template-areas: '"dot l"'
+        - grid-template-columns: auto 1fr
+        - column-gap: 10px
+        - align-items: center
+      label:
+        - justify-self: start
+        - font-size: 13.5px
+        - font-weight: "600"
+        - color: var(--primary-text-color)
+      custom_fields:
+        dot:
+          - align-self: center
+    custom_fields:
+      dot: >-
+        [[[
+          var s = (entity ? entity.state : '') || '';
+          var col;
+          if (s === 'Heating' || s === 'Ready') { col = '#2e8b86'; }
+          else if (/Fault/i.test(s)) { col = '#d85a30'; }
+          else if (/Warn|Low/i.test(s)) { col = '#ef9f27'; }
+          else if (s === 'Enabled' || s === 'on' || s === 'Ok' || s === 'Warming Up') { col = '#5c8a55'; }
+          else { col = 'var(--disabled-text-color)'; }
+          return `<div style="width:9px;height:9px;border-radius:50%;background:${col};"></div>`;
+        ]]]
+  aq_stat:
+    template: aq_base
+    show_name: false
+    show_label: false
+    tap_action:
+      action: none
+    styles:
+      card:
+        - padding: 13px 14px
+        - border-radius: 14px
+        - border: none
+        - background: none
+      grid:
+        - grid-template-areas: '"l" "v"'
+        - justify-items: start
+    custom_fields:
+      l: >-
+        [[[ return `<div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--disabled-text-color);text-transform:uppercase;">${variables.label||''}</div>`; ]]]
+      v: >-
+        [[[
+          var v = entity ? entity.state : '--';
+          return `<div style="font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--primary-text-color);font-variant-numeric:tabular-nums;">${v}<span style="font-size:12px;font-weight:600;color:var(--secondary-text-color);"> ${variables.unit||''}</span></div>`;
+        ]]]
+
+views:
+  - title: Showcase
+    path: showcase
+    icon: mdi:pool
+    type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(4, 1fr)
+      grid-gap: 14px
+      padding: 18px
+      grid-template-areas: |
+        "header header header header"
+        "hero   hero   side   side"
+        "chem   chem   chem   chem"
+        "alerts alerts alerts alerts"
+        "scenes scenes scenes scenes"
+        "equip  equip  equip  equip"
+      mediaquery:
+        "(max-width: 700px)":
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "header"
+            "hero"
+            "side"
+            "chem"
+            "alerts"
+            "scenes"
+            "equip"
+    cards:
+      - type: markdown
+        view_layout:
+          grid-area: header
+        content: >-
+          ## Pool & Spa
+
+          {{ states('sensor.aqualink_automate_circulation_mode') | upper }} MODE ·
+          {{ states('sensor.aqualink_automate_air_temperature') }}° AIR
+        card_mod:
+          style: |
+            @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+            ha-card { border: none; background: none; box-shadow: none; font-family: 'Hanken Grotesk', sans-serif; }
+            ha-card h2 { font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+            ha-card p { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--secondary-text-color); margin: 4px 0 0; }
+
+      - type: custom:button-card
+        template: aq_base
+        view_layout:
+          grid-area: hero
+        tap_action:
+          action: none
+        custom_fields:
+          t: >-
+            [[[
+              var spa = (states['sensor.aqualink_automate_circulation_mode']||{}).state === 'Spa';
+              var ent = spa ? 'sensor.aqualink_automate_spa_temperature' : 'sensor.aqualink_automate_pool_temperature';
+              var v = (states[ent]||{}).state || '--';
+              return `<div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--secondary-text-color);">${(spa?'SPA':'POOL')} WATER TEMPERATURE</div>
+                      <div style="font-size:64px;font-weight:600;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums;color:var(--primary-text-color);">${v}<span style="font-size:26px;font-weight:500;color:var(--secondary-text-color);">°</span></div>`;
+            ]]]
+        styles:
+          card:
+            - padding: 18px 20px
+            - border-radius: 18px
+          grid:
+            - grid-template-areas: '"t"'
+          custom_fields:
+            t:
+              - justify-self: start
+
+      - type: vertical-stack
+        view_layout:
+          grid-area: side
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.aqualink_automate_circulation_mode
+                state: Spa
+            card:
+              type: custom:mushroom-number-card
+              entity: number.aqualink_automate_spa_setpoint
+              name: Target
+              display_mode: buttons
+              icon_type: none
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.aqualink_automate_circulation_mode
+                state_not: Spa
+            card:
+              type: custom:mushroom-number-card
+              entity: number.aqualink_automate_pool_setpoint
+              name: Target
+              display_mode: buttons
+              icon_type: none
+          # Your panel's heaters (e.g. a solar or gas heater) are dynamic,
+          # panel-label-driven sensors — add a chip for yours here, e.g.:
+          #   - type: custom:button-card
+          #     template: aq_chip
+          #     entity: sensor.aqualink_automate_<your_heater_label>
+          #     label: "[[[ return 'Heat · ' + (entity ? entity.state : '—'); ]]]"
+          # Requires the companion helpers package.
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.aqualink_automate_circulation_mode
+                state: Spa
+            card:
+              type: custom:button-card
+              template: aq_chip
+              entity: sensor.aqualink_spa_readiness
+              label: "[[[ return 'Spa · ' + (entity ? entity.state : '—') + (entity && entity.attributes ? ' (' + (entity.attributes.percent_ready||0) + '%)' : ''); ]]]"
+
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        view_layout:
+          grid-area: chem
+        layout:
+          grid-template-columns: repeat(4, 1fr)
+          grid-gap: 12px
+          mediaquery:
+            "(max-width: 500px)":
+              grid-template-columns: 1fr 1fr
+        cards:
+          - type: custom:button-card
+            template: aq_stat
+            entity: sensor.aqualink_automate_salt_level
+            variables:
+              label: Salt
+              unit: ppm
+          - type: custom:button-card
+            template: aq_stat
+            entity: sensor.aqualink_automate_ph
+            variables:
+              label: pH
+          - type: custom:button-card
+            template: aq_stat
+            entity: sensor.aqualink_automate_orp
+            variables:
+              label: ORP
+              unit: mV
+          # Requires the companion helpers package.
+          - type: custom:button-card
+            template: aq_stat
+            entity: sensor.aqualink_salt_to_add
+            variables:
+              label: Salt To Add
+              unit: kg
+
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        view_layout:
+          grid-area: alerts
+        layout:
+          grid-template-columns: repeat(3, 1fr)
+          grid-gap: 12px
+          mediaquery:
+            "(max-width: 500px)":
+              grid-template-columns: 1fr
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_chlorinator_fault
+                state: "on"
+            card:
+              type: custom:button-card
+              template: aq_chip
+              entity: binary_sensor.aqualink_automate_chlorinator_fault
+              label: Chlorinator fault
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_salt_low
+                state: "on"
+            card:
+              type: custom:button-card
+              template: aq_chip
+              entity: binary_sensor.aqualink_automate_salt_low
+              label: Salt low
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.aqualink_automate_serial_comms_loss
+                state: "on"
+            card:
+              type: custom:button-card
+              template: aq_chip
+              entity: binary_sensor.aqualink_automate_serial_comms_loss
+              label: Serial comms loss
+
+      # Scenes (OPTIONAL — needs your own activity-scene instances). Create
+      # scripts from the "Activity scene" blueprint (one per activity, e.g.
+      # Swim / Jet Pool), each with its own input_boolean + optional timer
+      # helper, then replace this note with tiles wired to them. Example for a
+      # script named "Swim" (entity script.swim, boolean
+      # input_boolean.swim_active):
+      #
+      # - type: custom:button-card
+      #   template: aq_tile
+      #   entity: input_boolean.swim_active
+      #   name: Swim
+      #   tap_action: { action: call-service, service: script.turn_on, target: { entity_id: script.swim } }
+      #   hold_action: { action: call-service, service: script.turn_on, target: { entity_id: script.swim }, data: { variables: { action: turn_off } } }
+      - type: markdown
+        view_layout:
+          grid-area: scenes
+        content: >-
+          Create scripts from the **Activity scene** blueprint, then replace
+          this card with tiles wired to them (see the comment in this
+          dashboard's YAML for a worked example).
+        card_mod:
+          style: "ha-card { opacity: 0.6; font-size: 13px; }"
+
+      # Equipment (OPTIONAL — needs YOUR panel's device entities). Pumps, aux
+      # circuits, chlorinator, and heaters carry your panel's own labels as
+      # entity ids (Settings -> Devices & Services -> MQTT ->
+      # aqualink-automate). Example:
+      #
+      # - type: custom:button-card
+      #   template: aq_tile
+      #   entity: switch.aqualink_automate_filter_pump
+      #   name: Filter Pump
+      - type: markdown
+        view_layout:
+          grid-area: equip
+        content: >-
+          Your panel's pumps, aux circuits, chlorinator, and heaters appear as
+          switches on the **aqualink-automate** MQTT device — replace this
+          card with tiles for them (see the comment in this dashboard's YAML
+          for a worked example).
+        card_mod:
+          style: "ha-card { opacity: 0.6; font-size: 13px; }"

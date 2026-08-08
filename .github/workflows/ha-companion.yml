@@ -57,9 +57,11 @@ jobs:
           CFG=$(mktemp -d)
           cp homeassistant/companion/test-harness/configuration.yaml "$CFG/"
           cp homeassistant/companion/test-harness/automations.yaml "$CFG/"
-          mkdir -p "$CFG/packages" "$CFG/blueprints/automation"
+          cp homeassistant/companion/test-harness/scripts.yaml "$CFG/"
+          mkdir -p "$CFG/packages" "$CFG/blueprints/automation" "$CFG/blueprints/script"
           cp homeassistant/companion/packages/*.yaml "$CFG/packages/"
           cp -r homeassistant/companion/blueprints/automation/aqualink-automate "$CFG/blueprints/automation/"
+          cp -r homeassistant/companion/blueprints/script/aqualink-automate "$CFG/blueprints/script/"
           set +e
           OUT=$(docker run --rm -v "$CFG":/config ghcr.io/home-assistant/home-assistant:stable \
             python -m homeassistant --script check_config --config /config 2>&1)

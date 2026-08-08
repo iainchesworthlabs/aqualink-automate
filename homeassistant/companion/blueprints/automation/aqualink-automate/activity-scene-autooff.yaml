@@ -1,0 +1,42 @@
+blueprint:
+  name: "AquaLink Automate: Activity scene auto-off"
+  description: >-
+    Pairs with the "Activity scene" script blueprint: when the activity's
+    duration timer finishes, calls that same script with the `turn_off` field so
+    everything it turned on gets turned back off automatically. Create one of
+    these per activity scene that uses a duration timer.
+  domain: automation
+  author: aqualink-automate
+  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/activity-scene-autooff.yaml
+  input:
+    duration_timer:
+      name: Duration timer
+      description: The same timer entity given to the "Activity scene" script instance.
+      selector:
+        entity:
+          filter:
+            - domain: timer
+    activity_script:
+      name: Activity scene script
+      description: The script entity created from the "Activity scene" blueprint.
+      selector:
+        entity:
+          filter:
+            - domain: script
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input duration_timer
+
+actions:
+  - action: script.turn_on
+    target:
+      entity_id: !input activity_script
+    data:
+      variables:
+        action: turn_off
