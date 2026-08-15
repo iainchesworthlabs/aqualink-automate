@@ -299,7 +299,7 @@ jobs:
       # the attestation to the image in GHCR so `gh attestation verify oci://...` and
       # `cosign`-style tooling can find it. See docs/SECURITY.md > Verifying builds.
       - name: Attest image build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.digest.outputs.digest }}
@@ -455,7 +455,7 @@ jobs:
           echo "Published add-on image digest: $DIGEST"
 
       - name: Attest add-on image build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/${{ github.repository }}/homeassistant-${{ matrix.ha_arch }}
           subject-digest: ${{ steps.digest.outputs.digest }}
@@ -565,7 +565,7 @@ jobs:
       # .asc/.sha512/SBOM sidecars). Signed via Sigstore/Fulcio using the job's OIDC
       # identity; verified with `gh attestation verify <file> --repo <owner>/<repo>`.
       - name: Attest package build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             release-artifacts/*.deb
