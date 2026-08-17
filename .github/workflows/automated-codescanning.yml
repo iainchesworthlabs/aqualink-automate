@@ -141,6 +141,21 @@ jobs:
       env:
         VCPKG_BINARY_SOURCES: "clear;default,readwrite"
 
+    # The libbacktrace port (a boost-stacktrace dependency) regenerates its configure
+    # via autoreconf, so the build host needs autoconf/autoconf-archive/automake/
+    # libtool. Skip apt entirely when already present (baked self-hosted image);
+    # otherwise wait for the dpkg lock instead of failing (unattended-upgrades briefly
+    # holds it on self-hosted runners). Mirrors _build.yml / fuzzing.yml.
+    - name: Install autotools for libbacktrace
+      shell: bash
+      run: |
+        if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+          echo "autotools already installed; skipping apt-get"
+        else
+          sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+          sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+        fi
+
     - name: Configure
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:
@@ -301,6 +316,21 @@ jobs:
       run: bash "${{ github.workspace }}/deps/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
       env:
         VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+
+    # The libbacktrace port (a boost-stacktrace dependency) regenerates its configure
+    # via autoreconf, so the build host needs autoconf/autoconf-archive/automake/
+    # libtool. Skip apt entirely when already present (baked self-hosted image);
+    # otherwise wait for the dpkg lock instead of failing (unattended-upgrades briefly
+    # holds it on self-hosted runners). Mirrors _build.yml / fuzzing.yml.
+    - name: Install autotools for libbacktrace
+      shell: bash
+      run: |
+        if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+          echo "autotools already installed; skipping apt-get"
+        else
+          sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+          sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+        fi
 
     # The coverage preset turns ENABLE_COVERAGE on, which appends `--coverage
     # -fprofile-abs-path` to EVERY target (root CMakeLists). So the app target is
@@ -589,6 +619,21 @@ jobs:
       run: bash "${{ github.workspace }}/deps/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
       env:
         VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+
+    # The libbacktrace port (a boost-stacktrace dependency) regenerates its configure
+    # via autoreconf, so the build host needs autoconf/autoconf-archive/automake/
+    # libtool. Skip apt entirely when already present (baked self-hosted image);
+    # otherwise wait for the dpkg lock instead of failing (unattended-upgrades briefly
+    # holds it on self-hosted runners). Mirrors _build.yml / fuzzing.yml.
+    - name: Install autotools for libbacktrace
+      shell: bash
+      run: |
+        if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+          echo "autotools already installed; skipping apt-get"
+        else
+          sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+          sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+        fi
 
     - name: Configure
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
