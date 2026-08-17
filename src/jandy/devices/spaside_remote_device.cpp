@@ -22,9 +22,9 @@ namespace AqualinkAutomate::Devices
 			// We ARE the remote: ACK the master's discovery probe and its cmd-0x02 LED-image
 			// poll, injecting any pending button press into the [0x01][0x00][button] reply.
 			m_SlotManager.RegisterSlot_FilterByDeviceId<Messages::JandyMessage_Probe>(
-				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_EmulatedProbe, this), (*device_id)());
+				std::bind(&SpasideRemoteDevice::Slot_Spaside_EmulatedProbe, this, std::placeholders::_1), (*device_id)());
 			m_SlotManager.RegisterSlot_FilterByDeviceId<Messages::JandyMessage_Status>(
-				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_EmulatedPoll, this), (*device_id)());
+				std::bind(&SpasideRemoteDevice::Slot_Spaside_EmulatedPoll, this, std::placeholders::_1), (*device_id)());
 		}
 		else
 		{
@@ -32,12 +32,12 @@ namespace AqualinkAutomate::Devices
 			// Status addressed to our id; use it purely as the "we were just polled" trigger that
 			// arms the button-Ack correlation.
 			m_SlotManager.RegisterSlot_FilterByDeviceId<Messages::JandyMessage_Status>(
-				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_Status, this), (*device_id)());
+				std::bind(&SpasideRemoteDevice::Slot_Spaside_Status, this, std::placeholders::_1), (*device_id)());
 
 			// Button presses are reported as a generic Ack (cmd 0x01) addressed to the MASTER
 			// (0x00), so we CANNOT filter by our own id -- register unfiltered and correlate.
 			m_SlotManager.RegisterSlot<Messages::JandyMessage_Ack>(
-				std::bind_front(&SpasideRemoteDevice::Slot_Spaside_Ack, this));
+				std::bind(&SpasideRemoteDevice::Slot_Spaside_Ack, this, std::placeholders::_1));
 		}
 	}
 
