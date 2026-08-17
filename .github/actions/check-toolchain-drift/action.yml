@@ -1,0 +1,38 @@
+name: Check toolchain version drift
+description: >-
+  Compare the compiler actually on PATH against the pinned major version this
+  repo expects, warning (never failing) on a mismatch.
+
+inputs:
+  compiler:
+    description: 'Which compiler binary to check: "gcc" or "clang".'
+    required: true
+  expected-version:
+    description: >-
+      Expected major version (e.g. "15"), from .github/toolchain-versions.json
+      via the _toolchain-versions.yml reusable workflow.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # This only ever runs on a self-hosted job (callers gate it on
+    # contains(..., 'self-hosted')): a GitHub-hosted runner installs the pinned
+    # version fresh every run via setup-cpp-toolchain, so it can never drift. A
+    # self-hosted runner's compiler is baked into a Packer image built in the
+    # separate iainchesworthlabs/ci-runners repo, which this repo does not
+    # control and cannot rebuild -- a mismatch here is infrastructure the
+    # maintainer needs to go fix over there, not something CI should block on.
+    # See docs/ci-self-hosted-runners.md.
+    - name: Compare detected vs. pinned major version
+      shell: bash
+      env:
+        COMPILER: ${{ inputs.compiler }}
+        EXPECTED: ${{ inputs.expected-version }}
+      run: |
+        actual="$("$COMPILER" -dumpversion)"
+        actual_major="${actual%%.*}"
+        echo "Detected $COMPILER major version: $actual_major (repo pins $EXPECTED)"
+        if [ "$actual_major" != "$EXPECTED" ]; then
+          echo "::warning::Self-hosted runner's $COMPILER is major version $actual_major, but this repo pins $EXPECTED (.github/toolchain-versions.json). Either rebuild the iainchesworthlabs/ci-runners image to $EXPECTED, or bump the pin here to match -- see docs/ci-self-hosted-runners.md."
+        fi

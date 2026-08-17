@@ -11,6 +11,8 @@ The table below is the complete inventory of everything under `.github/` — the
 | `.github/workflows/ci.yml` | Workflow | Build, test, e2e, and Docker verification on every push and PR. |
 | `.github/workflows/_build.yml` | Reusable workflow (`workflow_call`) | The shared configure/build/test/package matrix. Called by both `ci.yml` and `release.yml`. |
 | `.github/workflows/_check-runners.yml` | Reusable workflow (`workflow_call`) | Live self-hosted-runner-availability check shared by `_build.yml`, `ci.yml`, `release.yml`, `fuzzing.yml`, and `automated-codescanning.yml`. See [Self-hosted runners](#self-hosted-runners) and [ci-self-hosted-runners.md](ci-self-hosted-runners.md). |
+| `.github/workflows/_toolchain-versions.yml` | Reusable workflow (`workflow_call`) | Reads `.github/toolchain-versions.json` and exposes the pinned GCC/LLVM major versions, shared by `_build.yml`, `fuzzing.yml`, and `automated-codescanning.yml`. See [Toolchain version drift](#toolchain-version-drift) and [ci-self-hosted-runners.md](ci-self-hosted-runners.md#toolchain-version-drift). |
+| `.github/toolchain-versions.json` | Manifest | The single checked-in source of truth for the pinned `gcc`/`llvm` major versions GitHub-hosted CI installs. |
 | `.github/workflows/release.yml` | Workflow | Build packages, publish the Docker + Home Assistant add-on images, create the GitHub release, and publish the APT/DNF repos for a `v*` tag. |
 | `.github/workflows/publish-repos.yml` | Reusable workflow (`workflow_call`) + dispatch | Publish the GPG-signed APT/DNF package repos to `gh-pages`. Called by `release.yml` after the release is created; dispatchable to (re)publish a tag. |
 | `.github/workflows/auto-tag.yml` | Workflow | Opt-in (repo variable `AUTO_TAG_ENABLED`): advances the prerelease counter tag on a code push to `main`, firing `release.yml`. Off by default — tags are pushed by hand. |
@@ -28,6 +30,7 @@ The table below is the complete inventory of everything under `.github/` — the
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 | `.github/actions/setup-msvc-env` | Composite action | Load the MSVC environment on self-hosted Windows runners (sources `vcvars64.bat`, exports the env delta to `$GITHUB_ENV`). |
+| `.github/actions/check-toolchain-drift` | Composite action | Warn (never fail) when a self-hosted runner's compiler major version has drifted from the `_toolchain-versions.yml` pin. See [Toolchain version drift](#toolchain-version-drift). |
 
 `ci.yml` and `release.yml` share one build definition (`_build.yml`), so the suites that run on a PR and the suites that gate a release can never drift.
 
@@ -105,7 +108,10 @@ The job runs a four-row matrix with `fail-fast: false`, so one platform failing 
 | Windows MSVC | `msvc` | `config-windows-msvc` | `build-windows-msvc` | `test-windows-msvc` | `pack-windows-msvc` |
 | macOS Clang | `llvm` | `config-macos-llvm` | `build-macos-llvm` | `test-macos-llvm` | `pack-macos-llvm` |
 
-These are the same presets you use locally — see [INSTALL.md](INSTALL.md).
+These are the same presets you use locally — see [INSTALL.md](INSTALL.md). The two Linux
+rows' `gcc-15` is resolved at runtime from `needs.toolchain-versions.outputs.gcc_version`
+(`_toolchain-versions.yml`), not hardcoded in the matrix — see
+[Toolchain version drift](#toolchain-version-drift).
 
 The arm64 row builds **natively** on an aarch64 runner (no cross-compile / QEMU) so the `.deb`/`.rpm`/`.tgz` install on a Raspberry Pi and other arm64 hosts; CPack derives the package architecture from the target, so the packages are correctly labelled `arm64`/`aarch64`. Both Linux rows can upload their install tree (`installtree-linux-gcc` / `installtree-linux-gcc-arm64`, gated on the `upload_installtree` input): CI uploads only the x64 tree (for `e2e-ui`), while the release path uploads both so `docker-publish` can assemble the multi-arch image without recompiling.
 
@@ -389,6 +395,33 @@ across every repo in the org — not in this repo's `cicd/`.
 
 The Linux image is hardened against OS-disk creep: Docker's `data-root` **and** containerd's `root` live on the dedicated `/data` disk, `~/.cache` and `~/.sonar` are symlinked into the size-capped `/data/cache`, `unattended-upgrades` is removed (background dpkg runs also raced CI's own `apt-get` calls), and the ephemeral supervisor's per-job reset additionally deletes superseded self-updated runner-agent versions and runs apt hygiene (`apt-get clean`, wipe `/var/lib/apt/lists`). See `cicd/packer/README.md` ("Disk layout & the pristine ephemeral model").
 
+## Toolchain version drift
+
+Runner *availability* (above) is one axis; compiler *version* is a separate one. A
+GitHub-hosted job installs `gcc-15` / `llvm-21` fresh every run via `setup-cpp-toolchain`;
+a self-hosted job instead gets whatever `iainchesworthlabs/ci-runners`' Packer image last
+baked in — nothing keeps the two in sync automatically, and a real fuzzing-job break
+(GitHub-hosted resolved a bare `llvm` to Clang 20 while self-hosted had Clang 21) is what
+motivated closing the gap.
+
+- **One pin:** `.github/toolchain-versions.json` is the single checked-in source of truth
+  for both versions. `_toolchain-versions.yml` (a `workflow_call`, same shape as
+  `_check-runners.yml`) reads it once per workflow run; `_build.yml`, `fuzzing.yml`, and
+  `automated-codescanning.yml` each call it as a `toolchain-versions` job and read
+  `needs.toolchain-versions.outputs.gcc_version` / `llvm_version` everywhere they used to
+  hardcode `compiler: gcc-15` / `compiler: llvm-21`. Bump a version by editing that one file.
+- **Runtime check, warn-only:** on a self-hosted leg, `.github/actions/check-toolchain-drift`
+  runs `gcc -dumpversion` / `clang -dumpversion` and compares it against the same pin,
+  emitting `::warning::` (never failing the job) on a mismatch — the self-hosted image is
+  infrastructure this repo doesn't own, so a stale image is something to go rebuild in
+  `ci-runners`, not a reason to block a PR.
+- **Bumping is a two-repo change.** Editing the JSON here only moves the GitHub-hosted half;
+  the self-hosted image itself is rebuilt separately in
+  [iainchesworthlabs/ci-runners](https://github.com/iainchesworthlabs/ci-runners). Until
+  that happens, the warning firing is expected, not a bug.
+
+Full design: [ci-self-hosted-runners.md#toolchain-version-drift](ci-self-hosted-runners.md#toolchain-version-drift).
+
 ## Caching
 
 ### vcpkg binary cache
@@ -411,7 +444,7 @@ ccache is used inside the Docker builds (the in-Dockerfile cache mounts a `docke
 
 The toolchain action installs only what each platform needs:
 
-- **Linux:** installs the named compiler (`gcc-15` in CI) plus CMake and Ninja via `aminya/setup-cpp`.
+- **Linux:** installs the named compiler (`gcc-15` / `llvm-21` in CI, resolved from `.github/toolchain-versions.json` — see [Toolchain version drift](#toolchain-version-drift)) plus CMake and Ninja via `aminya/setup-cpp`.
 - **Windows:** installs only CMake and Ninja; MSVC is assumed present (baked into the runner image).
 - **macOS:** `brew install llvm cmake ninja` and prepends the Homebrew `llvm` to `PATH`, so the macOS row targets Clang 21 from Homebrew.
 

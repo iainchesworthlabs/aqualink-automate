@@ -76,3 +76,53 @@ arm64 runner in the current fleet to check against) remain.
 Runner VM images (Packer templates, provisioning scripts) live in
 [iainchesworthlabs/ci-runners](https://github.com/iainchesworthlabs/ci-runners), shared
 across the org — not in this repo's `cicd/`.
+
+## Toolchain version drift
+
+The check above answers "which runner". A separate, narrower problem is toolchain
+*version* drift once a runner (of either kind) is selected: a GitHub-hosted job installs
+its compiler fresh every run via `setup-cpp-toolchain` (`aminya/setup-cpp`), using
+whatever version string the workflow asks for; a self-hosted job instead uses whatever
+`iainchesworthlabs/ci-runners`' Packer image happened to bake in, at whatever point that
+image was last built. Nothing keeps those two in sync automatically — they are
+independent processes in independent repos.
+
+This already caused a real failure: `fuzzing.yml` once asked for a bare, unpinned
+`compiler: llvm` (no version), which `aminya/setup-cpp` resolved to Clang 20 on a
+GitHub-hosted Ubuntu Noble runner, while the self-hosted image bakes Clang 21 — the skew
+broke the build (`std::expected` not found under Clang 20 + the runner's system
+libstdc++). Two mechanisms close this gap, one build-time, one runtime:
+
+1. **One pin, read everywhere.** [`.github/toolchain-versions.json`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/toolchain-versions.json)
+   holds the two GitHub-hosted compiler pins (`gcc`, `llvm`) this repo's CI installs.
+   [`_toolchain-versions.yml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/workflows/_toolchain-versions.yml)
+   is a small reusable `workflow_call` (same shape as `_check-runners.yml`) that reads it
+   once and exposes `gcc_version` / `llvm_version` outputs. Every workflow that used to
+   hardcode `compiler: gcc-15` / `compiler: llvm-21` — `_build.yml`, `fuzzing.yml`,
+   `automated-codescanning.yml` — instead calls it as its own `toolchain-versions` job and
+   reads `needs.toolchain-versions.outputs.gcc_version` / `llvm_version` at every
+   `setup-cpp-toolchain` `compiler:` input. **Bump a version by editing that one JSON file**
+   — nothing else in this repo needs to change. It is a checked-in file rather than a
+   repository variable deliberately: the pin then travels with the code in `git log`/`git
+   blame`, is visible in the PR diff that bumps it, and needs no separate manual step in
+   GitHub's Settings UI (the kind of external, non-git-tracked state that made the
+   org-transfer this repo just went through more painful than it needed to be).
+2. **Runtime drift check, warn-only.** [`.github/actions/check-toolchain-drift`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/actions/check-toolchain-drift/action.yml)
+   is a composite action every self-hosted-gated build step calls
+   (`if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')`, right where the
+   step normally installs the toolchain): it runs `gcc -dumpversion` / `clang -dumpversion`,
+   compares the detected major version against the same pin from step 1, and — on a
+   mismatch — emits `::warning::` naming both the expected and the actual version. It never
+   fails the job. That is deliberate, for the same reason `check-runners`' own API failures
+   degrade rather than block: the self-hosted image is infrastructure in a repo this one
+   does not control, so a drifted image is something for the maintainer to go rebuild in
+   `iainchesworthlabs/ci-runners`, never a reason to fail a PR against unrelated code. A
+   GitHub-hosted job never runs this check — it just installed the pinned version itself,
+   so it cannot drift.
+
+**Bumping a compiler version is a two-repo change.** Editing `.github/toolchain-versions.json`
+here only moves the GitHub-hosted half — it makes the warning start firing (correctly) if
+the self-hosted image is now behind. The self-hosted image itself is rebuilt in
+[iainchesworthlabs/ci-runners](https://github.com/iainchesworthlabs/ci-runners) (the Packer
+scripts referenced under [Provisioning](#provisioning) above); that is the other half, and
+until it happens the warning is expected, not a bug.

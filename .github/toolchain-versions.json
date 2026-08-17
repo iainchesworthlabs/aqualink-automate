@@ -1,0 +1,5 @@
+{
+  "_comment": "Single source of truth for the GitHub-hosted CI toolchain pins. Read by .github/workflows/_toolchain-versions.yml and compared at runtime against the self-hosted iainchesworthlabs/ci-runners image by .github/actions/check-toolchain-drift. Bumping either value here is the ONLY change needed to move every GitHub-hosted 'compiler: gcc-<N>' / 'compiler: llvm-<N>' reference in this repo's workflows -- it does NOT rebuild the self-hosted image; that is a separate change in iainchesworthlabs/ci-runners. See docs/ci-self-hosted-runners.md.",
+  "gcc": "15",
+  "llvm": "21"
+}

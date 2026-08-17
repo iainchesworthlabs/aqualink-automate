@@ -1,0 +1,53 @@
+# Reusable single source of truth for the pinned GCC/Clang major versions this
+# repo's GitHub-hosted CI installs (via setup-cpp-toolchain -> aminya/setup-cpp).
+# Every workflow that hardcoded a "compiler: gcc-15" / "compiler: llvm-21" string
+# (_build.yml, fuzzing.yml, automated-codescanning.yml) instead calls this once as
+# its own `toolchain-versions` job and reads
+# `needs.toolchain-versions.outputs.gcc_version` / `llvm_version` -- one value to
+# bump in .github/toolchain-versions.json instead of four+ hardcoded strings.
+#
+# This is the pin, not a guarantee: the self-hosted iainchesworthlabs/ci-runners
+# fleet bakes its own copy of these compilers, built independently in that sibling
+# repo. Nothing here enforces the two stay in sync -- that is what
+# .github/actions/check-toolchain-drift does at runtime on a self-hosted job. See
+# docs/ci-self-hosted-runners.md.
+name: Resolve pinned toolchain versions
+
+on:
+  workflow_call:
+    outputs:
+      gcc_version:
+        description: 'Pinned GCC major version, e.g. "15".'
+        value: ${{ jobs.resolve.outputs.gcc_version }}
+      llvm_version:
+        description: 'Pinned LLVM/Clang major version, e.g. "21".'
+        value: ${{ jobs.resolve.outputs.llvm_version }}
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    name: Resolve pinned toolchain versions
+    runs-on: ubuntu-latest
+    outputs:
+      gcc_version: ${{ steps.read.outputs.gcc_version }}
+      llvm_version: ${{ steps.read.outputs.llvm_version }}
+    steps:
+      # Sparse + shallow: this job only ever needs the one manifest file, not the
+      # full tree or submodules.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/toolchain-versions.json
+          sparse-checkout-cone-mode: false
+
+      - name: Read toolchain-versions.json
+        id: read
+        shell: bash
+        run: |
+          gcc_version="$(jq -r '.gcc' .github/toolchain-versions.json)"
+          llvm_version="$(jq -r '.llvm' .github/toolchain-versions.json)"
+          echo "gcc_version=$gcc_version" >> "$GITHUB_OUTPUT"
+          echo "llvm_version=$llvm_version" >> "$GITHUB_OUTPUT"
+          echo "Pinned toolchain versions: gcc=$gcc_version llvm=$llvm_version"

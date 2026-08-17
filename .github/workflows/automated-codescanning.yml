@@ -68,11 +68,25 @@ jobs:
     secrets: inherit
 
   ##
+  ## TOOLCHAIN VERSION PIN
+  ##
+  ## Single source of truth for the gcc-15 pin used by every job below that
+  ## builds — see docs/ci-self-hosted-runners.md and
+  ## _toolchain-versions.yml's own header.
+  ##
+
+  toolchain-versions:
+    name: Resolve pinned toolchain versions
+    uses: ./.github/workflows/_toolchain-versions.yml
+    permissions:
+      contents: read
+
+  ##
   ## CODEQL JOB
   ##
 
   CodeScanning_CodeQL:
-    needs: check-runners
+    needs: [check-runners, toolchain-versions]
     # Skip a develop->main promotion PR (already scanned on develop entry); run for
     # everything else (PR into develop, non-develop PR into main, schedule, dispatch).
     # AND: fork PRs must not run on the persistent self-hosted runners (untrusted
@@ -115,7 +129,17 @@ jobs:
     - uses: ./.github/actions/setup-cpp-toolchain
       if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
-        compiler: gcc-15
+        compiler: gcc-${{ needs.toolchain-versions.outputs.gcc_version }}
+
+    # Self-hosted GCC is baked into the iainchesworthlabs/ci-runners image, not
+    # installed by setup-cpp-toolchain above (skipped for self-hosted) — warn if
+    # it has drifted from the gcc-15 pin the GitHub-hosted leg installs.
+    - name: Check toolchain version drift (self-hosted)
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+      uses: ./.github/actions/check-toolchain-drift
+      with:
+        compiler: gcc
+        expected-version: ${{ needs.toolchain-versions.outputs.gcc_version }}
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
@@ -261,7 +285,7 @@ jobs:
   ##
 
   CodeScanning_E2ECoverage:
-    needs: check-runners
+    needs: [check-runners, toolchain-versions]
     # Same gating as the other jobs: skip a develop->main promotion PR (already
     # scanned on develop entry) and keep fork PRs off the self-hosted runners.
     if: >-
@@ -296,7 +320,17 @@ jobs:
     - uses: ./.github/actions/setup-cpp-toolchain
       if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
-        compiler: gcc-15
+        compiler: gcc-${{ needs.toolchain-versions.outputs.gcc_version }}
+
+    # Self-hosted GCC is baked into the iainchesworthlabs/ci-runners image, not
+    # installed by setup-cpp-toolchain above (skipped for self-hosted) — warn if
+    # it has drifted from the gcc-15 pin the GitHub-hosted leg installs.
+    - name: Check toolchain version drift (self-hosted)
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+      uses: ./.github/actions/check-toolchain-drift
+      with:
+        compiler: gcc
+        expected-version: ${{ needs.toolchain-versions.outputs.gcc_version }}
 
     - name: Setup vcpkg cache (self-hosted)
       if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
@@ -559,7 +593,7 @@ jobs:
     # artifact. !cancelled() (rather than the implicit success()) keeps the scan
     # running even if the e2e job FAILED — the assemble step below then falls back
     # to unit-only coverage, so a flaky e2e never drops the whole quality gate.
-    needs: [check-runners, CodeScanning_E2ECoverage]
+    needs: [check-runners, toolchain-versions, CodeScanning_E2ECoverage]
     # Skip a develop->main promotion PR (already scanned on develop entry).
     # AND gate out fork PRs from the persistent self-hosted runners (untrusted code
     # on a long-lived host; SonarCloud also needs SONAR_TOKEN, withheld from forks).
@@ -596,7 +630,17 @@ jobs:
     - uses: ./.github/actions/setup-cpp-toolchain
       if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
-        compiler: gcc-15
+        compiler: gcc-${{ needs.toolchain-versions.outputs.gcc_version }}
+
+    # Self-hosted GCC is baked into the iainchesworthlabs/ci-runners image, not
+    # installed by setup-cpp-toolchain above (skipped for self-hosted) — warn if
+    # it has drifted from the gcc-15 pin the GitHub-hosted leg installs.
+    - name: Check toolchain version drift (self-hosted)
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+      uses: ./.github/actions/check-toolchain-drift
+      with:
+        compiler: gcc
+        expected-version: ${{ needs.toolchain-versions.outputs.gcc_version }}
 
     - name: Install build-wrapper
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8

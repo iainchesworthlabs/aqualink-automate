@@ -57,9 +57,17 @@ jobs:
       actions: read
     secrets: inherit
 
+  # Single source of truth for the llvm-21 pin — see docs/ci-self-hosted-runners.md
+  # and _toolchain-versions.yml's own header.
+  toolchain-versions:
+    name: Resolve pinned toolchain versions
+    uses: ./.github/workflows/_toolchain-versions.yml
+    permissions:
+      contents: read
+
   fuzz:
     name: Fuzz ${{ matrix.harness }}
-    needs: check-runners
+    needs: [check-runners, toolchain-versions]
     # Fork PRs must not run on the persistent self-hosted runners (untrusted code on
     # a long-lived host) - check-runners' own fork-PR branch already forces hosted
     # labels for them; this is belt-and-braces so a gap in that logic can't silently
@@ -108,14 +116,25 @@ jobs:
       - uses: ./.github/actions/setup-cpp-toolchain
         if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
         with:
-          # Pinned to match the self-hosted image's baked Clang/LLVM 21 (see
-          # iainchesworthlabs/ci-runners) exactly. An earlier bare "llvm" let
+          # Pinned to match the self-hosted image's baked Clang/LLVM (see
+          # iainchesworthlabs/ci-runners) exactly, via the single source of
+          # truth in .github/toolchain-versions.json. An earlier bare "llvm" let
           # aminya/setup-cpp pick whatever it maps to a Ubuntu Noble runner at
-          # the time — LLVM 20 as of this pin — which failed to compile
+          # the time — LLVM 20 as of that pin — which failed to compile
           # std::expected-using code ("no template named 'expected' in
           # namespace 'std'"), a version-skew class of bug this pin removes
           # rather than just this one instance of it.
-          compiler: llvm-21
+          compiler: llvm-${{ needs.toolchain-versions.outputs.llvm_version }}
+
+      # Self-hosted Clang is baked into the iainchesworthlabs/ci-runners image,
+      # not installed by setup-cpp-toolchain above (skipped for self-hosted) —
+      # warn if it has drifted from the llvm-21 pin the GitHub-hosted leg installs.
+      - name: Check toolchain version drift (self-hosted)
+        if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+        uses: ./.github/actions/check-toolchain-drift
+        with:
+          compiler: clang
+          expected-version: ${{ needs.toolchain-versions.outputs.llvm_version }}
 
       # libFuzzer + the ASan build (SANITIZE_ADDRESS) link against the compiler-rt static
       # runtimes (libclang_rt.fuzzer.a / libclang_rt.asan*.a). Neither aminya/setup-cpp's

@@ -60,9 +60,16 @@ jobs:
       actions: read
     secrets: inherit
 
+  # Single source of truth for the gcc-15/llvm-21 pins — see
+  # docs/ci-self-hosted-runners.md and _toolchain-versions.yml's own header.
+  toolchain-versions:
+    uses: ./.github/workflows/_toolchain-versions.yml
+    permissions:
+      contents: read
+
   build:
     name: ${{ matrix.name }}
-    needs: check-runners
+    needs: [check-runners, toolchain-versions]
     # Fork PRs must not run on the persistent self-hosted runners (untrusted code on
     # a long-lived host) - check-runners' own fork-PR branch already forces hosted
     # labels for them; this is belt-and-braces so a gap in that logic can't silently
@@ -77,7 +84,7 @@ jobs:
         include:
           - name: "Linux GCC"
             runner: ${{ needs.check-runners.outputs.linux_runner }}
-            compiler: gcc-15
+            compiler: gcc-${{ needs.toolchain-versions.outputs.gcc_version }}
             configure_preset: config-linux-gcc
             build_preset: build-linux-gcc
             test_preset: test-linux-gcc
@@ -94,7 +101,7 @@ jobs:
           # arm runner. The triplet/toolchain target aarch64, so no cross-compile.
           - name: "Linux GCC (arm64)"
             runner: ${{ vars.RUNNER_LINUX_ARM || '["ubuntu-24.04-arm"]' }}
-            compiler: gcc-15
+            compiler: gcc-${{ needs.toolchain-versions.outputs.gcc_version }}
             configure_preset: config-linux-gcc-arm64
             build_preset: build-linux-gcc-arm64
             test_preset: test-linux-gcc-arm64
@@ -143,6 +150,17 @@ jobs:
         if: ${{ !contains(matrix.runner, 'self-hosted') }}
         with:
           compiler: ${{ matrix.compiler }}
+
+      # Self-hosted GCC is baked into the iainchesworthlabs/ci-runners image, not
+      # installed by setup-cpp-toolchain above (skipped for self-hosted) — warn if
+      # it has drifted from the gcc-15 pin this repo's GitHub-hosted leg installs.
+      # Windows/macOS legs use msvc/unversioned-llvm, out of scope here.
+      - name: Check toolchain version drift (self-hosted)
+        if: contains(matrix.runner, 'self-hosted') && runner.os == 'Linux'
+        uses: ./.github/actions/check-toolchain-drift
+        with:
+          compiler: gcc
+          expected-version: ${{ needs.toolchain-versions.outputs.gcc_version }}
 
       # Self-hosted Windows images bake in the VS Build Tools but do not expose the
       # MSVC environment (cl.exe, INCLUDE/LIB) on the default PATH; load it so the
