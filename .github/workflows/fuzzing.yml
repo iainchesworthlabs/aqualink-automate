@@ -108,7 +108,14 @@ jobs:
       - uses: ./.github/actions/setup-cpp-toolchain
         if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
         with:
-          compiler: llvm
+          # Pinned to match the self-hosted image's baked Clang/LLVM 21 (see
+          # iainchesworthlabs/ci-runners) exactly. An earlier bare "llvm" let
+          # aminya/setup-cpp pick whatever it maps to a Ubuntu Noble runner at
+          # the time — LLVM 20 as of this pin — which failed to compile
+          # std::expected-using code ("no template named 'expected' in
+          # namespace 'std'"), a version-skew class of bug this pin removes
+          # rather than just this one instance of it.
+          compiler: llvm-21
 
       # libFuzzer + the ASan build (SANITIZE_ADDRESS) link against the compiler-rt static
       # runtimes (libclang_rt.fuzzer.a / libclang_rt.asan*.a). Neither aminya/setup-cpp's
