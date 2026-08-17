@@ -4,7 +4,7 @@
 
 # Home Assistant Add-on: Aqualink Automate
 
-Run [Aqualink Automate](https://github.com/iainchesworth/aqualink-automate) as a
+Run [Aqualink Automate](https://github.com/iainchesworthlabs/aqualink-automate) as a
 Home Assistant add-on — the Supervisor runs and manages the container for you, so
 you get pool automation over RS-485 with native Home Assistant MQTT discovery
 without ever touching Docker.

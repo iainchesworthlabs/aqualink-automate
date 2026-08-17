@@ -18,7 +18,7 @@ command line. The Supervisor runs and manages the container for you.
 
 1. In Home Assistant, go to **Settings → Add-ons → Add-on Store**.
 2. Open the **⋮** menu (top-right) → **Repositories**, and add:
-   `https://github.com/iainchesworth/aqualink-automate`
+   `https://github.com/iainchesworthlabs/aqualink-automate`
 3. Find **Aqualink Automate** in the store and click **Install**. The add-on **pulls a
    prebuilt image** (per architecture), so installation is a quick download — it does
    not compile anything on your device.
@@ -117,13 +117,13 @@ are always persisted under `/data` — no configuration needed.
 
 The add-on ships with a set of ready-made Home Assistant blueprints, a helpers
 package, and a dashboard — see the [companion package
-docs](https://iainchesworth.github.io/aqualink-automate/homeassistant-companion/)
+docs](https://iainchesworthlabs.github.io/aqualink-automate/homeassistant-companion/)
 for what's in it. There are three ways to get them, and only the last needs the
 add-on's own settings:
 
 - Import a blueprint with one click from the docs page.
 - Download `aqualink-automate-homeassistant-companion-<version>.zip` from a
-  [GitHub release](https://github.com/iainchesworth/aqualink-automate/releases).
+  [GitHub release](https://github.com/iainchesworthlabs/aqualink-automate/releases).
 - Turn on **`install_companion_package`** below.
 
 | Option | Description |
@@ -136,4 +136,4 @@ add-on's own settings:
   Home Assistant is already a Matter controller, and your equipment is exposed through
   MQTT discovery instead.
 - Full serial-wiring guidance and the complete option/topic reference live in the
-  [project documentation](https://github.com/iainchesworth/aqualink-automate/tree/main/docs).
+  [project documentation](https://github.com/iainchesworthlabs/aqualink-automate/tree/main/docs).

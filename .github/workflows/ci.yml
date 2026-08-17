@@ -139,9 +139,20 @@ jobs:
         shell: pwsh
         run: ./scripts/check-os-macros.ps1 -Root $PWD
 
+  # Live self-hosted-availability check, shared by every job below that can build on
+  # the org-level fleet — see docs/ci-self-hosted-runners.md.
+  check-runners:
+    name: Check self-hosted runner availability
+    uses: ./.github/workflows/_check-runners.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+
   # The configure/build/test matrix lives in the reusable _build.yml so CI and the
-  # release pipeline share one definition and can never drift. Runner selection
-  # (vars.RUNNER_LINUX / RUNNER_WINDOWS) is handled inside that workflow.
+  # release pipeline share one definition and can never drift. It runs its own
+  # internal check-runners job (see _build.yml); actions: read is threaded through
+  # this call so that internal job can list runners.
   # upload_installtree publishes the Linux install tree that e2e-ui consumes below
   # (so e2e no longer recompiles the app).
   build-and-test:
@@ -149,6 +160,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     uses: ./.github/workflows/_build.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
     with:
       upload_installtree: true
 
@@ -158,14 +173,14 @@ jobs:
   # starts later than when it built its own binary — but it never recompiles.
   e2e-ui:
     name: E2E UI (Playwright)
-    needs: [changes, build-and-test]
+    needs: [changes, check-runners, build-and-test]
     # Skip for docs-only changes; otherwise keep the fork guard: fork PRs must not
     # run on the persistent self-hosted runners (untrusted code on a long-lived
     # host). Same-repo PRs and push/release events are unaffected.
     if: >-
       needs.changes.outputs.code == 'true' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -265,13 +280,13 @@ jobs:
 
   matter-bridge:
     name: Matter Bridge (Node)
-    needs: changes
+    needs: [changes, check-runners]
     # Skip for docs-only changes; otherwise keep the fork guard (untrusted code
     # must not run on the persistent self-hosted runners).
     if: >-
       needs.changes.outputs.code == 'true' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     defaults:
       run:
         working-directory: matter-bridge
@@ -336,13 +351,13 @@ jobs:
   # net). Catches a vcpkg/Dockerfile/ABI regression that the assembly path can't.
   docker-verify:
     name: Docker Verification
-    needs: changes
+    needs: [changes, check-runners]
     # Skip for docs-only changes; otherwise keep the fork guard (untrusted code
     # must not run on the persistent self-hosted runners).
     if: >-
       needs.changes.outputs.code == 'true' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     # Surfaced so the "Login to Docker Hub" step's `if:` can gate on the optional
     # secret being present. See release.yml / docs/releasing.md.
     env:

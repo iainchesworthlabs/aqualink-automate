@@ -690,7 +690,7 @@
         'about.available_languages': 'פֿאַראַנענע שפּראַכן',
         'about.lang_active': 'אַקטיוו',
         'about.language_how': 'קלײַבט דעם אינטערפֿייס-שפּראַך אונטער {settings} → {appearance} → {language}. די קלײַב ווערט אויפֿגעהיט מיט אײַערע פּרעפֿערענצן און פֿאָלגט אײַך אויף אַלע אַפּאַראַטן; רעכטס-צו-לינקס שפּראַכן שפּיגלען דעם פּריפֿ אויטאָמאַטיש.',
-        'about.language_contribute_html': 'פֿעלט אײַער שפּראַך, אָדער דערזען אַ איבערזעצונג וואָס קען לייענען זיך בעסער? איבערזעצונגען זענען פּשוטע טעקסט-קאַטאַלאָגן וואָס זענען גרינג צוצולייגן — זעט דעם <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">מיטהילף-פֿירער</a>.',
+        'about.language_contribute_html': 'פֿעלט אײַער שפּראַך, אָדער דערזען אַ איבערזעצונג וואָס קען לייענען זיך בעסער? איבערזעצונגען זענען פּשוטע טעקסט-קאַטאַלאָגן וואָס זענען גרינג צוצולייגן — זעט דעם <a href="https://iainchesworthlabs.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">מיטהילף-פֿירער</a>.',
         'about.model': 'מאָדעל',
         'about.type': 'טיפ',
         'about.revision': 'רעוויזיע',

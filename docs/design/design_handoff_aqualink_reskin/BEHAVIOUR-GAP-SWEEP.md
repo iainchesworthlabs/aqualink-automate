@@ -1,7 +1,7 @@
 # Aqualink Reskin — Behaviour-Gap Sweep
 
 A bidirectional audit of the reskinned UI (`Aqualink.dc.html`) against the real
-`iainchesworth/aqualink-automate` source (Alpine stores/views/components +
+`iainchesworthlabs/aqualink-automate` source (Alpine stores/views/components +
 `swagger.yaml`). Two directions:
 
 - **▶ UI gaps** — real backend behaviour the reskin doesn't yet represent (close these to reach parity).

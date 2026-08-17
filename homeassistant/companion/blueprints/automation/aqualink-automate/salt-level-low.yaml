@@ -10,7 +10,7 @@ blueprint:
     defaults.
   domain: automation
   author: aqualink-automate
-  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/salt-level-low.yaml
+  source_url: https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/salt-level-low.yaml
   input:
     salt_sensor:
       name: Salt level sensor

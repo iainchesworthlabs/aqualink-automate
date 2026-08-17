@@ -47,12 +47,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Live self-hosted-availability check ahead of the fuzz matrix — see
+  # docs/ci-self-hosted-runners.md.
+  check-runners:
+    name: Check self-hosted runner availability
+    uses: ./.github/workflows/_check-runners.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+
   fuzz:
     name: Fuzz ${{ matrix.harness }}
-    # Fork PRs must not run on the persistent self-hosted runners selected via
-    # vars.RUNNER_* (untrusted code on a long-lived host); GitHub-hosted fallback.
+    needs: check-runners
+    # Fork PRs must not run on the persistent self-hosted runners (untrusted code on
+    # a long-lived host) - check-runners' own fork-PR branch already forces hosted
+    # labels for them; this is belt-and-braces so a gap in that logic can't silently
+    # hand a fork PR a self-hosted runner.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,7 +92,7 @@ jobs:
             corpus: replay-line
     steps:
       - name: Clean workspace (self-hosted)
-        if: contains(vars.RUNNER_LINUX, 'self-hosted')
+        if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
         shell: bash
         run: |
           if [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
@@ -93,7 +106,7 @@ jobs:
           fetch-depth: 1
 
       - uses: ./.github/actions/setup-cpp-toolchain
-        if: ${{ !contains(vars.RUNNER_LINUX, 'self-hosted') }}
+        if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
         with:
           compiler: llvm
 
@@ -128,7 +141,7 @@ jobs:
           echo "compiler-rt libs:"; ls "/usr/lib/llvm-${ver}/lib/clang/${ver}/lib/"*/ 2>/dev/null | grep -i "fuzzer\|asan" || true
 
       - uses: ./.github/actions/setup-vcpkg-cache
-        if: ${{ !contains(vars.RUNNER_LINUX, 'self-hosted') }}
+        if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
         with:
           cache-key-prefix: fuzzing
 

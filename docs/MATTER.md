@@ -9,7 +9,7 @@ aqualink-automate exposes the pool equipment to **Apple Home, Google Home, Amazo
 Alexa and Samsung SmartThings** over [Matter](https://csa-iot.org/all-solutions/matter/),
 so a single QR-code pairing covers every major ecosystem.
 
-Matter is implemented as a **sidecar bridge** ([`matter-bridge/`](https://github.com/iainchesworth/aqualink-automate/blob/main/matter-bridge/README.md)):
+Matter is implemented as a **sidecar bridge** ([`matter-bridge/`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/matter-bridge/README.md)):
 a separate Node.js process that consumes the existing HTTP/WebSocket equipment API and
 presents the equipment as a Matter *Aggregator*. It does **not** link into the C++
 build — keeping the C++/MSVC build untouched and the image small. The sidecar depends

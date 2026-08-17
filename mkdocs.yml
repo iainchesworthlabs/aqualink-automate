@@ -7,10 +7,10 @@ site_author: Iain Chesworth
 # The docs site IS the GitHub Pages root (the docs home is the landing page).
 # The signed APT/DNF package machinery (apt/, rpm/, key.gpg, install-*.sh) lives
 # alongside it at the root, published by publish-repos.yml.
-site_url: https://iainchesworth.github.io/aqualink-automate/
+site_url: https://iainchesworthlabs.github.io/aqualink-automate/
 
-repo_url: https://github.com/iainchesworth/aqualink-automate
-repo_name: iainchesworth/aqualink-automate
+repo_url: https://github.com/iainchesworthlabs/aqualink-automate
+repo_name: iainchesworthlabs/aqualink-automate
 edit_uri: edit/main/docs/
 
 # In-repo Markdown is the single source of truth; this builds a curated subset.
@@ -138,6 +138,7 @@ nav:
       - Internationalization (i18n): i18n.md
       - Releasing: releasing.md
       - CI/CD: ci-cd.md
+      - Self-hosted CI runners: ci-self-hosted-runners.md
       - Git worktrees: worktrees.md
       - Record / replay: RECORD_REPLAY.md
       - Profiling: profiling.md

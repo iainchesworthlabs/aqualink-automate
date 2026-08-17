@@ -8,10 +8,10 @@
 # removed in Supervisor 2026.04.) Docker resolves the correct arch from the manifest.
 # The base already ships tini (PID 1), curl, and docker-entrypoint.sh; we add jq + bashio.
 ARG BUILD_VERSION
-FROM ghcr.io/iainchesworth/aqualink-automate:${BUILD_VERSION}
+FROM ghcr.io/iainchesworthlabs/aqualink-automate:${BUILD_VERSION}
 
 LABEL org.opencontainers.image.title="Aqualink Automate" \
-      org.opencontainers.image.source="https://github.com/iainchesworth/aqualink-automate"
+      org.opencontainers.image.source="https://github.com/iainchesworthlabs/aqualink-automate"
 
 # bashio is a distro-agnostic bash library, so it runs fine on the app's Ubuntu
 # (glibc) base — no musl/Alpine assumptions. jq is bashio's only runtime dep.

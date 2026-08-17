@@ -3,7 +3,7 @@
 # Home Assistant add-on version single-source (docs/design/homeassistant-addon.md).
 #
 # The add-on wraps the app image published to GHCR. The Dockerfile's base is
-# `ghcr.io/iainchesworth/aqualink-automate:${BUILD_VERSION}`, where BUILD_VERSION IS the
+# `ghcr.io/iainchesworthlabs/aqualink-automate:${BUILD_VERSION}`, where BUILD_VERSION IS the
 # add-on's config.yaml `version` (Supervisor-provided on a local build; CI + the dev
 # harness pass it explicitly). So the ONLY version to keep aligned is config.yaml
 # `version` == the app release version — there is no longer a separate build.yaml tag.

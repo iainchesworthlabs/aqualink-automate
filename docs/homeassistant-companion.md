@@ -3,7 +3,7 @@
 Ready-made Home Assistant content that works out of the box with aqualink-automate:
 a pool dashboard, a set of alert and self-healing automation **blueprints**, and a
 **helpers package** they build on. It lives in the repository under
-[`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)
+[`homeassistant/companion/`](https://github.com/iainchesworthlabs/aqualink-automate/tree/main/homeassistant/companion)
 and ships with every release as `aqualink-automate-homeassistant-companion-<version>.zip`.
 
 **Prerequisites:** aqualink-automate running with MQTT and Home Assistant discovery
@@ -78,7 +78,7 @@ No My-Home-Assistant? Copy the file from
 
 ## Helpers package
 
-[`packages/aqualink_automate.yaml`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/packages/aqualink_automate.yaml)
+[`packages/aqualink_automate.yaml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/packages/aqualink_automate.yaml)
 provides what the blueprints and dashboard expect:
 
 - `input_datetime.aqualink_quiet_hours_start` / `_end` — the shared no-notification
@@ -114,7 +114,7 @@ at blueprint-import time instead.
 
 ## Dashboard
 
-[`dashboards/aqualink-pool.yaml`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool.yaml)
+[`dashboards/aqualink-pool.yaml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool.yaml)
 is a two-view pool dashboard (Overview + Trends) built **only from stock cards** —
 no HACS or custom cards required. Water temperatures and setpoints, body switching
 on dual-body systems, chemistry, a self-hiding alerts section, and history/statistics
@@ -130,7 +130,7 @@ pointing at the file.
 
 ### Showcase dashboard (optional, needs HACS)
 
-[`dashboards/aqualink-pool-showcase.yaml`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool-showcase.yaml)
+[`dashboards/aqualink-pool-showcase.yaml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/dashboards/aqualink-pool-showcase.yaml)
 is a more polished alternative demonstrating what's possible with a few popular
 HACS custom cards — [button-card](https://github.com/custom-cards/button-card),
 [card-mod](https://github.com/thomasloven/lovelace-card-mod),
@@ -166,7 +166,7 @@ section](homeassistant-addon.md#configuration) for details.
 - **Multiple installs**: a second aqualink-automate instance gets `_2`-suffixed
   entity ids from Home Assistant; point a second copy of the content at those.
 - The full machine-readable list of the app's fixed entity ids is
-  [`entity-manifest.json`](https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/entity-manifest.json)
+  [`entity-manifest.json`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/entity-manifest.json)
   — CI validates the companion content against it, and a unit test keeps it in
   lock-step with the discovery code, so it is always current for your release.
 
@@ -184,8 +184,8 @@ section](homeassistant-addon.md#configuration) for details.
     Handy for air-gapped or LAN-only installs: download from your own instance and
     paste into Home Assistant's raw configuration editor or `blueprints/automation/`
     folder — no My-Home-Assistant redirect or GitHub reachability required.
-- **Repository** (tracks `main`): [`homeassistant/companion/`](https://github.com/iainchesworth/aqualink-automate/tree/main/homeassistant/companion)
+- **Repository** (tracks `main`): [`homeassistant/companion/`](https://github.com/iainchesworthlabs/aqualink-automate/tree/main/homeassistant/companion)
 - **Release bundle** (version-pinned, GPG-signed and attested like every other
   release artifact): `aqualink-automate-homeassistant-companion-<version>.zip` on
-  the [releases page](https://github.com/iainchesworth/aqualink-automate/releases) —
+  the [releases page](https://github.com/iainchesworthlabs/aqualink-automate/releases) —
   see [Releasing](releasing.md) for signature verification.

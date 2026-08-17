@@ -19,13 +19,13 @@ stage: experimental
 description: >-
   Control and monitor Jandy/Zodiac & Pentair pool systems over RS-485, with
   native Home Assistant MQTT discovery.
-url: https://github.com/iainchesworth/aqualink-automate
+url: https://github.com/iainchesworthlabs/aqualink-automate
 # Prebuilt image: the Supervisor PULLS the per-arch wrapper image published by
 # release.yml (job `homeassistant-addon-publish`) instead of building on-device. HA
 # substitutes {arch} (aarch64/amd64) and appends the add-on `version` as the tag.
 # The Dockerfile is the recipe CI builds from; it is also the local-build fallback if
 # you comment this line out to test an unpublished build.
-image: "ghcr.io/iainchesworth/aqualink-automate/homeassistant-{arch}"
+image: "ghcr.io/iainchesworthlabs/aqualink-automate/homeassistant-{arch}"
 # arm64 (aarch64) + amd64 only — matches what release.yml builds. armv7/armhf
 # (32-bit Pi) is a later phase.
 arch:

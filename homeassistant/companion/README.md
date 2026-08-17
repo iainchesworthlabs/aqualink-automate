@@ -5,7 +5,7 @@ Home Assistant discovery enabled (`--mqtt --home-assistant`, or the Home Assista
 add-on with its default `home_assistant_discovery: true`).
 
 Full installation and customisation guide: **docs/homeassistant-companion.md** in this
-repository, published at <https://iainchesworth.github.io/aqualink-automate/homeassistant-companion/>.
+repository, published at <https://iainchesworthlabs.github.io/aqualink-automate/homeassistant-companion/>.
 
 ## Contents
 

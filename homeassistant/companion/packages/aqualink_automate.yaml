@@ -13,7 +13,7 @@
 #
 # Naming: entities created by this package use the `aqualink_` prefix; entities
 # published by the app itself use `aqualink_automate_`. Docs:
-# https://iainchesworth.github.io/aqualink-automate/homeassistant-companion/
+# https://iainchesworthlabs.github.io/aqualink-automate/homeassistant-companion/
 # =============================================================================
 
 input_datetime:

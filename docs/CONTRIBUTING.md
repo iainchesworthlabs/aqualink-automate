@@ -76,7 +76,7 @@ For a **hotfix** change:
 2. Open a pull request targeting `main`.
 3. After it merges to `main`, also merge the fix into `develop`.
 
-Every pull request must include test coverage for the change and must pass the full suite. CI runs the C++ build and tests, the Playwright UI end-to-end specs, the Matter bridge checks, and a Docker image verification on each pull request. See [docs/ci-cd.md](ci-cd.md) for the catalogue of what runs and where, and [`.github/workflows/ci.yml`](https://github.com/iainchesworth/aqualink-automate/blob/main/.github/workflows/ci.yml) for the authoritative list of PR checks.
+Every pull request must include test coverage for the change and must pass the full suite. CI runs the C++ build and tests, the Playwright UI end-to-end specs, the Matter bridge checks, and a Docker image verification on each pull request. See [docs/ci-cd.md](ci-cd.md) for the catalogue of what runs and where, and [`.github/workflows/ci.yml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/workflows/ci.yml) for the authoritative list of PR checks.
 
 ## Merging
 
@@ -226,7 +226,7 @@ Prefer durable references (symbols, route URLs, option long-names, section headi
 
 ### Documentation screenshots
 
-The PNGs in `docs/assets/` are embedded in the README and the docs (`index.md`, `usage-and-api.md`, `SECURITY.md`, this file) and are held to the same standard as prose: **a screenshot showing a UI that no longer exists is a doc defect.** They are not hand-taken — [`scripts/capture-doc-screenshots.js`](https://github.com/iainchesworth/aqualink-automate/blob/main/scripts/capture-doc-screenshots.js) captures every one of them from the real binary replaying the recorded RS-485 fixtures (the same harness as the Playwright e2e suite).
+The PNGs in `docs/assets/` are embedded in the README and the docs (`index.md`, `usage-and-api.md`, `SECURITY.md`, this file) and are held to the same standard as prose: **a screenshot showing a UI that no longer exists is a doc defect.** They are not hand-taken — [`scripts/capture-doc-screenshots.js`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/scripts/capture-doc-screenshots.js) captures every one of them from the real binary replaying the recorded RS-485 fixtures (the same harness as the Playwright e2e suite).
 
 When your change alters what an embedded screenshot shows, regenerate and commit the affected images in the same pull request:
 

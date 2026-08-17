@@ -5,16 +5,16 @@ over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with **no cloud
 service required**.
 
 <!-- Build & code health -->
-[![CI](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml)
-[![Code Scanning](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml)
+[![CI](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/ci.yml)
+[![Code Scanning](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/automated-codescanning.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=coverage)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 <!-- Supply chain & project meta -->
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworth/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworth/aqualink-automate)
-[![Latest release](https://img.shields.io/github/v/release/iainchesworth/aqualink-automate?include_prereleases&sort=semver)](https://github.com/iainchesworth/aqualink-automate/releases/latest)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/iainchesworth/aqualink-automate/blob/main/LICENSE.txt)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworthlabs/aqualink-automate)
+[![Latest release](https://img.shields.io/github/v/release/iainchesworthlabs/aqualink-automate?include_prereleases&sort=semver)](https://github.com/iainchesworthlabs/aqualink-automate/releases/latest)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/LICENSE.txt)
 
 Aqualink Automate is a C++ service that talks to your pool equipment over an
 RS-485 serial link and exposes it on your own network. It reads status from the
@@ -35,20 +35,20 @@ with your system package manager:
 === "Debian / Ubuntu / Raspberry Pi OS"
 
     ```bash
-    curl -fsSL https://iainchesworth.github.io/aqualink-automate/install-apt.sh | sh
+    curl -fsSL https://iainchesworthlabs.github.io/aqualink-automate/install-apt.sh | sh
     sudo apt install aqualink-automate
     ```
 
 === "Fedora / RHEL / openSUSE"
 
     ```bash
-    curl -fsSL https://iainchesworth.github.io/aqualink-automate/install-dnf.sh | sh
+    curl -fsSL https://iainchesworthlabs.github.io/aqualink-automate/install-dnf.sh | sh
     sudo dnf install aqualink-automate
     ```
 
 Then `sudo apt upgrade` / `sudo dnf upgrade` keeps it current. Builds are provided
 for `amd64` and `arm64` (Raspberry Pi). The repositories are GPG-signed with
-[this key](https://iainchesworth.github.io/aqualink-automate/key.gpg).
+[this key](https://iainchesworthlabs.github.io/aqualink-automate/key.gpg).
 
 For pre-built binaries, dev containers, Docker, and building from source, see the
 [Install guide](INSTALL.md).
@@ -77,10 +77,10 @@ Contributors should start with the [Development](CONTRIBUTING.md) section.
 
 Two RS-485 protocols are supported and auto-detected from the wire traffic:
 **Jandy/Zodiac (Fluidra) Aqualink RS** and **Pentair**. The
-[GitHub repository](https://github.com/iainchesworth/aqualink-automate) has the
+[GitHub repository](https://github.com/iainchesworthlabs/aqualink-automate) has the
 full source, issue tracker, and changelog.
 
 ## Questions and support
 
-- **Bugs and feature requests** — open an [issue](https://github.com/iainchesworth/aqualink-automate/issues).
-- **Questions, ideas, and help** — start a [GitHub Discussion](https://github.com/iainchesworth/aqualink-automate/discussions).
+- **Bugs and feature requests** — open an [issue](https://github.com/iainchesworthlabs/aqualink-automate/issues).
+- **Questions, ideas, and help** — start a [GitHub Discussion](https://github.com/iainchesworthlabs/aqualink-automate/discussions).

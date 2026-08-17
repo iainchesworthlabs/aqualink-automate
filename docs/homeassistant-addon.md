@@ -14,15 +14,15 @@ failure, and applying updates. The add-on is a thin wrapper around the same mult
 image the project already publishes; it does not rebuild the application.
 
 The add-on manifests live at the root of this repository
-([`aqualink-automate/`](https://github.com/iainchesworth/aqualink-automate/tree/main/aqualink-automate) and `aqualink-automate-edge/`, with
+([`aqualink-automate/`](https://github.com/iainchesworthlabs/aqualink-automate/tree/main/aqualink-automate) and `aqualink-automate-edge/`, with
 `repository.yaml`); the design rationale is in
-[docs/design/homeassistant-addon.md](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/homeassistant-addon.md).
+[docs/design/homeassistant-addon.md](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/docs/design/homeassistant-addon.md).
 
 ## Requirements and scope
 
 - **Home Assistant OS** or **Home Assistant Supervised**. Add-ons require the
   Supervisor, so **HA Container** and **HA Core** cannot install them — on those, run
-  the application with the project's [`docker-compose.yml`](https://github.com/iainchesworth/aqualink-automate/blob/main/docker-compose.yml) or a
+  the application with the project's [`docker-compose.yml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/docker-compose.yml) or a
   native package instead (see [INSTALL.md](INSTALL.md)).
 - A host architecture of **`aarch64`** (64-bit Pi 4/5, most HAOS installs) or
   **`amd64`**. 32-bit `armv7`/`armhf` (Pi 3 and older 32-bit HAOS) is **not supported** —
@@ -35,7 +35,7 @@ The add-on manifests live at the root of this repository
 ## Install
 
 1. **Settings → Add-ons → Add-on Store**.
-2. **⋮ → Repositories**, add `https://github.com/iainchesworth/aqualink-automate`.
+2. **⋮ → Repositories**, add `https://github.com/iainchesworthlabs/aqualink-automate`.
 3. Install **Aqualink Automate**, configure it, then **Start**.
 
 The repository offers two channels: **Aqualink Automate** (stable) and **Aqualink

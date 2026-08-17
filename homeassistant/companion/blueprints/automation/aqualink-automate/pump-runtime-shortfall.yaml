@@ -8,7 +8,7 @@ blueprint:
     that creates sensor.aqualink_pump_runtime_today from your pump switch.
   domain: automation
   author: aqualink-automate
-  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/pump-runtime-shortfall.yaml
+  source_url: https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/pump-runtime-shortfall.yaml
   input:
     pump_switch:
       name: Filter pump switch

@@ -15,13 +15,15 @@ CI/CD for this project lives in **two** places:
 | `build.sh` | Cross-platform (Linux/macOS) build helper — presets, compiler/type selection, optional packaging. |
 | `build.ps1` | Windows build helper (same role, PowerShell). |
 | `validate-arm64-local.sh` | Local ARM64 cross-build/package smoke check. |
-| `packer/` | Packer templates + provisioning scripts that bake the self-hosted GitHub runner images (Linux & Windows). See [`packer/README.md`](packer/README.md). |
 | `repo/` | End-user APT/DNF repository install scripts, published with the docs site. |
 
 ## Notes
 
-- Packer variable files (`packer/*.pkrvars.hcl`) may contain secrets/infra
-  details and are **git-ignored**; only the `*.pkrvars.hcl.example` templates
-  are tracked.
-- Self-hosted runner image build/publish details live in
-  [`docs/ci-cd.md`](../docs/ci-cd.md) and [`docs/design/cicd-redesign.md`](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/cicd-redesign.md).
+- **Self-hosted runner provisioning has moved.** The Packer templates and
+  provisioning scripts that used to live here as `packer/` now live in
+  [iainchesworthlabs/ci-runners](https://github.com/iainchesworthlabs/ci-runners),
+  a repo shared across every project in the `iainchesworthlabs` organization
+  rather than owned by this one (runners register at the org level, not
+  per-repo). This repo only *consumes* the fleet — see the CI-side mechanics
+  in [`docs/ci-self-hosted-runners.md`](../docs/ci-self-hosted-runners.md) and
+  [`docs/ci-cd.md`](../docs/ci-cd.md).

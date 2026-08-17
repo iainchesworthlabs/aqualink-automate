@@ -24,17 +24,33 @@ on:
         description: "On Linux, run `cmake --install` and upload installtree-linux-gcc (the relocatable FHS tree e2e-ui and the assembled Docker image consume instead of recompiling)."
         type: boolean
         default: false
+    secrets:
+      ORG_RUNNERS_TOKEN:
+        description: "Forwarded to _check-runners.yml — see that workflow's own description."
+        required: false
 
 permissions:
   contents: read
 
 jobs:
+  # Live self-hosted-availability check ahead of the build matrix — see
+  # docs/ci-self-hosted-runners.md and _check-runners.yml's own header.
+  check-runners:
+    uses: ./.github/workflows/_check-runners.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+
   build:
     name: ${{ matrix.name }}
-    # Fork PRs must not run on the persistent self-hosted runners selected via
-    # vars.RUNNER_* (untrusted code on a long-lived host). This reusable workflow is
-    # also called from release.yml on push/dispatch (never pull_request), so that
-    # path is unaffected; same-repo PRs from ci.yml continue to run normally.
+    needs: check-runners
+    # Fork PRs must not run on the persistent self-hosted runners (untrusted code on
+    # a long-lived host) - check-runners' own fork-PR branch already forces hosted
+    # labels for them; this is belt-and-braces so a gap in that logic can't silently
+    # hand a fork PR a self-hosted runner. This reusable workflow is also called
+    # from release.yml on push/dispatch (never pull_request), so that path is
+    # unaffected; same-repo PRs from ci.yml continue to run normally.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ fromJSON(matrix.runner) }}
     strategy:
@@ -42,7 +58,7 @@ jobs:
       matrix:
         include:
           - name: "Linux GCC"
-            runner: ${{ vars.RUNNER_LINUX || '["ubuntu-latest"]' }}
+            runner: ${{ needs.check-runners.outputs.linux_runner }}
             compiler: gcc-15
             configure_preset: config-linux-gcc
             build_preset: build-linux-gcc
@@ -68,7 +84,7 @@ jobs:
             docker_platform: linux/arm64
             installtree_name: installtree-linux-gcc-arm64
           - name: "Windows MSVC"
-            runner: ${{ vars.RUNNER_WINDOWS || '["windows-latest"]' }}
+            runner: ${{ needs.check-runners.outputs.windows_runner }}
             compiler: msvc
             configure_preset: config-windows-msvc
             build_preset: build-windows-msvc

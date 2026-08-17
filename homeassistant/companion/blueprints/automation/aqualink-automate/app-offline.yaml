@@ -7,7 +7,7 @@ blueprint:
     sentinel entity going unavailable. Optionally notifies again on recovery.
   domain: automation
   author: aqualink-automate
-  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/app-offline.yaml
+  source_url: https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/app-offline.yaml
   input:
     sentinel_entity:
       name: Sentinel entity
