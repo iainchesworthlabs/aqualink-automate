@@ -173,14 +173,22 @@ jobs:
   # starts later than when it built its own binary — but it never recompiles.
   e2e-ui:
     name: E2E UI (Playwright)
-    needs: [changes, check-runners, build-and-test]
+    needs: [changes, build-and-test]
     # Skip for docs-only changes; otherwise keep the fork guard: fork PRs must not
     # run on the persistent self-hosted runners (untrusted code on a long-lived
     # host). Same-repo PRs and push/release events are unaffected.
     if: >-
       needs.changes.outputs.code == 'true' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
+    # MUST use build-and-test's own resolved linux_runner (_build.yml's output), NOT an
+    # independent check-runners call — this job downloads and runs the binary
+    # build-and-test's Linux leg just produced, which is glibc-locked to whichever
+    # runner actually built it. Two separate live checks can disagree even moments
+    # apart, which broke this exact way the first time a self-hosted Linux runner
+    # came online: build-and-test resolved self-hosted (newer glibc), this job's own
+    # independent check resolved GitHub-hosted (older glibc), and the binary failed to
+    # start with "GLIBC_2.42 not found". See _build.yml's linux_runner output.
+    runs-on: ${{ fromJSON(needs.build-and-test.outputs.linux_runner) }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
