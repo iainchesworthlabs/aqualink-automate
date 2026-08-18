@@ -10,7 +10,7 @@
 # `version` is the single source of truth: it is both the wrapper image tag pulled and
 # the base image tag built FROM. The CI `Home Assistant Add-on` check enforces it.
 name: Aqualink Automate (Edge)
-version: "0.12.0-beta.9"
+version: "0.13.0-beta.1"
 slug: aqualink_automate_edge
 # Pre-1.0: no stable release exists yet, so the main channel is marked experimental.
 # Flip to `stable` at the first non-prerelease release. The generated Edge channel
