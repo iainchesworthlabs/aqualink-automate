@@ -12,13 +12,13 @@
         <meta name="author" content="Iain Chesworth">
       
       
-        <link rel="canonical" href="https://iainchesworthlabs.github.io/aqualink-automate/profiling/">
+        <link rel="canonical" href="https://iainchesworthlabs.github.io/aqualink-automate/ci-self-hosted-runners/">
       
       
-        <link rel="prev" href="../RECORD_REPLAY/">
+        <link rel="prev" href="../ci-cd/">
       
       
-        <link rel="next" href="../logging-sinks-redesign/">
+        <link rel="next" href="../worktrees/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Profiling - Aqualink Automate</title>
+        <title>Self-hosted CI runners - Aqualink Automate</title>
       
     
     
@@ -63,17 +63,17 @@
 
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Profiling - Aqualink Automate" />
+<meta property="og:title" content="Self-hosted CI runners - Aqualink Automate" />
 <meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="og:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/profiling.png" />
+<meta property="og:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/ci-self-hosted-runners.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://iainchesworthlabs.github.io/aqualink-automate/profiling/" />
+<meta property="og:url" content="https://iainchesworthlabs.github.io/aqualink-automate/ci-self-hosted-runners/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Profiling - Aqualink Automate" />
+<meta property="twitter:title" content="Self-hosted CI runners - Aqualink Automate" />
 <meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="twitter:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/profiling.png" />
+<meta property="twitter:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/ci-self-hosted-runners.png" />
 </head>
   
   
@@ -93,7 +93,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#performance-profiling" class="md-skip">
+        <a href="#self-hosted-ci-runners" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Profiling
+              Self-hosted CI runners
             
           </span>
         </div>
@@ -986,10 +986,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../ci-self-hosted-runners/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-hosted CI runners
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1005,6 +1032,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-decision-gets-made" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the decision gets made
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-the-check-not-a-static-switch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the check, not a static switch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provisioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1070,37 +1150,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Profiling
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../profiling/" class="md-nav__link">
         
   
   
@@ -1116,120 +1169,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#building-a-profiling-enabled-binary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Building a profiling-enabled binary
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Building a profiling-enabled binary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#network-hardened-diagnostic-preset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Network-hardened "diagnostic" preset
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#selecting-a-backend-at-runtime" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selecting a backend at runtime
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#runtime-control-surface" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Runtime control surface
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-instrumented" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is instrumented
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tracy-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tracy workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#vtune-workflow-incl-amd-hosts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        VTune workflow (incl. AMD hosts)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#uprof-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        uProf workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1504,38 +1443,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#building-a-profiling-enabled-binary" class="md-nav__link">
+  <a href="#how-the-decision-gets-made" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Building a profiling-enabled binary
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Building a profiling-enabled binary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#network-hardened-diagnostic-preset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Network-hardened "diagnostic" preset
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#selecting-a-backend-at-runtime" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selecting a backend at runtime
+        How the decision gets made
       
     </span>
   </a>
@@ -1543,10 +1454,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#runtime-control-surface" class="md-nav__link">
+  <a href="#why-the-check-not-a-static-switch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Runtime control surface
+        Why the check, not a static switch
       
     </span>
   </a>
@@ -1554,43 +1465,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-instrumented" class="md-nav__link">
+  <a href="#provisioning" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is instrumented
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tracy-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tracy workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#vtune-workflow-incl-amd-hosts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        VTune workflow (incl. AMD hosts)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#uprof-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        uProf workflow
+        Provisioning
       
     </span>
   </a>
@@ -1616,7 +1494,7 @@
 
 
   
-    <a href="https://github.com/iainchesworthlabs/aqualink-automate/edit/main/docs/profiling.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/iainchesworthlabs/aqualink-automate/edit/main/docs/ci-self-hosted-runners.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1624,168 +1502,74 @@
   
 
 
-<h1 id="performance-profiling">Performance Profiling<a class="headerlink" href="#performance-profiling" title="Permanent link">&para;</a></h1>
-<p>Aqualink-Automate ships a single profiling facade with three interchangeable
-backends:</p>
-<table>
-<thead>
-<tr>
-<th>Backend</th>
-<th>Vendor</th>
-<th>How it's found</th>
-<th>What it gives you</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Tracy</strong></td>
-<td>open source</td>
-<td>vcpkg port <code>tracy</code> (always available in a profiling build)</td>
-<td>live frame/zone/plot timeline, memory tracking, connect-on-demand</td>
-</tr>
-<tr>
-<td><strong>Intel VTune</strong> (ITT)</td>
-<td>Intel</td>
-<td><code>find_package(VTune)</code> → <code>ittnotify.h</code> + <code>libittnotify</code></td>
-<td>ITT tasks (zones), frames, counters (plots), markers; full hotspot sampling on Intel CPUs</td>
-</tr>
-<tr>
-<td><strong>AMD uProf</strong></td>
-<td>AMD</td>
-<td><code>find_package(UProf)</code> → <code>AMDProfileController.h</code> (+ optional <code>AMDTActivityLogger.h</code>)</td>
-<td>resume/pause control; ActivityLogger markers for zones/events when the component is present</td>
-</tr>
-</tbody>
-</table>
-<p>All instrumentation goes through two factories (see the <code>backend-observability</code>
-skill for the call-site conventions):</p>
-<ul>
-<li><strong>Call-site API</strong> — <code>Factory::ProfilingUnitFactory::Instance().CreateZone/CreateFrame/CreateDomain</code>.</li>
-<li><strong>Process API</strong> — <code>Factory::ProfilerFactory::Instance().Get()-&gt;{PlotValue,Message,EmitFrameMark,AppInfo,SetThreadName,Resume,Pause}</code>.</li>
-</ul>
-<p>When profiling is compiled out, or no backend is selected, both factories return
-no-op objects — every call site stays valid and costs effectively nothing.</p>
-<h2 id="building-a-profiling-enabled-binary">Building a profiling-enabled binary<a class="headerlink" href="#building-a-profiling-enabled-binary" title="Permanent link">&para;</a></h2>
-<p>Profiling is <strong>off</strong> in the default <code>release</code>/<code>debug</code> presets (the shipped
-binary carries no profiler hooks). Use a dedicated profiling preset:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-windows-msvc-profiling<span class="w">      </span><span class="c1"># or -linux-gcc-/-linux-llvm-/-windows-llvm-/-macos-llvm-</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cmake<span class="w"> </span>--build<span class="w">  </span>build/config-windows-msvc-profiling<span class="w"> </span>--target<span class="w"> </span>aqualink-automate
-</code></pre></div>
-<p>These presets set <code>ENABLE_PROFILING=ON</code>, build <code>RelWithDebInfo</code> (optimised +
-symbols — the right shape for a profiler) and force sanitizers off
-(<code>ENABLE_PROFILING</code> and <code>ENABLE_SANITIZERS</code> are mutually exclusive — a
-configure-time <code>FATAL_ERROR</code>). To flip profiling on for an existing build tree
-instead, reconfigure any preset with <code>-DENABLE_PROFILING=ON</code>.</p>
-<h3 id="network-hardened-diagnostic-preset">Network-hardened "diagnostic" preset<a class="headerlink" href="#network-hardened-diagnostic-preset" title="Permanent link">&para;</a></h3>
-<p>A profiling build links the Tracy client, whose server thread <strong>listens on a TCP
-data port and answers UDP discovery broadcasts</strong> — i.e. it opens a profiler
-endpoint reachable from the LAN, independent of <code>--profiler</code>. For a shipped
-beta / field-diagnostic build that should be permanently attachable but <strong>not</strong>
-LAN-exposed, use the <code>*-diagnostic</code> presets instead
-(<code>config-windows-msvc-diagnostic</code>, <code>-linux-gcc-</code>, …):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cmake<span class="w"> </span>--preset<span class="w"> </span>config-windows-msvc-diagnostic
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cmake<span class="w"> </span>--build<span class="w">  </span>build/config-windows-msvc-diagnostic<span class="w"> </span>--target<span class="w"> </span>aqualink-automate
-</code></pre></div>
-<p>These are identical to the <code>*-profiling</code> presets except they build via a
-<code>*-diagnostic</code> vcpkg triplet (<code>cmake/vcpkg/triplets/*-diagnostic.cmake</code>) that
-compiles the Tracy client with <strong><code>TRACY_ONLY_LOCALHOST</code></strong> (the TCP data port
-binds to loopback only — <code>TracySocket.cpp</code> skips <code>AI_PASSIVE</code>) and
-<strong><code>TRACY_NO_BROADCAST</code></strong> (no UDP discovery beacon at all). These are compile-time
-Tracy macros, <strong>not</strong> runtime env vars, so they must be baked into the prebuilt
-TracyClient via the triplet — they cannot be enabled by the application or a
-<code>-D</code> on our own target. A profiler then connects only over loopback (e.g. an
-SSH tunnel: <code>ssh -L 8086:127.0.0.1:8086 host</code>).</p>
-<p>Trade-off: the distinct triplet changes the vcpkg ABI, so the first configure
-with a <code>*-diagnostic</code> preset rebuilds the dependency set into its own installed
-tree. The always-on memory-hook cost (below) still applies — this is a
-deliberate diagnostic build, not a default release.</p>
-<p><strong>Tracy</strong> needs nothing extra. <strong>VTune</strong> and <strong>uProf</strong> are compiled in only when
-their SDKs are found:</p>
-<ul>
-<li>Intel VTune: install the standalone VTune Profiler or the oneAPI Base Toolkit,
-  or point <code>VTUNE_PROFILER_DIR</code> at it (the finder also checks the default
-  <code>C:\Program Files (x86)\Intel\oneAPI\vtune\latest</code> and <code>/opt/intel/oneapi/vtune/latest</code>).</li>
-<li>AMD uProf: install AMD uProf, or point <code>AMD_UPROF_SDK_PATH</code> at it (default
-  <code>C:\Program Files\AMD\AMDuProf</code> / <code>/opt/AMDuProf_*</code>). The ActivityLogger
-  component (zones/markers) is optional; without it uProf still provides
-  resume/pause control.</li>
-</ul>
-<p>The configure output prints whether each backend was found; the chosen backend
-is also logged at startup (see the warning below).</p>
-<h2 id="selecting-a-backend-at-runtime">Selecting a backend at runtime<a class="headerlink" href="#selecting-a-backend-at-runtime" title="Permanent link">&para;</a></h2>
-<p>Pass <code>--profiler tracy|uprof|vtune</code> (case-insensitive). The selector is applied
-<em>after</em> options are parsed, then capture is started and the trace is stamped
-with the version string and the main thread name.</p>
-<p>If you request a backend that was <strong>not</strong> compiled into this build, a warning is
-logged on the <code>Profiling</code> channel and profiling stays disabled (it does not fall
-back to a different backend):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[Profiling] Requested profiler 'VTune' is not available in this build; profiling is disabled. Compiled-in backends: [Tracy]
-</code></pre></div>
-<h2 id="runtime-control-surface">Runtime control surface<a class="headerlink" href="#runtime-control-surface" title="Permanent link">&para;</a></h2>
-<p><code>GET/POST /api/diagnostics/profiling</code> (and the <strong>Profiling</strong> card on the
-Diagnostics page) report and control the profiler at runtime:</p>
-<ul>
-<li><code>GET</code> → <code>{ "enabled": bool, "running": bool, "backend": "tracy", "available": ["tracy","vtune"] }</code></li>
-<li><code>POST {"action":"start"}</code> / <code>{"action":"stop"}</code> → resume / pause capture</li>
-<li><code>POST {"action":"select","backend":"vtune"}</code> → switch the active backend (only backends compiled in)</li>
-</ul>
-<p><code>enabled</code> reflects whether any backend was compiled in; <code>running</code> reflects
-resumed-vs-paused. Pause/resume map to each backend's native gating
-(<code>__itt_pause</code>/<code>__itt_resume</code> for VTune, <code>amdProfilePause</code>/<code>amdProfileResume</code> for
-uProf); Tracy is client-driven so they are no-ops for it.</p>
-<h2 id="what-is-instrumented">What is instrumented<a class="headerlink" href="#what-is-instrumented" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Main loop</strong> — one <code>MainLoop</code> frame mark per iteration, with the iteration
-  decomposed into zones: <code>main -&gt; io_poll</code>, <code>-&gt; protocol_poll</code>, <code>-&gt; watchdogs</code>,
-  <code>-&gt; http_poll</code>, <code>-&gt; https_poll</code>, <code>-&gt; mqtt_poll</code>, <code>-&gt; io_poll_drain</code>. The
-  per-frame Asio handler count is plotted as <code>Main Loop Handlers</code>.</li>
-<li><strong>Protocol / serial</strong> — <code>ProtocolTask::Poll</code>, read/write primitives, the Jandy
-  message generator phases, and many serial-port operations; plots for serial
-  bytes, queue depth, parse/error counters, message-processing time.</li>
-<li><strong>Devices</strong> — every Jandy/Pentair device message-slot handler.</li>
-<li><strong>Navigation</strong> — <code>Navigator::OnPageUpdate</code>/<code>ComputePath</code>,
-  <code>MenuModel::DetectPage</code>/<code>FindPath</code>, <code>SpiderEngine::ProcessStep</code>.</li>
-<li><strong>State hubs</strong> — <code>DataHub::EmitTemperatureEvent</code>/<code>EmitChemistryEvent</code> (the
-  signals2 listener fan-out), <code>EquipmentHub::AddEquipment</code>/<code>AddDevice</code>, plus
-  temperature/chemistry/<code>Active Devices</code> plots.</li>
-<li><strong>Web / MQTT</strong> — HTTP route handlers, JSON generation, MQTT hub publish paths,
-  connection/queue plots.</li>
-</ul>
-<h2 id="tracy-workflow">Tracy workflow<a class="headerlink" href="#tracy-workflow" title="Permanent link">&para;</a></h2>
-<p>The Tracy <strong>server tools</strong> (the <code>tracy-profiler</code> GUI plus the <code>tracy-capture</code> /
-<code>tracy-csvexport</code> / <code>tracy-import-*</code> CLIs) are a developer-side dependency and
-are <strong>not</strong> part of the build — the application only links the Tracy <em>client</em>
-(via the vcpkg <code>tracy</code> port). Download the matching prebuilt Windows tools from
-the upstream release that matches the client version — for the pinned
-<strong>v0.13.1</strong>, <a href="https://github.com/wolfpld/tracy/releases/tag/v0.13.1">https://github.com/wolfpld/tracy/releases/tag/v0.13.1</a> — or build
-them from that tag, and put them anywhere on your <code>PATH</code>. They were previously
-committed under <code>cmake/tools/tracy-0.13.1/</code>; that copy was removed (unauditable
-committed binaries), so fetch your own and keep it in step with the port version
-above.</p>
+<h1 id="self-hosted-ci-runners">Self-hosted CI runners<a class="headerlink" href="#self-hosted-ci-runners" title="Permanent link">&para;</a></h1>
+<p>Several Linux and Windows jobs across <code>.github/workflows/</code> can run on a self-hosted runner
+instead of a GitHub-hosted one — but only when one is actually online and idle right now,
+never as an all-or-nothing switch. The two macOS-only and one arm64-only leg of
+<a href="https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/workflows/_build.yml"><code>_build.yml</code></a>
+always stay on GitHub-hosted runners; there's no self-hosted equivalent for either
+(<code>RUNNER_LINUX_ARM</code> remains a static optional override for the arm64 leg — see below).</p>
+<p>This page describes what this repo's CI does with a self-hosted runner once one exists. It
+does not describe how one comes to exist — the fleet itself (Packer images, provisioning
+scripts, the org they register against) lives in
+<a href="https://github.com/iainchesworthlabs/ci-runners">iainchesworthlabs/ci-runners</a>, a repo
+shared across every project in the <code>iainchesworthlabs</code> organization rather than owned by
+this one.</p>
+<h2 id="how-the-decision-gets-made">How the decision gets made<a class="headerlink" href="#how-the-decision-gets-made" title="Permanent link">&para;</a></h2>
+<p><a href="https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/workflows/_check-runners.yml"><code>_check-runners.yml</code></a>
+is a small reusable <code>workflow_call</code> that decides a runner-label set for Linux and one for
+Windows. Every workflow that can build on the fleet — <code>_build.yml</code> (and transitively
+<code>ci.yml</code>'s <code>build-and-test</code> / <code>release.yml</code>'s <code>build-packages</code>), <code>ci.yml</code> directly
+(<code>e2e-ui</code>, <code>matter-bridge</code>, <code>docker-verify</code>), <code>release.yml</code> directly (<code>docker-publish</code>,
+<code>homeassistant-addon-publish</code>), <code>fuzzing.yml</code>, and <code>automated-codescanning.yml</code> — calls it
+once as its own <code>check-runners</code> job and reads <code>needs.check-runners.outputs.linux_runner</code> /
+<code>windows_runner</code> at every <code>runs-on:</code> and <code>contains(..., 'self-hosted')</code> step-gate that used
+to read a static repository variable. One definition, no duplicated bash across six callers.</p>
+<p>Per OS, in order:</p>
 <ol>
-<li>Build &amp; run a profiling binary with <code>--profiler tracy</code>.</li>
-<li>Open the Tracy profiler GUI and connect (the client streams on demand — the
-   vcpkg port uses the <code>on-demand</code> feature, so capture begins when the GUI
-   attaches).</li>
-<li>Frames appear under <code>MainLoop</code>; expand a frame to see the per-subsystem
-   zones; plots show the queue depths / counters listed above. Memory allocation
-   tracking is wired via global <code>operator new</code>/<code>delete</code> overrides.</li>
+<li><strong>Fork PRs always get GitHub-hosted</strong>, no exceptions and no live check. Untrusted code
+   must never land on self-hosted infrastructure — the runners are ephemeral (wiped between
+   every job) but that only bounds damage <em>between</em> jobs, not <em>during</em> one.</li>
+<li><strong>An explicit override wins next.</strong> Repository variables <code>RUNNER_LINUX_MODE</code> and
+   <code>RUNNER_WINDOWS_MODE</code> accept <code>auto</code> (the default, used whenever the variable is unset),
+   <code>self-hosted</code>, or <code>github-hosted</code>. A forced mode skips the live check entirely — if you
+   force <code>self-hosted</code> and nothing is actually online, the job queues and waits, which is
+   the expected cost of an explicit override.</li>
+<li><strong><code>auto</code> runs a live check</strong>, in two parts, either one sufficient:</li>
+<li>This repo's own registered runners (<code>GET /repos/iainchesworthlabs/aqualink-automate/actions/runners</code>,
+     using the workflow's own <code>GITHUB_TOKEN</code> — no extra setup). Empty until a runner is
+     actually registered directly against this repo, which may never happen under the
+     org-level model <code>ci-runners</code> uses.</li>
+<li><code>iainchesworthlabs</code>'s org-level runners (<code>GET /orgs/iainchesworthlabs/actions/runners</code>),
+     only attempted if the optional repository secret <code>ORG_RUNNERS_TOKEN</code> is set — an
+     org-scoped PAT or GitHub App token with "Self-hosted runners: read". This is what
+     actually matters under the org migration and runner group in <code>ci-runners</code>; until the
+     secret is provisioned it's simply skipped, not an error.</li>
 </ol>
-<h2 id="vtune-workflow-incl-amd-hosts">VTune workflow (incl. AMD hosts)<a class="headerlink" href="#vtune-workflow-incl-amd-hosts" title="Permanent link">&para;</a></h2>
-<p>The ITT instrumentation API (tasks/frames/counters/markers) is <strong>CPU-agnostic</strong>
-and is collected in VTune's software/user-mode collection, so it works on AMD
-CPUs too — only PMU <strong>hardware-event sampling</strong> requires an Intel CPU.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># software-mode collection that captures the ITT API timeline</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>vtune<span class="w"> </span>-collect<span class="w"> </span>hotspots<span class="w"> </span>-knob<span class="w"> </span>sampling-mode<span class="o">=</span>sw<span class="w"> </span>--<span class="w"> </span>./aqualink-automate<span class="w"> </span>--profiler<span class="w"> </span>vtune<span class="w"> </span>...
-</code></pre></div>
-<p>Open the result in <code>vtune-gui</code>; the <code>AqualinkAutomate</code> ITT domain shows the
-zones (tasks), the <code>MainLoop</code> frames, and the counters from <code>PlotValue</code>.</p>
-<h2 id="uprof-workflow">uProf workflow<a class="headerlink" href="#uprof-workflow" title="Permanent link">&para;</a></h2>
-<p>Build with the uProf SDK present and run with <code>--profiler uprof</code>. uProf controls
-collection via resume/pause (<code>amdProfileResume</code>/<code>amdProfilePause</code>), driven at
-startup and by the runtime control surface above. When the ActivityLogger
-component is installed, zones and events also appear as markers; otherwise uProf
-provides sampling with resume/pause gating only.</p>
+<p>Either check finding at least one runner that is <code>online</code>, not <code>busy</code>, and labelled with
+   both <code>self-hosted</code> and the right OS (<code>Linux</code> or <code>Windows</code>) selects the self-hosted label
+   set (<code>self-hosted, Linux, X64</code> / <code>self-hosted, Windows, X64</code> — the exact labels the
+   <code>ci-runners</code> fleet registers with). Finding nothing, or the API call itself failing for
+   any reason, falls back to GitHub-hosted (<code>ubuntu-latest</code> / <code>windows-latest</code>) — this check
+   being unavailable is never a reason to block CI.</p>
+<p>Until the repo is added to the runner group's "selected repositories" allow-list (and
+<code>ORG_RUNNERS_TOKEN</code> is provisioned), every leg simply keeps building on GitHub-hosted
+runners — a deliberate no-op, not a bug: the mechanism is inert until the infrastructure
+side is wired up.</p>
+<h2 id="why-the-check-not-a-static-switch">Why the check, not a static switch<a class="headerlink" href="#why-the-check-not-a-static-switch" title="Permanent link">&para;</a></h2>
+<p>The earlier design — a single repository variable (<code>RUNNER_LINUX</code> / <code>RUNNER_WINDOWS</code>)
+holding the literal runner-label array, read directly at each <code>runs-on:</code> — only answered
+"has someone configured self-hosted for this leg", not "is a self-hosted runner actually
+able to pick this job up right now". With <code>ci-runners</code>' fleet shared across every repo in
+the org, "configured" and "available" can genuinely differ moment to moment, so the live
+check is what keeps a leg from silently queuing behind another repo's job instead of
+falling back. Those two variables are retired by this change; only the <code>_MODE</code> variables
+and <code>RUNNER_LINUX_ARM</code> (the static arm64 override, unaffected — there's no self-hosted
+arm64 runner in the current fleet to check against) remain.</p>
+<h2 id="provisioning">Provisioning<a class="headerlink" href="#provisioning" title="Permanent link">&para;</a></h2>
+<p>Runner VM images (Packer templates, provisioning scripts) live in
+<a href="https://github.com/iainchesworthlabs/ci-runners">iainchesworthlabs/ci-runners</a>, shared
+across the org — not in this repo's <code>cicd/</code>.</p>
 
 
 
@@ -1824,7 +1608,7 @@ provides sampling with resume/pause gating only.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../RECORD_REPLAY/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Record / replay">
+          <a href="../ci-cd/" class="md-footer__link md-footer__link--prev" aria-label="Previous: CI/CD">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1834,20 +1618,20 @@ provides sampling with resume/pause gating only.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Record / replay
+                CI/CD
               </div>
             </div>
           </a>
         
         
           
-          <a href="../logging-sinks-redesign/" class="md-footer__link md-footer__link--next" aria-label="Next: Logging sinks">
+          <a href="../worktrees/" class="md-footer__link md-footer__link--next" aria-label="Next: Git worktrees">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Logging sinks
+                Git worktrees
               </div>
             </div>
             <div class="md-footer__button md-icon">

@@ -12,13 +12,13 @@
         <meta name="author" content="Iain Chesworth">
       
       
-        <link rel="canonical" href="https://iainchesworth.github.io/aqualink-automate/ci-cd/">
+        <link rel="canonical" href="https://iainchesworthlabs.github.io/aqualink-automate/ci-cd/">
       
       
         <link rel="prev" href="../releasing/">
       
       
-        <link rel="next" href="../worktrees/">
+        <link rel="next" href="../ci-self-hosted-runners/">
       
       
         
@@ -65,15 +65,15 @@
 <meta property="og:type" content="website" />
 <meta property="og:title" content="CI/CD - Aqualink Automate" />
 <meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="og:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/ci-cd.png" />
+<meta property="og:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/ci-cd.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://iainchesworth.github.io/aqualink-automate/ci-cd/" />
+<meta property="og:url" content="https://iainchesworthlabs.github.io/aqualink-automate/ci-cd/" />
 <meta property="twitter:card" content="summary_large_image" />
 <meta property="twitter:title" content="CI/CD - Aqualink Automate" />
 <meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="twitter:image" content="https://iainchesworth.github.io/aqualink-automate/assets/images/social/ci-cd.png" />
+<meta property="twitter:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/ci-cd.png" />
 </head>
   
   
@@ -215,13 +215,13 @@
     
     
       <div class="md-header__source">
-        <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+        <a href="https://github.com/iainchesworthlabs/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
   </div>
   <div class="md-source__repository">
-    iainchesworth/aqualink-automate
+    iainchesworthlabs/aqualink-automate
   </div>
 </a>
       </div>
@@ -358,13 +358,13 @@
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/iainchesworth/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
+      <a href="https://github.com/iainchesworthlabs/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
   </div>
   <div class="md-source__repository">
-    iainchesworth/aqualink-automate
+    iainchesworthlabs/aqualink-automate
   </div>
 </a>
     </div>
@@ -799,6 +799,8 @@
   
     
     
+      
+        
       
         
       
@@ -1419,10 +1421,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fallback" class="md-nav__link">
+  <a href="#repository-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fallback
+        Repository secret
       
     </span>
   </a>
@@ -1499,6 +1501,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-self-hosted-runners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-hosted CI runners
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2257,10 +2287,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fallback" class="md-nav__link">
+  <a href="#repository-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fallback
+        Repository secret
       
     </span>
   </a>
@@ -2352,7 +2382,7 @@
 
 
   
-    <a href="https://github.com/iainchesworth/aqualink-automate/edit/main/docs/ci-cd.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/iainchesworthlabs/aqualink-automate/edit/main/docs/ci-cd.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -2382,6 +2412,11 @@
 <td><code>.github/workflows/_build.yml</code></td>
 <td>Reusable workflow (<code>workflow_call</code>)</td>
 <td>The shared configure/build/test/package matrix. Called by both <code>ci.yml</code> and <code>release.yml</code>.</td>
+</tr>
+<tr>
+<td><code>.github/workflows/_check-runners.yml</code></td>
+<td>Reusable workflow (<code>workflow_call</code>)</td>
+<td>Live self-hosted-runner-availability check shared by <code>_build.yml</code>, <code>ci.yml</code>, <code>release.yml</code>, <code>fuzzing.yml</code>, and <code>automated-codescanning.yml</code>. See <a href="#self-hosted-runners">Self-hosted runners</a> and <a href="../ci-self-hosted-runners/">ci-self-hosted-runners.md</a>.</td>
 </tr>
 <tr>
 <td><code>.github/workflows/release.yml</code></td>
@@ -2476,9 +2511,9 @@
 <h3 id="triggers">Triggers<a class="headerlink" href="#triggers" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">on</span><span class="p">:</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">push</span><span class="p">:</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;main&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;develop&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"main"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"develop"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">pull_request</span><span class="p">:</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;develop&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"develop"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"main"</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <p>Only <code>main</code> and <code>develop</code> build on push. Feature branches build via their <code>pull_request</code> into <code>develop</code>/<code>main</code> (the <code>pull_request</code> trigger targets those two branches). A WIP push to a branch that has no open PR runs no CI at all — and a push to a branch that <em>does</em> have a PR is already covered by the PR run, so this also avoids the push+PR double-run.</p>
 <p>Concurrency is keyed on the PR head branch (or the ref for branch pushes) with <code>cancel-in-progress: true</code>, so a new push supersedes an in-flight run for the same PR or branch.</p>
@@ -2535,7 +2570,7 @@
 <tr>
 <td><code>docker-verify</code></td>
 <td>Linux</td>
-<td>Builds the <code>ci</code> and <code>runtime</code> Docker targets, smoke-tests the runtime image with <code>--version</code>, and asserts the Matter sidecar is bundled.</td>
+<td>Builds the <code>ci</code> and <code>runtime</code> Docker targets, smoke-tests the runtime image with <code>--version</code>, asserts the Matter sidecar is bundled, and asserts the HA companion package (<code>blueprints/</code>, <code>packages/</code>, <code>dashboards/</code>, <code>entity-manifest.json</code> under <code>share/aqualink-automate/web/homeassistant/</code>) is present and non-empty — a regression guard for the class of bug where a stale <code>.dockerignore</code> rule silently dropped that content from the image (see <a href="../design/ha-companion-package/">ha-companion-package.md</a>).</td>
 </tr>
 <tr>
 <td><code>ci-status</code></td>
@@ -2695,7 +2730,7 @@
 <h3 id="triggers_1">Triggers<a class="headerlink" href="#triggers_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">on</span><span class="p">:</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">push</span><span class="p">:</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;v*&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"v*"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">workflow_dispatch</span><span class="p">:</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">inputs</span><span class="p">:</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w">     </span><span class="c1"># e.g. v1.0.0, v1.0.0-beta.1</span>
@@ -2768,7 +2803,7 @@
 <li>For a <code>workflow_dispatch</code> build, it pushes the resolved tag to <code>origin</code> at the end — the tag is created here, not at the start.</li>
 <li>Downloads every <code>packages-*</code> artifact from <code>build-packages</code> (<code>merge-multiple: true</code>).</li>
 <li><strong>GPG-signs the artifacts</strong> (gated on <code>REPO_GPG_PRIVATE_KEY</code>, the repo-signing key): a detached <code>.asc</code> per binary, a signed <code>SHA512SUMS</code> manifest, and the exported public key, all added to the release. No-ops if the key is unset.</li>
-<li><strong>Attests the packages:</strong> a keyless build-provenance attestation and an SPDX SBOM attestation over the shipped binaries (the SBOM is also uploaded as a release asset). Verified by consumers with <code>gh attestation verify &lt;file&gt; --repo iainchesworth/aqualink-automate</code>.</li>
+<li><strong>Attests the packages:</strong> a keyless build-provenance attestation and an SPDX SBOM attestation over the shipped binaries (the SBOM is also uploaded as a release asset). Verified by consumers with <code>gh attestation verify &lt;file&gt; --repo iainchesworthlabs/aqualink-automate</code>.</li>
 <li>Runs <code>gh release create &lt;tag&gt; --generate-notes</code>, adding <code>--prerelease</code> when the release is a prerelease, and attaches the downloaded package files, signatures, checksums, and SBOM.</li>
 </ol>
 <p>Both attestation mechanisms are described end-to-end for consumers in <a href="../SECURITY/#verifying-build-authenticity">SECURITY.md &gt; Verifying build authenticity</a>.</p>
@@ -2787,11 +2822,11 @@
 <h3 id="triggers_2">Triggers<a class="headerlink" href="#triggers_2" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">on</span><span class="p">:</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">push</span><span class="p">:</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;main&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"main"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">pull_request</span><span class="p">:</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;develop&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"develop"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"main"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">schedule</span><span class="p">:</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">cron</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;42</span><span class="nv"> </span><span class="s">21</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">2&#39;</span><span class="w">   </span><span class="c1"># weekly, Tuesday 21:42 UTC</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">cron</span><span class="p">:</span><span class="w"> </span><span class="s">'42</span><span class="nv"> </span><span class="s">21</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">2'</span><span class="w">   </span><span class="c1"># weekly, Tuesday 21:42 UTC</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">workflow_dispatch</span><span class="p">:</span>
 </code></pre></div>
 <p>Scanning happens on PRs into <code>develop</code> or <code>main</code>, once per merge to <code>main</code>, on the weekly cron, or on demand. The <code>push: [main]</code> trigger exists to keep the <strong>default-branch security baseline</strong> current: SARIF uploaded from a <code>pull_request</code> run is recorded against the throwaway <code>refs/pull/N/merge</code> ref and never updates <code>main</code>'s baseline in the Security tab, so without it the baseline would depend solely on the weekly cron. (The old <code>push: [main, feature/**, bug/**]</code> trigger that re-scanned every feature push remains gone — the push run fires once per promotion merge.)</p>
@@ -2948,7 +2983,7 @@
 <ul>
 <li><strong>Triggers:</strong> push to <code>main</code> touching <code>docs/**</code>, <code>overrides/**</code>, <code>mkdocs.yml</code>, <code>README.md</code>, or the workflow itself; plus <code>workflow_dispatch</code>.</li>
 <li><strong>Build:</strong> <code>pip install "mkdocs-material[imaging]&gt;=9.7"</code> (a floor, no upper cap) plus the Cairo imaging libraries for the social-cards plugin, then <code>mkdocs build --strict</code> — broken internal links and other warnings <strong>fail the build</strong> instead of shipping a broken page.</li>
-<li><strong>Linking to files outside <code>docs/</code>.</strong> <code>--strict</code> resolves every relative link against the <em>documentation</em> tree, not the repository. A link like <code>../docker-compose.yml</code> resolves on GitHub but 404s on the published site, so MkDocs rejects it — use an absolute <code>https://github.com/iainchesworth/aqualink-automate/blob/main/…</code> URL for repo files, and likewise for docs deliberately held back by <code>exclude_docs</code> (<code>design/</code>, <code>refactoring/</code>, <code>i18n-scoping.md</code>). Note the asymmetry: an unresolvable link to a <em>file</em> is a build-failing <code>WARNING</code>, but a link to a <em>directory</em> or to an excluded page is only logged at <code>INFO</code> — it ships broken and silent. Read the whole build log, not just the failures.</li>
+<li><strong>Linking to files outside <code>docs/</code>.</strong> <code>--strict</code> resolves every relative link against the <em>documentation</em> tree, not the repository. A link like <code>../docker-compose.yml</code> resolves on GitHub but 404s on the published site, so MkDocs rejects it — use an absolute <code>https://github.com/iainchesworthlabs/aqualink-automate/blob/main/…</code> URL for repo files, and likewise for docs deliberately held back by <code>exclude_docs</code> (<code>design/</code>, <code>refactoring/</code>, <code>i18n-scoping.md</code>). Note the asymmetry: an unresolvable link to a <em>file</em> is a build-failing <code>WARNING</code>, but a link to a <em>directory</em> or to an excluded page is only logged at <code>INFO</code> — it ships broken and silent. Read the whole build log, not just the failures.</li>
 <li><strong>The MkDocs 2.0 banner is not an error.</strong> Recent Material releases print a red "Warning from the Material for MkDocs team" block about the upstream MkDocs 2.0 rewrite. It is advocacy written to stderr, is not a MkDocs warning, and does <strong>not</strong> count toward <code>--strict</code>; the "Aborted with N warnings" tally counts only the <code>WARNING -</code> lines. MkDocs 2.0 also cannot arrive unannounced — <code>mkdocs-material</code> itself pins <code>mkdocs&lt;2,&gt;=1.6</code>.</li>
 <li><strong>Publish:</strong> <code>peaceiris/actions-gh-pages</code> with <code>keep_files: true</code>, preserving the APT/DNF package tree that <code>publish-repos.yml</code> owns on the same branch (<code>apt/</code>, <code>rpm/</code>, <code>key.gpg</code>, <code>install-*.sh</code>); the filename sets are disjoint, so neither workflow deletes the other's files. Its <code>publish-docs</code> concurrency group is separate from <code>publish-repos</code>, so a docs build and a package publish can run at the same time.</li>
 </ul>
@@ -2973,45 +3008,58 @@
 </ol>
 <p>The companion <strong>bundle</strong> (<code>aqualink-automate-homeassistant-companion-&lt;version&gt;.zip</code>) is shipped by <code>release.yml</code>, not by this workflow — see <a href="../releasing/">releasing.md</a>.</p>
 <h2 id="self-hosted-runners">Self-hosted runners<a class="headerlink" href="#self-hosted-runners" title="Permanent link">&para;</a></h2>
-<p>Every Linux and Windows job picks its runner from a repository variable, falling back to GitHub-hosted runners when the variable is unset. macOS always runs on <code>macos-latest</code> (GitHub-hosted).</p>
+<p>Every Linux and Windows job that can build on the self-hosted fleet reads its runner labels
+from a shared <code>check-runners</code> job (<code>_check-runners.yml</code>), which <strong>live-checks</strong> whether a
+matching self-hosted runner is actually online and idle right now — not a static "self-hosted
+is configured" switch. macOS always runs on <code>macos-latest</code> (GitHub-hosted); the arm64 Linux
+row of <code>_build.yml</code> stays on the static <code>RUNNER_LINUX_ARM</code> override (no self-hosted arm64
+runner exists in the current fleet to check against).</p>
+<p>Full design, the fork-PR gating, and the two-part live check (repo-level, then optional
+org-level via <code>ORG_RUNNERS_TOKEN</code>) are documented in
+<a href="../ci-self-hosted-runners/">ci-self-hosted-runners.md</a> — this section is the short summary.</p>
 <h3 id="repository-variables">Repository variables<a class="headerlink" href="#repository-variables" title="Permanent link">&para;</a></h3>
-<p>Set these under <strong>Settings &gt; Variables &gt; Actions</strong>. Each value is a JSON array of runner labels.</p>
+<p>Set these under <strong>Settings &gt; Variables &gt; Actions</strong>.</p>
 <table>
 <thead>
 <tr>
 <th>Variable</th>
-<th>Type</th>
-<th>Example</th>
+<th>Values</th>
 <th>Applies to</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>RUNNER_LINUX</code></td>
-<td>JSON label array</td>
-<td><code>["self-hosted","linux","x64"]</code></td>
-<td>x64 Linux rows of <code>_build.yml</code>, <code>e2e-ui</code>, <code>matter-bridge</code>, <code>docker-verify</code>, <code>docker-publish</code>, <code>homeassistant-addon-publish</code>, the fuzzing matrix, CodeQL, E2ECoverage, SonarCloud</td>
+<td><code>RUNNER_LINUX_MODE</code></td>
+<td><code>auto</code> (default), <code>self-hosted</code>, <code>github-hosted</code></td>
+<td>Every Linux job wired to <code>check-runners</code></td>
+</tr>
+<tr>
+<td><code>RUNNER_WINDOWS_MODE</code></td>
+<td><code>auto</code> (default), <code>self-hosted</code>, <code>github-hosted</code></td>
+<td>Every Windows job wired to <code>check-runners</code> (<code>_build.yml</code>, MSVC code analysis)</td>
 </tr>
 <tr>
 <td><code>RUNNER_LINUX_ARM</code></td>
-<td>JSON label array</td>
-<td><code>["self-hosted","linux","arm64"]</code></td>
-<td>The arm64 Linux row of <code>_build.yml</code>. Falls back to the GitHub-hosted <code>ubuntu-24.04-arm</code> (free for public repos).</td>
-</tr>
-<tr>
-<td><code>RUNNER_WINDOWS</code></td>
-<td>JSON label array</td>
-<td><code>["self-hosted","windows","x64"]</code></td>
-<td>Windows row of <code>_build.yml</code>, MSVC code analysis</td>
+<td>JSON label array, e.g. <code>["self-hosted","linux","arm64"]</code></td>
+<td>The arm64 Linux row of <code>_build.yml</code> only — unaffected by <code>check-runners</code>. Falls back to the GitHub-hosted <code>ubuntu-24.04-arm</code> (free for public repos).</td>
 </tr>
 </tbody>
 </table>
-<h3 id="fallback">Fallback<a class="headerlink" href="#fallback" title="Permanent link">&para;</a></h3>
-<p>The pattern in the workflows is <code>${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}</code> (and the Windows equivalent). If the variable is unset, or the self-hosted runners go offline, jobs fall back to the GitHub-hosted runners automatically. To force the fallback, remove the repository variables.</p>
+<p><code>RUNNER_LINUX</code> / <code>RUNNER_WINDOWS</code> (the old static label-array variables) are retired —
+the exact self-hosted labels (<code>self-hosted, Linux, X64</code> / <code>self-hosted, Windows, X64</code>) are
+now hardcoded inside <code>_check-runners.yml</code>, since they must match what the <code>ci-runners</code> fleet
+actually registers with.</p>
+<h3 id="repository-secret">Repository secret<a class="headerlink" href="#repository-secret" title="Permanent link">&para;</a></h3>
+<p><code>ORG_RUNNERS_TOKEN</code> (optional) — an org-scoped PAT or GitHub App token with "Self-hosted
+runners: read" on <code>iainchesworthlabs</code>, letting <code>check-runners</code> see the org-level fleet in
+<a href="https://github.com/iainchesworthlabs/ci-runners">iainchesworthlabs/ci-runners</a> rather than
+just runners registered directly against this repo. Unset, that half of the check is simply
+skipped.</p>
 <p>Self-hosted jobs also run extra steps the hosted jobs skip — they clean the workspace, point vcpkg at a persistent <code>~/.cache/vcpkg</code>, and (on Windows) load the MSVC environment with the local <code>./.github/actions/setup-msvc-env</code> composite action (pure PowerShell; sources <code>vcvars64.bat</code> and exports the env delta to <code>$GITHUB_ENV</code>).</p>
 <h3 id="provisioning">Provisioning<a class="headerlink" href="#provisioning" title="Permanent link">&para;</a></h3>
-<p>Runner VM images are built with Packer under <code>cicd/packer/</code>. See <a href="https://github.com/iainchesworth/aqualink-automate/blob/main/cicd/packer/README.md">cicd/packer/README.md</a> for the full provisioning, deployment, and registration procedure.</p>
-<p>The Linux runner base is <strong>Ubuntu 26.04 LTS</strong> (GCC 15, Clang/LLVM 21), provisioned by <code>cicd/packer/linux-runner.pkr.hcl</code> (boots <code>ISOs/ubuntu-26.04-autoinstall.iso</code>) and the <code>cicd/packer/scripts/linux/0{2,3}-*-toolchain.sh</code> scripts. Both the Architecture table in <code>cicd/packer/README.md</code> and the Packer template agree on this base. The Windows runner base is Windows Server 2022.</p>
+<p>Runner VM images (Packer templates, provisioning scripts) live in
+<a href="https://github.com/iainchesworthlabs/ci-runners">iainchesworthlabs/ci-runners</a>, shared
+across every repo in the org — not in this repo's <code>cicd/</code>.</p>
 <p>The Linux image is hardened against OS-disk creep: Docker's <code>data-root</code> <strong>and</strong> containerd's <code>root</code> live on the dedicated <code>/data</code> disk, <code>~/.cache</code> and <code>~/.sonar</code> are symlinked into the size-capped <code>/data/cache</code>, <code>unattended-upgrades</code> is removed (background dpkg runs also raced CI's own <code>apt-get</code> calls), and the ephemeral supervisor's per-job reset additionally deletes superseded self-updated runner-agent versions and runs apt hygiene (<code>apt-get clean</code>, wipe <code>/var/lib/apt/lists</code>). See <code>cicd/packer/README.md</code> ("Disk layout &amp; the pristine ephemeral model").</p>
 <h2 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h2>
 <h3 id="vcpkg-binary-cache">vcpkg binary cache<a class="headerlink" href="#vcpkg-binary-cache" title="Permanent link">&para;</a></h3>
@@ -3085,13 +3133,13 @@
         
         
           
-          <a href="../worktrees/" class="md-footer__link md-footer__link--next" aria-label="Next: Git worktrees">
+          <a href="../ci-self-hosted-runners/" class="md-footer__link md-footer__link--next" aria-label="Next: Self-hosted CI runners">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Git worktrees
+                Self-hosted CI runners
               </div>
             </div>
             <div class="md-footer__button md-icon">
