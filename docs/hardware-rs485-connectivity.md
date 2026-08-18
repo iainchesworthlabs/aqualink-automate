@@ -4,7 +4,7 @@
 
 Before Aqualink Automate can talk to a pool controller, you need a physical RS-485 connection between the control panel and the server running the software. This document explains the two supported transports, the command-line options that select them, and how to wire the adapter to the panel.
 
-**Note:** Both supported RS-485 protocols — Jandy/Zodiac and Pentair — ride the same physical connection. The transport is protocol-agnostic; the software auto-detects which protocol is on the bus. See the [supported-equipment summary](https://github.com/iainchesworth/aqualink-automate/blob/main/README.md#features) for the equipment covered.
+**Note:** Both supported RS-485 protocols — Jandy/Zodiac and Pentair — ride the same physical connection. The transport is protocol-agnostic; the software auto-detects which protocol is on the bus. See the [supported-equipment summary](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/README.md#features) for the equipment covered.
 
 ## Contents
 
@@ -154,4 +154,4 @@ The wiring and connections to the adapter and panel are critical to getting a go
 - [Configuration reference](configuration.md) — full detail on every serial and runtime option.
 - [Server and automation host](hardware-server-automation.md) — the host that runs Aqualink Automate.
 - [Recording and replay](RECORD_REPLAY.md) — capture bus traffic from a live connection.
-- [Supported equipment](https://github.com/iainchesworth/aqualink-automate/blob/main/README.md#features) — Jandy/Zodiac and Pentair coverage.
+- [Supported equipment](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/README.md#features) — Jandy/Zodiac and Pentair coverage.

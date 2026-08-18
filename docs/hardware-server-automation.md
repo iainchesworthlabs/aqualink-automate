@@ -69,7 +69,7 @@ aqualink-automate --address 0.0.0.0 --disable-https
 
 **Security:** binding to `0.0.0.0` makes the web UI reachable by anything on your network. API authentication is off by default. Run the server on a trusted network, and consider enabling the bearer-token auth (`--api-auth-token`) if you expose it more widely.
 
-CLI options can also be supplied from a config file. Config-file keys are the option long names **without the leading dashes** — so `--address 0.0.0.0` on the command line is `address = 0.0.0.0` in the file. See the worked examples in [`examples/config-network.conf`](https://github.com/iainchesworth/aqualink-automate/blob/main/examples/config-network.conf) and [`examples/config-docker.conf`](https://github.com/iainchesworth/aqualink-automate/blob/main/examples/config-docker.conf), and run `aqualink-automate --help` for the full option list.
+CLI options can also be supplied from a config file. Config-file keys are the option long names **without the leading dashes** — so `--address 0.0.0.0` on the command line is `address = 0.0.0.0` in the file. See the worked examples in [`examples/config-network.conf`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/examples/config-network.conf) and [`examples/config-docker.conf`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/examples/config-docker.conf), and run `aqualink-automate --help` for the full option list.
 
 ### Docker
 
@@ -109,7 +109,7 @@ docker compose up
 docker run --network host -v aqualink-matter:/data/matter aqualink-automate
 ```
 
-The bundled [`docker-compose.yml`](https://github.com/iainchesworth/aqualink-automate/blob/main/docker-compose.yml) already sets `network_mode: host` and a `matter-data` volume mounted at `/data/matter`, so commissioned fabrics survive container restarts. Open the web UI's **Diagnostics → Matter** panel to scan the pairing QR.
+The bundled [`docker-compose.yml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/docker-compose.yml) already sets `network_mode: host` and a `matter-data` volume mounted at `/data/matter`, so commissioned fabrics survive container restarts. Open the web UI's **Diagnostics → Matter** panel to scan the pairing QR.
 
 **Important — this constrains your host choice:** host networking is **Linux-only**. On Docker Desktop (macOS/Windows), host networking is limited and Matter **cannot be commissioned from the LAN**. If you want Matter, host on Linux (an SBC, mini-PC, NAS, or server). On macOS/Windows, disable the bridge with `MATTER_ENABLED=false` (equivalently `--matter false`) and keep the normal `-p 80:80` port mapping; the application still runs, just without Matter.
 

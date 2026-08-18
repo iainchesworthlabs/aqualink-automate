@@ -147,13 +147,29 @@ jobs:
           -Channel ${{ steps.resolve.outputs.is_prerelease == 'true' && 'edge' || 'stable' }}
           -Version ${{ steps.resolve.outputs.version }} -Root $PWD
 
+  # Live self-hosted-availability check, shared by the Linux jobs below that can
+  # build on the org-level fleet — see docs/ci-self-hosted-runners.md.
+  check-runners:
+    name: Check self-hosted runner availability
+    uses: ./.github/workflows/_check-runners.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+
   # Build + test + package on every platform via the same reusable workflow CI
   # uses, so the suites can never diverge between CI and release. do_package adds
   # cpack + the per-OS install/extract smoke test + the package artifact upload.
+  # It runs its own internal check-runners job (see _build.yml); actions: read is
+  # threaded through this call so that internal job can list runners.
   build-packages:
     name: Package
     needs: [resolve-version]
     uses: ./.github/workflows/_build.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
     with:
       do_package: true
       version_tag: ${{ needs.resolve-version.outputs.version_tag }}
@@ -164,9 +180,9 @@ jobs:
 
   docker-publish:
     name: Docker Publish
-    needs: [resolve-version, build-packages]
+    needs: [resolve-version, check-runners, build-packages]
     if: needs.resolve-version.outputs.is_dry_run != 'true'
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     permissions:
       contents: read      # checkout the source
       packages: write     # push the runtime image to GHCR
@@ -371,9 +387,9 @@ jobs:
   # so the Supervisor's anonymous pull works — same one-time step the app image needed.
   homeassistant-addon-publish:
     name: HA Add-on Publish (${{ matrix.ha_arch }})
-    needs: [resolve-version, docker-publish]
+    needs: [resolve-version, check-runners, docker-publish]
     if: needs.resolve-version.outputs.is_dry_run != 'true'
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     permissions:
       contents: read      # checkout the add-on Dockerfile + run.sh
       packages: write     # push the wrapper image to GHCR

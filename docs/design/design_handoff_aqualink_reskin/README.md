@@ -15,7 +15,7 @@ single-page Alpine.js app served by the C++ web server from `assets/web/`). It c
   status — documented and prototyped, plus the remaining backend gaps in
   `BEHAVIOUR-GAP-SWEEP.md`.
 
-The reskin was designed **against the real source** (`iainchesworth/aqualink-automate`, `main` +
+The reskin was designed **against the real source** (`iainchesworthlabs/aqualink-automate`, `main` +
 `feat/schedules-unified-view`): its Alpine stores/views, `assets/web/api/swagger.yaml`, and web
 components. Values, states, and endpoint semantics below are grounded in that source.
 
@@ -430,7 +430,7 @@ shapes to build.
   · `11-settings` · `12-login`. These are visual references; `Aqualink.dc.html` is the source of truth (open it
   to see every state, incl. the device-detail/log-level/service-mode modals, which are fixed
   overlays that don't screenshot cleanly).
-- Reference source (not bundled): `github.com/iainchesworth/aqualink-automate` — `assets/web/`
+- Reference source (not bundled): `github.com/iainchesworthlabs/aqualink-automate` — `assets/web/`
   (Alpine stores/views/components) and `assets/web/api/swagger.yaml`.
 
 ## Notes for the implementer

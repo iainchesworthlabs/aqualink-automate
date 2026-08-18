@@ -39,7 +39,7 @@ Assistant's **Supervisor** pulls, runs, and lifecycle-manages the container for 
 auto-restart, logs, updates, and hardware/MQTT wiring all handled by HA.
 
 The add-on is a **thin wrapper around the images we already publish**
-(`ghcr.io/iainchesworth/aqualink-automate`, multi-arch `amd64` + `arm64`, built by
+(`ghcr.io/iainchesworthlabs/aqualink-automate`, multi-arch `amd64` + `arm64`, built by
 [release.yml](../../.github/workflows/release.yml)). It is *not* a second build of the app.
 
 ## What a Home Assistant add-on actually is
@@ -235,7 +235,7 @@ step-by-step [HAOS test checklist](homeassistant-addon-haos-test.md)):
 - **Prebuilt add-on image — IMPLEMENTED (pending first publish).** `release.yml` job
   `homeassistant-addon-publish` builds the wrapper per-arch (single-arch image per HA
   arch) FROM this release's app image + bashio + run.sh, pushes
-  `ghcr.io/iainchesworth/aqualink-automate/homeassistant-{aarch64,amd64}:<version>`
+  `ghcr.io/iainchesworthlabs/aqualink-automate/homeassistant-{aarch64,amd64}:<version>`
   (+ floating `latest`/`edge`), and attests provenance. `config.yaml` now carries
   `image: …/homeassistant-{arch}` so the Supervisor pulls instead of building on-device.
   **One-time op:** the two new GHCR packages default to PRIVATE on first push — make them

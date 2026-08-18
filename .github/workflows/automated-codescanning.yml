@@ -53,10 +53,26 @@ permissions:
 jobs:
 
   ##
+  ## RUNNER AVAILABILITY CHECK
+  ##
+  ## Live self-hosted-availability check, shared by every job below that can build
+  ## on the org-level fleet — see docs/ci-self-hosted-runners.md.
+  ##
+
+  check-runners:
+    name: Check self-hosted runner availability
+    uses: ./.github/workflows/_check-runners.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+
+  ##
   ## CODEQL JOB
   ##
 
   CodeScanning_CodeQL:
+    needs: check-runners
     # Skip a develop->main promotion PR (already scanned on develop entry); run for
     # everything else (PR into develop, non-develop PR into main, schedule, dispatch).
     # AND: fork PRs must not run on the persistent self-hosted runners (untrusted
@@ -67,7 +83,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     timeout-minutes: 360
     permissions:
       actions: read
@@ -84,7 +100,7 @@ jobs:
     # root-owned files the unprivileged runner cannot delete; reset ownership via a
     # throwaway ROOT container -- NOT host sudo -- then drop the stale build trees.
     - name: Clean workspace (self-hosted)
-      if: contains(vars.RUNNER_LINUX || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
@@ -97,7 +113,7 @@ jobs:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(vars.RUNNER_LINUX || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         compiler: gcc-15
 
@@ -107,7 +123,7 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(vars.RUNNER_LINUX || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
         DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
@@ -116,7 +132,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(vars.RUNNER_LINUX || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         cache-key-prefix: CodeQL
 
@@ -124,6 +140,21 @@ jobs:
       run: bash "${{ github.workspace }}/deps/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
       env:
         VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+
+    # The libbacktrace port (a boost-stacktrace dependency) regenerates its configure
+    # via autoreconf, so the build host needs autoconf/autoconf-archive/automake/
+    # libtool. Skip apt entirely when already present (baked self-hosted image);
+    # otherwise wait for the dpkg lock instead of failing (unattended-upgrades briefly
+    # holds it on self-hosted runners). Mirrors _build.yml / fuzzing.yml.
+    - name: Install autotools for libbacktrace
+      shell: bash
+      run: |
+        if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+          echo "autotools already installed; skipping apt-get"
+        else
+          sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+          sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+        fi
 
     - name: Configure
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
@@ -230,6 +261,7 @@ jobs:
   ##
 
   CodeScanning_E2ECoverage:
+    needs: check-runners
     # Same gating as the other jobs: skip a develop->main promotion PR (already
     # scanned on develop entry) and keep fork PRs off the self-hosted runners.
     if: >-
@@ -238,7 +270,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     permissions:
       actions: read
       contents: read
@@ -249,7 +281,7 @@ jobs:
     # root-owned files the unprivileged runner cannot delete; reset ownership via a
     # throwaway ROOT container -- NOT host sudo -- then drop the stale build trees.
     - name: Clean workspace (self-hosted)
-      if: contains(vars.RUNNER_LINUX || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
@@ -262,12 +294,12 @@ jobs:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(vars.RUNNER_LINUX || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         compiler: gcc-15
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(vars.RUNNER_LINUX || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
         DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
@@ -276,7 +308,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(vars.RUNNER_LINUX || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         cache-key-prefix: E2ECoverage
 
@@ -284,6 +316,21 @@ jobs:
       run: bash "${{ github.workspace }}/deps/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
       env:
         VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+
+    # The libbacktrace port (a boost-stacktrace dependency) regenerates its configure
+    # via autoreconf, so the build host needs autoconf/autoconf-archive/automake/
+    # libtool. Skip apt entirely when already present (baked self-hosted image);
+    # otherwise wait for the dpkg lock instead of failing (unattended-upgrades briefly
+    # holds it on self-hosted runners). Mirrors _build.yml / fuzzing.yml.
+    - name: Install autotools for libbacktrace
+      shell: bash
+      run: |
+        if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+          echo "autotools already installed; skipping apt-get"
+        else
+          sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+          sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+        fi
 
     # The coverage preset turns ENABLE_COVERAGE on, which appends `--coverage
     # -fprofile-abs-path` to EVERY target (root CMakeLists). So the app target is
@@ -512,7 +559,7 @@ jobs:
     # artifact. !cancelled() (rather than the implicit success()) keeps the scan
     # running even if the e2e job FAILED — the assemble step below then falls back
     # to unit-only coverage, so a flaky e2e never drops the whole quality gate.
-    needs: CodeScanning_E2ECoverage
+    needs: [check-runners, CodeScanning_E2ECoverage]
     # Skip a develop->main promotion PR (already scanned on develop entry).
     # AND gate out fork PRs from the persistent self-hosted runners (untrusted code
     # on a long-lived host; SonarCloud also needs SONAR_TOKEN, withheld from forks).
@@ -523,7 +570,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
 
@@ -533,7 +580,7 @@ jobs:
     # root-owned files the unprivileged runner cannot delete; reset ownership via a
     # throwaway ROOT container -- NOT host sudo -- then drop the stale build trees.
     - name: Clean workspace (self-hosted)
-      if: contains(vars.RUNNER_LINUX || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
@@ -547,7 +594,7 @@ jobs:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(vars.RUNNER_LINUX || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         compiler: gcc-15
 
@@ -555,7 +602,7 @@ jobs:
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(vars.RUNNER_LINUX || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
         DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
@@ -564,7 +611,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(vars.RUNNER_LINUX || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         cache-key-prefix: SonarCloud
 
@@ -572,6 +619,21 @@ jobs:
       run: bash "${{ github.workspace }}/deps/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
       env:
         VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+
+    # The libbacktrace port (a boost-stacktrace dependency) regenerates its configure
+    # via autoreconf, so the build host needs autoconf/autoconf-archive/automake/
+    # libtool. Skip apt entirely when already present (baked self-hosted image);
+    # otherwise wait for the dpkg lock instead of failing (unattended-upgrades briefly
+    # holds it on self-hosted runners). Mirrors _build.yml / fuzzing.yml.
+    - name: Install autotools for libbacktrace
+      shell: bash
+      run: |
+        if dpkg -s autoconf autoconf-archive automake libtool >/dev/null 2>&1; then
+          echo "autotools already installed; skipping apt-get"
+        else
+          sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
+          sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
+        fi
 
     - name: Configure
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
@@ -628,6 +690,7 @@ jobs:
   ##
 
   CodeScanning_MSVCCodeAnalysis:
+    needs: check-runners
     # Skip a develop->main promotion PR (already scanned on develop entry).
     # AND gate out fork PRs from the persistent self-hosted Windows runners
     # (untrusted code on a long-lived host).
@@ -637,7 +700,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(vars.RUNNER_WINDOWS || '["windows-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.windows_runner) }}
     permissions:
       actions: read
       contents: read
@@ -647,7 +710,7 @@ jobs:
     # root-owned-file recovery only applies to Linux self-hosted runners; on Windows
     # the plain rm suffices, so the guarded branch is a no-op here.)
     - name: Clean workspace (self-hosted)
-      if: contains(vars.RUNNER_WINDOWS || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
@@ -660,18 +723,18 @@ jobs:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(vars.RUNNER_WINDOWS || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.windows_runner, 'self-hosted') }}
       with:
         compiler: msvc
 
     # Pure-PowerShell local composite (no Node) — replaces ilammy/msvc-dev-cmd,
     # which only ships a deprecated Node 20 runtime.
     - name: Setup MSVC environment (self-hosted)
-      if: contains(vars.RUNNER_WINDOWS || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
       uses: ./.github/actions/setup-msvc-env
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(vars.RUNNER_WINDOWS || '', 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
       shell: bash
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
@@ -686,7 +749,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(vars.RUNNER_WINDOWS || '', 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.windows_runner, 'self-hosted') }}
       with:
         cache-key-prefix: MSVCAnalysis
 

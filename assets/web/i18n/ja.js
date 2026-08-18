@@ -689,7 +689,7 @@
         'about.available_languages': '利用可能な言語',
         'about.lang_active': '使用中',
         'about.language_how': 'インターフェースの言語は {settings} → {appearance} → {language} で選択できます。選択は設定とともに保存され、すべてのデバイスに引き継がれます。右から左に書く言語ではレイアウトが自動的に反転します。',
-        'about.language_contribute_html': 'お使いの言語が見つからない、または改善できる翻訳を見つけましたか？翻訳はシンプルなテキストカタログで、簡単に貢献できます。<a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">貢献ガイド</a>をご覧ください。',
+        'about.language_contribute_html': 'お使いの言語が見つからない、または改善できる翻訳を見つけましたか？翻訳はシンプルなテキストカタログで、簡単に貢献できます。<a href="https://iainchesworthlabs.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">貢献ガイド</a>をご覧ください。',
         'about.model': 'モデル',
         'about.type': 'タイプ',
         'about.revision': 'リビジョン',

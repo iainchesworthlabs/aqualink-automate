@@ -693,7 +693,7 @@
         'about.available_languages': 'Idiomas disponibles',
         'about.lang_active': 'Activo',
         'about.language_how': 'Elija el idioma de la interfaz en {settings} → {appearance} → {language}. La elección se guarda con sus preferencias y le sigue en todos sus dispositivos; los idiomas de derecha a izquierda reflejan el diseño automáticamente.',
-        'about.language_contribute_html': '¿Falta su idioma o ha visto una traducción que podría mejorarse? Las traducciones son catálogos de texto sencillos y fáciles de aportar — consulte la <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">guía de contribución</a>.',
+        'about.language_contribute_html': '¿Falta su idioma o ha visto una traducción que podría mejorarse? Las traducciones son catálogos de texto sencillos y fáciles de aportar — consulte la <a href="https://iainchesworthlabs.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">guía de contribución</a>.',
         'about.model': 'Modelo',
         'about.type': 'Tipo',
         'about.revision': 'Revisión',

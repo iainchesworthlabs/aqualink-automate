@@ -50,7 +50,7 @@ namespace AqualinkAutomate::Devices
 			Utility::ScreenDataPage_Processor(Page_LabelAux, { 2, "Current Label" }, std::bind(&OneTouchScraper::PageProcessor_LabelAux, this, std::placeholders::_1)),
 			Utility::ScreenDataPage_Processor(Page_SetPoolHeat, { 0, "Pool Heat" }, std::bind(&OneTouchScraper::PageProcessor_SetPoolHeat, this, std::placeholders::_1)),
 			Utility::ScreenDataPage_Processor(Page_SetSpaHeat, { 0, "Spa Heat" }, std::bind(&OneTouchScraper::PageProcessor_SetSpaHeat, this, std::placeholders::_1)),
-			Utility::ScreenDataPage_Processor(Page_SpaSwitch, { 0, "Spa Switch" }, std::bind_front(&OneTouchScraper::PageProcessor_SpaSwitch, this)),
+			Utility::ScreenDataPage_Processor(Page_SpaSwitch, { 0, "Spa Switch" }, std::bind(&OneTouchScraper::PageProcessor_SpaSwitch, this, std::placeholders::_1)),
 			Utility::ScreenDataPage_Processor(Page_MoreOneTouch, { 10, "OneTouch ON/OFF" }, std::bind(&OneTouchScraper::PageProcessor_MoreOneTouch, this, std::placeholders::_1)),
 			Utility::ScreenDataPage_Processor(Page_Program, { 0, "Program" }, std::bind(&OneTouchScraper::PageProcessor_Program, this, std::placeholders::_1)),
 			// The per-equipment Program DETAIL page has the EQUIPMENT NAME on line 0 (e.g.
@@ -59,7 +59,7 @@ namespace AqualinkAutomate::Devices
 			// line-0 name also trips the Page_EquipmentOnOff { 0, "Filter Pump" } matcher, but
 			// that processor rejects every detail-page row - none end in ON/OFF/ENA or *** - so it
 			// is a harmless no-op while THIS processor does the real parse.)
-			Utility::ScreenDataPage_Processor(Page_Program, { 2, "Pgm " }, std::bind_front(&OneTouchScraper::PageProcessor_Program, this)),
+			Utility::ScreenDataPage_Processor(Page_Program, { 2, "Pgm " }, std::bind(&OneTouchScraper::PageProcessor_Program, this, std::placeholders::_1)),
 			Utility::ScreenDataPage_Processor(Page_DisplayLight, { 0, "Display Light" }, std::bind(&OneTouchScraper::PageProcessor_DisplayLight, this, std::placeholders::_1)),
 			Utility::ScreenDataPage_Processor(Page_Lockouts, { 0, "Lockout" }, std::bind(&OneTouchScraper::PageProcessor_Lockouts, this, std::placeholders::_1)),
 			Utility::ScreenDataPage_Processor(Page_PasswordSettings, { 0, "Password" }, std::bind(&OneTouchScraper::PageProcessor_PasswordSettings, this, std::placeholders::_1)),

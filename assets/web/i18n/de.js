@@ -690,7 +690,7 @@
         'about.available_languages': 'Verfügbare Sprachen',
         'about.lang_active': 'Aktiv',
         'about.language_how': 'Wählen Sie die Oberflächensprache unter {settings} → {appearance} → {language}. Die Auswahl wird mit Ihren Einstellungen gespeichert und folgt Ihnen auf allen Geräten; Rechts-nach-links-Sprachen spiegeln das Layout automatisch.',
-        'about.language_contribute_html': 'Fehlt Ihre Sprache, oder ist Ihnen eine Übersetzung aufgefallen, die besser klingen könnte? Übersetzungen sind einfache Textkataloge und leicht beizutragen — siehe den <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">Leitfaden für Beiträge</a>.',
+        'about.language_contribute_html': 'Fehlt Ihre Sprache, oder ist Ihnen eine Übersetzung aufgefallen, die besser klingen könnte? Übersetzungen sind einfache Textkataloge und leicht beizutragen — siehe den <a href="https://iainchesworthlabs.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">Leitfaden für Beiträge</a>.',
         'about.model': 'Modell',
         'about.type': 'Typ',
         'about.revision': 'Revision',

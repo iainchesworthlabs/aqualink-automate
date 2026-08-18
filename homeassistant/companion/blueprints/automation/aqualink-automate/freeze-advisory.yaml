@@ -8,7 +8,7 @@ blueprint:
     quiet-hours-aware delivery and a repeat interval.
   domain: automation
   author: aqualink-automate
-  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/freeze-advisory.yaml
+  source_url: https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/freeze-advisory.yaml
   input:
     air_sensor:
       name: Air temperature sensor

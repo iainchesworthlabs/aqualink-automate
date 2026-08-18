@@ -691,7 +691,7 @@
         'about.available_languages': '可用语言',
         'about.lang_active': '当前',
         'about.language_how': '在 {settings} → {appearance} → {language} 中选择界面语言。所选语言会随偏好设置保存，并在所有设备间同步；从右到左书写的语言会自动镜像布局。',
-        'about.language_contribute_html': '没有您的语言，或发现可以改进的翻译？翻译是简单的文本目录，很容易贡献 — 请参阅<a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">贡献指南</a>。',
+        'about.language_contribute_html': '没有您的语言，或发现可以改进的翻译？翻译是简单的文本目录，很容易贡献 — 请参阅<a href="https://iainchesworthlabs.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">贡献指南</a>。',
         'about.model': '型号',
         'about.type': '类型',
         'about.revision': '修订版本',

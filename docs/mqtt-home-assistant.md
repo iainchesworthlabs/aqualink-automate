@@ -324,7 +324,7 @@ ha-discovery-prefix = homeassistant
 aqualink-automate --config aqualink.conf
 ```
 
-The shipped [`examples/config-serial.conf`](https://github.com/iainchesworth/aqualink-automate/blob/main/examples/config-serial.conf) and [`examples/config-network.conf`](https://github.com/iainchesworth/aqualink-automate/blob/main/examples/config-network.conf) already contain a working MQTT + Home Assistant block to copy from.
+The shipped [`examples/config-serial.conf`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/examples/config-serial.conf) and [`examples/config-network.conf`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/examples/config-network.conf) already contain a working MQTT + Home Assistant block to copy from.
 
 ### 3. Enable the Home Assistant MQTT integration
 

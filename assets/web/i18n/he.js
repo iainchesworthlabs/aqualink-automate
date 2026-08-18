@@ -692,7 +692,7 @@
         'about.available_languages': 'שפות זמינות',
         'about.lang_active': 'פעילה',
         'about.language_how': 'בחרו את שפת הממשק תחת {settings} ← {appearance} ← {language}. הבחירה נשמרת עם ההעדפות שלכם ועוקבת אחריכם בכל המכשירים; שפות הנכתבות מימין לשמאל משקפות את הפריסה אוטומטית.',
-        'about.language_contribute_html': 'חסרה לכם שפה, או שמצאתם תרגום שאפשר לשפר? התרגומים הם קטלוגי טקסט פשוטים שקל לתרום להם — ראו את <a href="https://iainchesworth.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">מדריך התרומה</a>.',
+        'about.language_contribute_html': 'חסרה לכם שפה, או שמצאתם תרגום שאפשר לשפר? התרגומים הם קטלוגי טקסט פשוטים שקל לתרום להם — ראו את <a href="https://iainchesworthlabs.github.io/aqualink-automate/CONTRIBUTING/#contributing-translations" target="_blank" rel="noopener noreferrer">מדריך התרומה</a>.',
         'about.model': 'דגם',
         'about.type': 'סוג',
         'about.revision': 'מהדורה',

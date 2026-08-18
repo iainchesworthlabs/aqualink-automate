@@ -20,8 +20,16 @@ set(VCPKG_LIBRARY_LINKAGE dynamic)
 #     that drive their own build systems (e.g. OpenSSL's nmake build needs the
 #     unmodified MSVC environment). Hence the documented Windows/Unix asymmetry.
 
-# Force use of MSVC compiler (not Clang)
-set(VCPKG_PLATFORM_TOOLSET "v143")
+# No VCPKG_PLATFORM_TOOLSET override: vcpkg already defaults port builds to
+# the unmodified MSVC toolchain here (nothing chainloads a different compiler
+# into ports — see the chainload note above), the same way the LLVM triplet's
+# port builds do without setting it either. A prior "v143" pin hardcoded the
+# exact VS2022-era toolset version, which broke `vcpkg install` outright
+# ("Unable to find a valid Visual Studio instance with toolset version v143")
+# the first time a job landed on a self-hosted runner provisioned with newer
+# VS 2026 Build Tools (see docs/ci-self-hosted-runners.md) — auto-detecting
+# whichever MSVC toolset is actually installed is what both GitHub-hosted and
+# self-hosted Windows runners need.
 
 # Pass through MSVC environment variables so vcpkg port builds (including
 # nmake-based ones like OpenSSL) can find headers, libraries, and tools.

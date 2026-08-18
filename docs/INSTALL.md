@@ -27,13 +27,13 @@ On Debian / Ubuntu / **Raspberry Pi OS** (`amd64` or `arm64`), add the signed AP
 repository — you then get `apt upgrade` updates and a managed `systemd` service:
 
 ```bash
-curl -fsSL https://iainchesworth.github.io/aqualink-automate/install-apt.sh | sh
+curl -fsSL https://iainchesworthlabs.github.io/aqualink-automate/install-apt.sh | sh
 ```
 
 On Fedora / RHEL / openSUSE:
 
 ```bash
-curl -fsSL https://iainchesworth.github.io/aqualink-automate/install-dnf.sh | sh
+curl -fsSL https://iainchesworthlabs.github.io/aqualink-automate/install-dnf.sh | sh
 ```
 
 After installing, set your serial port in `/etc/aqualink-automate/aqualink-automate.conf`
@@ -59,7 +59,7 @@ is separate — see the [Security guide](SECURITY.md).
 ## Pre-built binaries
 
 Prefer the repository above on Linux; otherwise download the package for your platform
-from the [GitHub Releases](https://github.com/iainchesworth/aqualink-automate/releases) page.
+from the [GitHub Releases](https://github.com/iainchesworthlabs/aqualink-automate/releases) page.
 
 | Platform | Package types | Notes |
 |----------|---------------|-------|
@@ -73,7 +73,7 @@ signature. **Verify the download before installing** so you know it came from th
 project's pipeline and not a tampered build:
 
 ```bash
-gh attestation verify <downloaded-file> --repo iainchesworth/aqualink-automate
+gh attestation verify <downloaded-file> --repo iainchesworthlabs/aqualink-automate
 ```
 
 See [SECURITY.md > Verifying build authenticity](SECURITY.md#verifying-build-authenticity) for GPG and container-image verification.
@@ -104,7 +104,7 @@ vcpkg is vendored as a git submodule at `deps/vcpkg` and is bootstrapped automat
 ## Clone
 
 ```bash
-git clone --recurse-submodules https://github.com/iainchesworth/aqualink-automate.git
+git clone --recurse-submodules https://github.com/iainchesworthlabs/aqualink-automate.git
 cd aqualink-automate
 ```
 
@@ -272,7 +272,7 @@ To use it:
 1. Install [Docker](https://www.docker.com/products/docker-desktop/) and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) VS Code extension.
 2. Clone the repository and open the folder in VS Code:
    ```bash
-   git clone --recurse-submodules https://github.com/iainchesworth/aqualink-automate.git
+   git clone --recurse-submodules https://github.com/iainchesworthlabs/aqualink-automate.git
    cd aqualink-automate
    code .
    ```
@@ -352,7 +352,7 @@ Matter commissioning uses IPv6 mDNS (UDP 5540 + 5353), which Docker's bridge net
   ```
   Setting `MATTER_ENABLED=false` mirrors the app flag `--matter false`. The app runs normally; only the Matter sidecar is skipped.
 
-For a deeper look at the bridge — pairing, the sidecar architecture, and the storage layout — see [Matter bridge](MATTER.md) and the [`matter-bridge/`](https://github.com/iainchesworth/aqualink-automate/blob/main/matter-bridge/README.md) README.
+For a deeper look at the bridge — pairing, the sidecar architecture, and the storage layout — see [Matter bridge](MATTER.md) and the [`matter-bridge/`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/matter-bridge/README.md) README.
 
 ### API documentation (Swagger UI)
 
