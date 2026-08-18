@@ -24,6 +24,15 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
 
   See [docs/homeassistant-companion.md](docs/homeassistant-companion.md).
 
+### Changed
+
+- **BREAKING: the project moved from `iainchesworth/aqualink-automate` to the `iainchesworthlabs` GitHub organization.** Every published distribution channel moved with it and the old locations will **not** receive further updates:
+  - **Docker / GHCR images**: `ghcr.io/iainchesworth/aqualink-automate` → `ghcr.io/iainchesworthlabs/aqualink-automate` (same for the Home Assistant add-on wrapper images, `.../homeassistant-{amd64,aarch64}`). Update your `docker run`/`docker compose` image reference.
+  - **APT/DNF package repositories**: hosted at `iainchesworthlabs.github.io/aqualink-automate/apt` and `/rpm` (was `iainchesworth.github.io/...`). Re-run the install script from [docs/INSTALL.md](docs/INSTALL.md) (or `cicd/repo/install-apt.sh` / `install-dnf.sh`) to point your existing `sources.list`/`.repo` entry at the new host.
+  - **Home Assistant add-on repository**: add `https://github.com/iainchesworthlabs/aqualink-automate` as the add-on repository in the Supervisor; remove the old `iainchesworth/aqualink-automate` entry.
+  - **Documentation site**: now published at `iainchesworthlabs.github.io/aqualink-automate`.
+  - Git remotes: GitHub transparently redirects `git clone`/`fetch`/`push` against the old `iainchesworth/aqualink-automate` slug, but update your remote URL when convenient.
+
 ## [0.12.0-beta.9] - 2026-08-07
 
 Home Assistant add-on maintenance release — no changes to the core application.
@@ -93,7 +102,7 @@ A release-integrity update: release artifacts now carry verifiable build provena
 
 ### Added
 
-- **Verifiable release provenance.** Every release package and the Docker image now ships with a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (SLSA provenance, signed via Sigstore using the release workflow's OIDC identity) and an SPDX SBOM attestation, so anyone can confirm a download was built by this repository from a specific commit — not swapped for a poisoned build. Verify with `gh attestation verify <file> --repo iainchesworth/aqualink-automate` (or `oci://…` for the image). Release binaries are additionally GPG-signed (detached `.asc` per file plus a signed `SHA512SUMS`) when the project signing key is configured. See [SECURITY.md > Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity).
+- **Verifiable release provenance.** Every release package and the Docker image now ships with a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (SLSA provenance, signed via Sigstore using the release workflow's OIDC identity) and an SPDX SBOM attestation, so anyone can confirm a download was built by this repository from a specific commit — not swapped for a poisoned build. Verify with `gh attestation verify <file> --repo iainchesworthlabs/aqualink-automate` (or `oci://…` for the image). Release binaries are additionally GPG-signed (detached `.asc` per file plus a signed `SHA512SUMS`) when the project signing key is configured. See [SECURITY.md > Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity).
 
 ### Changed
 
@@ -269,7 +278,7 @@ A spa-control and dual-body feature release.
 - **Spa control from the web UI, MQTT, and Home Assistant.** Spa controls are now **writable** — a web-UI spa-mode toggle, and MQTT/Home Assistant entities that actuate heater modes via `SetHeaterMode`. MQTT entities now respect the installed pool configuration (so they match the equipment you actually have) and surface temperature freshness/staleness. This closes the gaps for migrating Home Assistant dashboards off the Ondilo ICO / iAqualink integrations onto aqualink-automate.
 - **Second pool setpoint and maintenance heating.** The panel's second pool setpoint (`POOLSP2`, shown as "TEMP2") and its maintenance-heating mode (`POOLHT2`) are now surfaced (read-only).
 - **Live circulation state.** A new `CirculationUpdate` WebSocket event publishes circulation state in real time.
-- **Online documentation site.** The full documentation is now rendered to GitHub Pages — served at the site root (<https://iainchesworth.github.io/aqualink-automate/>) and single-sourced from the in-repo Markdown.
+- **Online documentation site.** The full documentation is now rendered to GitHub Pages — served at the site root (<https://iainchesworthlabs.github.io/aqualink-automate/>) and single-sourced from the in-repo Markdown.
 
 ### Changed
 
@@ -321,7 +330,7 @@ This release folds in an end-to-end security review. All hardened behaviour pres
 
 - **Runs on stock Raspberry Pi OS / Debian Bookworm.** The Linux `.deb`/`.rpm`/`.tgz` are now built on a glibc-2.36 base and bundle the gcc-15 C++ runtime, so they install and run on Raspberry Pi OS Bookworm (and every newer distro) on both `amd64` and `arm64`. Previously they required a too-new glibc/libstdc++ and would not even load on a stock Pi.
 - **Installs as a `systemd` service.** The `.deb`/`.rpm` create an `aqualink` service account (in `dialout` for serial access), install a default config at `/etc/aqualink-automate/aqualink-automate.conf`, and a hardened `systemd` unit (enabled on boot; start it once your serial port is set). The `.tgz` ships an `install.sh` that does the same.
-- **APT and DNF package repositories.** Install and stay updated with your package manager from a signed repository — `curl -fsSL https://iainchesworth.github.io/aqualink-automate/install-apt.sh | sh` then `sudo apt install aqualink-automate` (and a `dnf` equivalent). See [INSTALL.md](docs/INSTALL.md).
+- **APT and DNF package repositories.** Install and stay updated with your package manager from a signed repository — `curl -fsSL https://iainchesworthlabs.github.io/aqualink-automate/install-apt.sh | sh` then `sudo apt install aqualink-automate` (and a `dnf` equivalent). See [INSTALL.md](docs/INSTALL.md).
 - **Multi-arch Docker image.** The GHCR image is now `linux/amd64` + `linux/arm64`, so a Raspberry Pi pulls the arm64 variant from the same tag.
 - **Raspberry Pi guide** ([docs/raspberry-pi.md](docs/raspberry-pi.md)): install, RS-485 hardware (USB adapter vs GPIO UART), udev stable device naming, the service, and troubleshooting.
 

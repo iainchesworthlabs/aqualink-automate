@@ -68,7 +68,7 @@ project(
 	aqualink-automate
 	VERSION ${DERIVED_VERSION_SEMVER}
 	DESCRIPTION "Control Jandy Aqualink RS pool equipment via common IoT integrations"
-	HOMEPAGE_URL "https://github.com/iainchesworth/aqualink-automate"
+	HOMEPAGE_URL "https://github.com/iainchesworthlabs/aqualink-automate"
 	LANGUAGES C CXX)
 
 # Propagate full version info (CMake project() only accepts M.M.P)

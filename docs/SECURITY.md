@@ -139,7 +139,7 @@ its default form — starts as root to drop privileges. A tailored AppArmor prof
 confines that surface to only what it needs (serial devices, `/data`, TCP for the HTTP
 server / MQTT client / remote serial, and the exec chain), so a compromise cannot roam
 the host. The canonical profile lives with the Home Assistant add-on at
-[`aqualink-automate/apparmor.txt.draft`](https://github.com/iainchesworth/aqualink-automate/blob/main/aqualink-automate/apparmor.txt.draft).
+[`aqualink-automate/apparmor.txt.draft`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/aqualink-automate/apparmor.txt.draft).
 
 - **Home Assistant add-on.** The Supervisor auto-loads and **enforces** a file named
   exactly `apparmor.txt` in the add-on folder. The profile currently ships as
@@ -154,7 +154,7 @@ the host. The canonical profile lives with the Home Assistant add-on at
 
   ```bash
   sudo apparmor_parser -r -W aqualink-automate/apparmor.txt.draft
-  docker run --security-opt apparmor=aqualink_automate ... ghcr.io/iainchesworth/aqualink-automate
+  docker run --security-opt apparmor=aqualink_automate ... ghcr.io/iainchesworthlabs/aqualink-automate
   ```
 
   There is no auto-load hook in plain Docker, so this stays opt-in rather than a default
@@ -181,11 +181,11 @@ Verify with the [GitHub CLI](https://cli.github.com/) (`gh`):
 ```bash
 # A downloaded package
 gh attestation verify aqualink-automate_<version>_amd64.deb \
-  --repo iainchesworth/aqualink-automate
+  --repo iainchesworthlabs/aqualink-automate
 
 # The container image (tag or digest)
-gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:<version> \
-  --repo iainchesworth/aqualink-automate
+gh attestation verify oci://ghcr.io/iainchesworthlabs/aqualink-automate:<version> \
+  --repo iainchesworthlabs/aqualink-automate
 ```
 
 A successful check prints the source repository, commit SHA, and the workflow
@@ -210,6 +210,6 @@ alongside the provenance, and pushed to GHCR for the image).
 
 ## Policy adoption
 
-This security policy is adapted from common open-source practice. Aqualink Automate is licensed under the GNU General Public License v3 (see [LICENSE.txt](https://github.com/iainchesworth/aqualink-automate/blob/main/LICENSE.txt)).
+This security policy is adapted from common open-source practice. Aqualink Automate is licensed under the GNU General Public License v3 (see [LICENSE.txt](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/LICENSE.txt)).
 
 Suggestions to improve this policy are welcome — raise them as a **non-security** issue or pull request through [CONTRIBUTING.md](CONTRIBUTING.md). Keep actual vulnerability reports on the private channels described above.

@@ -36,7 +36,7 @@ These are the specific things authored blind that most need eyes-on:
 
 ## 1. Install & boot
 
-- [ ] Add `https://github.com/iainchesworth/aqualink-automate` as a custom repository.
+- [ ] Add `https://github.com/iainchesworthlabs/aqualink-automate` as a custom repository.
 - [ ] **Both** add-ons appear: **Aqualink Automate** and **Aqualink Automate (Edge)**, each
       with an *experimental* badge.
 - [ ] Install stable; it **pulls a prebuilt image** (quick) — or local-builds if `image:` is

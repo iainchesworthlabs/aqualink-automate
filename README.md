@@ -3,15 +3,15 @@
 Local control of Jandy/Zodiac (Fluidra) Aqualink RS pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.
 
 <!-- Build & code health -->
-[![CI](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml)
-[![Code Scanning](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml)
+[![CI](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/ci.yml)
+[![Code Scanning](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/automated-codescanning.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=coverage)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
 <!-- Supply chain & project meta -->
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworth/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworth/aqualink-automate)
-[![Latest release](https://img.shields.io/github/v/release/iainchesworth/aqualink-automate?include_prereleases&sort=semver)](https://github.com/iainchesworth/aqualink-automate/releases/latest)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworthlabs/aqualink-automate)
+[![Latest release](https://img.shields.io/github/v/release/iainchesworthlabs/aqualink-automate?include_prereleases&sort=semver)](https://github.com/iainchesworthlabs/aqualink-automate/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.txt)
 
 Aqualink Automate is a C++ service that talks to your pool equipment over an RS-485 serial link and exposes it on your own network. It reads status from the panel and lets you control it through a built-in Web UI, an HTTP and WebSocket API, MQTT (with Home Assistant discovery), and a Matter bridge for Apple Home, Google Home, Alexa, and SmartThings. Everything runs on hardware you own; nothing is sent to a vendor cloud.
@@ -49,7 +49,7 @@ Aqualink Automate is a C++ service that talks to your pool equipment over an RS-
 Clone the repository (with submodules) and run the build script for your platform. The scripts validate dependencies, bootstrap vcpkg, and run configure, build, and test.
 
 ```bash
-git clone --recurse-submodules https://github.com/iainchesworth/aqualink-automate.git
+git clone --recurse-submodules https://github.com/iainchesworthlabs/aqualink-automate.git
 cd aqualink-automate
 
 # Linux / macOS
@@ -66,15 +66,15 @@ For pre-built binaries, dev containers, Docker deployment, and the full build-fr
 Every release binary and container image carries a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (and a GPG signature), so you can confirm a download really came from this pipeline and not a tampered build:
 
 ```bash
-gh attestation verify <downloaded-file> --repo iainchesworth/aqualink-automate
-gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:<version> --repo iainchesworth/aqualink-automate
+gh attestation verify <downloaded-file> --repo iainchesworthlabs/aqualink-automate
+gh attestation verify oci://ghcr.io/iainchesworthlabs/aqualink-automate:<version> --repo iainchesworthlabs/aqualink-automate
 ```
 
 See [SECURITY.md > Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity) for the full walkthrough.
 
 ## Documentation
 
-📖 **[Read the documentation online](https://iainchesworth.github.io/aqualink-automate/)** — the same guides below, rendered and searchable.
+📖 **[Read the documentation online](https://iainchesworthlabs.github.io/aqualink-automate/)** — the same guides below, rendered and searchable.
 
 | Guide | What it covers |
 |-------|----------------|

@@ -8,7 +8,7 @@ blueprint:
     it. Notifies after acting.
   domain: automation
   author: aqualink-automate
-  source_url: https://github.com/iainchesworth/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/chlorinator-self-heal.yaml
+  source_url: https://github.com/iainchesworthlabs/aqualink-automate/blob/main/homeassistant/companion/blueprints/automation/aqualink-automate/chlorinator-self-heal.yaml
   input:
     pump_switch:
       name: Filter pump switch

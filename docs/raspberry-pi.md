@@ -17,7 +17,7 @@ are built for `arm64` (and `amd64`); 32-bit Raspberry Pi OS is not currently sup
 
 ## Install
 
-Download the `arm64` `.deb` from the [latest release](https://github.com/iainchesworth/aqualink-automate/releases)
+Download the `arm64` `.deb` from the [latest release](https://github.com/iainchesworthlabs/aqualink-automate/releases)
 and install it — the package brings its own runtime libraries, so it works on a stock
 Raspberry Pi OS with no extra dependencies:
 

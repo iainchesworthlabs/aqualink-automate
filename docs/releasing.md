@@ -1,6 +1,6 @@
 # Releasing Aqualink Automate
 
-*For maintainers cutting a tagged release. Building from source lives in [INSTALL.md](INSTALL.md); the workflow internals live in [docs/ci-cd.md](ci-cd.md) (the original redesign plan is in [docs/design/cicd-redesign.md](https://github.com/iainchesworth/aqualink-automate/blob/main/docs/design/cicd-redesign.md)).*
+*For maintainers cutting a tagged release. Building from source lives in [INSTALL.md](INSTALL.md); the workflow internals live in [docs/ci-cd.md](ci-cd.md) (the original redesign plan is in [docs/design/cicd-redesign.md](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/docs/design/cicd-redesign.md)).*
 
 ## Version scheme
 
@@ -58,7 +58,7 @@ Before creating a release:
 1. CI is green on `main` (all platforms pass).
 2. All intended changes are merged to `main`. Real releases must be **cut from main**: the release commit has to be an ancestor of `origin/main`. The `resolve-version` job enforces this with `git merge-base --is-ancestor` and hard-fails any non-dry-run release whose commit is not contained in `main` (merge `develop` → `main` first, then tag `main`). Dry runs are exempt, so you can validate the pipeline from `develop`.
 3. Example configs in `examples/` are current.
-4. Release notes are reviewed. The `github-release` job seeds the release body with `gh release create --generate-notes` (a flat list of merged PRs / commits since the previous tag) — treat that as a **first draft only**. Make sure [CHANGELOG.md](https://github.com/iainchesworth/aqualink-automate/blob/main/CHANGELOG.md) and the PR titles read well (they feed the draft), then **curate the published body to the project's established pattern** — this is a required step, described under [Post-release](#post-release).
+4. Release notes are reviewed. The `github-release` job seeds the release body with `gh release create --generate-notes` (a flat list of merged PRs / commits since the previous tag) — treat that as a **first draft only**. Make sure [CHANGELOG.md](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/CHANGELOG.md) and the PR titles read well (they feed the draft), then **curate the published body to the project's established pattern** — this is a required step, described under [Post-release](#post-release).
 5. Run a local build to verify version output: `./aqualink-automate --version`.
 6. Decide the version tag. You don't have to compute the SemVer bump by hand: the `develop` → `main` release PR gets an automatic **suggested next tag** comment (the `Suggest Version` workflow runs `scripts/next-version.sh`, which classifies the Conventional Commits being published and applies the 0.x policy below). Run the same script locally any time with `scripts/next-version.sh` (or `--markdown` / `--tag`). The suggestion is **advisory** — you still choose the tag and push it; nothing is auto-tagged.
 
@@ -130,7 +130,7 @@ A dry run builds packages on all platforms without creating a GitHub Release or 
 
 After a release is published:
 
-1. **Curate the release notes to the established pattern (required).** The auto-generated body (`--generate-notes`) is only a starting point; rewrite it so the notes read as a coherent, user-facing changelog consistent with the previous releases. Use a prior release as the template (`gh release view v0.2.0-beta.1 --json body --jq .body`) and mirror the matching `## [x.y.z]` section of [CHANGELOG.md](https://github.com/iainchesworth/aqualink-automate/blob/main/CHANGELOG.md). The structure, **in this order**:
+1. **Curate the release notes to the established pattern (required).** The auto-generated body (`--generate-notes`) is only a starting point; rewrite it so the notes read as a coherent, user-facing changelog consistent with the previous releases. Use a prior release as the template (`gh release view v0.2.0-beta.1 --json body --jq .body`) and mirror the matching `## [x.y.z]` section of [CHANGELOG.md](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/CHANGELOG.md). The structure, **in this order**:
    1. `## What's Changed since v<prev>` heading (for the very first release: `## What's Changed`).
    2. A one-line **summary** of the release.
    3. The changes as `###` subsections — grouped by subsystem (e.g. *Trends*, *Web UI*) or as *Added* / *Changed* / *Fixed* — with **bold lead-in** bullets in user-facing terms (not raw commit subjects). A short release may use a flat **bold-lead-in** bullet list instead of subsections.
@@ -196,11 +196,11 @@ for the user-facing walkthrough; in short:
   ```bash
   # A downloaded package (offline bytes on disk)
   gh attestation verify aqualink-automate_<version>_amd64.deb \
-    --repo iainchesworth/aqualink-automate
+    --repo iainchesworthlabs/aqualink-automate
 
   # The container image (by tag or digest)
-  gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:<version> \
-    --repo iainchesworth/aqualink-automate
+  gh attestation verify oci://ghcr.io/iainchesworthlabs/aqualink-automate:<version> \
+    --repo iainchesworthlabs/aqualink-automate
   ```
 
   A pass prints the workflow, commit and repository that produced the artifact.

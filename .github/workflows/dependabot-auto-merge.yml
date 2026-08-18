@@ -26,7 +26,7 @@ jobs:
   auto-merge:
     name: Enable auto-merge
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'iainchesworth/aqualink-automate'
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'iainchesworthlabs/aqualink-automate'
     permissions:
       contents: write
       pull-requests: write

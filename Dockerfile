@@ -2,7 +2,7 @@
 # Stage: base (shared tooling for dev, ci, and runtime builds)
 # ==============================================================================
 
-FROM ubuntu:26.04@sha256:3131b4cc82a783df6c9df078f86e01819a13594b865c2cad47bd1bca2b7063bb AS base
+FROM ubuntu:26.04@sha256:678c6550cc43645e08669028bc177f50be4e7c5b8cca677067b1914d4afc7a03 AS base
 
 ARG GCC_VERSION=15
 ARG LLVM_VERSION=21
@@ -156,7 +156,7 @@ RUN DESTDIR=/src/install/config-linux-gcc cmake --install build/config-linux-gcc
 # the glibc Node installed in the runtime stage. @matter/main and ws are pure JS, so
 # this is belt-and-braces, but it keeps the door open for any future native dep.
 
-FROM node:26-bookworm-slim@sha256:e999d087492c7227c85adc70574cf9d3cce774c3e6d7b8dfe473ee6b142c8f2c AS matter-builder
+FROM node:26-bookworm-slim@sha256:cd565714d4da3e84bfd341e31448f81d47c6362198f152345297c9c1154e6341 AS matter-builder
 
 WORKDIR /opt/matter-bridge
 
@@ -180,7 +180,7 @@ RUN npm run build \
 #   - runtime-assembled : app from a prebuilt install tree staged into the context
 #                         (no recompile; used by release.yml docker-publish)
 
-FROM ubuntu:26.04@sha256:3131b4cc82a783df6c9df078f86e01819a13594b865c2cad47bd1bca2b7063bb AS runtime-base
+FROM ubuntu:26.04@sha256:678c6550cc43645e08669028bc177f50be4e7c5b8cca677067b1914d4afc7a03 AS runtime-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 

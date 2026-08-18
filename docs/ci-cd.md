@@ -10,6 +10,7 @@ The table below is the complete inventory of everything under `.github/` — the
 |------|------|---------|
 | `.github/workflows/ci.yml` | Workflow | Build, test, e2e, and Docker verification on every push and PR. |
 | `.github/workflows/_build.yml` | Reusable workflow (`workflow_call`) | The shared configure/build/test/package matrix. Called by both `ci.yml` and `release.yml`. |
+| `.github/workflows/_check-runners.yml` | Reusable workflow (`workflow_call`) | Live self-hosted-runner-availability check shared by `_build.yml`, `ci.yml`, `release.yml`, `fuzzing.yml`, and `automated-codescanning.yml`. See [Self-hosted runners](#self-hosted-runners) and [ci-self-hosted-runners.md](ci-self-hosted-runners.md). |
 | `.github/workflows/release.yml` | Workflow | Build packages, publish the Docker + Home Assistant add-on images, create the GitHub release, and publish the APT/DNF repos for a `v*` tag. |
 | `.github/workflows/publish-repos.yml` | Reusable workflow (`workflow_call`) + dispatch | Publish the GPG-signed APT/DNF package repos to `gh-pages`. Called by `release.yml` after the release is created; dispatchable to (re)publish a tag. |
 | `.github/workflows/auto-tag.yml` | Workflow | Opt-in (repo variable `AUTO_TAG_ENABLED`): advances the prerelease counter tag on a code push to `main`, firing `release.yml`. Off by default — tags are pushed by hand. |
@@ -60,7 +61,7 @@ Concurrency is keyed on the PR head branch (or the ref for branch pushes) with `
 | `i18n-catalogs` | `ubuntu-latest` | Runs `scripts/check-i18n-keys.ps1`: every key referenced in web-UI code exists in `en.js`, and every shipped locale catalog has exact key + placeholder parity with English (see `docs/i18n.md`). Part of the `ci-status` aggregate. |
 | `platform-macros` | `ubuntu-latest` | Runs `scripts/check-os-macros.ps1`: no OS preprocessor macro may gate shared, non-platform source (see [platform-isolation.md](platform-isolation.md)). Part of the `ci-status` aggregate. |
 | `version-check` | `ubuntu-latest` | PR-into-`main` only. Compares what `git describe` resolves on the PR head versus the base. **Blocking at the job level** — when the resolved version is unchanged it emits `::error::` and `exit 1`, failing the job. It is, however, intentionally excluded from the `ci-status` aggregator's `needs` list, so a failed `version-check` does not by itself fail the aggregated `ci-status` required check. |
-| `docker-verify` | Linux | Builds the `ci` and `runtime` Docker targets, smoke-tests the runtime image with `--version`, and asserts the Matter sidecar is bundled. |
+| `docker-verify` | Linux | Builds the `ci` and `runtime` Docker targets, smoke-tests the runtime image with `--version`, asserts the Matter sidecar is bundled, and asserts the HA companion package (`blueprints/`, `packages/`, `dashboards/`, `entity-manifest.json` under `share/aqualink-automate/web/homeassistant/`) is present and non-empty — a regression guard for the class of bug where a stale `.dockerignore` rule silently dropped that content from the image (see [ha-companion-package.md](design/ha-companion-package.md)). |
 | `ci-status` | `ubuntu-latest` | The aggregated **required** status check (alongside `branch-name`). Runs `if: always()` over every job above except `branch-name` and `version-check`, and fails only when one of them reported `failure`/`cancelled` — skipped jobs (docs-only changes, fork-gated jobs) count as OK, so a required check is never left pending. |
 
 **Docs-only gating.** `build-and-test`, `e2e-ui`, `matter-bridge`, `version-check`, and `docker-verify` are all gated on `changes` reporting `code == 'true'`, so a docs-only change skips the whole build/test matrix while `ci-status` still reports success. `branch-name`, `i18n-catalogs`, and `platform-macros` run regardless (cheap, source-only checks).
@@ -189,7 +190,7 @@ This job runs only when not a dry run, with `contents: write` (tag + release) pl
 1. For a `workflow_dispatch` build, it pushes the resolved tag to `origin` at the end — the tag is created here, not at the start.
 2. Downloads every `packages-*` artifact from `build-packages` (`merge-multiple: true`).
 3. **GPG-signs the artifacts** (gated on `REPO_GPG_PRIVATE_KEY`, the repo-signing key): a detached `.asc` per binary, a signed `SHA512SUMS` manifest, and the exported public key, all added to the release. No-ops if the key is unset.
-4. **Attests the packages:** a keyless build-provenance attestation and an SPDX SBOM attestation over the shipped binaries (the SBOM is also uploaded as a release asset). Verified by consumers with `gh attestation verify <file> --repo iainchesworth/aqualink-automate`.
+4. **Attests the packages:** a keyless build-provenance attestation and an SPDX SBOM attestation over the shipped binaries (the SBOM is also uploaded as a release asset). Verified by consumers with `gh attestation verify <file> --repo iainchesworthlabs/aqualink-automate`.
 5. Runs `gh release create <tag> --generate-notes`, adding `--prerelease` when the release is a prerelease, and attaches the downloaded package files, signatures, checksums, and SBOM.
 
 Both attestation mechanisms are described end-to-end for consumers in [SECURITY.md > Verifying build authenticity](SECURITY.md#verifying-build-authenticity).
@@ -312,7 +313,7 @@ The documentation site (MkDocs Material — the published subset is selected by 
 
 - **Triggers:** push to `main` touching `docs/**`, `overrides/**`, `mkdocs.yml`, `README.md`, or the workflow itself; plus `workflow_dispatch`.
 - **Build:** `pip install "mkdocs-material[imaging]>=9.7"` (a floor, no upper cap) plus the Cairo imaging libraries for the social-cards plugin, then `mkdocs build --strict` — broken internal links and other warnings **fail the build** instead of shipping a broken page.
-- **Linking to files outside `docs/`.** `--strict` resolves every relative link against the *documentation* tree, not the repository. A link like `../docker-compose.yml` resolves on GitHub but 404s on the published site, so MkDocs rejects it — use an absolute `https://github.com/iainchesworth/aqualink-automate/blob/main/…` URL for repo files, and likewise for docs deliberately held back by `exclude_docs` (`design/`, `refactoring/`, `i18n-scoping.md`). Note the asymmetry: an unresolvable link to a *file* is a build-failing `WARNING`, but a link to a *directory* or to an excluded page is only logged at `INFO` — it ships broken and silent. Read the whole build log, not just the failures.
+- **Linking to files outside `docs/`.** `--strict` resolves every relative link against the *documentation* tree, not the repository. A link like `../docker-compose.yml` resolves on GitHub but 404s on the published site, so MkDocs rejects it — use an absolute `https://github.com/iainchesworthlabs/aqualink-automate/blob/main/…` URL for repo files, and likewise for docs deliberately held back by `exclude_docs` (`design/`, `refactoring/`, `i18n-scoping.md`). Note the asymmetry: an unresolvable link to a *file* is a build-failing `WARNING`, but a link to a *directory* or to an excluded page is only logged at `INFO` — it ships broken and silent. Read the whole build log, not just the failures.
 - **The MkDocs 2.0 banner is not an error.** Recent Material releases print a red "Warning from the Material for MkDocs team" block about the upstream MkDocs 2.0 rewrite. It is advocacy written to stderr, is not a MkDocs warning, and does **not** count toward `--strict`; the "Aborted with N warnings" tally counts only the `WARNING -` lines. MkDocs 2.0 also cannot arrive unannounced — `mkdocs-material` itself pins `mkdocs<2,>=1.6`.
 - **Publish:** `peaceiris/actions-gh-pages` with `keep_files: true`, preserving the APT/DNF package tree that `publish-repos.yml` owns on the same branch (`apt/`, `rpm/`, `key.gpg`, `install-*.sh`); the filename sets are disjoint, so neither workflow deletes the other's files. Its `publish-docs` concurrency group is separate from `publish-repos`, so a docs build and a package publish can run at the same time.
 
@@ -344,29 +345,47 @@ The companion **bundle** (`aqualink-automate-homeassistant-companion-<version>.z
 
 ## Self-hosted runners
 
-Every Linux and Windows job picks its runner from a repository variable, falling back to GitHub-hosted runners when the variable is unset. macOS always runs on `macos-latest` (GitHub-hosted).
+Every Linux and Windows job that can build on the self-hosted fleet reads its runner labels
+from a shared `check-runners` job (`_check-runners.yml`), which **live-checks** whether a
+matching self-hosted runner is actually online and idle right now — not a static "self-hosted
+is configured" switch. macOS always runs on `macos-latest` (GitHub-hosted); the arm64 Linux
+row of `_build.yml` stays on the static `RUNNER_LINUX_ARM` override (no self-hosted arm64
+runner exists in the current fleet to check against).
+
+Full design, the fork-PR gating, and the two-part live check (repo-level, then optional
+org-level via `ORG_RUNNERS_TOKEN`) are documented in
+[ci-self-hosted-runners.md](ci-self-hosted-runners.md) — this section is the short summary.
 
 ### Repository variables
 
-Set these under **Settings > Variables > Actions**. Each value is a JSON array of runner labels.
+Set these under **Settings > Variables > Actions**.
 
-| Variable | Type | Example | Applies to |
-|----------|------|---------|------------|
-| `RUNNER_LINUX` | JSON label array | `["self-hosted","linux","x64"]` | x64 Linux rows of `_build.yml`, `e2e-ui`, `matter-bridge`, `docker-verify`, `docker-publish`, `homeassistant-addon-publish`, the fuzzing matrix, CodeQL, E2ECoverage, SonarCloud |
-| `RUNNER_LINUX_ARM` | JSON label array | `["self-hosted","linux","arm64"]` | The arm64 Linux row of `_build.yml`. Falls back to the GitHub-hosted `ubuntu-24.04-arm` (free for public repos). |
-| `RUNNER_WINDOWS` | JSON label array | `["self-hosted","windows","x64"]` | Windows row of `_build.yml`, MSVC code analysis |
+| Variable | Values | Applies to |
+|----------|--------|------------|
+| `RUNNER_LINUX_MODE` | `auto` (default), `self-hosted`, `github-hosted` | Every Linux job wired to `check-runners` |
+| `RUNNER_WINDOWS_MODE` | `auto` (default), `self-hosted`, `github-hosted` | Every Windows job wired to `check-runners` (`_build.yml`, MSVC code analysis) |
+| `RUNNER_LINUX_ARM` | JSON label array, e.g. `["self-hosted","linux","arm64"]` | The arm64 Linux row of `_build.yml` only — unaffected by `check-runners`. Falls back to the GitHub-hosted `ubuntu-24.04-arm` (free for public repos). |
 
-### Fallback
+`RUNNER_LINUX` / `RUNNER_WINDOWS` (the old static label-array variables) are retired —
+the exact self-hosted labels (`self-hosted, Linux, X64` / `self-hosted, Windows, X64`) are
+now hardcoded inside `_check-runners.yml`, since they must match what the `ci-runners` fleet
+actually registers with.
 
-The pattern in the workflows is `${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}` (and the Windows equivalent). If the variable is unset, or the self-hosted runners go offline, jobs fall back to the GitHub-hosted runners automatically. To force the fallback, remove the repository variables.
+### Repository secret
+
+`ORG_RUNNERS_TOKEN` (optional) — an org-scoped PAT or GitHub App token with "Self-hosted
+runners: read" on `iainchesworthlabs`, letting `check-runners` see the org-level fleet in
+[iainchesworthlabs/ci-runners](https://github.com/iainchesworthlabs/ci-runners) rather than
+just runners registered directly against this repo. Unset, that half of the check is simply
+skipped.
 
 Self-hosted jobs also run extra steps the hosted jobs skip — they clean the workspace, point vcpkg at a persistent `~/.cache/vcpkg`, and (on Windows) load the MSVC environment with the local `./.github/actions/setup-msvc-env` composite action (pure PowerShell; sources `vcvars64.bat` and exports the env delta to `$GITHUB_ENV`).
 
 ### Provisioning
 
-Runner VM images are built with Packer under `cicd/packer/`. See [cicd/packer/README.md](https://github.com/iainchesworth/aqualink-automate/blob/main/cicd/packer/README.md) for the full provisioning, deployment, and registration procedure.
-
-The Linux runner base is **Ubuntu 26.04 LTS** (GCC 15, Clang/LLVM 21), provisioned by `cicd/packer/linux-runner.pkr.hcl` (boots `ISOs/ubuntu-26.04-autoinstall.iso`) and the `cicd/packer/scripts/linux/0{2,3}-*-toolchain.sh` scripts. Both the Architecture table in `cicd/packer/README.md` and the Packer template agree on this base. The Windows runner base is Windows Server 2022.
+Runner VM images (Packer templates, provisioning scripts) live in
+[iainchesworthlabs/ci-runners](https://github.com/iainchesworthlabs/ci-runners), shared
+across every repo in the org — not in this repo's `cicd/`.
 
 The Linux image is hardened against OS-disk creep: Docker's `data-root` **and** containerd's `root` live on the dedicated `/data` disk, `~/.cache` and `~/.sonar` are symlinked into the size-capped `/data/cache`, `unattended-upgrades` is removed (background dpkg runs also raced CI's own `apt-get` calls), and the ephemeral supervisor's per-job reset additionally deletes superseded self-updated runner-agent versions and runs apt hygiene (`apt-get clean`, wipe `/var/lib/apt/lists`). See `cicd/packer/README.md` ("Disk layout & the pristine ephemeral model").
 

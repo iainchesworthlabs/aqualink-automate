@@ -1,6 +1,6 @@
 [Unit]
 Description=Aqualink Automate - Jandy/Zodiac AquaLink RS pool controller bridge
-Documentation=https://github.com/iainchesworth/aqualink-automate
+Documentation=https://github.com/iainchesworthlabs/aqualink-automate
 After=network-online.target
 Wants=network-online.target
 

@@ -147,13 +147,29 @@ jobs:
           -Channel ${{ steps.resolve.outputs.is_prerelease == 'true' && 'edge' || 'stable' }}
           -Version ${{ steps.resolve.outputs.version }} -Root $PWD
 
+  # Live self-hosted-availability check, shared by the Linux jobs below that can
+  # build on the org-level fleet — see docs/ci-self-hosted-runners.md.
+  check-runners:
+    name: Check self-hosted runner availability
+    uses: ./.github/workflows/_check-runners.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+
   # Build + test + package on every platform via the same reusable workflow CI
   # uses, so the suites can never diverge between CI and release. do_package adds
   # cpack + the per-OS install/extract smoke test + the package artifact upload.
+  # It runs its own internal check-runners job (see _build.yml); actions: read is
+  # threaded through this call so that internal job can list runners.
   build-packages:
     name: Package
     needs: [resolve-version]
     uses: ./.github/workflows/_build.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
     with:
       do_package: true
       version_tag: ${{ needs.resolve-version.outputs.version_tag }}
@@ -164,9 +180,9 @@ jobs:
 
   docker-publish:
     name: Docker Publish
-    needs: [resolve-version, build-packages]
+    needs: [resolve-version, check-runners, build-packages]
     if: needs.resolve-version.outputs.is_dry_run != 'true'
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     permissions:
       contents: read      # checkout the source
       packages: write     # push the runtime image to GHCR
@@ -198,14 +214,14 @@ jobs:
       # credential-less runs still build anonymously. See docs/releasing.md.
       - name: Login to Docker Hub
         if: env.DOCKERHUB_USERNAME != ''
-        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GHCR
-        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -299,7 +315,7 @@ jobs:
       # the attestation to the image in GHCR so `gh attestation verify oci://...` and
       # `cosign`-style tooling can find it. See docs/SECURITY.md > Verifying builds.
       - name: Attest image build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.digest.outputs.digest }}
@@ -371,9 +387,9 @@ jobs:
   # so the Supervisor's anonymous pull works — same one-time step the app image needed.
   homeassistant-addon-publish:
     name: HA Add-on Publish (${{ matrix.ha_arch }})
-    needs: [resolve-version, docker-publish]
+    needs: [resolve-version, check-runners, docker-publish]
     if: needs.resolve-version.outputs.is_dry_run != 'true'
-    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
     permissions:
       contents: read      # checkout the add-on Dockerfile + run.sh
       packages: write     # push the wrapper image to GHCR
@@ -394,7 +410,7 @@ jobs:
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
       - name: Login to GHCR
-        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -455,7 +471,7 @@ jobs:
           echo "Published add-on image digest: $DIGEST"
 
       - name: Attest add-on image build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/${{ github.repository }}/homeassistant-${{ matrix.ha_arch }}
           subject-digest: ${{ steps.digest.outputs.digest }}
@@ -565,7 +581,7 @@ jobs:
       # .asc/.sha512/SBOM sidecars). Signed via Sigstore/Fulcio using the job's OIDC
       # identity; verified with `gh attestation verify <file> --repo <owner>/<repo>`.
       - name: Attest package build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             release-artifacts/*.deb
