@@ -2,10 +2,10 @@
 # Add the Aqualink Automate APT repository and install (Debian / Ubuntu / Raspberry
 # Pi OS). After this, `sudo apt upgrade` keeps it up to date.
 #
-#   curl -fsSL https://iainchesworth.github.io/aqualink-automate/install-apt.sh | sh
+#   curl -fsSL https://iainchesworthlabs.github.io/aqualink-automate/install-apt.sh | sh
 set -e
 
-BASE="https://iainchesworth.github.io/aqualink-automate"
+BASE="https://iainchesworthlabs.github.io/aqualink-automate"
 SUDO=""
 [ "$(id -u)" -eq 0 ] || SUDO="sudo"
 

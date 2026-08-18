@@ -3,26 +3,26 @@ Architecture: amd64
 Depends: libc6 (>= 2.36), systemd
 Priority: optional
 Section: net
-Filename: pool/main/a/aqualink-automate/aqualink-automate_0.12.0~beta.9_amd64.deb
-Size: 13612946
-SHA256: f22fced13f483a063bd1df9776fe115e36419234b3892f57b35e52919be1438d
-SHA1: 5a34b384d485625214185c53c6aade958b51bb08
-MD5sum: 9726d1f4a92bd5d6b65da5ecd6083077
+Filename: pool/main/a/aqualink-automate/aqualink-automate_0.13.0~beta.1_amd64.deb
+Size: 13632130
+SHA256: 3abe5cfee6eefe7066dae3bdea2ba8af4f9ae5a7770f01e9b4f4a1e30dff215f
+SHA1: cbc54185c2279018471c94ca9bfb0ac1cf91ae60
+MD5sum: 843afee3721f9856599793a3346e340b
 Description: Control Jandy Aqualink RS pool equipment via common IoT integrations
  # Aqualink Automate
  .
  Local control of Jandy/Zodiac (Fluidra) Aqualink RS pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required.
  .
  &lt;!-- Build &amp; code health --&gt;
- [![CI](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/ci.yml)
- [![Code Scanning](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworth/aqualink-automate/actions/workflows/automated-codescanning.yml)
+ [![CI](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/ci.yml/badge.svg)](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/ci.yml)
+ [![Code Scanning](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/automated-codescanning.yml/badge.svg)](https://github.com/iainchesworthlabs/aqualink-automate/actions/workflows/automated-codescanning.yml)
  [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=alert_status)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
  [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=coverage)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
  [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=security_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
  [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=iainchesworth_aqualink-automate&amp;metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=iainchesworth_aqualink-automate)
  &lt;!-- Supply chain &amp; project meta --&gt;
- [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworth/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworth/aqualink-automate)
- [![Latest release](https://img.shields.io/github/v/release/iainchesworth/aqualink-automate?include_prereleases&amp;sort=semver)](https://github.com/iainchesworth/aqualink-automate/releases/latest)
+ [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/aqualink-automate/badge)](https://scorecard.dev/viewer/?uri=github.com/iainchesworthlabs/aqualink-automate)
+ [![Latest release](https://img.shields.io/github/v/release/iainchesworthlabs/aqualink-automate?include_prereleases&amp;sort=semver)](https://github.com/iainchesworthlabs/aqualink-automate/releases/latest)
  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.txt)
  .
  Aqualink Automate is a C++ service that talks to your pool equipment over an RS-485 serial link and exposes it on your own network. It reads status from the panel and lets you control it through a built-in Web UI, an HTTP and WebSocket API, MQTT (with Home Assistant discovery), and a Matter bridge for Apple Home, Google Home, Alexa, and SmartThings. Everything runs on hardware you own; nothing is sent to a vendor cloud.
@@ -60,7 +60,7 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  Clone the repository (with submodules) and run the build script for your platform. The scripts validate dependencies, bootstrap vcpkg, and run configure, build, and test.
  .
  ```bash
- git clone --recurse-submodules https://github.com/iainchesworth/aqualink-automate.git
+ git clone --recurse-submodules https://github.com/iainchesworthlabs/aqualink-automate.git
  cd aqualink-automate
  .
  # Linux / macOS
@@ -77,15 +77,15 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  Every release binary and container image carries a keyless [build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations) (and a GPG signature), so you can confirm a download really came from this pipeline and not a tampered build:
  .
  ```bash
- gh attestation verify &lt;downloaded-file&gt; --repo iainchesworth/aqualink-automate
- gh attestation verify oci://ghcr.io/iainchesworth/aqualink-automate:&lt;version&gt; --repo iainchesworth/aqualink-automate
+ gh attestation verify &lt;downloaded-file&gt; --repo iainchesworthlabs/aqualink-automate
+ gh attestation verify oci://ghcr.io/iainchesworthlabs/aqualink-automate:&lt;version&gt; --repo iainchesworthlabs/aqualink-automate
  ```
  .
  See [SECURITY.md &gt; Verifying build authenticity](docs/SECURITY.md#verifying-build-authenticity) for the full walkthrough.
  .
  ## Documentation
  .
- 📖 **[Read the documentation online](https://iainchesworth.github.io/aqualink-automate/)** — the same guides below, rendered and searchable.
+ 📖 **[Read the documentation online](https://iainchesworthlabs.github.io/aqualink-automate/)** — the same guides below, rendered and searchable.
  .
  | Guide | What it covers |
  |-------|----------------|
@@ -126,8 +126,8 @@ Description: Control Jandy Aqualink RS pool equipment via common IoT integration
  ## Credits and references
  .
  This project was influenced by sfeakes&apos; [AqualinkD](https://github.com/sfeakes/AqualinkD). The original goal was a variant that also runs on Windows and macOS.
-Homepage: https://github.com/iainchesworth/aqualink-automate
+Homepage: https://github.com/iainchesworthlabs/aqualink-automate
 Maintainer: Iain Chesworth
-Version: 0.12.0~beta.9
-Installed-Size: 61593
+Version: 0.13.0~beta.1
+Installed-Size: 61704
 
