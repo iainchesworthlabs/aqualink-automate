@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0-beta.1 (Edge only)
+
+- **Repository moved.** The add-on now lives at `https://github.com/iainchesworthlabs/aqualink-automate` (was `iainchesworth/aqualink-automate`). If you added it as a custom repository, remove the old entry and add the new URL, then reinstall/update to keep receiving updates — the old repository will not publish further releases.
+- **Home Assistant companion package.** A ready-to-use bundle for this integration — automation blueprints (activity scenes, spa readiness, and more), a script blueprint, a helpers package, and a pre-built dashboard. Enable the opt-in **Install companion package** option (off by default) to have it synced into Home Assistant's `blueprints/` folder automatically on every start/update, or install it manually from `/homeassistant/` on your running instance.
+
 ## 0.12.0-beta.9
 
 - **The add-on now reaches "Running", and the Watchdog no longer kill-loops it.** The container health probe inherited from the app image still pointed at the app's default port `80`, but the add-on runs the app on `8099` (since 0.12.0-beta.6) — so the container never reported healthy: the add-on sat in "Starting" forever and, with **Watchdog** enabled, was restarted every ~80 seconds. The probe now targets the add-on's real port. If you disabled the Watchdog toggle to work around this, it is safe to turn back on.
