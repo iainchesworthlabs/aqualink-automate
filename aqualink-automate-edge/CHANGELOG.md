@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.13.0-beta.1 (Edge only)
+## 0.13.0-beta.1
 
 - **Repository moved.** The add-on now lives at `https://github.com/iainchesworthlabs/aqualink-automate` (was `iainchesworth/aqualink-automate`). If you added it as a custom repository, remove the old entry and add the new URL, then reinstall/update to keep receiving updates — the old repository will not publish further releases.
 - **Home Assistant companion package.** A ready-to-use bundle for this integration — automation blueprints (activity scenes, spa readiness, and more), a script blueprint, a helpers package, and a pre-built dashboard. Enable the opt-in **Install companion package** option (off by default) to have it synced into Home Assistant's `blueprints/` folder automatically on every start/update, or install it manually from `/homeassistant/` on your running instance.
