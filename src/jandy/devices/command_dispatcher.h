@@ -47,7 +47,7 @@ namespace AqualinkAutomate::Devices
 		CommandResult CommandByLabel(const std::string& label, DeviceAction action) override;
 		CommandResult SetPoolSetpoint(uint8_t temperature) override;
 		CommandResult SetSpaSetpoint(uint8_t temperature) override;
-		CommandResult SetChlorinatorPercentage(uint8_t percentage) override;
+		CommandResult SetChlorinatorPercentage(uint8_t percentage, Kernel::BodyOfWaterIds body) override;
 		CommandResult SetChlorinatorBoost(bool enable) override;
 		CommandResult SetCirculationMode(Kernel::CirculationModes mode) override;
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds heater_body, bool enable) override;
@@ -148,7 +148,7 @@ namespace AqualinkAutomate::Devices
 		// Optimistic write-through of a successfully-queued chlorinator % set into the configured
 		// Pool-setpoint trait that the Set-AquaPure menu scrape also populates, so reads (the
 		// dashboard) reflect the new target immediately. No-op when no chlorinator is discovered.
-		void WriteThroughChlorinatorSetpoint(uint8_t percentage) const;
+		void WriteThroughChlorinatorSetpoint(uint8_t percentage, Kernel::BodyOfWaterIds body) const;
 
 	private:
 		std::shared_ptr<Kernel::DataHub> m_DataHub;

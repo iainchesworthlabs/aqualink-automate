@@ -69,6 +69,17 @@
         'swg_health.check_pcb': 'Vérifier le PCB',
         'swg_health.general_fault': 'Défaut général',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'En production',
+        'swg_reason.off': 'Éteint',
+        'swg_reason.pump_off': 'Allumé, sans production — pompe de filtration arrêtée',
+        'swg_reason.no_flow': 'Allumé, sans production — aucun débit d\'eau',
+        'swg_reason.fault': 'Pas de production — vérifiez la cellule',
+        'swg_reason.idle': 'Allumé, sans production',
+        'swg_reason.unknown': 'Consigne pas encore signalée',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'Appliqué',
         'cmd.rejected': 'Rejeté',
@@ -144,6 +155,7 @@
         'dash.swg_aria': 'Production du chlorateur et réglage de la cible',
         'dash.target': 'Cible',
         'dash.target_aria': 'Pourcentage de production cible',
+        'dash.target_body_aria': 'Consigne de production du chlorateur pour {body}',
         'dash.set': 'Régler',
         'dash.boost': 'Boost',
         'dash.heater': 'Réchauffeur',

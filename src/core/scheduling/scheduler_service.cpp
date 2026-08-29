@@ -173,7 +173,9 @@ namespace AqualinkAutomate::Scheduling
 			result = m_Dispatcher->SetSpaSetpoint(static_cast<std::uint8_t>(schedule.action.value));
 			break;
 		case ActionType::ChlorinatorPercent:
-			result = m_Dispatcher->SetChlorinatorPercentage(static_cast<std::uint8_t>(schedule.action.value));
+			// Scheduled chlorinator actions target the pool -- the schedule action carries a single
+			// value with no body, and the pool is what that has always meant.
+			result = m_Dispatcher->SetChlorinatorPercentage(static_cast<std::uint8_t>(schedule.action.value), Kernel::BodyOfWaterIds::Pool);
 			break;
 		case ActionType::CirculationMode:
 			if (auto mode = magic_enum::enum_cast<Kernel::CirculationModes>(schedule.action.target); mode.has_value())

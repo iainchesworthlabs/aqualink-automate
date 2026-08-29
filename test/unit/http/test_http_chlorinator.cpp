@@ -33,6 +33,7 @@ namespace
 	public:
 		CommandResult result_to_return{ CommandResult::Success };
 		std::vector<std::uint8_t> percentages;
+		std::vector<AqualinkAutomate::Kernel::BodyOfWaterIds> bodies;
 		std::vector<bool> boosts;
 
 		CommandResult ToggleByUuid(const boost::uuids::uuid&) override { return CommandResult::Success; }
@@ -41,7 +42,7 @@ namespace
 		CommandResult CommandByLabel(const std::string&, DeviceAction) override { return CommandResult::Success; }
 		CommandResult SetPoolSetpoint(std::uint8_t) override { return CommandResult::Success; }
 		CommandResult SetSpaSetpoint(std::uint8_t) override { return CommandResult::Success; }
-		CommandResult SetChlorinatorPercentage(std::uint8_t percentage) override { percentages.push_back(percentage); return result_to_return; }
+		CommandResult SetChlorinatorPercentage(std::uint8_t percentage, AqualinkAutomate::Kernel::BodyOfWaterIds body) override { percentages.push_back(percentage); bodies.push_back(body); return result_to_return; }
 		CommandResult SetChlorinatorBoost(bool enable) override { boosts.push_back(enable); return result_to_return; }
 		CommandResult SetCirculationMode(Kernel::CirculationModes) override { return CommandResult::Success; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds, bool) override { return CommandResult::Success; }
@@ -106,6 +107,51 @@ BOOST_AUTO_TEST_CASE(Post_ValidPercentage_DispatchesAndReturnsOk)
 	BOOST_CHECK_EQUAL(boost::beast::http::status::ok, resp.result());
 	BOOST_REQUIRE_EQUAL(1u, dispatcher->percentages.size());
 	BOOST_CHECK_EQUAL(60, static_cast<int>(dispatcher->percentages.front()));
+}
+
+//-----------------------------------------------------------------------------
+// Pool and spa carry INDEPENDENT setpoints on the panel -- you can run the spa at
+// 70% while the pool sits at 40%. The route therefore takes an optional `body`;
+// omitting it means the pool, which is what the single-value form has always
+// driven, so callers written against the old shape are unaffected.
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(Post_PercentageWithoutBody_DefaultsToPool)
+{
+	auto resp = Post(R"({"percentage": 60})");
+	BOOST_CHECK_EQUAL(boost::beast::http::status::ok, resp.result());
+	BOOST_REQUIRE_EQUAL(dispatcher->bodies.size(), 1u);
+	BOOST_CHECK(dispatcher->bodies.front() == AqualinkAutomate::Kernel::BodyOfWaterIds::Pool);
+}
+
+BOOST_AUTO_TEST_CASE(Post_PercentageWithSpaBody_TargetsTheSpa)
+{
+	auto resp = Post(R"({"percentage": 70, "body": "Spa"})");
+	BOOST_CHECK_EQUAL(boost::beast::http::status::ok, resp.result());
+	BOOST_REQUIRE_EQUAL(dispatcher->bodies.size(), 1u);
+	BOOST_CHECK(dispatcher->bodies.front() == AqualinkAutomate::Kernel::BodyOfWaterIds::Spa);
+	BOOST_REQUIRE_EQUAL(dispatcher->percentages.size(), 1u);
+	BOOST_CHECK_EQUAL(dispatcher->percentages.front(), 70u);
+}
+
+BOOST_AUTO_TEST_CASE(Post_BodyIsCaseInsensitive)
+{
+	BOOST_CHECK_EQUAL(boost::beast::http::status::ok, Post(R"({"percentage": 55, "body": "spa"})").result());
+	BOOST_REQUIRE_EQUAL(dispatcher->bodies.size(), 1u);
+	BOOST_CHECK(dispatcher->bodies.front() == AqualinkAutomate::Kernel::BodyOfWaterIds::Spa);
+}
+
+BOOST_AUTO_TEST_CASE(Post_UnaddressableBody_Returns400_NoDispatch)
+{
+	// Only pool and spa have a row on the panel; anything else would have to guess one, which
+	// is exactly what this parameter exists to prevent.
+	for (const auto* body : { R"("Shared")", R"("Unknown")", R"("nonsense")", "42" })
+	{
+		dispatcher->bodies.clear();
+		auto resp = Post(std::string{ R"({"percentage": 60, "body": )" } + body + "}");
+		BOOST_CHECK_EQUAL(boost::beast::http::status::bad_request, resp.result());
+		BOOST_CHECK(dispatcher->bodies.empty());
+	}
 }
 
 BOOST_AUTO_TEST_CASE(Post_BoostBoolean_Dispatches)

@@ -67,6 +67,17 @@
         'swg_health.check_pcb': '请检查 PCB',
         'swg_health.general_fault': '一般故障',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': '正在产氯',
+        'swg_reason.off': '已关闭',
+        'swg_reason.pump_off': '已开启，未产氯 — 过滤泵已停止',
+        'swg_reason.no_flow': '已开启，未产氯 — 无水流',
+        'swg_reason.fault': '未产氯 — 请检查电解槽',
+        'swg_reason.idle': '已开启，未产氯',
+        'swg_reason.unknown': '尚未报告目标值',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': '已应用',
         'cmd.rejected': '已拒绝',
@@ -142,6 +153,7 @@
         'dash.swg_aria': '盐氯机输出与目标值控制',
         'dash.target': '目标',
         'dash.target_aria': '目标输出百分比',
+        'dash.target_body_aria': '{body} 的氯发生器目标输出',
         'dash.set': '设置',
         'dash.boost': '强化',
         'dash.heater': '加热器',

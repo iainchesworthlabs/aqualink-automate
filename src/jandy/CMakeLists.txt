@@ -12,6 +12,7 @@ target_sources(
 	PRIVATE
 	auxillaries/jandy_auxillary_id.cpp
 	auxillaries/jandy_auxillary_reconciliation.cpp
+	auxillaries/jandy_auxillary_span.cpp
 	concepts/jandy_message_type.cpp
 	devices/aquarite_device.cpp
 	devices/command_dispatcher.cpp
@@ -21,6 +22,7 @@ target_sources(
 	devices/iaq_device.cpp
 	devices/iaq/iaq_messageprocessors.cpp
 	devices/iaq/iaq_statusprocessors.cpp
+	devices/iaq/iaq_aquapure_writer.cpp
 	devices/iaq/iaq_page_model.cpp
 	devices/iaq/iaq_page_registry.cpp
 	devices/iaq/iaq_schedule_parser.cpp

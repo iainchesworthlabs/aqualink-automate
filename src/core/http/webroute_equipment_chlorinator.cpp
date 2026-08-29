@@ -4,6 +4,7 @@
 #include <string>
 
 #include <nlohmann/json.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 #include "http/server/make_response.h"
 #include "http/server/responses/response_405.h"
@@ -91,10 +92,36 @@ namespace AqualinkAutomate::HTTP
 				{
 					return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "percentage must be 0..100");
 				}
+
+				// The panel keeps INDEPENDENT pool and spa setpoints, so the caller says which one.
+				// `body` is optional and defaults to the pool, which is what the single-value form
+				// has always driven -- so existing callers keep their behaviour.
+				auto body = Kernel::BodyOfWaterIds::Pool;
+				if (payload.contains("body"))
+				{
+					const auto& body_field = payload["body"];
+					if (!body_field.is_string())
+					{
+						return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "body must be a string");
+					}
+
+					const auto parsed = magic_enum::enum_cast<Kernel::BodyOfWaterIds>(body_field.get<std::string>(), magic_enum::case_insensitive);
+					if (!parsed.has_value() || ((parsed.value() != Kernel::BodyOfWaterIds::Pool) && (parsed.value() != Kernel::BodyOfWaterIds::Spa)))
+					{
+						return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "body must be \"pool\" or \"spa\"");
+					}
+
+					body = parsed.value();
+				}
+
 				const auto value = static_cast<std::uint8_t>(std::round(pct));
-				const auto r = m_CommandDispatcher->SetChlorinatorPercentage(value);
+				const auto r = m_CommandDispatcher->SetChlorinatorPercentage(value, body);
 				note_failure(r);
-				result["percentage"] = { { "status", r == CommandResult::Success ? "success" : "error" }, { "value", value } };
+				result["percentage"] = {
+					{ "status", r == CommandResult::Success ? "success" : "error" },
+					{ "value", value },
+					{ "body", std::string{ magic_enum::enum_name(body) } }
+				};
 			}
 
 			if (payload.contains("boost"))

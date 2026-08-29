@@ -38,7 +38,7 @@ namespace
 		CommandResult CommandByLabel(const std::string& l, DeviceAction a) override { ++calls; last_kind = "button"; last_label = l; last_action = a; return CommandResult::Success; }
 		CommandResult SetPoolSetpoint(uint8_t t) override { ++calls; last_kind = "pool"; last_value = t; return CommandResult::Success; }
 		CommandResult SetSpaSetpoint(uint8_t t) override { ++calls; last_kind = "spa"; last_value = t; return CommandResult::Success; }
-		CommandResult SetChlorinatorPercentage(uint8_t p) override { ++calls; last_kind = "chlor"; last_value = p; return CommandResult::Success; }
+		CommandResult SetChlorinatorPercentage(std::uint8_t p, AqualinkAutomate::Kernel::BodyOfWaterIds) override { ++calls; last_kind = "chlor"; last_value = p; return CommandResult::Success; }
 		CommandResult SetChlorinatorBoost(bool) override { return CommandResult::Success; }
 		CommandResult SetCirculationMode(Kernel::CirculationModes) override { ++calls; last_kind = "circ"; return CommandResult::Success; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds, bool) override { ++calls; last_kind = "heater"; return CommandResult::Success; }

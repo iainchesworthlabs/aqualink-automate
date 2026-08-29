@@ -510,6 +510,21 @@ namespace AqualinkAutomate::Mqtt
 			j["body_of_water"] = std::string{ magic_enum::enum_name(body_opt.value()) };
 		}
 
+		// A chlorinator's instantaneous output is 0% whenever the cell is idle, which on its own
+		// reads as "off or broken". Publish the configured target and the REASON alongside it so
+		// an automation (or a Home Assistant card) can tell a chlorinator that is switched off
+		// from one that is simply waiting for the filter pump. Derived once, in the DataHub, so
+		// MQTT and the web UI cannot disagree about the same cell.
+		if (TopicScheme::DeviceCategory::Chlorinator == category)
+		{
+			if (auto data_hub = m_DataHub.lock(); data_hub)
+			{
+				const auto setpoint = data_hub->ChlorinatorResolvedSetpoint(*device);
+				j["setpoint_percent"] = setpoint.has_value() ? nlohmann::json(setpoint.value()) : nlohmann::json{};
+				j["generating_reason"] = std::string{ magic_enum::enum_name(data_hub->ResolveChlorinatorGeneratingReason(*device)) };
+			}
+		}
+
 		auto payload = j.dump();
 		total_size += payload.size();
 		auto topic = m_Client->BuildTopic(TopicScheme::DeviceJsonSubtopic(slug));

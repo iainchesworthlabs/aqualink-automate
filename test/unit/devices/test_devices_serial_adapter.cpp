@@ -8,6 +8,8 @@
 #include "jandy/devices/jandy_device_types.h"
 #include "jandy/messages/serial_adapter/serial_adapter_message_dev_status.h"
 #include "jandy/auxillaries/jandy_auxillary_id.h"
+#include "jandy/auxillaries/jandy_auxillary_status.h"
+#include "jandy/messages/jandy_message_ids.h"
 #include "jandy/auxillaries/jandy_auxillary_traits_types.h"
 #include "jandy/devices/capabilities/actuation_types.h"
 #include "kernel/circulation.h"
@@ -16,7 +18,11 @@
 #include "kernel/auxillary_devices/auxillary_device.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 
+#include "kernel/system_boards.h"
+
 #include "support/unit_test_hublocatorinjector.h"
+#include "support/unit_test_mockreplayharness.h"
+#include "support/unit_test_protocolmessagebuilder.h"
 
 using namespace AqualinkAutomate::Devices;
 using namespace AqualinkAutomate::Messages;
@@ -337,6 +343,125 @@ BOOST_AUTO_TEST_CASE(TestQueueAuxToggleWrite_DoesNotThrow)
 	SerialAdapterDevice device(device_type, *this, true);
 	BOOST_CHECK_NO_THROW(device.QueueAuxToggleWrite(AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_1, true));
 	BOOST_CHECK_NO_THROW(device.QueueAuxToggleWrite(AqualinkAutomate::Auxillaries::JandyAuxillaryIds::Aux_2, false));
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// REGRESSION: a status QUERY is not evidence that the queried relay exists.
+//
+// The round-robin poll list is built from every value of JandyAuxillaryIds, so
+// the adapter asks about all 32 numbered relays plus ExtraAux. A reply used to
+// be turned straight into a device, and because the reply carries no name the
+// factory fell back to the enum name -- so a single-power-centre panel (an RS-8
+// Combo: 7 relays, 1 centre) grew a full set of phantom "Aux B1" ... "Aux D8"
+// entries, all of which reached the web UI, MQTT and Home Assistant discovery
+// and persisted in the equipment cache.
+//
+// Discovery is now bounded by the model the PANEL ITSELF reports.
+//=============================================================================
+
+namespace
+{
+	namespace Aux = AqualinkAutomate::Auxillaries;
+
+	constexpr uint8_t RSSA_DEVICE_ID = 0x48;
+	constexpr uint8_t RSSA_STATUS_TYPE_ABOUT_DEVICE = 0x03;
+
+	// An RSSA_DevStatus (0x13) reply about one aux relay. Full-message layout:
+	// [4]=status type, [6]=aux state, [7]=aux id + SERIALADAPTER_AUX_ID_OFFSET.
+	std::vector<uint8_t> MakeAuxStatusFrame(Aux::JandyAuxillaryIds aux_id, bool is_on)
+	{
+		const std::vector<uint8_t> payload = {
+			RSSA_STATUS_TYPE_ABOUT_DEVICE,
+			0x00,
+			static_cast<uint8_t>(is_on ? Aux::JandyAuxillaryStatuses::On : Aux::JandyAuxillaryStatuses::Off),
+			static_cast<uint8_t>(static_cast<uint8_t>(aux_id) + SerialAdapterMessage_DevStatus::SERIALADAPTER_AUX_ID_OFFSET)
+		};
+
+		return AqualinkAutomate::Test::MessageBuilder::CreateValidChecksummedMessage(
+			RSSA_DEVICE_ID,
+			static_cast<uint8_t>(AqualinkAutomate::Messages::JandyMessageIds::RSSA_DevStatus),
+			payload);
+	}
+
+	// Identify the panel exactly as the OneTouch version-page scrape does.
+	void IdentifyAsRS8Combo(AqualinkAutomate::Kernel::DataHub& data_hub)
+	{
+		data_hub.SystemBoard = AqualinkAutomate::Kernel::SystemBoards::RS8_Combo;
+		data_hub.ExpectedAuxillaryCount = 7;
+		data_hub.ExpectedPowerCenterCount = 1;
+	}
+}
+// unnamed namespace
+
+BOOST_AUTO_TEST_SUITE(SerialAdapterDevice_AuxDiscoverySpan_TestSuite)
+
+BOOST_AUTO_TEST_CASE(AuxStatusForARelayTheModelHas_CreatesTheDevice)
+{
+	AqualinkAutomate::Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(RSSA_DEVICE_ID));
+	SerialAdapterDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	IdentifyAsRS8Combo(*harness.DataHub());
+
+	harness.Replay(MakeAuxStatusFrame(Aux::JandyAuxillaryIds::Aux_5, /*is_on=*/true));
+
+	auto created = harness.DataHub()->Devices.FindById(Aux::AuxStableId(Aux::JandyAuxillaryIds::Aux_5));
+	BOOST_REQUIRE(nullptr != created);
+
+	auto status = created->AuxillaryTraits.TryGet(AqualinkAutomate::Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{});
+	BOOST_REQUIRE(status.has_value());
+	BOOST_CHECK(status.value() == AqualinkAutomate::Kernel::AuxillaryStatuses::On);
+}
+
+BOOST_AUTO_TEST_CASE(AuxStatusForARelayTheModelCannotHave_CreatesNothing)
+{
+	AqualinkAutomate::Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(RSSA_DEVICE_ID));
+	SerialAdapterDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	IdentifyAsRS8Combo(*harness.DataHub());
+
+	// Banks B/C/D live on power centres an RS-8 Combo does not have.
+	for (const auto aux_id : { Aux::JandyAuxillaryIds::Aux_B1, Aux::JandyAuxillaryIds::Aux_B2,
+	                           Aux::JandyAuxillaryIds::Aux_C4, Aux::JandyAuxillaryIds::Aux_D6 })
+	{
+		harness.Replay(MakeAuxStatusFrame(aux_id, /*is_on=*/false));
+		BOOST_CHECK(nullptr == harness.DataHub()->Devices.FindById(Aux::AuxStableId(aux_id)));
+	}
+
+	BOOST_CHECK(harness.DataHub()->Auxillaries().empty());
+}
+
+BOOST_AUTO_TEST_CASE(ExtraAuxIsStillDiscoverable)
+{
+	// ExtraAux belongs to no numbered power centre, so the model's relay span cannot judge it.
+	// It is a real relay on panels that have one (the solar booster, per the AquaLink RS
+	// manual), and whether a given panel does is a separate capture-gated question -- so
+	// discovery must NOT silently drop it just because a relay-count table does not list it.
+	AqualinkAutomate::Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(RSSA_DEVICE_ID));
+	SerialAdapterDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	IdentifyAsRS8Combo(*harness.DataHub());
+
+	harness.Replay(MakeAuxStatusFrame(Aux::JandyAuxillaryIds::ExtraAux, /*is_on=*/false));
+
+	BOOST_CHECK(nullptr != harness.DataHub()->Devices.FindById(Aux::AuxStableId(Aux::JandyAuxillaryIds::ExtraAux)));
+}
+
+BOOST_AUTO_TEST_CASE(BeforeThePanelIsIdentified_EveryRelayIsStillDiscoverable)
+{
+	// An RSSA-only rig has no other enumerating source, and until the version page has been
+	// scraped there is no model to bound the sweep by -- so nothing may be excluded.
+	AqualinkAutomate::Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(RSSA_DEVICE_ID));
+	SerialAdapterDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/true);
+
+	harness.Replay(MakeAuxStatusFrame(Aux::JandyAuxillaryIds::Aux_B1, /*is_on=*/true));
+
+	BOOST_CHECK(nullptr != harness.DataHub()->Devices.FindById(Aux::AuxStableId(Aux::JandyAuxillaryIds::Aux_B1)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -95,6 +95,27 @@
         return SWG_HEALTH_KEYS[String(health)] || null;
     }
 
+    // ---- Chlorinator (SWG) output-state display keys ---------------------------
+    // Catalog key for a backend ChlorinatorGeneratingReason enum name — WHY the
+    // cell is at its current output. The instantaneous output is 0% whenever the
+    // cell is idle, which on its own reads as "off or broken"; the reason is what
+    // distinguishes a chlorinator that has been turned off from one that is
+    // configured and healthy but waiting for the filter pump. Null for an unknown
+    // value (callers fall back to showing nothing).
+    const SWG_REASON_KEYS = {
+        'Generating': 'swg_reason.generating',
+        'Off': 'swg_reason.off',
+        'PumpOff': 'swg_reason.pump_off',
+        'NoFlow': 'swg_reason.no_flow',
+        'Fault': 'swg_reason.fault',
+        'Idle': 'swg_reason.idle',
+        'Unknown': 'swg_reason.unknown'
+    };
+
+    function swgReasonKey(reason) {
+        return SWG_REASON_KEYS[String(reason)] || null;
+    }
+
     // ---- Device operating-state display keys ----------------------------------
     // Catalog key for a backend OperatingStates enum name (magic_enum::enum_name
     // over IAQDevice/OneTouchDevice's OperatingStates — a cross-boundary contract,
@@ -171,6 +192,7 @@
         DEVICE_KEYWORDS,
         labelMatchesKeywords,
         swgHealthKey,
+        swgReasonKey,
         operatingStateKey,
         buttonStatusKey,
         buttonStatusLabel,

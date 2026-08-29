@@ -30,6 +30,7 @@
 #include "kernel/temperature.h"
 #include "kernel/system_boards.h"
 #include "kernel/auxillary_devices/auxillary_device.h"
+#include "kernel/auxillary_devices/chlorinator_status.h"
 #include "logging/logging.h"
 #include "types/units_dimensionless.h"
 
@@ -295,6 +296,23 @@ namespace AqualinkAutomate::Kernel
 
 		[[deprecated("Use FilterPumps() instead; that returns a collection of pumps as there might be more than one")]]
 		std::optional<std::shared_ptr<Kernel::AuxillaryDevice>> FilterPump();
+
+		// Is any discovered filter pump running? nullopt when none has been discovered yet, so a
+		// caller can tell "no pump running" from "we do not know about a pump".
+		std::optional<bool> AnyFilterPumpRunning() const;
+
+		// ---- Chlorinator derived values -------------------------------------------------
+		// Shared by every consumer (web, MQTT, Home Assistant) so they cannot disagree about
+		// what the same cell is doing.
+
+		// The configured output target for whichever body is currently ACTIVE, falling back to
+		// the other body's value and finally to the last-known generating %. Distinct from the
+		// instantaneous output, which is 0 whenever the cell is idle.
+		std::optional<uint8_t> ChlorinatorResolvedSetpoint(const AuxillaryDevice& chlorinator) const;
+
+		// Why the cell is (or is not) producing right now -- "0%" alone cannot distinguish a
+		// chlorinator that is switched off from one that is simply waiting for the filter pump.
+		ChlorinatorGeneratingReason ResolveChlorinatorGeneratingReason(const AuxillaryDevice& chlorinator) const;
 
 	//---------------------------------------------------------------------
 	// CONFIG-UPDATE EVENT EMITTERS

@@ -167,7 +167,9 @@ Inbound payloads are parsed as JSON. If a payload is not valid JSON, the raw str
 | `aqualink/command/setpoint` | JSON `{ "target": "pool"\|"spa", "temperature": <celsius> }` | Set a body's temperature. Always Celsius (stable API contract). |
 | `aqualink/command/setpoint/pool` | plain number | Set the pool setpoint. Interpreted in the `temperature_units` display preference's unit (Celsius by default) — these are the HA number entities' command topics and must match their declared unit. |
 | `aqualink/command/setpoint/spa` | plain number | Set the spa setpoint. Same unit rule as `setpoint/pool`. |
-| `aqualink/command/chlorinator/percentage` | number `0`–`100` | Set the chlorinator output percentage. |
+| `aqualink/command/chlorinator/percentage` | number `0`–`100` | Set the **pool** chlorinator output percentage. |
+| `aqualink/command/chlorinator/pool/percentage` | number `0`–`100` | The same, stated explicitly. |
+| `aqualink/command/chlorinator/spa/percentage` | number `0`–`100` | Set the **spa** chlorinator output percentage. |
 | `aqualink/command/chlorinator/boost` | `ON` or `OFF` | Enable or disable chlorinator boost. |
 | `aqualink/command/circulation/mode` | `pool`, `spa`, or `spillover` | Set the circulation mode. |
 | `aqualink/command/heater/{slug}` | `ON` or `OFF` | Enable or disable one discovered heater's thermostat (routed to the heater's body of water; the controller decides when to actually fire). |
@@ -271,11 +273,18 @@ Switch entities use `payload_on: ON` / `payload_off: OFF` on their command topic
 
 The chlorinator's extra entities read its JSON blob at `aqualink/device/{slug}`:
 
-- `sensor` "Generating %" from `generating_percentage` (unit `%`).
+- `sensor` "Generating %" from `generating_percentage` (unit `%`) — the **instantaneous** output, `0` whenever the cell is idle.
+- `sensor` "Target %" from `setpoint_percent` (unit `%`) — the **configured** output for the currently active body, which "Generating %" never shows while idle.
+- `sensor` "Output State" from `generating_reason` — why the cell is at that output. Without it a `0` reading is ambiguous in an automation. Values: `Generating`, `Off` (setpoint is 0%), `PumpOff` (configured, but no filter pump is running), `NoFlow` (a pump is running but the cell reports no flow), `Fault` (the cell is in a warning/error state), `Idle` (configured and not generating, no nameable reason), `Unknown` (nothing reported yet).
 - `sensor` "Boost Mode" from `boost_mode`.
 - `sensor` "Health" from `chlorinator_health`.
-- `number` "Generating Setpoint" — min 0, max 100, command on `command/chlorinator/percentage`.
+- `number` "Pool Output" — min 0, max 100, reads `pool_setpoint_percent`, command on `command/chlorinator/percentage`.
+- `number` "Spa Output" — min 0, max 100, reads `spa_setpoint_percent`, command on `command/chlorinator/spa/percentage`.
 - `switch` "Boost" — command on `command/chlorinator/boost`.
+
+> The pool and spa setpoints are **independent** — the panel holds one for each body, so setting one never changes the other. The pool control keeps the unique id the old single "Generating Setpoint" had (which already drove the pool), so existing dashboards and automations keep working; its value template is corrected, since it previously read the *instantaneous* output and so snapped back to 0 whenever the cell was idle.
+
+> A chlorinator sitting at `0 %` with `Output State: PumpOff` is working normally — it produces only while water is flowing past the cell. Automate on `generating_reason`, not on the percentage alone.
 
 ## Worked setup
 

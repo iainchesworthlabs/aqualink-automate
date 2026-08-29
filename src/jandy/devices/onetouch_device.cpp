@@ -522,15 +522,27 @@ namespace AqualinkAutomate::Devices
 		return QueueValueEdit(Navigation::PageId::SetTemperature, SETTEMP_SPA_HEAT_LINE, "Spa Heat", temperature, "spa setpoint");
 	}
 
-	Capabilities::ActuationResult OneTouchDevice::SetChlorinatorPercentage(uint8_t percentage)
+	Capabilities::ActuationResult OneTouchDevice::SetChlorinatorPercentage(uint8_t percentage, Kernel::BodyOfWaterIds body)
 	{
+		// Pool and spa are INDEPENDENT setpoints and the Set AquaPure page carries a row for each
+		// (line 3 = Pool, line 4 = Spa; verified vs onetouch_chlorinator.cap), so edit the row the
+		// caller asked for. Writing the pool row for a spa request would silently change the wrong
+		// body, which the reader would then report back as if nothing had happened.
+		if ((body != Kernel::BodyOfWaterIds::Pool) && (body != Kernel::BodyOfWaterIds::Spa))
+		{
+			return Capabilities::ActuationResult::InvalidValue;
+		}
+
 		// The OneTouch edits AquaPure % in 5% steps, so the target must be a multiple of 5
 		// for the value-step loop to land exactly. Round to the nearest 5 and clamp to 100.
 		const uint8_t clamped = (percentage > 100) ? 100 : percentage;
 		const auto rounded = static_cast<uint8_t>(((clamped + (ONETOUCH_CHLORINATOR_STEP / 2)) / ONETOUCH_CHLORINATOR_STEP) * ONETOUCH_CHLORINATOR_STEP);
-		// Drives the POOL chlorination row ("Set Pool to: NN%") to match the IAQ's single-%
-		// behaviour. Verified vs onetouch_chlorinator.cap (Pool % = Set AquaPure line 3).
-		return QueueValueEdit(Navigation::PageId::SetAquapure, OneTouchScraper::SETAQUAPURE_POOL_LINE, "Set Pool", rounded, "chlorinator %");
+
+		const bool is_spa = (Kernel::BodyOfWaterIds::Spa == body);
+		const uint8_t line = is_spa ? OneTouchScraper::SETAQUAPURE_SPA_LINE : OneTouchScraper::SETAQUAPURE_POOL_LINE;
+		const char* const row_label = is_spa ? "Set Spa" : "Set Pool";
+
+		return QueueValueEdit(Navigation::PageId::SetAquapure, line, row_label, rounded, "chlorinator %");
 	}
 
 	Capabilities::ActuationResult OneTouchDevice::QueueValueEdit(Navigation::PageId page, uint8_t line, std::string label, int target, std::string desc)

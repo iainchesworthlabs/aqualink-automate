@@ -68,6 +68,17 @@
         'swg_health.check_pcb': 'افحص لوحة PCB',
         'swg_health.general_fault': 'عطل عام',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'قيد الإنتاج',
+        'swg_reason.off': 'مُطفأ',
+        'swg_reason.pump_off': 'قيد التشغيل، لا ينتج — مضخة الفلتر متوقفة',
+        'swg_reason.no_flow': 'قيد التشغيل، لا ينتج — لا يوجد تدفق مياه',
+        'swg_reason.fault': 'لا يوجد إنتاج — افحص الخلية',
+        'swg_reason.idle': 'قيد التشغيل، لا ينتج',
+        'swg_reason.unknown': 'لم يتم الإبلاغ عن الهدف بعد',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'تم التطبيق',
         'cmd.rejected': 'مرفوض',
@@ -143,6 +154,7 @@
         'dash.swg_aria': 'التحكم في خرج جهاز الكلورة وهدفه',
         'dash.target': 'الهدف',
         'dash.target_aria': 'نسبة الخرج المستهدفة',
+        'dash.target_body_aria': 'هدف إنتاج المكلور لـ {body}',
         'dash.set': 'ضبط',
         'dash.boost': 'تعزيز',
         'dash.heater': 'السخّان',

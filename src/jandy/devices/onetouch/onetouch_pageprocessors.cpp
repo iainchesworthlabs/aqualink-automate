@@ -11,6 +11,7 @@
 #include "logging/logging.h"
 #include "auxillaries/jandy_auxillary_id.h"
 #include "auxillaries/jandy_auxillary_reconciliation.h"
+#include "auxillaries/jandy_auxillary_span.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "devices/onetouch/onetouch_scraper.h"
 #include "devices/onetouch/onetouch_schedule_parser.h"
@@ -597,6 +598,16 @@ namespace AqualinkAutomate::Devices
 		m_DataHub->EquipmentVersions.Set("Type", panel_type);
 		m_DataHub->EquipmentVersions.Set("Revision", fw_revision);
 
+		// The model is now known, so the set of auxillary relays it can physically have is too.
+		// Drop any auxillary outside that span: a device invented by an earlier blind status
+		// sweep, or one restored from an equipment cache written before that sweep was bounded.
+		// Doing it here (rather than only at discovery) is what stops a persisted phantom from
+		// outliving the fix.
+		if (const auto removed = Auxillaries::PruneAuxillariesOutsideSpan(m_DataHub->Devices, Auxillaries::AuxillaryModelSpan::FromDataHub(*m_DataHub)); 0 != removed)
+		{
+			LogInfo(Channel::Devices, [this, removed, &panel_type]() { return std::format("OneTouch ({}): Removed {} auxillary device(s) that a {} cannot have", DeviceId(), removed, panel_type); });
+		}
+
 		// Populate bodies if not already present (user config may have built them at startup).
 		// Reaching here with no bodies means the user did NOT specify a configuration (otherwise
 		// startup would have built them), so this is the auto-detected path: source is Auto and a
@@ -737,6 +748,13 @@ namespace AqualinkAutomate::Devices
 		else if (auto aux_id = Auxillaries::ParseAuxId(matches[2].str()); !aux_id.has_value())
 		{
 			LogDebug(Channel::Devices, [this, &matches]() { return std::format("OneTouch ({}): Failed to generate the id for Auxillary Device given string {}", DeviceId(), matches[2].str()); });
+		}
+		else if (!Auxillaries::AuxillaryModelSpan::FromDataHub(*m_DataHub).Contains(aux_id.value()))
+		{
+			// The Label Aux menu offers a labelling slot for every aux the PROTOCOL can name,
+			// not only the relays this panel has, so landing on one proves nothing about
+			// existence. Never let a label page mint a device the model cannot have.
+			LogDebug(Channel::Devices, [this, &aux_id]() { return std::format("OneTouch ({}): Ignoring label page for {}; the detected panel model has no such relay", DeviceId(), magic_enum::enum_name(aux_id.value())); });
 		}
 		else
 		{

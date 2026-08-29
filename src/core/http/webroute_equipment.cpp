@@ -58,9 +58,6 @@ namespace AqualinkAutomate::HTTP
 			const auto spa_setpoint = device->AuxillaryTraits.Has(ChlorinatorSpaSetpointTrait{})
 				? std::optional<uint8_t>(static_cast<uint8_t>(*(device->AuxillaryTraits[ChlorinatorSpaSetpointTrait{}])))
 				: std::nullopt;
-			const auto last_generating = device->AuxillaryTraits.Has(ChlorinatorLastGeneratingTrait{})
-				? std::optional<uint8_t>(static_cast<uint8_t>(*(device->AuxillaryTraits[ChlorinatorLastGeneratingTrait{}])))
-				: std::nullopt;
 
 			chlorinator["pool_setpoint_percent"] = pool_setpoint.has_value() ? nlohmann::json(pool_setpoint.value()) : nlohmann::json{};
 			chlorinator["spa_setpoint_percent"] = spa_setpoint.has_value() ? nlohmann::json(spa_setpoint.value()) : nlohmann::json{};
@@ -68,20 +65,14 @@ namespace AqualinkAutomate::HTTP
 			// Headline target = the configured setpoint of whichever body is currently active
 			// (spa vs pool), falling back to the other body's value, then to the passive
 			// last-known generating %, so the dashboard always shows a meaningful target.
-			bool spa_active = false;
-			for (const auto& body : data_hub->Bodies())
-			{
-				if (body.IsActive() && body.Id() == Kernel::BodyOfWaterIds::Spa) { spa_active = true; break; }
-			}
-
-			std::optional<uint8_t> resolved_setpoint;
-			if (spa_active && spa_setpoint.has_value()) { resolved_setpoint = spa_setpoint; }
-			else if (!spa_active && pool_setpoint.has_value()) { resolved_setpoint = pool_setpoint; }
-			else if (pool_setpoint.has_value()) { resolved_setpoint = pool_setpoint; }   // active body unknown -> prefer pool
-			else if (spa_setpoint.has_value()) { resolved_setpoint = spa_setpoint; }
-			else { resolved_setpoint = last_generating; }                                // passive fallback
-
+			const auto resolved_setpoint = data_hub->ChlorinatorResolvedSetpoint(*device);
 			chlorinator["setpoint_percent"] = resolved_setpoint.has_value() ? nlohmann::json(resolved_setpoint.value()) : nlohmann::json{};
+
+			// WHY the cell is (or is not) producing. generating_percent alone is ambiguous: 0%
+			// reads as "off or broken" even when the chlorinator is configured, healthy and
+			// simply waiting for the filter pump. Derived server-side so the web UI, MQTT and
+			// Home Assistant all tell the same story.
+			chlorinator["generating_reason"] = std::string{ magic_enum::enum_name(data_hub->ResolveChlorinatorGeneratingReason(*device)) };
 
 			return chlorinator;
 		}

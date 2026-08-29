@@ -1333,18 +1333,28 @@
                               :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
                     </div>
                     <div class="gauge-value" :style="`color:${healthColor}`" x-text="actualLabel"></div>
-                    <div class="swg-target">
-                        <span class="swg-target-label" x-text="$t('dash.target')"></span>
-                        <input type="range" min="0" max="100" step="5" class="swg-slider"
-                               x-model.number="target" @input="touched = true"
-                               :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
-                               :aria-label="$t('dash.target_aria')">
-                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
-                    </div>
+                    <!-- Why that number: "0%" alone cannot say whether the cell is off or
+                         just waiting for the filter pump. -->
+                    <div class="swg-reason" :class="{ 'is-idle': reasonIsIdle }" x-show="reasonLabel" x-cloak x-text="reasonLabel"></div>
+                    <!-- Pool and spa carry INDEPENDENT setpoints on the panel, so each gets its
+                         own target and its own Set. The spa row appears only on a dual-body system. -->
+                    <template x-for="body in bodies" :key="body">
+                        <div class="swg-target">
+                            <span class="swg-target-label" x-text="bodyLabel(body)"></span>
+                            <input type="range" min="0" max="100" step="5" class="swg-slider"
+                                   :value="target(body)" @input="setTarget(body, $event.target.value)"
+                                   :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
+                                   :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
+                            <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
+                            <template x-if="$store.auth.can('equipment.control.chlorinator')">
+                                <button class="swg-set-btn" @click="setPercent(body)"
+                                        :disabled="busy || !changed(body)" x-text="$t('dash.set')"></button>
+                            </template>
+                        </div>
+                    </template>
                     <div class="swg-actions">
                         <template x-if="$store.auth.can('equipment.control.chlorinator')">
                             <div class="swg-actions-inner">
-                                <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
                                 <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
                                         :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
                                 <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
@@ -1385,11 +1395,11 @@
                             <span class="chem-swg-label" x-text="$t('dash.swg_output')"></span>
                             <span class="chem-swg-value" :style="`color:${healthColor}`" x-text="actualLabel"></span>
                             <span class="gauge-band-indicator" x-show="healthBand" x-cloak :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
+                            <span class="swg-reason" :class="{ 'is-idle': reasonIsIdle }" x-show="reasonLabel" x-cloak x-text="reasonLabel"></span>
                         </div>
                         <div class="swg-actions">
                             <template x-if="$store.auth.can('equipment.control.chlorinator')">
                                 <div class="swg-actions-inner">
-                                    <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
                                     <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
                                             :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
                                     <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
@@ -1399,14 +1409,18 @@
                             <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
                         </div>
                     </div>
-                    <div class="swg-target" x-show="$store.auth.can('equipment.control.chlorinator')" x-cloak>
-                        <span class="swg-target-label" x-text="$t('dash.target')"></span>
-                        <input type="range" min="0" max="100" step="5" class="swg-slider"
-                               x-model.number="target" @input="touched = true"
-                               :disabled="busy"
-                               :aria-label="$t('dash.target_aria')">
-                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
-                    </div>
+                    <template x-for="body in bodies" :key="body">
+                        <div class="swg-target" x-show="$store.auth.can('equipment.control.chlorinator')" x-cloak>
+                            <span class="swg-target-label" x-text="bodyLabel(body)"></span>
+                            <input type="range" min="0" max="100" step="5" class="swg-slider"
+                                   :value="target(body)" @input="setTarget(body, $event.target.value)"
+                                   :disabled="busy"
+                                   :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
+                            <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
+                            <button class="swg-set-btn" @click="setPercent(body)"
+                                    :disabled="busy || !changed(body)" x-text="$t('dash.set')"></button>
+                        </div>
+                    </template>
                 </div>
             </div>
             </template>

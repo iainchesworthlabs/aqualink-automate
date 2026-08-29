@@ -1636,11 +1636,22 @@ paths:
         - Equipment
       summary: Set the chlorinator (SWG) output
       description: >
-        Commands the salt-water generator. Both body fields are optional and may be
-        sent together. `percentage` (0..100) sets the output level via
+        Commands the salt-water generator. `percentage` and `boost` are both optional and
+        may be sent together. `percentage` (0..100) sets the output level via
         ICommandDispatcher::SetChlorinatorPercentage; `boost` toggles boost mode via
-        SetChlorinatorBoost. 400 on a bad value; 503 when no commandable chlorinator
-        is present (e.g. no iAQ device); 200 with a per-field status body otherwise.
+        SetChlorinatorBoost.
+
+
+        The panel keeps an INDEPENDENT output setpoint per body of water -- you can run the
+        spa at 70% while the pool sits at 40% -- so `body` selects which one `percentage`
+        applies to. It is optional and defaults to `Pool`, which is what the single-value
+        form has always driven, so existing callers are unaffected. Only `Pool` and `Spa`
+        are accepted (matched case-insensitively); any other body is a 400, because there
+        is no row on the panel to write.
+
+
+        400 on a bad value; 503 when no commandable chlorinator is present (e.g. no iAQ
+        device); 200 with a per-field status body otherwise.
       operationId: setChlorinator
       requestBody:
         required: true
@@ -1648,6 +1659,7 @@ paths:
           application/json:
             example:
               percentage: 60
+              body: Spa
               boost: false
       responses:
         '200':
@@ -1655,8 +1667,8 @@ paths:
           content:
             application/json:
               example:
-                percentage: { status: "success", value: 60 }
-        '400': { description: Invalid value (percentage out of 0..100, or wrong type) }
+                percentage: { status: "success", value: 60, body: "Spa" }
+        '400': { description: Invalid value (percentage out of 0..100, body not Pool/Spa, or wrong type) }
         '503': { description: No commandable chlorinator / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -3070,8 +3082,26 @@ components:
                   nullable: true
                   minimum: 0
                   maximum: 100
-                  description: Chlorinator generating output percentage (0-100)
+                  description: >-
+                    Instantaneous chlorinator output percentage (0-100). This is 0 whenever the cell
+                    is idle, which on its own cannot distinguish a chlorinator that is switched off
+                    from one that is configured and healthy but has no flow - see generating_reason.
                   example: 50
+                generating_reason:
+                  type: string
+                  description: >-
+                    Why the cell is at its current output. Derived server-side from the instantaneous
+                    output, the configured setpoint, the cell health and whether a filter pump is
+                    running, so the web UI, MQTT and Home Assistant all report the same state.
+                  enum:
+                    - Generating       # producing chlorine
+                    - 'Off'            # configured output is 0% - deliberately turned off
+                    - PumpOff          # configured to produce, but no filter pump is running
+                    - NoFlow           # configured to produce and a pump is running, but the cell reports no flow
+                    - Fault            # configured to produce but the cell is in a warning/error state
+                    - Idle             # configured to produce and not generating, with no reason we can name
+                    - Unknown          # not enough information yet (no output and no setpoint reported)
+                  example: PumpOff
                 duty_cycle:
                   type: integer
                   nullable: true

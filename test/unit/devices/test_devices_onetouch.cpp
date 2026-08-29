@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(TestActuate_FaultState_Refused)
 	BOOST_CHECK(faulted.ActuateDevice(aux, Capabilities::ActuationAction::Toggle) == Capabilities::ActuationResult::NotSupported);
 	BOOST_CHECK(faulted.SetPoolSetpoint(82) == Capabilities::ActuationResult::NotSupported);
 	BOOST_CHECK(faulted.SetSpaSetpoint(100) == Capabilities::ActuationResult::NotSupported);
-	BOOST_CHECK(faulted.SetChlorinatorPercentage(50) == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(faulted.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::NotSupported);
 	BOOST_CHECK(faulted.SetChlorinatorBoost(true) == Capabilities::ActuationResult::NotSupported);
 	// Regression: SetSpaSwitchAssignment previously guarded on emulation ONLY (not the fault
 	// state), so a faulted panel wrongly ACCEPTED and queued a spa-switch goal the
@@ -364,7 +364,7 @@ BOOST_AUTO_TEST_CASE(TestChlorinator_Emulated_AcceptsPercentageAndBoost)
 {
 	OneTouchDevice device(device_type, *this, true);
 
-	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorPercentage(45)),
+	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool)),
 		static_cast<int>(Devices::Capabilities::ActuationResult::Accepted));
 }
 
@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE(TestChlorinator_NonEmulated_NotSupported)
 	// A passive (non-emulated) OneTouch cannot transmit, so it cannot edit the chlorinator.
 	OneTouchDevice device(device_type, *this, false);
 
-	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorPercentage(50)),
+	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool)),
 		static_cast<int>(Devices::Capabilities::ActuationResult::NotSupported));
 	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorBoost(false)),
 		static_cast<int>(Devices::Capabilities::ActuationResult::NotSupported));
@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_CASE(TestChlorinator_RejectsWhileAnotherGoalBusy)
 
 	BOOST_CHECK_EQUAL(static_cast<int>(device.SetPoolSetpoint(82)),
 		static_cast<int>(Devices::Capabilities::ActuationResult::Accepted));
-	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorPercentage(45)),
+	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool)),
 		static_cast<int>(Devices::Capabilities::ActuationResult::NotSupported));
 }
 

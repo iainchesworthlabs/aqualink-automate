@@ -327,7 +327,11 @@ Returns the full equipment state. The top-level keys are `temperatures`, `chemis
     "ph": null,
     "chlorinator": {
       "generating_percent": 50,
+      "generating_reason": "Generating",
       "duty_cycle": 50,
+      "pool_setpoint_percent": 45,
+      "spa_setpoint_percent": 50,
+      "setpoint_percent": 45,
       "status": "Generating",
       "health": "Ok"
     }
@@ -362,7 +366,9 @@ Field notes (these are deliberate, not bugs):
 - `salt_ppm` is a raw `uint16`. A value of `0` is emitted as-is, **not** nulled.
 - `orp_mv` is `null` when the reported value is exactly `0` (no sensor on the wire).
 - `ph` is `null` when the reported value is exactly `0.0`.
-- `chlorinator` is `null` when no chlorinator (SWG) has been discovered; otherwise it carries `generating_percent`, `duty_cycle`, `status`, and `health`.
+- `chlorinator` is `null` when no chlorinator (SWG) has been discovered; otherwise it carries `generating_percent`, `generating_reason`, `duty_cycle`, the configured setpoints, `status`, and `health`.
+- `generating_percent` is the **instantaneous** output and is `0` whenever the cell is idle — which alone cannot distinguish a chlorinator that is switched off from one that is configured and healthy but has no flow. `generating_reason` says which it is: `Generating`, `Off` (setpoint is 0%), `PumpOff` (configured, but no filter pump is running), `NoFlow` (a pump is running but the cell reports no flow), `Fault` (the cell is in a warning/error state), `Idle` (configured and not generating, no nameable reason), or `Unknown` (nothing reported yet). It is derived server-side so the web UI, MQTT and Home Assistant agree.
+- `setpoint_percent` is the **configured target** for the currently active body (resolving to `pool_setpoint_percent` or `spa_setpoint_percent`, falling back to the last-known generating %); it is what the dashboard's Target slider seeds from.
 - `validation` is an object once the startup scrape completes, or `null` before then. The spelling `expected_auxillary_count` (and the nested `expected_auxillaries` / `discovered_auxillaries`) is the exact field name in the payload.
 - A temperature is either a `{ "celsius": ..., "fahrenheit": ... }` object or `null`.
 
@@ -432,6 +438,8 @@ With no command dispatcher available the whole request returns `503` (`text/plai
 
 Set the chlorinator generating percentage and/or its boost mode.
 
+The panel keeps an **independent output setpoint per body of water** — you can run the spa at 70% while the pool sits at 40% — so `body` selects which one `percentage` applies to. It is optional and defaults to `Pool`, which is what the single-value form has always driven, so existing callers are unaffected. Only `Pool` and `Spa` are accepted (case-insensitive); anything else is a `400`, because the panel has no row to write.
+
 ```bash
 curl -X POST http://127.0.0.1:8080/api/equipment/chlorinator \
   -H 'Content-Type: application/json' \
@@ -439,6 +447,7 @@ curl -X POST http://127.0.0.1:8080/api/equipment/chlorinator \
 ```
 
 - `percentage` is a number in `0 .. 100`.
+- `body` is `Pool` (default) or `Spa`, and selects which setpoint `percentage` writes.
 - `boost` is a boolean.
 
 ```json

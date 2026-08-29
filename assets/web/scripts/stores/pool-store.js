@@ -119,6 +119,10 @@ document.addEventListener('alpine:init', () => {
         swgSpaSetpoint: '--',
         chlorinatorStatus: '--',
         chlorinatorHealth: '--',
+        // WHY the cell is at its current output (backend ChlorinatorGeneratingReason).
+        // generating_percent alone is ambiguous: 0% reads as "off or broken" even when the
+        // chlorinator is configured, healthy, and simply waiting for the filter pump.
+        swgGeneratingReason: '--',
 
         // Translated display text for the chlorinator health enum name; an
         // unknown value falls back to the raw name with underscores spaced.
@@ -127,6 +131,16 @@ document.addEventListener('alpine:init', () => {
             if (!h || h === '--') return '';
             const key = window.AquaUI.swgHealthKey(h);
             return key ? window.AquaI18n.t(key) : String(h).replace(/_/g, ' ');
+        },
+
+        // Translated one-line explanation of the current output, shown under the SWG
+        // reading. Empty while the cell is generating (the number speaks for itself)
+        // and for an unrecognised value.
+        get chlorinatorReasonLabel() {
+            const r = this.swgGeneratingReason;
+            if (!r || r === '--' || r === 'Generating') return '';
+            const key = window.AquaUI.swgReasonKey(r);
+            return key ? window.AquaI18n.t(key) : '';
         },
 
         // Per-value timestamps for freshness tracking (epoch ms). Temperatures
@@ -368,6 +382,7 @@ document.addEventListener('alpine:init', () => {
                         this.swgSpaSetpoint = (swg.spa_setpoint_percent != null) ? swg.spa_setpoint_percent : '--';
                         this.chlorinatorStatus = swg.status || '--';
                         this.chlorinatorHealth = swg.health || '--';
+                        this.swgGeneratingReason = swg.generating_reason || '--';
                     } else {
                         this.chlorinatorPresent = false;
                     }

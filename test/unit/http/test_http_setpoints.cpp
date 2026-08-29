@@ -45,7 +45,7 @@ namespace
 		CommandResult CommandByLabel(const std::string&, DeviceAction) override { return CommandResult::Success; }
 		CommandResult SetPoolSetpoint(uint8_t temperature) override { pool_values.push_back(temperature); return result_to_return; }
 		CommandResult SetSpaSetpoint(uint8_t temperature) override { spa_values.push_back(temperature); return result_to_return; }
-		CommandResult SetChlorinatorPercentage(uint8_t) override { return CommandResult::Success; }
+		CommandResult SetChlorinatorPercentage(std::uint8_t, AqualinkAutomate::Kernel::BodyOfWaterIds) override { return CommandResult::Success; }
 		CommandResult SetChlorinatorBoost(bool) override { return CommandResult::Success; }
 		CommandResult SetCirculationMode(Kernel::CirculationModes) override { return CommandResult::Success; }
 		CommandResult SetHeaterMode(Kernel::BodyOfWaterIds, bool) override { return CommandResult::Success; }
