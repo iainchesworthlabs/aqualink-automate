@@ -2476,7 +2476,8 @@ paths:
         recorder format (replayable with `--dev-mode --replay-filename`).
 
         Only the file's basename is returned; the absolute server-side path is
-        never disclosed.
+        never disclosed. Finished captures can be listed and downloaded through
+        `/api/diagnostics/recording/captures`.
       operationId: getRecording
       responses:
         '200':
@@ -2500,10 +2501,12 @@ paths:
         hardware. Provide `{"action":"start","filename":"..."}` to begin a capture
         or `{"action":"stop"}` to end it. Returns the resulting recording status.
 
-        The `filename` must be a bare `*.cap` basename. It is jailed to a fixed
-        server-side capture directory: path separators, drive letters, leading
-        separators, and `..` are rejected with `400`. The capture is always
-        written inside that directory, never to a client-chosen path.
+        The `filename` must be a bare `*.cap` basename. It is jailed to the
+        server's capture directory (`--capture-directory`, default
+        `<cwd>/captures`): path separators, drive letters, leading separators,
+        `..`, control characters, quotes, and any extension other than `.cap` are
+        rejected with `400`. The capture is always written inside that directory,
+        never to a client-chosen path.
       operationId: setRecording
       requestBody:
         required: true
@@ -2538,9 +2541,10 @@ paths:
           description: |
             Invalid request: bad JSON; missing/invalid action; a missing, empty,
             or rejected filename. The filename must be a bare `*.cap` basename
-            (no path separators, drive letter, leading separator, or `..`): it is
-            jailed to a fixed server-side capture directory, so any path-traversal
-            attempt is rejected here rather than written to disk.
+            (no path separators, drive letter, leading separator, `..`, control
+            characters, or quotes): it is jailed to the server's capture
+            directory, so any path-traversal attempt is rejected here rather than
+            written to disk.
           content:
             application/json:
               schema:
@@ -2606,6 +2610,150 @@ paths:
                   error:
                     type: string
                     example: "Method not allowed. Use GET or POST."
+
+  /api/diagnostics/recording/captures:
+    get:
+      tags:
+        - Diagnostics
+      summary: List the captures on the server
+      description: |
+        Lists the capture files sitting in the server's capture directory
+        (`--capture-directory`, default `<cwd>/captures`), newest first. Only
+        basenames are reported - the server-side directory is never disclosed.
+
+        Only files the download endpoint would actually serve are listed: regular
+        files (never symlinks) whose names pass the same jail as the recording
+        filename.
+      operationId: listCaptures
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureList'
+              example:
+                captures:
+                  - name: "capture.cap"
+                    bytes: 20480
+                    modified: 1756425600
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '405':
+          description: HTTP method not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Method not allowed. Use GET."
+
+  /api/diagnostics/recording/captures/{filename}:
+    get:
+      tags:
+        - Diagnostics
+      summary: Download one capture
+      description: |
+        Returns one capture file as a download, so a capture can be retrieved
+        without shell access to the host (the Home Assistant add-on has none).
+        The response carries `Content-Disposition: attachment` with the capture's
+        name.
+
+        `filename` is jailed exactly like the recording filename, so this endpoint
+        cannot be used to read arbitrary files from the host.
+
+        The response body is buffered, so a capture larger than 64 MiB is refused
+        with `413`; copy those out of the capture directory directly.
+      operationId: getCapture
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: |
+            Bare basename of the capture (must end in `.cap`). Path separators,
+            drive letters, leading separators, `..`, control characters, and
+            quotes are rejected with `400`.
+          schema:
+            type: string
+            pattern: '^[^/\\:]+\.cap$'
+          example: "capture.cap"
+      responses:
+        '200':
+          description: The capture file
+          headers:
+            Content-Disposition:
+              description: Attachment disposition carrying the capture's filename
+              schema:
+                type: string
+                example: 'attachment; filename="capture.cap"'
+            X-Content-Type-Options:
+              description: Always `nosniff`
+              schema:
+                type: string
+                example: "nosniff"
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # Serial recording started at: Sat Aug 29 12:00:00 2026
+                # Format: [timestamp_ms] direction byte|byte|byte|...
+                [       142] R 0x10|0x02|0x50|0x14|0x76|0x10|0x03
+        '400':
+          description: |
+            The filename is not a bare `*.cap` basename (path separator, drive
+            letter, leading separator, `..`, control character, quote, or wrong
+            extension).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "'filename' must be a bare *.cap name with no path separators or '..'"
+                code: "capture_filename_invalid"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No capture of that name exists in the capture directory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "No such capture"
+                code: "capture_not_found"
+        '405':
+          description: HTTP method not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Method not allowed. Use GET."
+        '413':
+          description: The capture is larger than the 64 MiB download limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "The capture is too large to download; copy it from the capture directory instead"
+                code: "capture_too_large"
+                params:
+                  limit_bytes: 67108864
+        '500':
+          description: The capture exists but could not be read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "Could not read the capture"
+                code: "capture_read_failed"
 
 components:
   schemas:
@@ -3536,6 +3684,38 @@ components:
           type: string
           enum: [stop]
           description: Stop the active capture
+
+    CaptureList:
+      type: object
+      required:
+        - captures
+      properties:
+        captures:
+          type: array
+          description: The captures in the server's capture directory, newest first
+          items:
+            $ref: '#/components/schemas/CaptureFile'
+
+    CaptureFile:
+      type: object
+      required:
+        - name
+        - bytes
+        - modified
+      properties:
+        name:
+          type: string
+          description: Bare basename of the capture. The server-side directory is never disclosed.
+          example: "capture.cap"
+        bytes:
+          type: integer
+          description: Size of the capture file in bytes
+          example: 20480
+        modified:
+          type: integer
+          format: int64
+          description: Last-write time, in seconds since the Unix epoch
+          example: 1756425600
 
     EmulatedDeviceDiagnostics:
       type: object

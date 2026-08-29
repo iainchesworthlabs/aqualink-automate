@@ -325,7 +325,8 @@ Diagnostics, capture recording, and deterministic replay. Lives in the `Develope
 | --- | --- | --- | --- | --- |
 | `--dev-mode` | | flag | off | Enable developer mode. Required to gate `--replay-filename`. |
 | `--replay-filename` | | string | none | Replay file to source test data from. |
-| `--record-serial` | | string | none | Record serial port data to a file for later replay. |
+| `--record-serial` | | string | none | Record serial port data to a file for later replay. The path is taken as given (relative to the working directory) and is **not** confined to `--capture-directory`. |
+| `--capture-directory` | | string | `captures` | Directory that **on-demand** captures (started from the web UI's Diagnostics page or `POST /api/diagnostics/recording`) are written to and downloaded from. Relative paths resolve against the working directory; it is created on the first recording. |
 | `--decode-to-master` | | flag | off | Decode and log RS-485 frames addressed to the master (`0x00`); observe-only. |
 | `--replay-frame-period` | | uint32 | `15` | Capture-replay inter-frame period in milliseconds. `0` = unpaced (as fast as possible). |
 | `--replay-speed` | | double | `1.0` | Replay speed factor scaling `--replay-frame-period` (>1 faster, <1 slower). |
@@ -346,6 +347,14 @@ Each takes a severity (case-insensitive): `Trace`, `Debug`, `Info`, `Notify`, `W
 > privileged actions) is a separate subsystem, not an operational log channel, so
 > there is deliberately no `--loglevel-audit`. See
 > [Security → Audit trail](SECURITY.md) for where audit events are routed.
+
+### Where on-demand captures are written
+
+`--capture-directory` is the one directory the runtime recording feature is allowed to touch. The filename supplied by `POST /api/diagnostics/recording` is jailed into it as a bare `*.cap` basename — path separators, drive letters, leading separators, `..`, control characters, and quotes are all rejected — and `GET /api/diagnostics/recording/captures/{filename}` serves back out of that same jail, so neither endpoint can reach a file elsewhere on the host.
+
+The default (`captures`, relative to the working directory) keeps existing installs unchanged. Point it somewhere the operator can actually reach when the app runs somewhere they cannot get a shell — this is exactly what the Home Assistant add-on does, mapping it onto its user-browsable `app_config` share (see [Home Assistant add-on](homeassistant-addon.md)).
+
+`--record-serial` is unaffected: it is an operator-supplied path on the command line, so it is used as given.
 
 ### Logging sinks
 

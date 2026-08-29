@@ -2786,10 +2786,6 @@ main input[type="range"] { accent-color: var(--accent); }
 }
 .rec-input-wrap:focus-within { border-color: var(--border-strong); }
 .rec-input-wrap.is-disabled { opacity: .65; }
-.rec-input-prefix {
-    padding: 10px 0 10px 13px; color: var(--text-faint);
-    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 13px; flex: none;
-}
 .rec-input {
     flex: 1; min-width: 0; padding: 10px 12px; background: transparent; border: none;
     color: var(--text); font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 13px; outline: none;
@@ -2802,6 +2798,37 @@ main input[type="range"] { accent-color: var(--accent); }
 .rec-bytes-box.is-active { color: var(--accent); }
 .rec-hint { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--text-faint); }
 .rec-hint svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+
+/* Saved captures: download a finished capture without shell access to the host. */
+.rec-captures { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.rec-captures-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rec-captures-head .rec-field-label { margin-bottom: 0; }
+.rec-captures-refresh {
+    padding: 6px 12px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-dim); font: 600 12px/1 var(--font-ui); cursor: pointer; flex: none;
+    transition: color .16s, border-color .16s;
+}
+.rec-captures-refresh:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+.rec-captures-refresh:disabled { opacity: .5; cursor: default; }
+.rec-captures-empty { margin-top: 10px; font-size: 13px; color: var(--text-faint); }
+.rec-capture-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+.rec-capture-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.rec-capture-row:last-child { border-bottom: none; }
+.rec-capture-name {
+    flex: 1; min-width: 160px; overflow-wrap: anywhere;
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 13px; color: var(--text);
+}
+.rec-capture-meta { font-size: 12.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; flex: none; }
+.rec-download {
+    padding: 7px 14px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text); font: 600 12px/1 var(--font-ui); cursor: pointer; flex: none;
+    transition: border-color .16s, filter .16s;
+}
+.rec-download:hover:not(:disabled) { border-color: var(--border-strong); }
+.rec-download:disabled { opacity: .5; cursor: default; }
 
 /* --- Diagnostics modals (device / log / message) ------------------------ */
 .diag-modal-overlay { padding: 24px; }

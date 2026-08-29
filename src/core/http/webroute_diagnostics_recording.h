@@ -5,6 +5,7 @@
 #include <boost/beast/http/verb.hpp>
 
 #include "auth/entitlement_vocabulary.h"
+#include "http/capture_directory.h"
 #include "interfaces/irecordingcontroller.h"
 #include "interfaces/iwebroute.h"
 #include "kernel/hub_locator.h"
@@ -16,7 +17,7 @@ namespace AqualinkAutomate::HTTP
 	class WebRoute_Diagnostics_Recording : public Interfaces::IWebRoute<DIAGNOSTICS_RECORDING_ROUTE_URL>
 	{
 	public:
-		explicit WebRoute_Diagnostics_Recording(Kernel::HubLocator& hub_locator);
+		WebRoute_Diagnostics_Recording(Kernel::HubLocator& hub_locator, CaptureDirectory captures);
 		~WebRoute_Diagnostics_Recording() override = default;
 
 		HTTP::Response OnRequest(const HTTP::Request& req) final;
@@ -41,6 +42,11 @@ namespace AqualinkAutomate::HTTP
 		// (e.g. dev-mode/replay), in which case the route reports recording=false
 		// and rejects toggle attempts with 503.
 		std::shared_ptr<Interfaces::IRecordingController> m_RecordingController;
+
+		// The operator-configured directory captures are confined to
+		// (`--capture-directory`). Owns the jail applied to the client-supplied
+		// filename; shared with the capture listing/download routes.
+		CaptureDirectory m_Captures;
 	};
 
 }

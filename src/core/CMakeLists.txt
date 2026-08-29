@@ -76,6 +76,7 @@ target_sources(
 	formatters/units_dimensionless_formatter.cpp 
 	formatters/units_electric_potential_formatter.cpp 
 	formatters/url_segments_encoded_view_formatter.cpp 
+	http/capture_directory.cpp
 	http/webroute_apikey.cpp
 	http/webroute_apikeys.cpp
 	http/webroute_auth_check.cpp
@@ -87,6 +88,7 @@ target_sources(
 	http/webroute_auth_setup.cpp
 	http/webroute_kiosk.cpp
 	http/webroute_diagnostics_actualdevices.cpp
+	http/webroute_diagnostics_captures.cpp
 	http/webroute_diagnostics_devices.cpp
 	http/webroute_diagnostics_logging.cpp
 	http/webroute_diagnostics_matter.cpp
