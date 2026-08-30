@@ -28,6 +28,7 @@ The table below is the complete inventory of everything under `.github/` — the
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 | `.github/actions/setup-msvc-env` | Composite action | Load the MSVC environment on self-hosted Windows runners (sources `vcvars64.bat`, exports the env delta to `$GITHUB_ENV`). |
+| `.github/actions/ensure-gcovr` | Composite action | Put `gcovr` on `PATH`, installing it only if the runner image lacks it. Must run **before** any coverage-preset CMake configure: `ENABLE_COVERAGE` makes `test/CMakeLists.txt` call `setup_target_for_coverage_gcovr_*`, and `CodeCoverage.cmake` raises `FATAL_ERROR "gcovr not found!"` at *configure* time, not at report time. |
 
 `ci.yml` and `release.yml` share one build definition (`_build.yml`), so the suites that run on a PR and the suites that gate a release can never drift.
 
@@ -240,11 +241,11 @@ Both triggers carry a docs `paths-ignore` (`docs/**`, `**/*.md`, `mkdocs.yml`, `
 
 | Job | Runs on | Scanner |
 |-----|---------|---------|
-| `CodeScanning_CodeQL` | Linux | CodeQL (`c-cpp`). Runs its own full build, filters the SARIF to `src/**`, and uploads to the Security tab. |
+| `CodeScanning_CodeQL` | Linux (**`big`**) | CodeQL (`c-cpp`). Runs its own full build, filters the SARIF to `src/**`, and uploads to the Security tab. Routed to `linux_runner_big`: CodeQL instrumentation plus a full C++ build has twice been killed mid-build on a GitHub-hosted runner (at 108 min and at 2h33m). |
 | `CodeScanning_CodeQL_JS` | Linux (GitHub-hosted) | CodeQL (`javascript-typescript`, `build-mode: none`) for the Alpine.js web UI (`assets/web/scripts`, `sw.js`) and the TypeScript Matter sidecar (`matter-bridge/src`). No compile, so it runs on `ubuntu-latest` (not the self-hosted C++ fleet); `.github/codeql/codeql-config-js.yml` scopes it to first-party source (vendored/minified libraries and `i18n/` data excluded). |
 | `CodeScanning_E2ECoverage` | Linux | Builds a gcov-instrumented `aqualink-automate` (`config-linux-gcc-coverage`), drives the full Playwright mode sweep against it (see below), and `gcovr`s the `.gcda` into a SonarQube coverage report (`coverage-e2e.xml`) uploaded as the `e2e-coverage-xml` artifact. |
 | `CodeScanning_SonarCloud` | Linux | SonarCloud via build-wrapper over a coverage build (`config-linux-gcc-coverage`, `-DUSE_SONARQUBE=ON`). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with **both** (`sonar.coverageReportPaths` comma-separated; Sonar merges line coverage). |
-| `CodeScanning_MSVCCodeAnalysis` | Windows | MSVC code analysis (`NativeRecommendedRules.ruleset`) over the `config-windows-msvc` build; uploads SARIF. |
+| `CodeScanning_MSVCCodeAnalysis` | Windows (**`big`**) | MSVC code analysis (`NativeRecommendedRules.ruleset`) over the `config-windows-msvc` build; uploads SARIF. Routed to `windows_runner_big`: at ~140 min it is the longest job in CI (so it sets the critical path) and it filled the shared 16 GB `D:`. |
 
 Each job has the same skip condition: it does not run for a `develop` -> `main` promotion PR, because that code was already scanned when it entered `develop`. Re-scanning the promotion is pure duplication.
 
@@ -347,14 +348,67 @@ The companion **bundle** (`aqualink-automate-homeassistant-companion-<version>.z
 
 Every Linux and Windows job that can build on the self-hosted fleet reads its runner labels
 from a shared `check-runners` job (`_check-runners.yml`), which **live-checks** whether a
-matching self-hosted runner is actually online and idle right now — not a static "self-hosted
+matching self-hosted runner is actually available right now — not a static "self-hosted
 is configured" switch. macOS always runs on `macos-latest` (GitHub-hosted); the arm64 Linux
 row of `_build.yml` stays on the static `RUNNER_LINUX_ARM` override (no self-hosted arm64
 runner exists in the current fleet to check against).
 
-Full design, the fork-PR gating, and the two-part live check (repo-level, then optional
-org-level via `ORG_RUNNERS_TOKEN`) are documented in
+`check-runners` emits **four** label arrays, not two. `linux_runner` / `windows_runner` are
+the ordinary shared-fleet outputs. `linux_runner_big` / `windows_runner_big` additionally
+require the `big` label — the two oversized runners (8 vCPU / 32 GB Linux, 8 vCPU / 24 GB
+Windows, 48 GB data disks) in the repo-scoped `Labs CI Big Runners` group, provisioned
+because the heavy legs OOM-killed and filled the disks on the shared shape. Only
+`CodeScanning_CodeQL (c-cpp)` and `CodeScanning_MSVCCodeAnalysis` use them; the big pair is
+one machine per OS, so anything pointed at it serialises, and routing *every* heavy leg
+there measures out slower than leaving them parallel on GitHub-hosted.
+
+Full design, the fork-PR gating, the two-part live check (repo-level, then optional
+org-level via `ORG_RUNNERS_TOKEN`), the `big` routing arithmetic and its two known sharp
+edges are documented in
 [ci-self-hosted-runners.md](ci-self-hosted-runners.md) — this section is the short summary.
+
+### Build parallelism on the shared Linux fleet
+
+Ninja defaults to `nproc + 2` and no preset in `CMakePresets.json` sets `jobs`, so an
+8-vCPU guest builds at **-j10**. Measured per-TU cost for this codebase is **~1.09 GiB**
+of `cc1plus` RSS (from an oom-killer dump: 10 concurrent `cc1plus` holding 10.9 GiB anon
+RSS, page cache evicted to 17 MB, swap 0). Against the **11.7 GiB usable** on a 12 GB
+shared Linux guest that leaves ~7% headroom, which the heaviest Boost/C++23 translation
+units consume — the observed failure being a `runner shutdown` / `exit 143` deep into the
+build.
+
+Note the fleet's RAM:vCPU ratio did **not** change across the 2026-08-27 right-size
+(1.5 GB per vCPU before and after). What broke is that Ninja's `+2` is **additive**, so it
+overshoots by 25% at 8 cores against 6% at 32 — taking effective RAM-per-job from
+~1.38 GiB to ~1.17 GiB.
+
+Every Linux build leg therefore pins `CMAKE_BUILD_PARALLEL_LEVEL: 6` (`_build.yml`
+including its in-container package build, `fuzzing.yml`, and the coverage builds in
+`automated-codescanning.yml`). This is a **CI-only** cap — `CMakePresets.json` is
+untouched, so developer machines keep Ninja's default. The variable is set to the empty
+string on non-Linux legs, which CMake documents as "use the native tool's default".
+
+`CodeScanning_CodeQL` is the one leg whose parallelism is **conditional**, because it must
+track the runner it actually landed on:
+
+```yaml
+--parallel ${{ contains(needs.check-runners.outputs.linux_runner_big, 'big') && '8' || '4' }}
+```
+
+`linux_runner_big` falls back to `ubuntu-latest` whenever the *single* big Linux runner is
+unavailable, and on a public repo that is 4 vCPU / **16 GB**. CodeQL's extractor wraps every
+compile and roughly doubles per-TU RSS (~2.2 GiB), so a fixed `8` is ~17.6 GiB — comfortable
+on the big runner's 32 GB and an OOM on the hosted fallback. Worse, a fixed `8` is *higher*
+than the `nproc + 2 = 6` Ninja would have chosen there unaided, so hardcoding it made the
+fallback path strictly worse than leaving it unset. That configuration already killed this
+job twice on hosted (108 min at object 721/762, and 2h33m). `4` on the fallback is ~8.8 GiB.
+
+`CodeScanning_MSVCCodeAnalysis` needs no equivalent: it sets no explicit parallelism at all,
+so it self-corrects to `nproc + 2` on whichever runner it lands on.
+
+The general rule the conditional encodes: **an explicit `--parallel` must be justified
+against every runner the job can resolve to, not just the intended one.** Where that is
+awkward, leaving it unset is safer, because Ninja's default already tracks the hardware.
 
 ### Repository variables
 
@@ -364,12 +418,18 @@ Set these under **Settings > Variables > Actions**.
 |----------|--------|------------|
 | `RUNNER_LINUX_MODE` | `auto` (default), `self-hosted`, `github-hosted` | Every Linux job wired to `check-runners` |
 | `RUNNER_WINDOWS_MODE` | `auto` (default), `self-hosted`, `github-hosted` | Every Windows job wired to `check-runners` (`_build.yml`, MSVC code analysis) |
+
+Both `_MODE` variables govern the `_big` outputs too — there is no separate mode for the big
+pair. Forcing `github-hosted` sends the heavy legs to GitHub-hosted as well, which is where
+CodeQL `c-cpp` has been killed mid-build.
 | `RUNNER_LINUX_ARM` | JSON label array, e.g. `["self-hosted","linux","arm64"]` | The arm64 Linux row of `_build.yml` only — unaffected by `check-runners`. Falls back to the GitHub-hosted `ubuntu-24.04-arm` (free for public repos). |
 
 `RUNNER_LINUX` / `RUNNER_WINDOWS` (the old static label-array variables) are retired —
-the exact self-hosted labels (`self-hosted, Linux, X64` / `self-hosted, Windows, X64`) are
-now hardcoded inside `_check-runners.yml`, since they must match what the `ci-runners` fleet
-actually registers with.
+the exact self-hosted labels (`self-hosted, Linux, X64, shared` /
+`self-hosted, Windows, X64, shared`, plus the `big` variants) are now hardcoded inside
+`_check-runners.yml`, since they must match what the `ci-runners` fleet actually registers
+with. The `shared` label exists so an ordinary leg cannot be scheduled onto the big pair —
+`runs-on` matches any runner whose labels are a superset and has no NOT operator.
 
 ### Repository secret
 

@@ -1,8 +1,10 @@
 # Self-hosted CI runners
 
 Several Linux and Windows jobs across `.github/workflows/` can run on a self-hosted runner
-instead of a GitHub-hosted one — but only when one is actually online and idle right now,
-never as an all-or-nothing switch. The two macOS-only and one arm64-only leg of
+instead of a GitHub-hosted one — but only when one is actually available right now, never as
+an all-or-nothing switch. ("Available" means *online and idle* for the shared fleet, and
+merely *online* for the two `big` runners — see
+[The `big` pair](#the-big-pair-heavy-legs-only) for why those differ.) The two macOS-only and one arm64-only leg of
 [`_build.yml`](https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/workflows/_build.yml)
 always stay on GitHub-hosted runners; there's no self-hosted equivalent for either
 (`RUNNER_LINUX_ARM` remains a static optional override for the arm64 leg — see below).
@@ -23,8 +25,9 @@ Windows. Every workflow that can build on the fleet — `_build.yml` (and transi
 (`e2e-ui`, `matter-bridge`, `docker-verify`), `release.yml` directly (`docker-publish`,
 `homeassistant-addon-publish`), `fuzzing.yml`, and `automated-codescanning.yml` — calls it
 once as its own `check-runners` job and reads `needs.check-runners.outputs.linux_runner` /
-`windows_runner` at every `runs-on:` and `contains(..., 'self-hosted')` step-gate that used
-to read a static repository variable. One definition, no duplicated bash across six callers.
+`windows_runner` (or their `_big` counterparts) at every `runs-on:` and
+`contains(..., 'self-hosted')` step-gate that used to read a static repository variable. One
+definition, no duplicated bash across six callers.
 
 Per OS, in order:
 
@@ -49,8 +52,11 @@ Per OS, in order:
 
    Either check finding at least one runner that is `online`, not `busy`, and labelled with
    both `self-hosted` and the right OS (`Linux` or `Windows`) selects the self-hosted label
-   set (`self-hosted, Linux, X64` / `self-hosted, Windows, X64` — the exact labels the
-   `ci-runners` fleet registers with). Finding nothing, or the API call itself failing for
+   set (`self-hosted, Linux, X64, shared` / `self-hosted, Windows, X64, shared` — the exact
+   labels the `ci-runners` fleet registers with). The `shared` label is what keeps an ordinary
+   leg off the big pair, which carries `big` instead; see
+   [The `big` pair](#the-big-pair-heavy-legs-only). The `_big` outputs run the same three
+   steps against a stricter label set and a looser liveness test — see below. Finding nothing, or the API call itself failing for
    any reason, falls back to GitHub-hosted (`ubuntu-latest` / `windows-latest`) — this check
    being unavailable is never a reason to block CI.
 
@@ -58,6 +64,79 @@ Until the repo is added to the runner group's "selected repositories" allow-list
 `ORG_RUNNERS_TOKEN` is provisioned), every leg simply keeps building on GitHub-hosted
 runners — a deliberate no-op, not a bug: the mechanism is inert until the infrastructure
 side is wired up.
+
+## The `big` pair (heavy legs only)
+
+Two runners in the fleet are deliberately larger, and live in their own runner group
+(`Labs CI Big Runners`, scoped to this repo alone) with an extra `big` label:
+
+| Runner | vCPU | RAM | Data disk | Labels |
+|---|---|---|---|---|
+| `tf-gh-big-linux-runner-01` | 8 | 32 GB | `/data` 48 GB | `self-hosted, Linux, X64, big` |
+| `tf-gh-big-windows-runner-01` | 8 | 24 GB | `D:` 48 GB | `self-hosted, X64, Windows, big` |
+
+They exist because the heavy legs OOM-killed and filled the disks on the shared 12 GB /
+16 GB shape. `_check-runners.yml` exposes them as two extra outputs, `linux_runner_big` and
+`windows_runner_big`, resolved by the same fork-PR guard, the same `RUNNER_*_MODE` overrides
+and the same repo-then-org live check as the ordinary outputs — with two deliberate
+differences:
+
+- **The probe requires the `big` label.** Without it the gate would pass because some
+  *shared* runner is idle, and the job would then queue against a label nothing idle
+  carries. Getting only half of this change (the `runs-on` array but not the probe) is the
+  easy mistake; the probe and the emitted array must agree.
+- **The probe requires `online` but *not* `busy == false`.** For the shared fleet, "something
+  is idle" is a fair proxy for "there is capacity" across 8 Linux / 5 Windows runners. There
+  is only *one* big runner per OS, so demanding idle would bounce a heavy leg to
+  GitHub-hosted the moment the big runner picked up anything else — and GitHub-hosted is
+  precisely where those legs die. Queueing behind the current job is strictly better than
+  routing to a runner that cannot finish. A registered, online runner drains its queue; only
+  an *absent* label waits forever, which is what the probe actually guards against.
+
+### Which legs go there, and why not all of them
+
+Only two jobs currently ask for `big`:
+
+| Job | Output | Why |
+|---|---|---|
+| `CodeScanning_CodeQL (c-cpp)` | `linux_runner_big` | The only leg with direct evidence it *cannot* complete on a GitHub-hosted runner: killed twice mid-build, once at 108 min (`exit 143`, at object 721 of 762) and once at 2h33m. Both are resource kills deep into a near-complete build, not flakes — a retry will not clear them. |
+| `CodeScanning_MSVCCodeAnalysis` | `windows_runner_big` | The longest job in CI at ~140 min, so it *is* the critical path; it also filled the shared 16 GB `D:`. |
+
+Everything else stays where it is. That is a measured decision, not an oversight — routing
+*every* heavy leg to `big` is slower, because the big pair is one machine per OS and jobs
+pointed at it serialise:
+
+| | Linux | Windows |
+|---|---|---|
+| Sum of heavy legs (GitHub-hosted timings) | 212 min | 221 min |
+| All of them serialised on one big runner, at an assumed 1.5–2× per-job speedup | 106–141 min | 111–126 min |
+| Today's critical path (longest single job, run in parallel) | ~108 min | ~140 min |
+| **Only the longest leg moved to `big`, rest parallel on hosted** | **~54–72 min** | **~80 min** |
+
+Moving everything trades parallelism for per-job speed and roughly breaks even; moving only
+the critical-path job keeps the parallelism *and* shortens the longest pole. If a second big
+runner per OS is ever provisioned (`big_linux_runner_count` / `big_windows_runner_count` in
+`ci-runners`' `terraform.tfvars`), re-run this arithmetic before widening the routing —
+check host capacity first, as `esxi-00` is CPU-saturated under load.
+
+> The 1.5–2× speedup is an *assumption* from the hardware delta (8 vCPU / 32 GB against
+> hosted's ~4 vCPU / 16 GB), not a measurement. It is the number to verify first; if it does
+> not hold, the table above changes.
+
+### Two known sharp edges
+
+- **~~A `big` runner also satisfies the plain array.~~ Fixed in `ci-runners`.** It carries
+  `self-hosted, Linux, X64` as well as `big`, so an ordinary leg asking for the bare array was
+  eligible for it — the probe counted 9 Linux runners, not 8. Under saturation that is worse
+  than a delay: the big runner gets taken by ordinary work *and* the heavy leg's probe then
+  falls back to GitHub-hosted, losing the big runner exactly when it was needed. The shared
+  fleet now carries a `shared` label the big pair does not, and the ordinary outputs name it.
+- **The vcpkg cache is never pruned.** `_build.yml`'s self-hosted `Clean workspace` step does
+  `rm -rf build install` and does not touch `deps/vcpkg`; `buildtrees` + `downloads` +
+  `packages` grow monotonically (measured at 6.2 GB, with OpenSSL's buildtree alone ~1.0 GB
+  and `boost-test` next at 425 MB). This is what filled the disks on the old shared fleet. A
+  48 GB data disk gives the big pair a longer runway, but it is a runway, not a fix — the
+  same wall arrives later unless something prunes.
 
 ## Why the check, not a static switch
 

@@ -185,6 +185,10 @@ jobs:
           buildPreset: build-linux-llvm-fuzzing
         env:
           VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
+          # Same Ninja nproc+2 cap as _build.yml: 11 harnesses all land on the
+          # 12 GB shared Linux guests, and a sanitiser+fuzzer build is not cheaper
+          # per TU than a plain one.
+          CMAKE_BUILD_PARALLEL_LEVEL: 6
 
       - name: Seed corpus from capture fixtures
         shell: bash
