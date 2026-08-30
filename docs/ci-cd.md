@@ -367,6 +367,32 @@ org-level via `ORG_RUNNERS_TOKEN`), the `big` routing arithmetic and its two kno
 edges are documented in
 [ci-self-hosted-runners.md](ci-self-hosted-runners.md) — this section is the short summary.
 
+### Build parallelism on the shared Linux fleet
+
+Ninja defaults to `nproc + 2` and no preset in `CMakePresets.json` sets `jobs`, so an
+8-vCPU guest builds at **-j10**. Measured per-TU cost for this codebase is **~1.09 GiB**
+of `cc1plus` RSS (from an oom-killer dump: 10 concurrent `cc1plus` holding 10.9 GiB anon
+RSS, page cache evicted to 17 MB, swap 0). Against the **11.7 GiB usable** on a 12 GB
+shared Linux guest that leaves ~7% headroom, which the heaviest Boost/C++23 translation
+units consume — the observed failure being a `runner shutdown` / `exit 143` deep into the
+build.
+
+Note the fleet's RAM:vCPU ratio did **not** change across the 2026-08-27 right-size
+(1.5 GB per vCPU before and after). What broke is that Ninja's `+2` is **additive**, so it
+overshoots by 25% at 8 cores against 6% at 32 — taking effective RAM-per-job from
+~1.38 GiB to ~1.17 GiB.
+
+Every Linux build leg therefore pins `CMAKE_BUILD_PARALLEL_LEVEL: 6` (`_build.yml`
+including its in-container package build, `fuzzing.yml`, and the coverage builds in
+`automated-codescanning.yml`). This is a **CI-only** cap — `CMakePresets.json` is
+untouched, so developer machines keep Ninja's default. The variable is set to the empty
+string on non-Linux legs, which CMake documents as "use the native tool's default".
+
+One deliberate exception: `CodeScanning_CodeQL` keeps `--parallel 8`, because it runs on
+`linux_runner_big` (32 GB). CodeQL's extractor roughly doubles per-TU RSS, so 8 there is
+~17.6 GiB — comfortable on 32 GB and impossible on 12. Do not "align" it to 6 without
+also moving the job off the big runner.
+
 ### Repository variables
 
 Set these under **Settings > Variables > Actions**.

@@ -167,6 +167,10 @@ jobs:
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:
         buildPreset: build-linux-gcc
+        # Left at 8 deliberately: this job runs on linux_runner_big (32 GB), not
+        # the 12 GB shared guests. CodeQL's extractor roughly doubles per-TU RSS,
+        # so 8 here is ~17.6 GiB - comfortable on 32 GB, impossible on 12. Do NOT
+        # lower this to match the shared-fleet cap without moving the job back.
         buildPresetAdditionalArgs: "['--parallel', '8']"
       env:
         VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
@@ -360,8 +364,10 @@ jobs:
       id: build_app
       shell: bash
       run: |
+        # -j6, not 8: this is a gcov-instrumented build on a 12 GB SHARED guest.
+        # See _build.yml CMAKE_BUILD_PARALLEL_LEVEL for the arithmetic.
         cmake --build "${{ github.workspace }}/build/config-linux-gcc-coverage" \
-          --target aqualink-automate --parallel 8
+          --target aqualink-automate --parallel 6
       env:
         VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
 
@@ -642,7 +648,12 @@ jobs:
       env:
         VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
 
+    # build-wrapper wraps every compilation, so per-TU RSS is higher than a plain
+    # build - and this leg was the only uncapped one, running at Ninja's -j10 on a
+    # 12 GB shared guest. It died at object 305/725 with a shutdown signal.
     - name: Build with build-wrapper
+      env:
+        CMAKE_BUILD_PARALLEL_LEVEL: 6
       run: |
         build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build --preset=build-linux-gcc-coverage
 

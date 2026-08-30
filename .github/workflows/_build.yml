@@ -271,6 +271,16 @@ jobs:
           buildPreset: ${{ matrix.build_preset }}
         env:
           VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
+          # Ninja defaults to nproc+2 and no preset sets `jobs`, so an 8-vCPU
+          # shared guest builds at -j10. At ~1.09 GiB per cc1plus (measured from an
+          # oom-killer dump: 10 concurrent cc1plus, 10.9 GiB anon RSS) that is
+          # 10.9 GiB against 11.7 GiB usable on the 12 GB Linux guests — ~7%
+          # headroom, which the heaviest Boost/C++23 TUs consume. Note the fleet's
+          # RAM:vCPU ratio is unchanged across the 2026-08-27 right-size (1.5 GB per
+          # vCPU either way); what broke is that Ninja's `+2` is ADDITIVE, so it
+          # overshoots 25% at 8 cores against 6% at 32. Cap CI only — no preset
+          # change, so developer machines keep the default.
+          CMAKE_BUILD_PARALLEL_LEVEL: ${{ runner.os == 'Linux' && '6' || '' }}
 
       - name: Show build errors on failure
         if: ${{ failure() && !(inputs.do_package && runner.os == 'Linux') }}
@@ -279,6 +289,8 @@ jobs:
           echo "::group::CMake build retry (verbose)"
           cmake --build --preset ${{ matrix.build_preset }} -- -k 1 2>&1 | tail -200 || true
           echo "::endgroup::"
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: ${{ runner.os == 'Linux' && '6' || '' }}
 
       - name: Test
         if: ${{ !(inputs.do_package && runner.os == 'Linux') }}
@@ -352,6 +364,10 @@ jobs:
               git config --global --add safe.directory /work
               git config --global --add safe.directory /work/deps/vcpkg
               export VCPKG_DEFAULT_BINARY_CACHE=/vcpkgcache
+              # Same Ninja nproc+2 cap as the host Linux legs above — the container
+              # sees the guest's 8 vCPU, so it would otherwise build at -j10 on a
+              # 12 GB box.
+              export CMAKE_BUILD_PARALLEL_LEVEL=6
               ./deps/vcpkg/bootstrap-vcpkg.sh -disableMetrics >/dev/null
               cmake --preset "$CONFIGURE_PRESET" -DDERIVED_VERSION_OVERRIDE="$VERSION_OVERRIDE"
               cmake --build --preset "$BUILD_PRESET"
