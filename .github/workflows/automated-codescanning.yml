@@ -167,11 +167,18 @@ jobs:
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:
         buildPreset: build-linux-gcc
-        # Left at 8 deliberately: this job runs on linux_runner_big (32 GB), not
-        # the 12 GB shared guests. CodeQL's extractor roughly doubles per-TU RSS,
-        # so 8 here is ~17.6 GiB - comfortable on 32 GB, impossible on 12. Do NOT
-        # lower this to match the shared-fleet cap without moving the job back.
-        buildPresetAdditionalArgs: "['--parallel', '8']"
+        # Parallelism has to track the runner this job ACTUALLY landed on, because
+        # linux_runner_big falls back to ubuntu-latest whenever the (single) big
+        # Linux runner is unavailable — and on a PUBLIC repo that is 4 vCPU / 16 GB.
+        # CodeQL's extractor wraps every compile and roughly doubles per-TU RSS
+        # (~2.2 GiB), so:
+        #     big (32 GB): 8 x 2.2 = ~17.6 GiB   comfortable
+        #     hosted (16 GB): 8 x 2.2 = ~17.6 GiB   OOM
+        # A fixed 8 is also WORSE than leaving this unset on the fallback path:
+        # Ninja's own default there is nproc+2 = 6. That configuration has already
+        # killed this job twice on hosted (at 108 min, object 721/762, and at
+        # 2h33m). 4 on the fallback is ~8.8 GiB, which fits with room.
+        buildPresetAdditionalArgs: "['--parallel', '${{ contains(needs.check-runners.outputs.linux_runner_big, 'big') && '8' || '4' }}']"
       env:
         VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
 

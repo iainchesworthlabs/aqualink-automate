@@ -388,10 +388,27 @@ including its in-container package build, `fuzzing.yml`, and the coverage builds
 untouched, so developer machines keep Ninja's default. The variable is set to the empty
 string on non-Linux legs, which CMake documents as "use the native tool's default".
 
-One deliberate exception: `CodeScanning_CodeQL` keeps `--parallel 8`, because it runs on
-`linux_runner_big` (32 GB). CodeQL's extractor roughly doubles per-TU RSS, so 8 there is
-~17.6 GiB — comfortable on 32 GB and impossible on 12. Do not "align" it to 6 without
-also moving the job off the big runner.
+`CodeScanning_CodeQL` is the one leg whose parallelism is **conditional**, because it must
+track the runner it actually landed on:
+
+```yaml
+--parallel ${{ contains(needs.check-runners.outputs.linux_runner_big, 'big') && '8' || '4' }}
+```
+
+`linux_runner_big` falls back to `ubuntu-latest` whenever the *single* big Linux runner is
+unavailable, and on a public repo that is 4 vCPU / **16 GB**. CodeQL's extractor wraps every
+compile and roughly doubles per-TU RSS (~2.2 GiB), so a fixed `8` is ~17.6 GiB — comfortable
+on the big runner's 32 GB and an OOM on the hosted fallback. Worse, a fixed `8` is *higher*
+than the `nproc + 2 = 6` Ninja would have chosen there unaided, so hardcoding it made the
+fallback path strictly worse than leaving it unset. That configuration already killed this
+job twice on hosted (108 min at object 721/762, and 2h33m). `4` on the fallback is ~8.8 GiB.
+
+`CodeScanning_MSVCCodeAnalysis` needs no equivalent: it sets no explicit parallelism at all,
+so it self-corrects to `nproc + 2` on whichever runner it lands on.
+
+The general rule the conditional encodes: **an explicit `--parallel` must be justified
+against every runner the job can resolve to, not just the intended one.** Where that is
+awkward, leaving it unset is safer, because Ninja's default already tracks the hardware.
 
 ### Repository variables
 
