@@ -382,9 +382,11 @@ CodeQL `c-cpp` has been killed mid-build.
 | `RUNNER_LINUX_ARM` | JSON label array, e.g. `["self-hosted","linux","arm64"]` | The arm64 Linux row of `_build.yml` only — unaffected by `check-runners`. Falls back to the GitHub-hosted `ubuntu-24.04-arm` (free for public repos). |
 
 `RUNNER_LINUX` / `RUNNER_WINDOWS` (the old static label-array variables) are retired —
-the exact self-hosted labels (`self-hosted, Linux, X64` / `self-hosted, Windows, X64`, plus
-the `big` variants) are now hardcoded inside `_check-runners.yml`, since they must match what
-the `ci-runners` fleet actually registers with.
+the exact self-hosted labels (`self-hosted, Linux, X64, shared` /
+`self-hosted, Windows, X64, shared`, plus the `big` variants) are now hardcoded inside
+`_check-runners.yml`, since they must match what the `ci-runners` fleet actually registers
+with. The `shared` label exists so an ordinary leg cannot be scheduled onto the big pair —
+`runs-on` matches any runner whose labels are a superset and has no NOT operator.
 
 ### Repository secret
 

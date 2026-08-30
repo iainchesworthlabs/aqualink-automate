@@ -52,9 +52,11 @@ Per OS, in order:
 
    Either check finding at least one runner that is `online`, not `busy`, and labelled with
    both `self-hosted` and the right OS (`Linux` or `Windows`) selects the self-hosted label
-   set (`self-hosted, Linux, X64` / `self-hosted, Windows, X64` — the exact labels the
-   `ci-runners` fleet registers with). The `_big` outputs run the same three steps against a
-   stricter label set and a looser liveness test — see below. Finding nothing, or the API call itself failing for
+   set (`self-hosted, Linux, X64, shared` / `self-hosted, Windows, X64, shared` — the exact
+   labels the `ci-runners` fleet registers with). The `shared` label is what keeps an ordinary
+   leg off the big pair, which carries `big` instead; see
+   [The `big` pair](#the-big-pair-heavy-legs-only). The `_big` outputs run the same three
+   steps against a stricter label set and a looser liveness test — see below. Finding nothing, or the API call itself failing for
    any reason, falls back to GitHub-hosted (`ubuntu-latest` / `windows-latest`) — this check
    being unavailable is never a reason to block CI.
 
@@ -123,10 +125,12 @@ check host capacity first, as `esxi-00` is CPU-saturated under load.
 
 ### Two known sharp edges
 
-- **A `big` runner also satisfies the plain array.** It carries `self-hosted, Linux, X64` as
-  well as `big`, so an ordinary self-hosted leg can be scheduled onto it and block the heavy
-  leg that actually needs it. This is why the sub-3-minute legs are better left on
-  GitHub-hosted than pointed at the shared fleet while `RUNNER_*_MODE` is `auto`.
+- **~~A `big` runner also satisfies the plain array.~~ Fixed in `ci-runners`.** It carries
+  `self-hosted, Linux, X64` as well as `big`, so an ordinary leg asking for the bare array was
+  eligible for it — the probe counted 9 Linux runners, not 8. Under saturation that is worse
+  than a delay: the big runner gets taken by ordinary work *and* the heavy leg's probe then
+  falls back to GitHub-hosted, losing the big runner exactly when it was needed. The shared
+  fleet now carries a `shared` label the big pair does not, and the ordinary outputs name it.
 - **The vcpkg cache is never pruned.** `_build.yml`'s self-hosted `Clean workspace` step does
   `rm -rf build install` and does not touch `deps/vcpkg`; `buildtrees` + `downloads` +
   `packages` grow monotonically (measured at 6.2 GB, with OpenSSL's buildtree alone ~1.0 GB

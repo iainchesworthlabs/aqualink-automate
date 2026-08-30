@@ -79,8 +79,16 @@ jobs:
           set -uo pipefail
           HOSTED_LINUX='["ubuntu-latest"]'
           HOSTED_WINDOWS='["windows-latest"]'
-          SELF_LINUX='["self-hosted","Linux","X64"]'
-          SELF_WINDOWS='["self-hosted","Windows","X64"]'
+          # The shared fleet carries a `shared` label the big pair does not. Naming
+          # it is what keeps ordinary work OFF the big runners: GitHub matches a
+          # job to any runner whose labels are a SUPERSET of runs-on and there is
+          # no NOT operator, so a bare ["self-hosted","Linux","X64"] also matched
+          # tf-gh-big-linux-runner-01 (the probe counted 9 Linux runners, not 8).
+          # Under saturation that is worse than a delay: the big runner gets taken
+          # by ordinary work AND the heavy leg's probe then falls back to
+          # GitHub-hosted, losing the big runner exactly when it was needed.
+          SELF_LINUX='["self-hosted","Linux","X64","shared"]'
+          SELF_WINDOWS='["self-hosted","Windows","X64","shared"]'
           # The "big" pair - tf-gh-big-{linux,windows}-runner-01, in the
           # aqualink-only "Labs CI Big Runners" group - carries an extra `big`
           # label on top of the usual set (8 vCPU / 32 GB Linux, 8 vCPU / 24 GB
@@ -151,8 +159,15 @@ jobs:
             printf '%s' "$hosted"
           }
 
-          linux_runner="$(decide_for_os "$LINUX_MODE" "Linux" "$HOSTED_LINUX" "$SELF_LINUX")"
-          windows_runner="$(decide_for_os "$WINDOWS_MODE" "Windows" "$HOSTED_WINDOWS" "$SELF_WINDOWS")"
+          # INVARIANT: the probe must ask for the EXACT label set the job will
+          # demand. The extra_label argument here has to match the extra label in
+          # the corresponding SELF_* array, or availability becomes advisory
+          # rather than actual — e.g. probing for self-hosted+Linux while the job
+          # demands ...+shared would let an idle BIG runner be read as shared-fleet
+          # capacity, resolve to self-hosted, and then queue instead of falling
+          # back to hosted. That degrades quietly, which is worse than failing.
+          linux_runner="$(decide_for_os "$LINUX_MODE" "Linux" "$HOSTED_LINUX" "$SELF_LINUX" "shared")"
+          windows_runner="$(decide_for_os "$WINDOWS_MODE" "Windows" "$HOSTED_WINDOWS" "$SELF_WINDOWS" "shared")"
           linux_runner_big="$(decide_for_os "$LINUX_MODE" "Linux" "$HOSTED_LINUX" "$SELF_LINUX_BIG" "big" "online")"
           windows_runner_big="$(decide_for_os "$WINDOWS_MODE" "Windows" "$HOSTED_WINDOWS" "$SELF_WINDOWS_BIG" "big" "online")"
           {
