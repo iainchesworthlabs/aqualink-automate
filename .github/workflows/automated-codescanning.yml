@@ -332,6 +332,12 @@ jobs:
           sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
         fi
 
+    # gcovr must be on PATH BEFORE this configure: the coverage preset makes
+    # test/CMakeLists.txt call setup_target_for_coverage_gcovr_*, which
+    # FATAL_ERRORs at configure time if gcovr is missing. Baked into the
+    # self-hosted image, absent on stock GitHub-hosted runners.
+    - uses: ./.github/actions/ensure-gcovr
+
     # The coverage preset turns ENABLE_COVERAGE on, which appends `--coverage
     # -fprofile-abs-path` to EVERY target (root CMakeLists). So the app target is
     # instrumented exactly like the unit build; -fprofile-abs-path bakes ABSOLUTE
@@ -508,20 +514,6 @@ jobs:
         AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
         AQUALINK_PREFERENCES_FILE: ${{ runner.temp }}/e2e-preferences.json
 
-    # gcovr may already be baked into the self-hosted image (the unit-coverage
-    # CMake target needs it); install it as a fallback for a stock runner.
-    - name: Ensure gcovr is available
-      if: ${{ !cancelled() }}
-      shell: bash
-      run: |
-        if ! command -v gcovr >/dev/null 2>&1; then
-          python3 -m pip install --user --break-system-packages gcovr \
-            || python3 -m pip install --user gcovr
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/.local/bin:$PATH"
-        fi
-        gcovr --version
-
     # Reduce the .gcda counters to a SonarQube generic coverage report, mirroring
     # the unit target's gcovr invocation (test/CMakeLists.txt) so file paths
     # resolve to `src/...` against the same root and Sonar can merge the two. Run
@@ -634,6 +626,12 @@ jobs:
           sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
           sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
         fi
+
+    # gcovr must be on PATH BEFORE this configure: the coverage preset makes
+    # test/CMakeLists.txt call setup_target_for_coverage_gcovr_*, which
+    # FATAL_ERRORs at configure time if gcovr is missing. Baked into the
+    # self-hosted image, absent on stock GitHub-hosted runners.
+    - uses: ./.github/actions/ensure-gcovr
 
     - name: Configure
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
