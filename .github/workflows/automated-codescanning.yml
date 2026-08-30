@@ -83,7 +83,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner_big) }}
     timeout-minutes: 360
     permissions:
       actions: read
@@ -100,7 +100,7 @@ jobs:
     # root-owned files the unprivileged runner cannot delete; reset ownership via a
     # throwaway ROOT container -- NOT host sudo -- then drop the stale build trees.
     - name: Clean workspace (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
@@ -113,7 +113,7 @@ jobs:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted') }}
       with:
         compiler: gcc-15
 
@@ -123,7 +123,7 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted')
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
         DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
@@ -132,7 +132,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted') }}
       with:
         cache-key-prefix: CodeQL
 
@@ -698,7 +698,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(needs.check-runners.outputs.windows_runner) }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.windows_runner_big) }}
     permissions:
       actions: read
       contents: read
@@ -708,7 +708,7 @@ jobs:
     # root-owned-file recovery only applies to Linux self-hosted runners; on Windows
     # the plain rm suffices, so the guarded branch is a no-op here.)
     - name: Clean workspace (self-hosted)
-      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
@@ -721,18 +721,18 @@ jobs:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(needs.check-runners.outputs.windows_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted') }}
       with:
         compiler: msvc
 
     # Pure-PowerShell local composite (no Node) — replaces ilammy/msvc-dev-cmd,
     # which only ships a deprecated Node 20 runtime.
     - name: Setup MSVC environment (self-hosted)
-      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted')
       uses: ./.github/actions/setup-msvc-env
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted')
       shell: bash
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
@@ -747,7 +747,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(needs.check-runners.outputs.windows_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted') }}
       with:
         cache-key-prefix: MSVCAnalysis
 
