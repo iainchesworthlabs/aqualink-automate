@@ -404,9 +404,27 @@ as a list separator — the same channel already carries `"CMAKE_CONFIGURATION_T
 enforces all three parts: the option is present on `core`, every concrete preset still
 inherits `core`, and no workflow passes it via `-D`.
 
-**Scope:** this stops *future* growth on any job that reconfigures. It does not reclaim
-what has already accumulated on the runner volumes — that needs a prune on the runner
-supervisor's recycle, which lives in `iainchesworthlabs/ci-runners`, not here.
+**Reclaiming what already accumulated.** The `cacheVariable` only prevents *future* growth,
+and the volumes were already full. Every self-hosted `Clean workspace` step therefore also
+does:
+
+```bash
+rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
+```
+
+`deps/vcpkg` persists between jobs on a self-hosted runner — that is why the clean step
+exists at all — so those two directories carry residue from every previous run. Both are
+pure intermediates: the binary cache lives in `$HOME/.cache/vcpkg/archives` and is
+untouched, so ports still restore from cache rather than rebuilding. `downloads/` is
+deliberately **not** pruned — on self-hosted it is redirected to the size-capped persistent
+cache, so clearing it would force re-downloads for no disk win.
+
+This is self-healing across the fleet: a job reclaims whichever host it lands on, so all
+runners get cleaned as work naturally distributes, with no fleet-side operation and no
+manual intervention.
+
+**Still out of scope:** a prune on the runner supervisor's *recycle* would reclaim even on
+runners this repo never schedules onto. That lives in `iainchesworthlabs/ci-runners`.
 
 ### Build parallelism on the shared Linux fleet
 
