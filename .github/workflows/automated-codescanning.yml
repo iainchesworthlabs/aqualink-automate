@@ -357,6 +357,7 @@ jobs:
     # and its instrumented dependency libraries, nothing more. No reconfigure
     # happens (Configure just ran), so vcpkg is not re-invoked here.
     - name: Build instrumented app
+      id: build_app
       shell: bash
       run: |
         cmake --build "${{ github.workspace }}/build/config-linux-gcc-coverage" \
@@ -519,7 +520,7 @@ jobs:
     # resolve to `src/...` against the same root and Sonar can merge the two. Run
     # even if a spec failed above, so partial e2e coverage is still captured.
     - name: Generate e2e coverage report (gcovr)
-      if: ${{ !cancelled() }}
+      if: ${{ !cancelled() && steps.build_app.outcome == 'success' }}
       shell: bash
       run: |
         gcovr --sonarqube "${{ github.workspace }}/coverage-e2e.xml" \
@@ -534,7 +535,7 @@ jobs:
         echo "Generated coverage-e2e.xml ($(wc -c < "${{ github.workspace }}/coverage-e2e.xml") bytes)."
 
     - name: Upload e2e coverage report
-      if: ${{ !cancelled() }}
+      if: ${{ !cancelled() && steps.build_app.outcome == 'success' }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: e2e-coverage-xml
@@ -664,9 +665,18 @@ jobs:
       run: |
         UNIT="${{ github.workspace }}/build/config-linux-gcc-coverage/coverage-testaqualink-automate.xml"
         E2E="${{ github.workspace }}/e2e-coverage/coverage-e2e.xml"
-        if [ -f "$E2E" ]; then
+        # Test for CONTENT, not existence. gcovr over an empty build tree still
+        # writes a well-formed but empty report (`<coverage version="1"/>`, 62
+        # bytes), and an existence check takes the merge branch on it — silently
+        # halving coverage with no warning, which reads as "the new code is
+        # undertested" rather than "the e2e half never ran". A real report has at
+        # least one <file> element.
+        if [ -f "$E2E" ] && grep -q "<file " "$E2E"; then
           echo "COVERAGE_REPORTS=${UNIT},${E2E}" >> "$GITHUB_ENV"
           echo "Merging unit + e2e coverage reports into the scan."
+        elif [ -f "$E2E" ]; then
+          echo "COVERAGE_REPORTS=${UNIT}" >> "$GITHUB_ENV"
+          echo "::warning::e2e coverage report is present but EMPTY (no <file> entries); scanning with unit coverage only."
         else
           echo "COVERAGE_REPORTS=${UNIT}" >> "$GITHUB_ENV"
           echo "::warning::e2e coverage report not found; scanning with unit coverage only."
