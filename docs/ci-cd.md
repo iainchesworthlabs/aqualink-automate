@@ -465,6 +465,24 @@ job twice on hosted (108 min at object 721/762, and 2h33m). `4` on the fallback 
 `CodeScanning_MSVCCodeAnalysis` needs no equivalent: it sets no explicit parallelism at all,
 so it self-corrects to `nproc + 2` on whichever runner it lands on.
 
+**Inside the Docker build, the cap has to be passed in.** `Dockerfile`'s own
+`cmake --build --preset build-linux-gcc` never sees a workflow-level environment
+variable, so it ran at `nproc + 2 = 10` on the 12 GB guests and OOM-killed the runner —
+observed **deterministically at object 721/762** (`integration_test_scenarios.cpp`) on two
+different hosts, which is what distinguishes it from per-host disk exhaustion. The
+Dockerfile therefore takes `ARG CMAKE_BUILD_PARALLEL_LEVEL=""` (empty = the native tool's
+default, so local builds are unaffected) and every caller that builds the `ci` stage passes
+it:
+
+| Call site | Target | Why |
+|---|---|---|
+| `ci.yml` *Build CI target* | `ci` | the build that OOM'd |
+| `ci.yml` *Build runtime target* | `runtime` | `COPY --from=ci` — **must match the value above**, or it misses the layer cache just populated *and* rebuilds the `ci` stage uncapped |
+| `release.yml` *Docker Publish* | `runtime-assembled` | also `COPY --from=ci` |
+
+The HA add-on build in `release.yml` uses a different Dockerfile and does not build the C++
+stage, so it needs nothing.
+
 The general rule the conditional encodes: **an explicit `--parallel` must be justified
 against every runner the job can resolve to, not just the intended one.** Where that is
 awkward, leaving it unset is safer, because Ninja's default already tracks the hardware.

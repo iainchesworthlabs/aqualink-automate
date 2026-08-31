@@ -419,7 +419,15 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           retry_on: error
-          command: docker buildx build --target ci .
+          # Cap Ninja inside the container on the 12 GB self-hosted guests: the
+          # Dockerfile's own `cmake --build` never saw the workflow-level
+          # CMAKE_BUILD_PARALLEL_LEVEL, so it ran at nproc+2 = 10 and OOM-killed the
+          # runner at object 721/762 on two separate hosts. Empty on GitHub-hosted,
+          # where Ninja's default is already 6.
+          command: >-
+            docker buildx build --target ci
+            --build-arg CMAKE_BUILD_PARALLEL_LEVEL=${{ contains(needs.check-runners.outputs.linux_runner, 'self-hosted') && '6' || '' }}
+            .
 
       - name: Build runtime target
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
@@ -429,7 +437,13 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           retry_on: error
-          command: docker buildx build --target runtime --load --tag aqualink-automate:verify .
+          # Same --build-arg as the ci target above, and it MUST match: `runtime`
+          # does COPY --from=ci, so a differing build arg would both miss the layer
+          # cache just populated and rebuild the ci stage uncapped.
+          command: >-
+            docker buildx build --target runtime --load --tag aqualink-automate:verify
+            --build-arg CMAKE_BUILD_PARALLEL_LEVEL=${{ contains(needs.check-runners.outputs.linux_runner, 'self-hosted') && '6' || '' }}
+            .
 
       # The runtime image now bundles the Matter sidecar (built by the matter-builder
       # stage). The --version smoke test exercises the app via the supervising
