@@ -16,6 +16,7 @@
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+        "VCPKG_INSTALL_OPTIONS": "--clean-buildtrees-after-build;--clean-packages-after-build",
         "ENABLE_BENCHMARKS": "ON",
         "ENABLE_COVERAGE": "OFF",
         "ENABLE_TESTS": "ON",

@@ -287,7 +287,11 @@ jobs:
           retry_wait_seconds: 30
           retry_on: error
           command: |
+            # runtime-assembled does COPY --from=ci, so this builds the C++ stage
+            # too. Cap Ninja on the 12 GB self-hosted guests for the same reason
+            # ci.yml does -- see docs/ci-cd.md.
             cmd=(docker buildx build --target runtime-assembled --platform linux/amd64,linux/arm64 --push --metadata-file "$RUNNER_TEMP/docker-meta.json")
+            cmd+=(--build-arg "CMAKE_BUILD_PARALLEL_LEVEL=${{ contains(needs.check-runners.outputs.linux_runner, 'self-hosted') && '6' || '' }}")
             while IFS= read -r tag;   do [ -n "$tag" ]   && cmd+=(--tag   "$tag");   done <<< "${IMAGE_TAGS}"
             while IFS= read -r label; do [ -n "$label" ] && cmd+=(--label "$label"); done <<< "${IMAGE_LABELS}"
             cmd+=(.)

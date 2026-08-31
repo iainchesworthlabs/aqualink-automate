@@ -135,7 +135,18 @@ RUN --mount=type=cache,target=/ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
 # Build
+#
+# CMAKE_BUILD_PARALLEL_LEVEL is an ARG so the CALLER decides, because the limit
+# is a property of the build host, not of this image. Ninja defaults to nproc+2,
+# and on the 8-vCPU / 12 GB self-hosted runners that is -j10 against ~1.09 GiB
+# per cc1plus -- which OOMs and kills the runner agent. Observed determinis-
+# tically at object 721/762 (integration_test_scenarios.cpp) on two different
+# hosts. Empty is the default, and CMake documents that as "use the native build
+# tool's default", so a developer building locally is unaffected.
+# See docs/ci-cd.md.
+ARG CMAKE_BUILD_PARALLEL_LEVEL=""
 RUN --mount=type=cache,target=/ccache \
+    CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL}" \
     cmake --build --preset build-linux-gcc
 
 # Test

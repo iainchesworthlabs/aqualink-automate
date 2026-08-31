@@ -28,6 +28,7 @@ The table below is the complete inventory of everything under `.github/` — the
 | `.github/actions/setup-cpp-toolchain` | Composite action | Install the platform-appropriate compiler and build tools. |
 | `.github/actions/setup-vcpkg-cache` | Composite action | Configure and restore the OS-keyed vcpkg binary cache. |
 | `.github/actions/setup-msvc-env` | Composite action | Load the MSVC environment on self-hosted Windows runners (sources `vcvars64.bat`, exports the env delta to `$GITHUB_ENV`). |
+| `scripts/check-vcpkg-cleanup.ps1` | Guard-rail script (CI job *vcpkg Disk Hygiene*) | Fails if `VCPKG_INSTALL_OPTIONS` is missing from the `core` preset, if a concrete preset stops inheriting `core`, or if a workflow re-introduces the option as a `-D` argument. See [vcpkg disk hygiene](#vcpkg-disk-hygiene). |
 | `.github/actions/ensure-gcovr` | Composite action | Put `gcovr` on `PATH`, installing it only if the runner image lacks it. Must run **before** any coverage-preset CMake configure: `ENABLE_COVERAGE` makes `test/CMakeLists.txt` call `setup_target_for_coverage_gcovr_*`, and `CodeCoverage.cmake` raises `FATAL_ERROR "gcovr not found!"` at *configure* time, not at report time. |
 
 `ci.yml` and `release.yml` share one build definition (`_build.yml`), so the suites that run on a PR and the suites that gate a release can never drift.
@@ -367,6 +368,64 @@ org-level via `ORG_RUNNERS_TOKEN`), the `big` routing arithmetic and its two kno
 edges are documented in
 [ci-self-hosted-runners.md](ci-self-hosted-runners.md) — this section is the short summary.
 
+### vcpkg disk hygiene
+
+vcpkg keeps `deps/vcpkg/buildtrees` and `deps/vcpkg/packages` after every port build,
+and nothing prunes them — `_build.yml`'s self-hosted `Clean workspace` step does
+`rm -rf build install` and deliberately leaves `deps/vcpkg` alone. On a persistent
+runner they therefore grow monotonically (~6.2 GB measured; OpenSSL's buildtree alone
+~1.0 GB, `boost-test` next at 425 MB), until a build dies:
+
+```
+ld.bfd: final link failed: No space left on device            # Linux, at [723/726]
+fatal error C1085: Cannot write compiler generated file ...   # MSVC
+  : No space left on device
+```
+
+Note the Linux case: all 726 objects compiled and it died at the **link** — so this is
+disk, not the memory pressure described above.
+
+The `core` preset therefore sets:
+
+```json
+"VCPKG_INSTALL_OPTIONS": "--clean-buildtrees-after-build;--clean-packages-after-build"
+```
+
+**It must be a preset `cacheVariable`, never a `-D` argument.** `VCPKG_INSTALL_OPTIONS`
+is a CMake *list*, so its elements are `;`-separated. Passing `-DVCPKG_INSTALL_OPTIONS=a;b`
+through `lukka/run-cmake`'s `configurePresetAdditionalArgs` fails, because that action
+invokes cmake via a shell, which splits on `;` — macOS/Windows Configure died at exit 127
+with `/bin/sh: --clean-packages-after-build: command not found`. That is exactly how an
+earlier attempt was reverted. A `cacheVariable` never reaches a shell, so the `;` survives
+as a list separator — the same channel already carries `"CMAKE_CONFIGURATION_TYPES":
+"Debug;Release"` without trouble.
+
+`scripts/check-vcpkg-cleanup.ps1` (CI job **vcpkg Disk Hygiene**, gated by `CI Status`)
+enforces all three parts: the option is present on `core`, every concrete preset still
+inherits `core`, and no workflow passes it via `-D`.
+
+**Reclaiming what already accumulated.** The `cacheVariable` only prevents *future* growth,
+and the volumes were already full. Every self-hosted `Clean workspace` step therefore also
+does:
+
+```bash
+rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
+```
+
+`deps/vcpkg` persists between jobs on a self-hosted runner — that is why the clean step
+exists at all — so those two directories carry residue from every previous run. Both are
+pure intermediates: the binary cache lives in `$HOME/.cache/vcpkg/archives` and is
+untouched, so ports still restore from cache rather than rebuilding. `downloads/` is
+deliberately **not** pruned — on self-hosted it is redirected to the size-capped persistent
+cache, so clearing it would force re-downloads for no disk win.
+
+This is self-healing across the fleet: a job reclaims whichever host it lands on, so all
+runners get cleaned as work naturally distributes, with no fleet-side operation and no
+manual intervention.
+
+**Still out of scope:** a prune on the runner supervisor's *recycle* would reclaim even on
+runners this repo never schedules onto. That lives in `iainchesworthlabs/ci-runners`.
+
 ### Build parallelism on the shared Linux fleet
 
 Ninja defaults to `nproc + 2` and no preset in `CMakePresets.json` sets `jobs`, so an
@@ -405,6 +464,24 @@ job twice on hosted (108 min at object 721/762, and 2h33m). `4` on the fallback 
 
 `CodeScanning_MSVCCodeAnalysis` needs no equivalent: it sets no explicit parallelism at all,
 so it self-corrects to `nproc + 2` on whichever runner it lands on.
+
+**Inside the Docker build, the cap has to be passed in.** `Dockerfile`'s own
+`cmake --build --preset build-linux-gcc` never sees a workflow-level environment
+variable, so it ran at `nproc + 2 = 10` on the 12 GB guests and OOM-killed the runner —
+observed **deterministically at object 721/762** (`integration_test_scenarios.cpp`) on two
+different hosts, which is what distinguishes it from per-host disk exhaustion. The
+Dockerfile therefore takes `ARG CMAKE_BUILD_PARALLEL_LEVEL=""` (empty = the native tool's
+default, so local builds are unaffected) and every caller that builds the `ci` stage passes
+it:
+
+| Call site | Target | Why |
+|---|---|---|
+| `ci.yml` *Build CI target* | `ci` | the build that OOM'd |
+| `ci.yml` *Build runtime target* | `runtime` | `COPY --from=ci` — **must match the value above**, or it misses the layer cache just populated *and* rebuilds the `ci` stage uncapped |
+| `release.yml` *Docker Publish* | `runtime-assembled` | also `COPY --from=ci` |
+
+The HA add-on build in `release.yml` uses a different Dockerfile and does not build the C++
+stage, so it needs nothing.
 
 The general rule the conditional encodes: **an explicit `--parallel` must be justified
 against every runner the job can resolve to, not just the intended one.** Where that is
