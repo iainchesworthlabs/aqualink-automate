@@ -585,7 +585,7 @@ jobs:
     # artifact. !cancelled() (rather than the implicit success()) keeps the scan
     # running even if the e2e job FAILED — the assemble step below then falls back
     # to unit-only coverage, so a flaky e2e never drops the whole quality gate.
-    needs: [check-runners, CodeScanning_E2ECoverage]
+    needs: [CodeScanning_E2ECoverage]
     # Skip a develop->main promotion PR (already scanned on develop entry).
     # AND gate out fork PRs from the persistent self-hosted runners (untrusted code
     # on a long-lived host; SonarCloud also needs SONAR_TOKEN, withheld from forks).
@@ -596,58 +596,42 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
+    # Pinned to GitHub-hosted, NOT routed via check-runners.
+    #
+    # SonarCloud's CFamily analyzer footprint scales with the size of the changeset
+    # it has to analyse, and it does not fit the 12 GB shared guests on a large one:
+    #
+    #     ~7 files   tf-gh-linux-runner-01  12 GB  OK   36 min
+    #     ~8 files   tf-gh-linux-runner-01  12 GB  OK   39 min
+    #     41 files   ubuntu-latest          16 GB  OK   77 min
+    #     71 files   tf-gh-linux-runner-05  12 GB  DIED 48 min (shutdown mid-scan)
+    #
+    # 16 GB is demonstrably enough and 12 GB is not, so hosted is the smallest shape
+    # that works. Deliberately NOT routed to linux_runner_big: this job has never
+    # needed 32 GB, and `big` is one machine per OS that CodeQL already occupies for
+    # ~100 min per run -- serialising the scan behind it would push Code Scanning's
+    # Linux path from ~96 min to ~140+ to buy headroom hosted already provides.
+    #
+    # Costs nothing from the fleet, and leaves `big` for the one leg that genuinely
+    # cannot complete anywhere else. See docs/ci-cd.md.
+    runs-on: ubuntu-latest
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
 
     steps:
-    # BEFORE checkout so a dirty tree cannot fail actions/checkout's git-clean. A
-    # prior RELEASE built inside a root gcc container (_build.yml) can leave
-    # root-owned files the unprivileged runner cannot delete; reset ownership via a
-    # throwaway ROOT container -- NOT host sudo -- then drop the stale build trees.
-    - name: Clean workspace (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
-      shell: bash
-      run: |
-        if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
-          docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
-        fi
-        rm -rf build install
-        # Reclaim what VCPKG_INSTALL_OPTIONS can only prevent going forward.
-        # deps/vcpkg persists between jobs on a self-hosted runner (that is why
-        # this step exists at all), so buildtrees/ and packages/ accumulate from
-        # EVERY previous run until a build dies with 'No space left on device'.
-        # Both are pure intermediates -- the binary cache lives in
-        # $HOME/.cache/vcpkg/archives and is untouched, so ports still restore
-        # from cache rather than rebuilding. downloads/ is deliberately NOT
-        # pruned: on self-hosted it is redirected to the size-capped persistent
-        # cache, and clearing it would force re-downloads for no disk win.
-        rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
-
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         compiler: gcc-15
 
     - name: Install build-wrapper
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8
 
-    - name: Setup vcpkg cache (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
-      run: |
-        BINARY_DIR="$HOME/.cache/vcpkg/archives"
-        DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
-        mkdir -p "$BINARY_DIR" "$DOWNLOADS_DIR"
-        echo "VCPKG_DEFAULT_BINARY_CACHE=$BINARY_DIR" >> "$GITHUB_ENV"
-        echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
-
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         cache-key-prefix: SonarCloud
 

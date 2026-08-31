@@ -245,7 +245,7 @@ Both triggers carry a docs `paths-ignore` (`docs/**`, `**/*.md`, `mkdocs.yml`, `
 | `CodeScanning_CodeQL` | Linux (**`big`**) | CodeQL (`c-cpp`). Runs its own full build, filters the SARIF to `src/**`, and uploads to the Security tab. Routed to `linux_runner_big`: CodeQL instrumentation plus a full C++ build has twice been killed mid-build on a GitHub-hosted runner (at 108 min and at 2h33m). |
 | `CodeScanning_CodeQL_JS` | Linux (GitHub-hosted) | CodeQL (`javascript-typescript`, `build-mode: none`) for the Alpine.js web UI (`assets/web/scripts`, `sw.js`) and the TypeScript Matter sidecar (`matter-bridge/src`). No compile, so it runs on `ubuntu-latest` (not the self-hosted C++ fleet); `.github/codeql/codeql-config-js.yml` scopes it to first-party source (vendored/minified libraries and `i18n/` data excluded). |
 | `CodeScanning_E2ECoverage` | Linux | Builds a gcov-instrumented `aqualink-automate` (`config-linux-gcc-coverage`), drives the full Playwright mode sweep against it (see below), and `gcovr`s the `.gcda` into a SonarQube coverage report (`coverage-e2e.xml`) uploaded as the `e2e-coverage-xml` artifact. |
-| `CodeScanning_SonarCloud` | Linux | SonarCloud via build-wrapper over a coverage build (`config-linux-gcc-coverage`, `-DUSE_SONARQUBE=ON`). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with **both** (`sonar.coverageReportPaths` comma-separated; Sonar merges line coverage). |
+| `CodeScanning_SonarCloud` | Linux (**GitHub-hosted, pinned**) | SonarCloud via build-wrapper over a coverage build (`config-linux-gcc-coverage`, `-DUSE_SONARQUBE=ON`). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with **both** (`sonar.coverageReportPaths` comma-separated; Sonar merges line coverage). |
 | `CodeScanning_MSVCCodeAnalysis` | Windows (**`big`**) | MSVC code analysis (`NativeRecommendedRules.ruleset`) over the `config-windows-msvc` build; uploads SARIF. Routed to `windows_runner_big`: at ~140 min it is the longest job in CI (so it sets the critical path) and it filled the shared 16 GB `D:`. |
 
 Each job has the same skip condition: it does not run for a `develop` -> `main` promotion PR, because that code was already scanned when it entered `develop`. Re-scanning the promotion is pure duplication.
@@ -425,6 +425,63 @@ manual intervention.
 
 **Still out of scope:** a prune on the runner supervisor's *recycle* would reclaim even on
 runners this repo never schedules onto. That lives in `iainchesworthlabs/ci-runners`.
+
+### Why SonarCloud is pinned to GitHub-hosted
+
+`CodeScanning_SonarCloud` does **not** go through `check-runners`. It exhausts the shared
+Linux guests during the scan phase, and the failure names its own axis:
+
+```
+##[error]Action failed: ENOSPC: no space left on device, write
+```
+
+**Disk, not memory** — an earlier reading of this attributed it to the CFamily analyzer's
+memory footprint scaling with changeset size. That was wrong; the log is explicit.
+
+The controlled comparison holds the changeset constant and varies only the runner (same PR,
+41 files, same workflow):
+
+| Runner | Result |
+|---|---|
+| `ubuntu-latest` | ✅ 77 min |
+| `tf-gh-linux-runner-08` (shared) | ❌ 33 min — `ENOSPC` during the scan |
+
+Critically, that failing run **already contained the vcpkg reclaim**, so this is not residual
+accumulation. Confirmed step-by-step on a 12 GB shared guest:
+
+```
+[success] Clean workspace (self-hosted)   <- the reclaim ran
+[success] Configure
+[success] Build with build-wrapper        <- completed, reached [724/725]
+[failure] Run SonarCloud scan             <- ENOSPC
+```
+
+**This is a peak-demand problem, not a growth problem, and that distinction is why more
+reclaiming cannot fix it.** The reclaim runs at the *start* of a job. SonarCloud's peak disk
+demand is at the *end*: build-wrapper's output, `compile_commands.json`, `.scannerwork` and the
+analysis cache all land after the reclaim has already happened. Freeing `buildtrees` up front
+does not help a stage that fills the volume later — and that is true of *any* reclaim-once-up-front
+approach, not just this one. The prune in `#162` stops the cache growing *across* runs, which is
+real and still needed; this is a different constraint that the same volume cannot satisfy
+*within* one run. The shared guests' 18 GB data volume is shared with the
+size-capped persistent caches (ccache, vcpkg archives, vcpkg downloads), so the working space
+actually available to a job is materially less than the raw figure, and less than a hosted
+runner's dedicated disk. The precise breakdown has not been measured.
+
+**Deliberately not routed to `linux_runner_big`.** The reflex is to send it after
+`CodeScanning_CodeQL`, but `big` is one machine per OS that CodeQL already occupies for
+~100 min per run; serialising the scan behind it would push Code Scanning's Linux path from
+~96 min to ~140+. Hosted already works, costs nothing from the fleet, and leaves `big` for the
+one leg that completes nowhere else.
+
+Note this is the *opposite* conclusion to CodeQL's, from the same kind of evidence — which is
+the point. CodeQL earns `big` because it completes **nowhere else**; SonarCloud does not,
+because a cheaper shape already works.
+
+**What this does not establish:** the largest changeset measured *successfully anywhere* is
+41 files (77 min on hosted). A 71-file changeset on hosted is untested. If that fails too,
+`big` becomes the answer after all — at which point the serialisation cost above is a known
+price rather than a reason against.
 
 ### Build parallelism on the shared Linux fleet
 
