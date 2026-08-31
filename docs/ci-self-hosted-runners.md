@@ -95,12 +95,25 @@ differences:
 
 ### Which legs go there, and why not all of them
 
-Only two jobs currently ask for `big`:
+Three jobs currently ask for `big`:
 
 | Job | Output | Why |
 |---|---|---|
 | `CodeScanning_CodeQL (c-cpp)` | `linux_runner_big` | The only leg with direct evidence it *cannot* complete on a GitHub-hosted runner: killed twice mid-build, once at 108 min (`exit 143`, at object 721 of 762) and once at 2h33m. Both are resource kills deep into a near-complete build, not flakes — a retry will not clear them. |
 | `CodeScanning_MSVCCodeAnalysis` | `windows_runner_big` | The longest job in CI at ~140 min, so it *is* the critical path; it also filled the shared 16 GB `D:`. |
+| `Build & Test / Windows MSVC` | `windows_runner_big` | Cannot reliably fit the shared 16 GB `D:`. Measured on `tf-gh-windows-runner-01` mid-job on 2026-08-31: a 10.1 GB build tree against a volume that also carries a ~2 GB cache, leaving 3.6 GB free at peak — and on 2026-08-30 `tf-gh-windows-runner-05` tipped over it with `fatal error C1085 ... No space left on device`. Nearly all of it is LTCG: `INTERPROCEDURAL_OPTIMIZATION_RELEASE` puts `/GL` on `libaqualink-{automate,jandy,pentair}`, so their objects carry intermediate language and each `.lib` archives a second copy — 4.5 GB of `.obj` plus 4.7 GB of `.lib` across just those three targets, against 0.35 GB of PDBs and 0.65 GB of `vcpkg_installed`. |
+
+> **Windows `big` is now oversubscribed, and that is the live risk to watch.** Both Windows
+> entries above queue on the *same single machine*, and one of them is the ~140 min
+> `CodeScanning_MSVCCodeAnalysis`. Because the `_big` probe accepts a *busy* runner (see
+> above), a `Build & Test / Windows MSVC` leg can now sit behind that scan rather than
+> falling back to `windows-latest` — so the Windows build gate's worst-case wait went up,
+> on every PR, in exchange for it no longer dying on a full disk. If that queue starts
+> hurting more than the disk exhaustion did, the cheaper lever is `ENABLE_IPO=OFF`
+> (`CMakeLists.txt:38`, declared before `project()` precisely so a preset can override it)
+> on the CI configure: that reclaims ~9 GB, puts the leg back on the shared fleet, and
+> costs only that PR CI stops exercising the LTCG code path. The other lever is a second
+> big Windows runner — see the count knobs below.
 
 Everything else stays where it is. That is a measured decision, not an oversight — routing
 *every* heavy leg to `big` is slower, because the big pair is one machine per OS and jobs
@@ -114,8 +127,12 @@ pointed at it serialise:
 | **Only the longest leg moved to `big`, rest parallel on hosted** | **~54–72 min** | **~80 min** |
 
 Moving everything trades parallelism for per-job speed and roughly breaks even; moving only
-the critical-path job keeps the parallelism *and* shortens the longest pole. If a second big
-runner per OS is ever provisioned (`big_linux_runner_count` / `big_windows_runner_count` in
+the critical-path job keeps the parallelism *and* shortens the longest pole. (That arithmetic
+covers the *scanning* legs only, and it still describes Linux exactly. Windows has since
+gained a second `big` tenant — `Build & Test / Windows MSVC`, routed there for disk headroom
+rather than speed — so the Windows column now understates contention; see the note above.)
+
+If a second big runner per OS is ever provisioned (`big_linux_runner_count` / `big_windows_runner_count` in
 `ci-runners`' `terraform.tfvars`), re-run this arithmetic before widening the routing —
 check host capacity first, as `esxi-00` is CPU-saturated under load.
 
