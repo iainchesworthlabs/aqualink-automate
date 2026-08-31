@@ -44,8 +44,8 @@ on:
           them — this output is what keeps a single workflow run internally consistent.
         value: ${{ jobs.check-runners.outputs.linux_runner }}
       windows_runner:
-        description: "The resolved Windows runner label set the build matrix actually used. See linux_runner's description — Windows has no equivalent cross-job artifact consumer today, but this is exposed for symmetry and any future one."
-        value: ${{ jobs.check-runners.outputs.windows_runner }}
+        description: "The resolved Windows runner label set the build matrix actually used — the BIG pair, not the shared fleet (see the Windows MSVC matrix entry for why). See linux_runner's description — Windows has no equivalent cross-job artifact consumer today, but this is exposed for symmetry and any future one, and it has to keep tracking whatever the matrix actually resolved to or it silently becomes wrong."
+        value: ${{ jobs.check-runners.outputs.windows_runner_big }}
 
 permissions:
   contents: read
@@ -101,8 +101,27 @@ jobs:
             package_preset: pack-linux-gcc-arm64
             docker_platform: linux/arm64
             installtree_name: installtree-linux-gcc-arm64
+          # Routed to the BIG Windows runner, not the shared fleet. Measured on
+          # tf-gh-windows-runner-01 mid-job (2026-08-31): this leg's build tree is
+          # 10.1 GB on a 16 GB D: that also carries a ~2 GB cache, leaving 3.6 GB
+          # free at peak — and on 2026-08-30 tf-gh-windows-runner-05 tipped over it
+          # with `fatal error C1085 ... No space left on device`. Nearly all of it is
+          # LTCG: INTERPROCEDURAL_OPTIMIZATION_RELEASE (CMakeLists.txt) puts /GL on
+          # libaqualink-{automate,jandy,pentair}, so their objects carry intermediate
+          # language and each .lib archives a second copy of it — 4.5 GB of .obj plus
+          # 4.7 GB of .lib across just those three targets, against 0.35 GB of PDBs
+          # and 0.65 GB of vcpkg_installed. The big pair's 48 GB D: absorbs that.
+          #
+          # The cost is deliberate: windows_runner_big probes for "online", not
+          # "idle" (see _check-runners.yml), so this leg QUEUES behind whatever the
+          # single big Windows runner is already doing instead of falling back to
+          # windows-latest. Concurrent PRs serialise here. That is the accepted price
+          # of NOT disabling IPO in CI — this way CI keeps validating the exact LTCG
+          # build that ships. If the queue ever hurts more than the coverage helps,
+          # the cheaper lever is ENABLE_IPO=OFF (CMakeLists.txt:38) on this preset,
+          # which reclaims ~9 GB and puts the leg back on the shared fleet.
           - name: "Windows MSVC"
-            runner: ${{ needs.check-runners.outputs.windows_runner }}
+            runner: ${{ needs.check-runners.outputs.windows_runner_big }}
             compiler: msvc
             configure_preset: config-windows-msvc
             build_preset: build-windows-msvc
