@@ -145,6 +145,20 @@ elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
     # with absolute-path install() rules.
     set(CPACK_SET_DESTDIR "ON")
 
+    # DEB/RPM historically packaged to /usr regardless of CMAKE_INSTALL_PREFIX
+    # (which defaults to /usr/local) via CPack's own implicit default for those
+    # generators. Enabling CPACK_SET_DESTDIR above appears to change whether
+    # that implicit default takes effect: the resulting .deb installed fine
+    # (dpkg accepted it, the postinst ran) but the smoke test then found
+    # `aqualink-automate: command not found` -- the binary landed somewhere
+    # not on PATH, and the systemd unit this package installs to
+    # lib/systemd/system (below) is only searched by systemd at
+    # /usr/lib/systemd/system, never /usr/local/lib/systemd/system, so this
+    # package was never designed to run under any prefix but /usr. Set it
+    # explicitly rather than continue depending on an implicit default that
+    # has now proven sensitive to unrelated CPack settings.
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+
     # The dependency libraries — including the C++ runtime above — are bundled
     # privately, so dpkg-shlibdeps must NOT try to resolve them against system
     # packages. The ONLY genuine system runtime dependency is glibc. The version
