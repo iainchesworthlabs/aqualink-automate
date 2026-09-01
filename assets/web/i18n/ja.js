@@ -68,6 +68,17 @@
         'swg_health.check_pcb': 'PCB要点検',
         'swg_health.general_fault': '一般異常',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': '生成中',
+        'swg_reason.off': 'オフ',
+        'swg_reason.pump_off': 'オン、生成なし — ろ過ポンプ停止',
+        'swg_reason.no_flow': 'オン、生成なし — 水流なし',
+        'swg_reason.fault': '生成停止 — セルを確認',
+        'swg_reason.idle': 'オン、生成なし',
+        'swg_reason.unknown': '目標値は未報告',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': '適用済み',
         'cmd.rejected': '拒否',
@@ -143,6 +154,7 @@
         'dash.swg_aria': '塩素発生器の出力と目標値の制御',
         'dash.target': '目標',
         'dash.target_aria': '目標出力パーセント',
+        'dash.target_body_aria': '{body} の塩素発生器の目標出力',
         'dash.set': '設定',
         'dash.boost': 'ブースト',
         'dash.heater': 'ヒーター',

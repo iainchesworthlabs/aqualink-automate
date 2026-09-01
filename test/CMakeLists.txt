@@ -32,6 +32,7 @@ target_sources(
 	unit/auth/test_subject_resolver.cpp
 	unit/utility/test_offload_pool.cpp
 	unit/auxillaries/test_jandy_auxillary_id.cpp
+	unit/auxillaries/test_jandy_auxillary_span.cpp
 	unit/concepts/test_concept_is_c_array.cpp
 	unit/certificates/test_certificate_generation.cpp
 	unit/equipment_cache/test_equipment_cache_service.cpp
@@ -197,6 +198,7 @@ target_sources(
 	unit/devices/test_devices_epump.cpp
 	unit/devices/test_devices_heater.cpp
 	unit/devices/test_devices_iaq.cpp
+	unit/devices/test_devices_iaq_aquapure_writer.cpp
 	unit/devices/test_devices_iaq_spaswitch_config.cpp
 	unit/devices/test_devices_onetouch_spaswitch_config.cpp
 	unit/devices/test_jandy_iaq_page_model.cpp

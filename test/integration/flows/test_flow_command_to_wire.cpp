@@ -67,6 +67,11 @@ namespace
 	constexpr uint8_t SERIAL_ADAPTER_ID = 0x48;
 	constexpr uint8_t IAQ_ID = 0x33;
 
+	// AqualinkTouch page ids (cross-validated against captures and AqualinkD's iaqtouch.h).
+	constexpr uint8_t IAQ_PAGE_HOME = 0x01;
+	constexpr uint8_t IAQ_PAGE_MENU = 0x0f;
+	constexpr uint8_t IAQ_PAGE_SET_SWG = 0x30;
+
 	constexpr uint8_t DLE = 0x10;
 	constexpr uint8_t STX = 0x02;
 	constexpr uint8_t ETX = 0x03;
@@ -184,6 +189,39 @@ namespace
 		void ReplayIAQControlReady()
 		{
 			Replay(MakeFramedPacket(IAQ_ID, static_cast<uint8_t>(Messages::JandyMessageIds::IAQ_ControlReady)));
+		}
+
+		// Render a page at the IAQ: PageStart (which latches the page id) followed by one
+		// PageButton per entry. This is how the master drives the panel UI, and it is what the
+		// chlorinator writer gates its navigation on.
+		// PageButton payload: [index, state, pad, type, name...].
+		void ReplayIAQPageWithButtons(uint8_t page_id, const std::vector<std::pair<uint8_t, std::string>>& buttons)
+		{
+			Replay(MakeFramedPacket(IAQ_ID, static_cast<uint8_t>(Messages::JandyMessageIds::IAQ_PageStart), { page_id }));
+
+			for (const auto& [index, name] : buttons)
+			{
+				std::vector<uint8_t> payload = { index, 0x00, 0x00, 0x01 };
+				payload.insert(payload.end(), name.begin(), name.end());
+				Replay(MakeFramedPacket(IAQ_ID, static_cast<uint8_t>(Messages::JandyMessageIds::IAQ_PageButton), payload));
+			}
+		}
+
+		// The writer emits ONE command per poll and dwells in between while the master renders,
+		// so a test has to poll until something other than an idle ACK reaches the wire.
+		void DrainIAQPollsUntilCommand(int max_polls = 10)
+		{
+			const auto idle = ExpectedAckWireBytes(0x00, 0x00);
+
+			for (int i = 0; i < max_polls; ++i)
+			{
+				ClearWire();
+				ReplayIAQPoll();
+				if (Wire() != idle)
+				{
+					return;
+				}
+			}
 		}
 
 		const std::vector<uint8_t>& Wire() const { return serial_impl->GetWrittenData(); }
@@ -484,25 +522,103 @@ BOOST_AUTO_TEST_CASE(ToggleByLabel_OnDevice_WritesAuxOffAckToWire)
 }
 
 //=============================================================================
-// IAQ-routed chlorinator commands: SetChlorinatorBoost emits a navigation
-// command sequence, one ACK per IAQ_Poll.  Each ACK must reach the wire.
+// IAQ-routed chlorinator commands.
+//
+// The chlorinator write is a page-GATED walk to the panel's own AquaPure page,
+// which takes an ABSOLUTE output value -- the fast path, versus the OneTouch
+// route's 5%-per-keypress stepping. It emits ONE command per IAQ_Poll and
+// re-reads the rendered page id before choosing the next, so these tests drive
+// the pages at it and assert the bytes that actually reach the wire.
+//
+// REGRESSION: this used to be four commands queued blindly at request time,
+// assuming the AquaPure page opened from a FIXED page-button index. The master
+// lays every page out from the installed equipment, so that index is not
+// portable; and 0x02 is the panel's single "Menu / Back" key, whose meaning
+// depends on the screen it is pressed from.
 //=============================================================================
 
-BOOST_AUTO_TEST_CASE(SetChlorinatorBoost_Enable_WritesCommandSequenceToWire)
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WalksToAquaPureThenWritesAbsoluteValue)
 {
-	auto result = dispatcher->SetChlorinatorBoost(true);
+	// Home: the only thing it may send is the Menu/Back key -- never a page-button guess.
+	ReplayIAQPageWithButtons(IAQ_PAGE_HOME, { { 0, "Filter Pump" }, { 1, "Spa" } });
+
+	auto result = dispatcher->SetChlorinatorPercentage(75, Kernel::BodyOfWaterIds::Pool);
 	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
 
-	// Boost-enable sequence: {0x02, 0x19, 0x13, 0x12}, one command per poll.
-	const std::vector<uint8_t> expected_commands = { 0x02, 0x19, 0x13, 0x12 };
+	ClearWire();
+	ReplayIAQPoll();
+	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, 0x02));
 
-	for (auto cmd : expected_commands)
+	// Menu renders. It publishes NO buttons (confirmed on a live bus, iaq_chlorinator_set.cap:
+	// PageStart 0x0f is followed straight by PageEnd), so this hop presses the confirmed key.
+	ReplayIAQPageWithButtons(IAQ_PAGE_MENU, {});
+	ClearWire();
+	DrainIAQPollsUntilCommand();
+	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, 0x19));
+
+	// AquaPure page renders: pick the Pool row by label, then submit.
+	ReplayIAQPageWithButtons(IAQ_PAGE_SET_SWG, { { 0, "Pool 30%" }, { 1, "Spa 30%" }, { 2, "Quick Boost" }, { 3, "Boost Setup" } });
+	ClearWire();
+	DrainIAQPollsUntilCommand();
+	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, 0x11 + 0));
+
+	ClearWire();
+	DrainIAQPollsUntilCommand();
+	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, 0x80));
+
+	// The master then opens the control-data window and the ABSOLUTE value goes across whole.
+	ClearWire();
+	ReplayIAQControlReady();
+	BOOST_CHECK(Wire() == ExpectedControlDataWireBytes("175"));
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_MenuWithoutAquaPure_NeverPressesAPageButton)
+{
+	// A menu that never opens the AquaPure page is proof the route does not exist here. The goal
+	// is abandoned after a bounded number of attempts, and no value is ever submitted.
+	ReplayIAQPageWithButtons(IAQ_PAGE_HOME, { { 0, "Filter Pump" } });
+
+	auto result = dispatcher->SetChlorinatorPercentage(75, Kernel::BodyOfWaterIds::Pool);
+	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
+
+	ReplayIAQPageWithButtons(IAQ_PAGE_MENU, {});
+
+	// It may press the AquaPure key, but staying on the menu means it never reaches 0x30, so no
+	// row press and no value submit may ever reach the wire.
+	const auto idle = ExpectedAckWireBytes(0x00, 0x00);
+	const auto open_aquapure = ExpectedAckWireBytes(0x00, 0x19);
+	for (int i = 0; i < 40; ++i)
 	{
 		ClearWire();
 		ReplayIAQPoll();
-		// IAQ ACKs carry ack_type 0x00 and the command in the data byte.
-		BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, cmd));
+		BOOST_CHECK((Wire() == idle) || (Wire() == open_aquapure));
 	}
+
+	ClearWire();
+	ReplayIAQControlReady();
+	BOOST_CHECK(Wire() != ExpectedControlDataWireBytes("175"));
+
+	// And now that the route is known-absent, the dispatcher is told so up-front (this rig has
+	// no OneTouch, so the refusal surfaces rather than falling back).
+	BOOST_CHECK_EQUAL(static_cast<int>(dispatcher->SetChlorinatorPercentage(75, Kernel::BodyOfWaterIds::Pool)),
+		static_cast<int>(ICommandDispatcher::CommandResult::UnknownEquipmentType));
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorBoost_PressesTheBoostRowAndSubmitsNoValue)
+{
+	ReplayIAQPageWithButtons(IAQ_PAGE_SET_SWG, { { 0, "Pool 30%" }, { 1, "Spa 30%" }, { 2, "Quick Boost" }, { 3, "Boost Setup" } });
+
+	auto result = dispatcher->SetChlorinatorBoost(true);
+	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
+
+	ClearWire();
+	DrainIAQPollsUntilCommand();
+	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, 0x11 + 2));
+
+	// Boost is a toggle: no control-data value is armed.
+	ClearWire();
+	ReplayIAQControlReady();
+	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, 0x00));
 }
 
 BOOST_AUTO_TEST_CASE(SelectIAQPageButton_WritesButtonSelectAckToWire)
@@ -517,48 +633,6 @@ BOOST_AUTO_TEST_CASE(SelectIAQPageButton_WritesButtonSelectAckToWire)
 	ReplayIAQPoll();
 	// IAQ ACK ack_type 0x00; button index 2 -> command 0x11 + 2 = 0x13.
 	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, 0x13));
-}
-
-BOOST_AUTO_TEST_CASE(SetChlorinatorBoost_Disable_WritesCommandSequenceToWire)
-{
-	auto result = dispatcher->SetChlorinatorBoost(false);
-	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
-
-	// Boost-disable sequence: {0x02, 0x19, 0x13, 0x13}.
-	const std::vector<uint8_t> expected_commands = { 0x02, 0x19, 0x13, 0x13 };
-
-	for (auto cmd : expected_commands)
-	{
-		ClearWire();
-		ReplayIAQPoll();
-		BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, cmd));
-	}
-}
-
-//-----------------------------------------------------------------------------
-// SetChlorinatorPercentage drives the full value-submit protocol to the wire:
-// 4 navigation ACKs over IAQ_Poll, then on IAQ_ControlReady the device writes a
-// full IAQMessage_ControlDataResponse carrying the ASCII "<button><value>".
-//-----------------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WritesNavSequenceThenControlDataToWire)
-{
-	auto result = dispatcher->SetChlorinatorPercentage(75);
-	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
-
-	// Phase 1: navigation ACKs {0x02, 0x19, 0x11, 0x80}, one per poll.
-	const std::vector<uint8_t> expected_commands = { 0x02, 0x19, 0x11, 0x80 };
-	for (auto cmd : expected_commands)
-	{
-		ClearWire();
-		ReplayIAQPoll();
-		BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x00, cmd));
-	}
-
-	// Phase 2: the master sends IAQ_ControlReady; the device responds with the
-	// full control-data message carrying ASCII "1<percentage>" ("1" = Pool btn).
-	ClearWire();
-	ReplayIAQControlReady();
-	BOOST_CHECK(Wire() == ExpectedControlDataWireBytes("175"));
 }
 
 //-----------------------------------------------------------------------------

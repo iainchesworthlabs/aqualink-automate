@@ -103,6 +103,17 @@ namespace AqualinkAutomate::Devices
 
 		void ProcessControllerUpdates() override;
 
+		// Round-robin cursor management over m_StatusTypesCollection.
+		//
+		// A status QUERY is not evidence that the queried thing exists: the collection carries
+		// every aux id the protocol can name, and asking about an aux the panel does not have
+		// used to mint a phantom device from the reply. IsPollableStatusType() bounds the aux
+		// portion of the sweep by the panel's OWN decoded model (AuxillaryModelSpan), and
+		// SkipUnpollableStatusTypes() walks the cursor past anything it excludes.
+		bool IsPollableStatusType(const Messages::SerialAdapter_StatusTypes& status_type) const;
+		void AdvanceStatusTypeIter();
+		void SkipUnpollableStatusTypes();
+
 		// Emit the next queued command in response to an RSSA_DEV_READY (0x07) poll.
 		// The controller solicits the second step (setSP) of a two-step setpoint write
 		// with a DEV_READY poll carrying the readied type, so that value MUST be sent

@@ -6,6 +6,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "devices/jandy_controller.h"
 #include "devices/jandy_device_types.h"
@@ -20,6 +21,7 @@
 #include "devices/capabilities/screen.h"
 #include "devices/capabilities/setpoint_controller.h"
 #include "devices/capabilities/spa_switch_configurator.h"
+#include "devices/iaq/iaq_aquapure_writer.h"
 #include "devices/iaq/iaq_command_sink.h"
 #include "devices/iaq/iaq_page_model.h"
 #include "devices/iaq/iaq_page_registry.h"
@@ -90,8 +92,6 @@ namespace AqualinkAutomate::Devices
 		nlohmann::json DescribeDiagnostics() const override;
 
 		void QueueCommand(uint8_t command);
-		void QueueChlorinatorPercentage(uint8_t percentage);
-		void QueueChlorinatorBoost(bool enable);
 
 		// Press an on-screen PageButton on the AqualinkTouch (0x33) page UI by its index
 		// (the index carried in the master's IAQMessage_PageButton frames). This lets the
@@ -102,7 +102,7 @@ namespace AqualinkAutomate::Devices
 		// Capability implementations (ChlorinatorController / PageNavigator): let the
 		// capability-routed CommandDispatcher drive the chlorinator output/boost and the
 		// page UI through the AqualinkTouch (0x33) panel without knowing IAQ specifics.
-		Capabilities::ActuationResult SetChlorinatorPercentage(uint8_t percentage) override;
+		Capabilities::ActuationResult SetChlorinatorPercentage(uint8_t percentage, Kernel::BodyOfWaterIds body) override;
 		Capabilities::ActuationResult SetChlorinatorBoost(bool enable) override;
 		Capabilities::ActuationResult ActuatePageButton(uint8_t button_index) override;
 
@@ -237,11 +237,22 @@ namespace AqualinkAutomate::Devices
 		// control-data response ("1" + value).
 		Capabilities::ActuationResult QueueSetpoint(uint8_t select_field_command, uint8_t temperature, const char* body_name);
 
+		// Is the single poll-ACK command channel occupied -- another write goal in flight, a
+		// command sequence draining, or a control-data handshake open? A fresh goal must not be
+		// armed on top of one, or the two would interleave on the shared panel UI.
+		bool ChannelBusy() const;
+
 		// The decoded live-page UI state: current page id, title, on-screen PageButton table, and
 		// the schedule / device-picker / spa-switch-picker row accumulators. Written by the IAQ
 		// message slots and read by the actuators + the write state machines. Extracted from this
 		// class (SonarCloud S1448/S1820); see docs/design/iaq_device_decomposition.md.
 		IAQ::PageModel m_PageModel;
+
+		// The chlorinator (AquaPure) write state machine: a page-GATED walk to the panel's own
+		// AquaPure page, which accepts an ABSOLUTE output value. That is the fast path -- the
+		// OneTouch equivalent can only step the value 5% per key press. Serviced per poll like
+		// the spa-switch and schedule writers.
+		IAQ::AquaPureWriter m_AquaPureWriter;
 
 		// Resolved from the HubLocator: the read-only snapshot of the controller's own
 		// internal schedules that the /api/controller/schedules route serves. Null-safe

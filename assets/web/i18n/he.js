@@ -68,6 +68,17 @@
         'swg_health.check_pcb': 'יש לבדוק את ה-PCB',
         'swg_health.general_fault': 'תקלה כללית',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'מייצר',
+        'swg_reason.off': 'כבוי',
+        'swg_reason.pump_off': 'פועל, לא מייצר — משאבת הסינון כבויה',
+        'swg_reason.no_flow': 'פועל, לא מייצר — אין זרימת מים',
+        'swg_reason.fault': 'לא מייצר — בדוק את התא',
+        'swg_reason.idle': 'פועל, לא מייצר',
+        'swg_reason.unknown': 'היעד טרם דווח',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'הוחל',
         'cmd.rejected': 'נדחה',
@@ -143,6 +154,7 @@
         'dash.swg_aria': 'בקרת תפוקת מכשיר ההכלרה והיעד שלו',
         'dash.target': 'יעד',
         'dash.target_aria': 'אחוז התפוקה הרצוי',
+        'dash.target_body_aria': 'יעד תפוקת הכלוריניטור עבור {body}',
         'dash.set': 'הגדרה',
         'dash.boost': 'בוסט',
         'dash.heater': 'מחמם',

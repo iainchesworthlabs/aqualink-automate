@@ -40,7 +40,10 @@ namespace AqualinkAutomate::Interfaces
 		virtual CommandResult CommandByLabel(const std::string& label, DeviceAction action) = 0;
 		virtual CommandResult SetPoolSetpoint(uint8_t temperature) = 0;
 		virtual CommandResult SetSpaSetpoint(uint8_t temperature) = 0;
-		virtual CommandResult SetChlorinatorPercentage(uint8_t percentage) = 0;
+		// Set the chlorinator output for ONE body. Pool and spa carry INDEPENDENT setpoints on
+		// the panel (you can run the spa at 70% and the pool at 40%), so callers must say which
+		// they mean rather than the app guessing from whichever body is circulating.
+		virtual CommandResult SetChlorinatorPercentage(uint8_t percentage, Kernel::BodyOfWaterIds body) = 0;
 		virtual CommandResult SetChlorinatorBoost(bool enable) = 0;
 		virtual CommandResult SetCirculationMode(Kernel::CirculationModes mode) = 0;
 		// Enable/disable a heater identified by its body of water (Pool/Spa heater, or Shared for

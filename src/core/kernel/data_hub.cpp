@@ -689,6 +689,84 @@ namespace AqualinkAutomate::Kernel
 		return pumps.front();
 	}
 
+	std::optional<bool> DataHub::AnyFilterPumpRunning() const
+	{
+		const auto pumps = FilterPumps();
+		if (pumps.empty())
+		{
+			// No filter pump discovered: report "unknown" rather than "not running", so a caller
+			// never explains an idle chlorinator with a pump it has never seen.
+			return std::nullopt;
+		}
+
+		for (const auto& pump : pumps)
+		{
+			if (auto status = pump->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::PumpStatusTrait{});
+				status.has_value() && (PumpStatuses::Running == status.value()))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	std::optional<uint8_t> DataHub::ChlorinatorResolvedSetpoint(const AuxillaryDevice& chlorinator) const
+	{
+		using namespace AuxillaryTraitsTypes;
+
+		const auto trait_value = [&chlorinator](auto trait) -> std::optional<uint8_t>
+		{
+			if (auto value = chlorinator.AuxillaryTraits.TryGet(trait); value.has_value())
+			{
+				return static_cast<uint8_t>(value.value());
+			}
+			return std::nullopt;
+		};
+
+		const auto pool_setpoint = trait_value(ChlorinatorPoolSetpointTrait{});
+		const auto spa_setpoint = trait_value(ChlorinatorSpaSetpointTrait{});
+
+		bool spa_active = false;
+		for (const auto& body : Bodies())
+		{
+			if (body.IsActive() && (BodyOfWaterIds::Spa == body.Id()))
+			{
+				spa_active = true;
+				break;
+			}
+		}
+
+		if (spa_active && spa_setpoint.has_value()) { return spa_setpoint; }
+		if (!spa_active && pool_setpoint.has_value()) { return pool_setpoint; }
+		if (pool_setpoint.has_value()) { return pool_setpoint; }   // active body unknown -> prefer pool
+		if (spa_setpoint.has_value()) { return spa_setpoint; }
+
+		return trait_value(ChlorinatorLastGeneratingTrait{});       // passive fallback
+	}
+
+	ChlorinatorGeneratingReason DataHub::ResolveChlorinatorGeneratingReason(const AuxillaryDevice& chlorinator) const
+	{
+		using namespace AuxillaryTraitsTypes;
+
+		ChlorinatorGeneratingContext context;
+
+		if (auto generating = chlorinator.AuxillaryTraits.TryGet(GeneratingPercentageTrait{}); generating.has_value())
+		{
+			context.GeneratingPercent = static_cast<uint8_t>(generating.value());
+		}
+
+		if (auto health = chlorinator.AuxillaryTraits.TryGet(ChlorinatorHealthTrait{}); health.has_value())
+		{
+			context.Health = health.value();
+		}
+
+		context.SetpointPercent = ChlorinatorResolvedSetpoint(chlorinator);
+		context.FilterPumpRunning = AnyFilterPumpRunning();
+
+		return ResolveGeneratingReason(context);
+	}
+
 	void DataHub::SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, std::string_view function)
 	{
 		m_SpaSwitchAssignments[std::make_pair(switch_number, button_number)] = function;

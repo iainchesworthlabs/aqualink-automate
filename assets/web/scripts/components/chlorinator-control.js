@@ -7,7 +7,10 @@
  * SetChlorinatorPercentage / SetChlorinatorBoost, which the backend turns into
  * iAQ panel navigation). The target slider seeds from the live CONFIGURED setpoint
  * (chlorinator.setpoint_percent) until the user grabs it, then submits on "Set".
- * "SWG Output" still shows the instantaneous generating %, which is 0 while idle.
+ * "SWG Output" still shows the instantaneous generating %, which is 0 while idle —
+ * so it is captioned with the server-derived chlorinator.generating_reason, which
+ * distinguishes a chlorinator that is switched OFF from one that is configured and
+ * healthy but not producing because the filter pump is not running.
  */
 function chlorinatorControl() {
     // Instantaneous reported output (the "SWG Output" gauge); 0 while the cell is idle.
@@ -17,19 +20,22 @@ function chlorinatorControl() {
         return isNaN(n) ? null : Math.max(0, Math.min(100, Math.round(n)));
     }
 
-    // Configured output setpoint for the active body (what the Target slider should show).
-    function setpointNum() {
-        const v = Alpine.store('pool').swgSetpointPercent;
+    // Configured output setpoint for ONE body. Pool and spa are INDEPENDENT on the panel —
+    // you can run the spa at 70% and the pool at 40% — so each has its own slider and each
+    // seeds from its own value, never from a single "active body" figure.
+    function setpointNum(body) {
+        const v = Alpine.store('pool')[body === 'spa' ? 'swgSpaSetpoint' : 'swgPoolSetpoint'];
         const n = (v === '--' || v == null) ? NaN : Number(v);
         return isNaN(n) ? null : Math.max(0, Math.min(100, Math.round(n)));
     }
 
     return {
-        target: 50,
+        // One target per body, each tracking its own configured setpoint until grabbed.
+        targets: { pool: 50, spa: 50 },
+        touched: { pool: false, spa: false },
         boost: false,
         busy: false,
         feedback: '',    // '' | 'applied' | 'rejected'
-        touched: false,  // true once the user grabs the slider
         _timer: null,
 
         get present() {
@@ -40,12 +46,33 @@ function chlorinatorControl() {
         get actual() { const n = actualNum(); return n == null ? 0 : n; },
         get actualLabel() { const n = actualNum(); return n == null ? '--' : (window.AquaI18n.formatNumber(n) + '%'); },
 
-        // "Set" is meaningful when the target differs from the configured setpoint
+        // One-line explanation of that output, from the server-derived reason. A bare "0%"
+        // reads as "the chlorinator is off or broken" even when it is configured, healthy and
+        // simply waiting for the filter pump — this is the line that says which it is. Empty
+        // while generating, so the number stands alone when it needs no explanation.
+        get reasonLabel() { return Alpine.store('pool').chlorinatorReasonLabel; },
+
+        // Everything except a real cell fault is informational -- style it muted so a waiting
+        // (or not-yet-scraped) chlorinator does not read as a broken one.
+        get reasonIsIdle() {
+            const r = String(Alpine.store('pool').swgGeneratingReason || '');
+            return r === 'PumpOff' || r === 'Idle' || r === 'Off' || r === 'Unknown';
+        },
+
+        // Only offer the spa row on a system that actually has a spa body.
+        get bodies() { return Alpine.store('pool').hasDualBody ? ['pool', 'spa'] : ['pool']; },
+
+        bodyLabel(body) { return window.AquaI18n.t(body === 'spa' ? 'common.spa' : 'common.pool'); },
+
+        target(body) { return this.targets[body]; },
+        setTarget(body, value) { this.targets[body] = Number(value); this.touched[body] = true; },
+
+        // "Set" is meaningful when this body's target differs from its configured setpoint
         // (or, until that is known, the live actual output).
-        get changed() {
-            const ref = setpointNum();
+        changed(body) {
+            const ref = setpointNum(body);
             const base = (ref == null) ? this.actual : ref;
-            return Number(this.target) !== base;
+            return Number(this.targets[body]) !== base;
         },
 
         // Health -> colour + band + label.
@@ -73,7 +100,7 @@ function chlorinatorControl() {
             // later (e.g. a fresh menu scrape), so keep re-seeding rather than latching once.
             this._seed();
             this._timer = setInterval(() => {
-                if (this.touched) { clearInterval(this._timer); this._timer = null; return; }
+                if (this.touched.pool && this.touched.spa) { clearInterval(this._timer); this._timer = null; return; }
                 this._seed();
             }, 1000);
         },
@@ -83,15 +110,16 @@ function chlorinatorControl() {
         },
 
         _seed() {
-            if (this.touched) { return true; }
-            const n = setpointNum();
-            if (n == null) { return false; }
-            this.target = n;
+            for (const body of ['pool', 'spa']) {
+                if (this.touched[body]) { continue; }
+                const n = setpointNum(body);
+                if (n != null) { this.targets[body] = n; }
+            }
             return true;
         },
 
-        async setPercent() {
-            await this._post({ percentage: Number(this.target) });
+        async setPercent(body) {
+            await this._post({ percentage: Number(this.targets[body]), body: body });
         },
 
         async toggleBoost() {

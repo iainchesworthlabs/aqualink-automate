@@ -175,27 +175,27 @@ BOOST_AUTO_TEST_CASE(TestSetSpaSetpoint_BoundaryValue_Max)
 
 BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_InvalidValue_Above100)
 {
-	auto result = dispatcher.SetChlorinatorPercentage(101);
+	auto result = dispatcher.SetChlorinatorPercentage(101, Kernel::BodyOfWaterIds::Pool);
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::InvalidValue));
 }
 
 BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_InvalidValue_MaxUint8)
 {
-	auto result = dispatcher.SetChlorinatorPercentage(255);
+	auto result = dispatcher.SetChlorinatorPercentage(255, Kernel::BodyOfWaterIds::Pool);
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::InvalidValue));
 }
 
 BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_BoundaryValue_100)
 {
 	// 100 is valid but needs an IAQ device - should get DeviceNotFound, not InvalidValue
-	auto result = dispatcher.SetChlorinatorPercentage(100);
+	auto result = dispatcher.SetChlorinatorPercentage(100, Kernel::BodyOfWaterIds::Pool);
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
 }
 
 BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_BoundaryValue_0)
 {
 	// 0 is valid but needs an IAQ device
-	auto result = dispatcher.SetChlorinatorPercentage(0);
+	auto result = dispatcher.SetChlorinatorPercentage(0, Kernel::BodyOfWaterIds::Pool);
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
 }
 
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_BoundaryValue_0)
 
 BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_NoIAQDevice)
 {
-	auto result = dispatcher.SetChlorinatorPercentage(50);
+	auto result = dispatcher.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool);
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
 }
 
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_EmulatedOneTouch_RoutesAndAcce
 	// OneTouch advertises ChlorinatorController and the % is queued/accepted.
 	equipment_hub->AddDevice(MakeOneTouch(*this, 0x41, true));
 
-	auto result = dispatcher.SetChlorinatorPercentage(45);
+	auto result = dispatcher.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool);
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
 }
 
@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_PassiveOneTouch_FallsThrough)
 	// which the chlorinator call-site maps to DeviceNotFound.
 	equipment_hub->AddDevice(MakeOneTouch(*this, 0x41, false));
 
-	auto result = dispatcher.SetChlorinatorPercentage(45);
+	auto result = dispatcher.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool);
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
 }
 
@@ -355,7 +355,7 @@ BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_WritesThroughToCache)
 	}
 	equipment_hub->AddDevice(MakeOneTouch(*this, 0x41, true));
 
-	auto result = dispatcher.SetChlorinatorPercentage(45);
+	auto result = dispatcher.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool);
 	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
 
 	auto chlorinators = data_hub->Chlorinators();
@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_RejectedDoesNotWriteThrough)
 	// A passive OneTouch cannot transmit -> DeviceNotFound; nothing should be written through.
 	equipment_hub->AddDevice(MakeOneTouch(*this, 0x41, false));
 
-	auto result = dispatcher.SetChlorinatorPercentage(45);
+	auto result = dispatcher.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool);
 	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
 
 	auto chlorinators = data_hub->Chlorinators();

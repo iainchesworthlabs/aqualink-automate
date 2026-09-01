@@ -717,10 +717,17 @@ namespace AqualinkAutomate::Mqtt
 			bool measurement;        // true => state_class "measurement"
 		};
 
-		static constexpr std::array<ChlorinatorSensor, 3> sensors = {{
-			{ "generating", "Generating %", "{{ value_json.generating_percentage }}", "%", true },
-			{ "boost",      "Boost Mode",   "{{ value_json.boost_mode }}",            nullptr, false },
-			{ "health",     "Health",       "{{ value_json.chlorinator_health }}",    nullptr, false },
+		// `generating_reason` says WHY the cell is at its current output. Without it a 0%
+		// Generating reading is ambiguous in Home Assistant -- an automation cannot tell a
+		// chlorinator that has been switched off from one that is configured and healthy but
+		// waiting on the filter pump. `setpoint_percent` is the configured target it is
+		// waiting to produce, which "Generating %" (instantaneous) never shows while idle.
+		static constexpr std::array<ChlorinatorSensor, 5> sensors = {{
+			{ "generating", "Generating %",  "{{ value_json.generating_percentage }}", "%", true },
+			{ "setpoint",   "Target %",      "{{ value_json.setpoint_percent }}",      "%", true },
+			{ "reason",     "Output State",  "{{ value_json.generating_reason }}",     nullptr, false },
+			{ "boost",      "Boost Mode",    "{{ value_json.boost_mode }}",            nullptr, false },
+			{ "health",     "Health",        "{{ value_json.chlorinator_health }}",    nullptr, false },
 		}};
 
 		for (const auto& sensor : sensors)
@@ -748,15 +755,38 @@ namespace AqualinkAutomate::Mqtt
 			cmps[key] = std::move(component);
 		}
 
-		// Generating-percentage setpoint (number with command topic).
+		// Output setpoints, ONE PER BODY. The panel keeps pool and spa independent -- you can run
+		// the spa at 70% and the pool at 40% -- so a single control could only ever drive one of
+		// them, silently.
+		//
+		// The pool entity keeps its original unique_id so existing Home Assistant dashboards and
+		// automations survive: the old single "Generating Setpoint" already drove the pool. Its
+		// value_template is CORRECTED here though -- it read `generating_percentage`, the
+		// INSTANTANEOUS output, so the control snapped back to 0 whenever the cell was idle
+		// instead of showing the configured target.
 		auto pct_cmd_key = std::format("chlorinator_{}_pct_cmd", slug);
 		cmps[pct_cmd_key] = {
 			{"p", "number"},
-			{"name", std::format("{} Generating Setpoint", label.value())},
+			{"name", std::format("{} Pool Output", label.value())},
 			{"unique_id", UniqueId(pct_cmd_key)},
 			{"state_topic", state_topic},
-			{"value_template", "{{ value_json.generating_percentage }}"},
+			{"value_template", "{{ value_json.pool_setpoint_percent }}"},
 			{"command_topic", ChlorinatorCommandTopic("percentage")},
+			{"min", 0},
+			{"max", 100},
+			{"step", 1},
+			{"unit_of_measurement", "%"},
+			{"mode", "slider"}
+		};
+
+		auto spa_pct_cmd_key = std::format("chlorinator_{}_spa_pct_cmd", slug);
+		cmps[spa_pct_cmd_key] = {
+			{"p", "number"},
+			{"name", std::format("{} Spa Output", label.value())},
+			{"unique_id", UniqueId(spa_pct_cmd_key)},
+			{"state_topic", state_topic},
+			{"value_template", "{{ value_json.spa_setpoint_percent }}"},
+			{"command_topic", ChlorinatorCommandTopic("spa/percentage")},
 			{"min", 0},
 			{"max", 100},
 			{"step", 1},

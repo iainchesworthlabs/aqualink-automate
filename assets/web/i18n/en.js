@@ -73,6 +73,17 @@
         'swg_health.check_pcb': 'Check PCB',
         'swg_health.general_fault': 'General fault',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'Generating',
+        'swg_reason.off': 'Turned off',
+        'swg_reason.pump_off': 'On, not generating — filter pump off',
+        'swg_reason.no_flow': 'On, not generating — no water flow',
+        'swg_reason.fault': 'Not generating — check the cell',
+        'swg_reason.idle': 'On, not generating',
+        'swg_reason.unknown': 'Target not reported yet',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'Applied',
         'cmd.rejected': 'Rejected',
@@ -148,6 +159,7 @@
         'dash.swg_aria': 'Chlorinator output and target control',
         'dash.target': 'Target',
         'dash.target_aria': 'Target output percentage',
+        'dash.target_body_aria': 'Chlorinator output target for the {body}',
         'dash.set': 'Set',
         'dash.boost': 'Boost',
         'dash.heater': 'Heater',

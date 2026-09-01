@@ -4,6 +4,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <nlohmann/json.hpp>
 
+#include "auxillaries/jandy_auxillary_span.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "devices/device_status.h"
 #include "logging/logging.h"
@@ -99,6 +100,9 @@ namespace AqualinkAutomate::Devices
 
 				LogDebug(Channel::Devices, "ProcessControllerUpdates -> Query for Status");
 
+				// Never ask about an aux relay the detected panel model cannot have.
+				SkipUnpollableStatusTypes();
+
 				std::visit(
 					Utility::OverloadedVisitor
 					{
@@ -144,16 +148,7 @@ namespace AqualinkAutomate::Devices
 					*m_StatusTypesCollectionIter
 				);
 
-				if (m_StatusTypesCollection.cend() == ++m_StatusTypesCollectionIter)
-				{
-					m_StatusTypesCollectionIter = m_StatusTypesCollection.cbegin();
-
-					if (Devices::DeviceStatus_Initializing{} == Status())
-					{
-						// Update the status to indicate that the device is now initialised.
-						Status(Devices::DeviceStatus_Normal{});
-					}
-				}
+				AdvanceStatusTypeIter();
 			}
 
 			m_StatusMessageReceived = false;
@@ -169,6 +164,59 @@ namespace AqualinkAutomate::Devices
 		}
 
 		Signal_AckMessage(ack_type, ack_data_value);
+	}
+
+	bool SerialAdapterDevice::IsPollableStatusType(const Messages::SerialAdapter_StatusTypes& status_type) const
+	{
+		if (!std::holds_alternative<Auxillaries::JandyAuxillaryIds>(status_type))
+		{
+			return true;
+		}
+
+		if (nullptr == JandyController::m_DataHub)
+		{
+			return true;
+		}
+
+		// Bound the aux sweep by the panel's own decoded model. Until the version page has been
+		// scraped the span is unknown and permits everything, so a not-yet-identified panel is
+		// still swept exhaustively -- which is what makes an RSSA-only rig work.
+		const auto span = Auxillaries::AuxillaryModelSpan::FromDataHub(*JandyController::m_DataHub);
+		return span.Contains(std::get<Auxillaries::JandyAuxillaryIds>(status_type));
+	}
+
+	void SerialAdapterDevice::AdvanceStatusTypeIter()
+	{
+		if (m_StatusTypesCollection.cend() == ++m_StatusTypesCollectionIter)
+		{
+			m_StatusTypesCollectionIter = m_StatusTypesCollection.cbegin();
+
+			if (Devices::DeviceStatus_Initializing{} == Status())
+			{
+				// Update the status to indicate that the device is now initialised.
+				Status(Devices::DeviceStatus_Normal{});
+			}
+		}
+	}
+
+	void SerialAdapterDevice::SkipUnpollableStatusTypes()
+	{
+		if (m_StatusTypesCollection.empty())
+		{
+			return;
+		}
+
+		// Bounded by the collection size so a span that somehow excluded every entry could
+		// never spin here; the cursor simply lands back where it started.
+		for (std::size_t guard = 0; guard < m_StatusTypesCollection.size(); ++guard)
+		{
+			if ((m_StatusTypesCollection.cend() == m_StatusTypesCollectionIter) || IsPollableStatusType(*m_StatusTypesCollectionIter))
+			{
+				return;
+			}
+
+			AdvanceStatusTypeIter();
+		}
 	}
 
 	void SerialAdapterDevice::DrainPendingCommandForDevReady()

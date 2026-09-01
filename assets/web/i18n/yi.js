@@ -66,6 +66,17 @@
         'swg_health.check_pcb': 'קאָנטראָלירט די PCB',
         'swg_health.general_fault': 'אַלגעמיינער דעפֿעקט',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'פּראָדוצירט',
+        'swg_reason.off': 'אָפּגעשטעלט',
+        'swg_reason.pump_off': 'אָן, פּראָדוצירט נישט — פֿילטער־פּאָמפּע אויס',
+        'swg_reason.no_flow': 'אָן, פּראָדוצירט נישט — קיין וואַסער־שטראָם',
+        'swg_reason.fault': 'פּראָדוצירט נישט — קאָנטראָלירט די צעל',
+        'swg_reason.idle': 'אָן, פּראָדוצירט נישט',
+        'swg_reason.unknown': 'ציל נאָך נישט געמאָלדן',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'אָנגעווענדט',
         'cmd.rejected': 'אָפּגעווישן',
@@ -141,6 +152,7 @@
         'dash.swg_aria': 'קאָנטראָל פֿון כלאָרינאַטאָר-אויסגאַנג און ציל',
         'dash.target': 'ציל',
         'dash.target_aria': 'ציל-אויסגאַנג-פּראָצענט',
+        'dash.target_body_aria': 'כלאָר־גענעראַטאָר ציל־אויסגאַנג פֿאַר {body}',
         'dash.set': 'שטעלן',
         'dash.boost': 'פֿאַרשטאַרקן',
         'dash.heater': 'היצער',
