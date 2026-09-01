@@ -11,17 +11,26 @@ namespace AqualinkAutomate::Utility
 		{
 			// Packet is too small (technically an error but don't handle it here).
 		}
-		else 
+		else
 		{
 			auto start_it = std::next(message_bytes.begin(), 2);
-			auto end_it = std::next(message_bytes.rbegin(), 3).base();
 
-			for (auto it = start_it; it != end_it; ++it) 
+			// The escape scan covers destination, type, payload, AND the checksum byte --
+			// everything except the trailing DLE/ETX footer, which must stay a literal,
+			// un-stuffed frame marker. The checksum byte is included because real Jandy
+			// hardware DLE-stuffs it exactly like any other content byte whenever its
+			// computed value happens to be 0x10; leaving it out here previously meant this
+			// app's own outgoing packets sent an un-escaped checksum byte whenever the sum
+			// happened to be 0x10, which a real receiver (which does escape it) would
+			// misframe on the wire.
+			auto end_it = std::next(message_bytes.rbegin(), 2).base();
+
+			for (auto it = start_it; it != end_it; ++it)
 			{
 				if (Messages::HEADER_BYTE_DLE  == *it)
 				{
 					it = message_bytes.insert(std::next(it), 0x00);
-					end_it = std::next(message_bytes.rbegin(), 3).base();
+					end_it = std::next(message_bytes.rbegin(), 2).base();
 				}
 			}
 		}
