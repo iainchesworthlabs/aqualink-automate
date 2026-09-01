@@ -702,6 +702,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#serial-captures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serial captures
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1509,6 +1520,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#serial-captures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serial captures
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1628,6 +1650,27 @@ release exists yet, so both are marked experimental and track the newest release
   package is also reachable without it: one-click import from the
   <a href="../homeassistant-companion/#blueprints">docs</a>, or the release zip.</li>
 </ul>
+<h2 id="serial-captures">Serial captures<a class="headerlink" href="#serial-captures" title="Permanent link">&para;</a></h2>
+<p>The web UI's <strong>Diagnostics → Serial Recording</strong> card records raw RS-485 traffic on
+demand. In a container the app's default capture directory (<code>&lt;cwd&gt;/captures</code>) is
+neither persisted nor reachable without a Docker shell, which is useless for the one
+workflow that most needs the file afterwards — so <code>run.sh</code> pins it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>--capture-directory /config/captures
+</code></pre></div>
+<p><code>/config</code> in the container is the add-on's <strong><code>app_config</code></strong> map, so captures land on
+the host at <code>/app_configs/aqualink_automate/captures</code> (<code>/addon_configs/…</code> before
+Supervisor 2026.07). That path is read-write, survives restarts and add-on updates,
+and is browsable with the <strong>Samba</strong> or <strong>File editor</strong> add-ons — no Terminal &amp; SSH,
+no Protection-mode toggle, no <code>docker cp</code>.</p>
+<p><code>app_config</code> is used rather than <code>share</code> on purpose: it is already mapped (adding a
+<code>share</code> map would ask the user for a broader, cross-add-on permission this feature
+does not need), and captures stay in the add-on's own directory where they cannot
+collide with another add-on's files and are removed when the add-on is uninstalled.</p>
+<p>The Diagnostics page also lists the captures already on the server and offers a
+<strong>Download</strong> button on each, so the usual path off the machine needs neither share
+nor shell. Captures over 64 MiB are refused by the download route (the response is
+buffered) — copy those from the share instead. Full detail:
+<a href="../RECORD_REPLAY/">Serial record / replay</a>.</p>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
 <ul>
 <li>The bundled <strong>Matter</strong> bridge is disabled in the add-on — Home Assistant is already a

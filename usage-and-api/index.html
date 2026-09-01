@@ -2836,7 +2836,19 @@
 <td>GET / POST</td>
 <td><code>/api/diagnostics/recording</code></td>
 <td><code>200</code> JSON</td>
-<td>GET returns <code>{recording, file, bytes}</code>; POST starts/stops.</td>
+<td>GET returns <code>{recording, file, bytes}</code>; POST starts/stops. <code>400</code> bad body / rejected filename; <code>409</code> already/not recording; <code>503</code> no recorder (dev-mode/replay).</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/diagnostics/recording/captures</code></td>
+<td><code>200</code> JSON</td>
+<td><code>captures[]</code> of <code>{name, bytes, modified}</code> — the finished captures on the server, newest first.</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/diagnostics/recording/captures/{filename}</code></td>
+<td><code>200</code> file</td>
+<td>Downloads one capture (<code>Content-Disposition: attachment</code>). <code>400</code> rejected filename; <code>404</code> unknown capture; <code>413</code> larger than the 64 MiB download limit.</td>
 </tr>
 <tr>
 <td>GET / POST</td>
@@ -2847,6 +2859,7 @@
 </tbody>
 </table>
 <p>Non-<code>GET</code> requests to the read-only diagnostics routes return <code>405</code> with a JSON body.</p>
+<p><strong>Captures.</strong> A recording started through <code>POST /api/diagnostics/recording</code> is written into the server's capture directory (<code>--capture-directory</code>, default <code>&lt;cwd&gt;/captures</code>). The client-supplied <code>filename</code> must be a bare <code>*.cap</code> basename and is jailed into that directory; the download route applies the <strong>same</strong> jail to its <code>{filename}</code>, so neither endpoint can reach a file elsewhere on the host. Only basenames are ever reported — the server-side directory is not disclosed. The listing reports only what the download route would serve (regular files, never symlinks), and <code>modified</code> is seconds since the Unix epoch. All three routes require <code>diagnostics.view</code> for <code>GET</code> (<code>system.admin</code> for the recording <code>POST</code>), like every other diagnostics route. See <a href="../RECORD_REPLAY/">Serial record / replay</a>.</p>
 <h3 id="history">History<a class="headerlink" href="#history" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3222,41 +3235,47 @@ web UI merges both sources into one timeline. See
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="nt">"ph"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
 <a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="nt">"chlorinator"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">      </span><span class="nt">"generating_percent"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">      </span><span class="nt">"duty_cycle"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">      </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Generating"</span><span class="p">,</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">      </span><span class="nt">"health"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Ok"</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">  </span><span class="nt">"configuration"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">    </span><span class="nt">"pool_configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PoolOnly"</span><span class="p">,</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">    </span><span class="nt">"configuration_source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"DataHub"</span><span class="p">,</span>
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">    </span><span class="nt">"expected_auxillary_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">    </span><span class="nt">"expected_power_center_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">    </span><span class="nt">"validation"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">      </span><span class="nt">"passed"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">      </span><span class="nt">"expected_auxillaries"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">      </span><span class="nt">"discovered_auxillaries"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">      </span><span class="nt">"expected_power_centers"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">      </span><span class="nt">"discovered_power_centers"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="w">      </span><span class="nt">"anomalies"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">    </span><span class="nt">"bodies"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Pool"</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Pool"</span><span class="p">,</span><span class="w"> </span><span class="nt">"is_active"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">        </span><span class="nt">"temperature"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"celsius"</span><span class="p">:</span><span class="w"> </span><span class="mi">28</span><span class="p">,</span><span class="w"> </span><span class="nt">"fahrenheit"</span><span class="p">:</span><span class="w"> </span><span class="mi">82</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="w">        </span><span class="nt">"setpoint"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"celsius"</span><span class="p">:</span><span class="w"> </span><span class="mi">28</span><span class="p">,</span><span class="w"> </span><span class="nt">"fahrenheit"</span><span class="p">:</span><span class="w"> </span><span class="mi">82</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">    </span><span class="p">]</span>
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">  </span><span class="nt">"devices"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="w">  </span><span class="nt">"stats"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="p">}</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">      </span><span class="nt">"generating_reason"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Generating"</span><span class="p">,</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">      </span><span class="nt">"duty_cycle"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">      </span><span class="nt">"pool_setpoint_percent"</span><span class="p">:</span><span class="w"> </span><span class="mi">45</span><span class="p">,</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">      </span><span class="nt">"spa_setpoint_percent"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">      </span><span class="nt">"setpoint_percent"</span><span class="p">:</span><span class="w"> </span><span class="mi">45</span><span class="p">,</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">      </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Generating"</span><span class="p">,</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">      </span><span class="nt">"health"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Ok"</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">  </span><span class="nt">"configuration"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">    </span><span class="nt">"pool_configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PoolOnly"</span><span class="p">,</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">    </span><span class="nt">"configuration_source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"DataHub"</span><span class="p">,</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">    </span><span class="nt">"expected_auxillary_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">    </span><span class="nt">"expected_power_center_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">    </span><span class="nt">"validation"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">      </span><span class="nt">"passed"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="w">      </span><span class="nt">"expected_auxillaries"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">      </span><span class="nt">"discovered_auxillaries"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">      </span><span class="nt">"expected_power_centers"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="w">      </span><span class="nt">"discovered_power_centers"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">      </span><span class="nt">"anomalies"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">    </span><span class="nt">"bodies"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Pool"</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Pool"</span><span class="p">,</span><span class="w"> </span><span class="nt">"is_active"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">        </span><span class="nt">"temperature"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"celsius"</span><span class="p">:</span><span class="w"> </span><span class="mi">28</span><span class="p">,</span><span class="w"> </span><span class="nt">"fahrenheit"</span><span class="p">:</span><span class="w"> </span><span class="mi">82</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="w">        </span><span class="nt">"setpoint"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"celsius"</span><span class="p">:</span><span class="w"> </span><span class="mi">28</span><span class="p">,</span><span class="w"> </span><span class="nt">"fahrenheit"</span><span class="p">:</span><span class="w"> </span><span class="mi">82</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="w">  </span><span class="nt">"devices"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="w">  </span><span class="nt">"stats"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="p">}</span>
 </code></pre></div>
 <p>Field notes (these are deliberate, not bugs):</p>
 <ul>
 <li><code>salt_ppm</code> is a raw <code>uint16</code>. A value of <code>0</code> is emitted as-is, <strong>not</strong> nulled.</li>
 <li><code>orp_mv</code> is <code>null</code> when the reported value is exactly <code>0</code> (no sensor on the wire).</li>
 <li><code>ph</code> is <code>null</code> when the reported value is exactly <code>0.0</code>.</li>
-<li><code>chlorinator</code> is <code>null</code> when no chlorinator (SWG) has been discovered; otherwise it carries <code>generating_percent</code>, <code>duty_cycle</code>, <code>status</code>, and <code>health</code>.</li>
+<li><code>chlorinator</code> is <code>null</code> when no chlorinator (SWG) has been discovered; otherwise it carries <code>generating_percent</code>, <code>generating_reason</code>, <code>duty_cycle</code>, the configured setpoints, <code>status</code>, and <code>health</code>.</li>
+<li><code>generating_percent</code> is the <strong>instantaneous</strong> output and is <code>0</code> whenever the cell is idle — which alone cannot distinguish a chlorinator that is switched off from one that is configured and healthy but has no flow. <code>generating_reason</code> says which it is: <code>Generating</code>, <code>Off</code> (setpoint is 0%), <code>PumpOff</code> (configured, but no filter pump is running), <code>NoFlow</code> (a pump is running but the cell reports no flow), <code>Fault</code> (the cell is in a warning/error state), <code>Idle</code> (configured and not generating, no nameable reason), or <code>Unknown</code> (nothing reported yet). It is derived server-side so the web UI, MQTT and Home Assistant agree.</li>
+<li><code>setpoint_percent</code> is the <strong>configured target</strong> for the currently active body (resolving to <code>pool_setpoint_percent</code> or <code>spa_setpoint_percent</code>, falling back to the last-known generating %); it is what the dashboard's Target slider seeds from.</li>
 <li><code>validation</code> is an object once the startup scrape completes, or <code>null</code> before then. The spelling <code>expected_auxillary_count</code> (and the nested <code>expected_auxillaries</code> / <code>discovered_auxillaries</code>) is the exact field name in the payload.</li>
 <li>A temperature is either a <code>{ "celsius": ..., "fahrenheit": ... }</code> object or <code>null</code>.</li>
 </ul>
@@ -3327,12 +3346,14 @@ web UI merges both sources into one timeline. See
 <p>With no command dispatcher available the whole request returns <code>503</code> (<code>text/plain</code> "Command dispatcher not available"). If any accepted field's dispatch fails, the overall status is <code>500</code> while the per-field JSON still reports each field's individual <code>status</code>.</p>
 <h3 id="post-apiequipmentchlorinator">POST /api/equipment/chlorinator<a class="headerlink" href="#post-apiequipmentchlorinator" title="Permanent link">&para;</a></h3>
 <p>Set the chlorinator generating percentage and/or its boost mode.</p>
+<p>The panel keeps an <strong>independent output setpoint per body of water</strong> — you can run the spa at 70% while the pool sits at 40% — so <code>body</code> selects which one <code>percentage</code> applies to. It is optional and defaults to <code>Pool</code>, which is what the single-value form has always driven, so existing callers are unaffected. Only <code>Pool</code> and <code>Spa</code> are accepted (case-insensitive); anything else is a <code>400</code>, because the panel has no row to write.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8080/api/equipment/chlorinator<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{ "percentage": 60, "boost": false }'</span>
 </code></pre></div>
 <ul>
 <li><code>percentage</code> is a number in <code>0 .. 100</code>.</li>
+<li><code>body</code> is <code>Pool</code> (default) or <code>Spa</code>, and selects which setpoint <code>percentage</code> writes.</li>
 <li><code>boost</code> is a boolean.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>

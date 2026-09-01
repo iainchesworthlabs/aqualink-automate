@@ -2461,7 +2461,17 @@
 <tr>
 <td><code>aqualink/command/chlorinator/percentage</code></td>
 <td>number <code>0</code>–<code>100</code></td>
-<td>Set the chlorinator output percentage.</td>
+<td>Set the <strong>pool</strong> chlorinator output percentage.</td>
+</tr>
+<tr>
+<td><code>aqualink/command/chlorinator/pool/percentage</code></td>
+<td>number <code>0</code>–<code>100</code></td>
+<td>The same, stated explicitly.</td>
+</tr>
+<tr>
+<td><code>aqualink/command/chlorinator/spa/percentage</code></td>
+<td>number <code>0</code>–<code>100</code></td>
+<td>Set the <strong>spa</strong> chlorinator output percentage.</td>
 </tr>
 <tr>
 <td><code>aqualink/command/chlorinator/boost</code></td>
@@ -2684,12 +2694,19 @@
 <p>Switch entities use <code>payload_on: ON</code> / <code>payload_off: OFF</code> on their command topic.</p>
 <p>The chlorinator's extra entities read its JSON blob at <code>aqualink/device/{slug}</code>:</p>
 <ul>
-<li><code>sensor</code> "Generating %" from <code>generating_percentage</code> (unit <code>%</code>).</li>
+<li><code>sensor</code> "Generating %" from <code>generating_percentage</code> (unit <code>%</code>) — the <strong>instantaneous</strong> output, <code>0</code> whenever the cell is idle.</li>
+<li><code>sensor</code> "Target %" from <code>setpoint_percent</code> (unit <code>%</code>) — the <strong>configured</strong> output for the currently active body, which "Generating %" never shows while idle.</li>
+<li><code>sensor</code> "Output State" from <code>generating_reason</code> — why the cell is at that output. Without it a <code>0</code> reading is ambiguous in an automation. Values: <code>Generating</code>, <code>Off</code> (setpoint is 0%), <code>PumpOff</code> (configured, but no filter pump is running), <code>NoFlow</code> (a pump is running but the cell reports no flow), <code>Fault</code> (the cell is in a warning/error state), <code>Idle</code> (configured and not generating, no nameable reason), <code>Unknown</code> (nothing reported yet).</li>
 <li><code>sensor</code> "Boost Mode" from <code>boost_mode</code>.</li>
 <li><code>sensor</code> "Health" from <code>chlorinator_health</code>.</li>
-<li><code>number</code> "Generating Setpoint" — min 0, max 100, command on <code>command/chlorinator/percentage</code>.</li>
+<li><code>number</code> "Pool Output" — min 0, max 100, reads <code>pool_setpoint_percent</code>, command on <code>command/chlorinator/percentage</code>.</li>
+<li><code>number</code> "Spa Output" — min 0, max 100, reads <code>spa_setpoint_percent</code>, command on <code>command/chlorinator/spa/percentage</code>.</li>
 <li><code>switch</code> "Boost" — command on <code>command/chlorinator/boost</code>.</li>
 </ul>
+<blockquote>
+<p>The pool and spa setpoints are <strong>independent</strong> — the panel holds one for each body, so setting one never changes the other. The pool control keeps the unique id the old single "Generating Setpoint" had (which already drove the pool), so existing dashboards and automations keep working; its value template is corrected, since it previously read the <em>instantaneous</em> output and so snapped back to 0 whenever the cell was idle.</p>
+<p>A chlorinator sitting at <code>0 %</code> with <code>Output State: PumpOff</code> is working normally — it produces only while water is flowing past the cell. Automate on <code>generating_reason</code>, not on the percentage alone.</p>
+</blockquote>
 <h2 id="worked-setup">Worked setup<a class="headerlink" href="#worked-setup" title="Permanent link">&para;</a></h2>
 <p>This walks you from a fresh broker to discovered entities in Home Assistant.</p>
 <h3 id="1-run-a-mosquitto-broker">1. Run a mosquitto broker<a class="headerlink" href="#1-run-a-mosquitto-broker" title="Permanent link">&para;</a></h3>

@@ -1410,6 +1410,39 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#vcpkg-disk-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vcpkg disk hygiene
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-sonarcloud-is-pinned-to-github-hosted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why SonarCloud is pinned to GitHub-hosted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-parallelism-on-the-shared-linux-fleet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build parallelism on the shared Linux fleet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#repository-variables" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2276,6 +2309,39 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#vcpkg-disk-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vcpkg disk hygiene
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-sonarcloud-is-pinned-to-github-hosted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why SonarCloud is pinned to GitHub-hosted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-parallelism-on-the-shared-linux-fleet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build parallelism on the shared Linux fleet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#repository-variables" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2502,6 +2568,16 @@
 <td><code>.github/actions/setup-msvc-env</code></td>
 <td>Composite action</td>
 <td>Load the MSVC environment on self-hosted Windows runners (sources <code>vcvars64.bat</code>, exports the env delta to <code>$GITHUB_ENV</code>).</td>
+</tr>
+<tr>
+<td><code>scripts/check-vcpkg-cleanup.ps1</code></td>
+<td>Guard-rail script (CI job <em>vcpkg Disk Hygiene</em>)</td>
+<td>Fails if <code>VCPKG_INSTALL_OPTIONS</code> is missing from the <code>core</code> preset, if a concrete preset stops inheriting <code>core</code>, or if a workflow re-introduces the option as a <code>-D</code> argument. See <a href="#vcpkg-disk-hygiene">vcpkg disk hygiene</a>.</td>
+</tr>
+<tr>
+<td><code>.github/actions/ensure-gcovr</code></td>
+<td>Composite action</td>
+<td>Put <code>gcovr</code> on <code>PATH</code>, installing it only if the runner image lacks it. Must run <strong>before</strong> any coverage-preset CMake configure: <code>ENABLE_COVERAGE</code> makes <code>test/CMakeLists.txt</code> call <code>setup_target_for_coverage_gcovr_*</code>, and <code>CodeCoverage.cmake</code> raises <code>FATAL_ERROR "gcovr not found!"</code> at <em>configure</em> time, not at report time.</td>
 </tr>
 </tbody>
 </table>
@@ -2843,8 +2919,8 @@
 <tbody>
 <tr>
 <td><code>CodeScanning_CodeQL</code></td>
-<td>Linux</td>
-<td>CodeQL (<code>c-cpp</code>). Runs its own full build, filters the SARIF to <code>src/**</code>, and uploads to the Security tab.</td>
+<td>Linux (<strong><code>big</code></strong>)</td>
+<td>CodeQL (<code>c-cpp</code>). Runs its own full build, filters the SARIF to <code>src/**</code>, and uploads to the Security tab. Routed to <code>linux_runner_big</code>: CodeQL instrumentation plus a full C++ build has twice been killed mid-build on a GitHub-hosted runner (at 108 min and at 2h33m).</td>
 </tr>
 <tr>
 <td><code>CodeScanning_CodeQL_JS</code></td>
@@ -2858,13 +2934,13 @@
 </tr>
 <tr>
 <td><code>CodeScanning_SonarCloud</code></td>
-<td>Linux</td>
+<td>Linux (<strong>GitHub-hosted, pinned</strong>)</td>
 <td>SonarCloud via build-wrapper over a coverage build (<code>config-linux-gcc-coverage</code>, <code>-DUSE_SONARQUBE=ON</code>). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with <strong>both</strong> (<code>sonar.coverageReportPaths</code> comma-separated; Sonar merges line coverage).</td>
 </tr>
 <tr>
 <td><code>CodeScanning_MSVCCodeAnalysis</code></td>
-<td>Windows</td>
-<td>MSVC code analysis (<code>NativeRecommendedRules.ruleset</code>) over the <code>config-windows-msvc</code> build; uploads SARIF.</td>
+<td>Windows (<strong><code>big</code></strong>)</td>
+<td>MSVC code analysis (<code>NativeRecommendedRules.ruleset</code>) over the <code>config-windows-msvc</code> build; uploads SARIF. Routed to <code>windows_runner_big</code>: at ~140 min it is the longest job in CI (so it sets the critical path) and it filled the shared 16 GB <code>D:</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -2995,7 +3071,7 @@
 <li><strong>The Edge channel is generated, not hand-edited</strong> — re-runs <code>scripts/gen-homeassistant-edge-addon.ps1</code> and fails on any diff, so the two channels can never drift by hand.</li>
 <li><strong>Options translations cover <code>config.yaml</code></strong> — every locale must document exactly the schema keys (<code>configuration:</code>) and ports (<code>network:</code>), no missing and no extra (mirrors the web UI's i18n key check).</li>
 <li><strong><code>run.sh</code> passes shellcheck.</strong></li>
-<li><strong>Version lock-step</strong> — each channel's <code>config.yaml</code> <code>version</code> equals every <code>build.yaml</code> base-image tag, via <code>scripts/sync-homeassistant-addon-version.ps1 -Check</code> (the same script the release process uses as the single writer in set mode, and which <code>release.yml</code> re-checks — so CI and release can never disagree).</li>
+<li><strong>Version present and readable</strong> — each channel's <code>config.yaml</code> carries a parseable <code>version:</code>, via <code>scripts/sync-homeassistant-addon-version.ps1 -Check</code>. The Dockerfile derives its base-image tag from that version through <code>BUILD_VERSION</code>; there is no <code>build.yaml</code>. Pinning that version to the <em>release</em> version happens in <code>release.yml</code> (<code>-Check -Channel &lt;c&gt; -Version &lt;v&gt;</code>), not here. The same script is the single writer in set mode, so CI and release can never disagree about the format.</li>
 </ol>
 <p>The add-on wrapper <strong>images</strong> are published by <code>release.yml</code>'s <code>homeassistant-addon-publish</code> job, not by this workflow.</p>
 <h2 id="home-assistant-companion-package-validation-ha-companionyml">Home Assistant companion package validation (ha-companion.yml)<a class="headerlink" href="#home-assistant-companion-package-validation-ha-companionyml" title="Permanent link">&para;</a></h2>
@@ -3010,13 +3086,190 @@
 <h2 id="self-hosted-runners">Self-hosted runners<a class="headerlink" href="#self-hosted-runners" title="Permanent link">&para;</a></h2>
 <p>Every Linux and Windows job that can build on the self-hosted fleet reads its runner labels
 from a shared <code>check-runners</code> job (<code>_check-runners.yml</code>), which <strong>live-checks</strong> whether a
-matching self-hosted runner is actually online and idle right now — not a static "self-hosted
+matching self-hosted runner is actually available right now — not a static "self-hosted
 is configured" switch. macOS always runs on <code>macos-latest</code> (GitHub-hosted); the arm64 Linux
 row of <code>_build.yml</code> stays on the static <code>RUNNER_LINUX_ARM</code> override (no self-hosted arm64
 runner exists in the current fleet to check against).</p>
-<p>Full design, the fork-PR gating, and the two-part live check (repo-level, then optional
-org-level via <code>ORG_RUNNERS_TOKEN</code>) are documented in
+<p><code>check-runners</code> emits <strong>four</strong> label arrays, not two. <code>linux_runner</code> / <code>windows_runner</code> are
+the ordinary shared-fleet outputs. <code>linux_runner_big</code> / <code>windows_runner_big</code> additionally
+require the <code>big</code> label — the two oversized runners (8 vCPU / 32 GB Linux, 8 vCPU / 24 GB
+Windows, 48 GB data disks) in the repo-scoped <code>Labs CI Big Runners</code> group, provisioned
+because the heavy legs OOM-killed and filled the disks on the shared shape. Only
+<code>CodeScanning_CodeQL (c-cpp)</code> and <code>CodeScanning_MSVCCodeAnalysis</code> use them; the big pair is
+one machine per OS, so anything pointed at it serialises, and routing <em>every</em> heavy leg
+there measures out slower than leaving them parallel on GitHub-hosted.</p>
+<p>Full design, the fork-PR gating, the two-part live check (repo-level, then optional
+org-level via <code>ORG_RUNNERS_TOKEN</code>), the <code>big</code> routing arithmetic and its two known sharp
+edges are documented in
 <a href="../ci-self-hosted-runners/">ci-self-hosted-runners.md</a> — this section is the short summary.</p>
+<h3 id="vcpkg-disk-hygiene">vcpkg disk hygiene<a class="headerlink" href="#vcpkg-disk-hygiene" title="Permanent link">&para;</a></h3>
+<p>vcpkg keeps <code>deps/vcpkg/buildtrees</code> and <code>deps/vcpkg/packages</code> after every port build,
+and nothing prunes them — <code>_build.yml</code>'s self-hosted <code>Clean workspace</code> step does
+<code>rm -rf build install</code> and deliberately leaves <code>deps/vcpkg</code> alone. On a persistent
+runner they therefore grow monotonically (~6.2 GB measured; OpenSSL's buildtree alone
+~1.0 GB, <code>boost-test</code> next at 425 MB), until a build dies:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ld.bfd: final link failed: No space left on device            # Linux, at [723/726]
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>fatal error C1085: Cannot write compiler generated file ...   # MSVC
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  : No space left on device
+</code></pre></div>
+<p>Note the Linux case: all 726 objects compiled and it died at the <strong>link</strong> — so this is
+disk, not the memory pressure described above.</p>
+<p>The <code>core</code> preset therefore sets:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">"VCPKG_INSTALL_OPTIONS"</span><span class="p">:</span><span class="w"> </span><span class="s2">"--clean-buildtrees-after-build;--clean-packages-after-build"</span>
+</code></pre></div>
+<p><strong>It must be a preset <code>cacheVariable</code>, never a <code>-D</code> argument.</strong> <code>VCPKG_INSTALL_OPTIONS</code>
+is a CMake <em>list</em>, so its elements are <code>;</code>-separated. Passing <code>-DVCPKG_INSTALL_OPTIONS=a;b</code>
+through <code>lukka/run-cmake</code>'s <code>configurePresetAdditionalArgs</code> fails, because that action
+invokes cmake via a shell, which splits on <code>;</code> — macOS/Windows Configure died at exit 127
+with <code>/bin/sh: --clean-packages-after-build: command not found</code>. That is exactly how an
+earlier attempt was reverted. A <code>cacheVariable</code> never reaches a shell, so the <code>;</code> survives
+as a list separator — the same channel already carries <code>"CMAKE_CONFIGURATION_TYPES":
+"Debug;Release"</code> without trouble.</p>
+<p><code>scripts/check-vcpkg-cleanup.ps1</code> (CI job <strong>vcpkg Disk Hygiene</strong>, gated by <code>CI Status</code>)
+enforces all three parts: the option is present on <code>core</code>, every concrete preset still
+inherits <code>core</code>, and no workflow passes it via <code>-D</code>.</p>
+<p><strong>Reclaiming what already accumulated.</strong> The <code>cacheVariable</code> only prevents <em>future</em> growth,
+and the volumes were already full. Every self-hosted <code>Clean workspace</code> step therefore also
+does:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>rm<span class="w"> </span>-rf<span class="w"> </span>deps/vcpkg/buildtrees<span class="w"> </span>deps/vcpkg/packages
+</code></pre></div>
+<p><code>deps/vcpkg</code> persists between jobs on a self-hosted runner — that is why the clean step
+exists at all — so those two directories carry residue from every previous run. Both are
+pure intermediates: the binary cache lives in <code>$HOME/.cache/vcpkg/archives</code> and is
+untouched, so ports still restore from cache rather than rebuilding. <code>downloads/</code> is
+deliberately <strong>not</strong> pruned — on self-hosted it is redirected to the size-capped persistent
+cache, so clearing it would force re-downloads for no disk win.</p>
+<p>This is self-healing across the fleet: a job reclaims whichever host it lands on, so all
+runners get cleaned as work naturally distributes, with no fleet-side operation and no
+manual intervention.</p>
+<p><strong>Still out of scope:</strong> a prune on the runner supervisor's <em>recycle</em> would reclaim even on
+runners this repo never schedules onto. That lives in <code>iainchesworthlabs/ci-runners</code>.</p>
+<h3 id="why-sonarcloud-is-pinned-to-github-hosted">Why SonarCloud is pinned to GitHub-hosted<a class="headerlink" href="#why-sonarcloud-is-pinned-to-github-hosted" title="Permanent link">&para;</a></h3>
+<p><code>CodeScanning_SonarCloud</code> does <strong>not</strong> go through <code>check-runners</code>. It exhausts the shared
+Linux guests during the scan phase, and the failure names its own axis:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>##[error]Action failed: ENOSPC: no space left on device, write
+</code></pre></div>
+<p><strong>Disk, not memory</strong> — an earlier reading of this attributed it to the CFamily analyzer's
+memory footprint scaling with changeset size. That was wrong; the log is explicit.</p>
+<p>The controlled comparison holds the changeset constant and varies only the runner (same PR,
+41 files, same workflow):</p>
+<table>
+<thead>
+<tr>
+<th>Runner</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ubuntu-latest</code></td>
+<td>✅ 77 min</td>
+</tr>
+<tr>
+<td><code>tf-gh-linux-runner-08</code> (shared)</td>
+<td>❌ 33 min — <code>ENOSPC</code> during the scan</td>
+</tr>
+</tbody>
+</table>
+<p>Critically, that failing run <strong>already contained the vcpkg reclaim</strong>, so this is not residual
+accumulation. Confirmed step-by-step on a 12 GB shared guest:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>[success] Clean workspace (self-hosted)   &lt;- the reclaim ran
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>[success] Configure
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>[success] Build with build-wrapper        &lt;- completed, reached [724/725]
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>[failure] Run SonarCloud scan             &lt;- ENOSPC
+</code></pre></div>
+<p><strong>This is a peak-demand problem, not a growth problem, and that distinction is why more
+reclaiming cannot fix it.</strong> The reclaim runs at the <em>start</em> of a job. SonarCloud's peak disk
+demand is at the <em>end</em>: build-wrapper's output, <code>compile_commands.json</code>, <code>.scannerwork</code> and the
+analysis cache all land after the reclaim has already happened. Freeing <code>buildtrees</code> up front
+does not help a stage that fills the volume later — and that is true of <em>any</em> reclaim-once-up-front
+approach, not just this one. The prune in <code>#162</code> stops the cache growing <em>across</em> runs, which is
+real and still needed; this is a different constraint that the same volume cannot satisfy
+<em>within</em> one run. The shared guests' 18 GB data volume is shared with the
+size-capped persistent caches (ccache, vcpkg archives, vcpkg downloads), so the working space
+actually available to a job is materially less than the raw figure, and less than a hosted
+runner's dedicated disk. The precise breakdown has not been measured.</p>
+<p><strong>Deliberately not routed to <code>linux_runner_big</code>.</strong> The reflex is to send it after
+<code>CodeScanning_CodeQL</code>, but <code>big</code> is one machine per OS that CodeQL already occupies for
+~100 min per run; serialising the scan behind it would push Code Scanning's Linux path from
+~96 min to ~140+. Hosted already works, costs nothing from the fleet, and leaves <code>big</code> for the
+one leg that completes nowhere else.</p>
+<p>Note this is the <em>opposite</em> conclusion to CodeQL's, from the same kind of evidence — which is
+the point. CodeQL earns <code>big</code> because it completes <strong>nowhere else</strong>; SonarCloud does not,
+because a cheaper shape already works.</p>
+<p><strong>What this does not establish:</strong> the largest changeset measured <em>successfully anywhere</em> is
+41 files (77 min on hosted). A 71-file changeset on hosted is untested. If that fails too,
+<code>big</code> becomes the answer after all — at which point the serialisation cost above is a known
+price rather than a reason against.</p>
+<h3 id="build-parallelism-on-the-shared-linux-fleet">Build parallelism on the shared Linux fleet<a class="headerlink" href="#build-parallelism-on-the-shared-linux-fleet" title="Permanent link">&para;</a></h3>
+<p>Ninja defaults to <code>nproc + 2</code> and no preset in <code>CMakePresets.json</code> sets <code>jobs</code>, so an
+8-vCPU guest builds at <strong>-j10</strong>. Measured per-TU cost for this codebase is <strong>~1.09 GiB</strong>
+of <code>cc1plus</code> RSS (from an oom-killer dump: 10 concurrent <code>cc1plus</code> holding 10.9 GiB anon
+RSS, page cache evicted to 17 MB, swap 0). Against the <strong>11.7 GiB usable</strong> on a 12 GB
+shared Linux guest that leaves ~7% headroom, which the heaviest Boost/C++23 translation
+units consume — the observed failure being a <code>runner shutdown</code> / <code>exit 143</code> deep into the
+build.</p>
+<p>Note the fleet's RAM:vCPU ratio did <strong>not</strong> change across the 2026-08-27 right-size
+(1.5 GB per vCPU before and after). What broke is that Ninja's <code>+2</code> is <strong>additive</strong>, so it
+overshoots by 25% at 8 cores against 6% at 32 — taking effective RAM-per-job from
+~1.38 GiB to ~1.17 GiB.</p>
+<p>Every Linux build leg therefore pins <code>CMAKE_BUILD_PARALLEL_LEVEL: 6</code> (<code>_build.yml</code>
+including its in-container package build, <code>fuzzing.yml</code>, and the coverage builds in
+<code>automated-codescanning.yml</code>). This is a <strong>CI-only</strong> cap — <code>CMakePresets.json</code> is
+untouched, so developer machines keep Ninja's default. The variable is set to the empty
+string on non-Linux legs, which CMake documents as "use the native tool's default".</p>
+<p><code>CodeScanning_CodeQL</code> is the one leg whose parallelism is <strong>conditional</strong>, because it must
+track the runner it actually landed on:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="l l-Scalar l-Scalar-Plain">--parallel ${{ contains(needs.check-runners.outputs.linux_runner_big, 'big') &amp;&amp; '8' || '4' }}</span>
+</code></pre></div>
+<p><code>linux_runner_big</code> falls back to <code>ubuntu-latest</code> whenever the <em>single</em> big Linux runner is
+unavailable, and on a public repo that is 4 vCPU / <strong>16 GB</strong>. CodeQL's extractor wraps every
+compile and roughly doubles per-TU RSS (~2.2 GiB), so a fixed <code>8</code> is ~17.6 GiB — comfortable
+on the big runner's 32 GB and an OOM on the hosted fallback. Worse, a fixed <code>8</code> is <em>higher</em>
+than the <code>nproc + 2 = 6</code> Ninja would have chosen there unaided, so hardcoding it made the
+fallback path strictly worse than leaving it unset. That configuration already killed this
+job twice on hosted (108 min at object 721/762, and 2h33m). <code>4</code> on the fallback is ~8.8 GiB.</p>
+<p><code>CodeScanning_MSVCCodeAnalysis</code> needs no equivalent: it sets no explicit parallelism at all,
+so it self-corrects to <code>nproc + 2</code> on whichever runner it lands on.</p>
+<p><strong>Inside the Docker build, the cap has to be passed in.</strong> <code>Dockerfile</code>'s own
+<code>cmake --build --preset build-linux-gcc</code> never sees a workflow-level environment
+variable, so it ran at <code>nproc + 2 = 10</code> on the 12 GB guests and OOM-killed the runner —
+observed <strong>deterministically at object 721/762</strong> (<code>integration_test_scenarios.cpp</code>) on two
+different hosts, which is what distinguishes it from per-host disk exhaustion. The
+Dockerfile therefore takes <code>ARG CMAKE_BUILD_PARALLEL_LEVEL=""</code> (empty = the native tool's
+default, so local builds are unaffected) and every caller that builds the <code>ci</code> stage passes
+it:</p>
+<table>
+<thead>
+<tr>
+<th>Call site</th>
+<th>Target</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ci.yml</code> <em>Build CI target</em></td>
+<td><code>ci</code></td>
+<td>the build that OOM'd</td>
+</tr>
+<tr>
+<td><code>ci.yml</code> <em>Build runtime target</em></td>
+<td><code>runtime</code></td>
+<td><code>COPY --from=ci</code> — <strong>must match the value above</strong>, or it misses the layer cache just populated <em>and</em> rebuilds the <code>ci</code> stage uncapped</td>
+</tr>
+<tr>
+<td><code>release.yml</code> <em>Docker Publish</em></td>
+<td><code>runtime-assembled</code></td>
+<td>also <code>COPY --from=ci</code></td>
+</tr>
+</tbody>
+</table>
+<p>The HA add-on build in <code>release.yml</code> uses a different Dockerfile and does not build the C++
+stage, so it needs nothing.</p>
+<p>The general rule the conditional encodes: <strong>an explicit <code>--parallel</code> must be justified
+against every runner the job can resolve to, not just the intended one.</strong> Where that is
+awkward, leaving it unset is safer, because Ninja's default already tracks the hardware.</p>
 <h3 id="repository-variables">Repository variables<a class="headerlink" href="#repository-variables" title="Permanent link">&para;</a></h3>
 <p>Set these under <strong>Settings &gt; Variables &gt; Actions</strong>.</p>
 <table>
@@ -3038,17 +3291,18 @@ org-level via <code>ORG_RUNNERS_TOKEN</code>) are documented in
 <td><code>auto</code> (default), <code>self-hosted</code>, <code>github-hosted</code></td>
 <td>Every Windows job wired to <code>check-runners</code> (<code>_build.yml</code>, MSVC code analysis)</td>
 </tr>
-<tr>
-<td><code>RUNNER_LINUX_ARM</code></td>
-<td>JSON label array, e.g. <code>["self-hosted","linux","arm64"]</code></td>
-<td>The arm64 Linux row of <code>_build.yml</code> only — unaffected by <code>check-runners</code>. Falls back to the GitHub-hosted <code>ubuntu-24.04-arm</code> (free for public repos).</td>
-</tr>
 </tbody>
 </table>
+<p>Both <code>_MODE</code> variables govern the <code>_big</code> outputs too — there is no separate mode for the big
+pair. Forcing <code>github-hosted</code> sends the heavy legs to GitHub-hosted as well, which is where
+CodeQL <code>c-cpp</code> has been killed mid-build.
+| <code>RUNNER_LINUX_ARM</code> | JSON label array, e.g. <code>["self-hosted","linux","arm64"]</code> | The arm64 Linux row of <code>_build.yml</code> only — unaffected by <code>check-runners</code>. Falls back to the GitHub-hosted <code>ubuntu-24.04-arm</code> (free for public repos). |</p>
 <p><code>RUNNER_LINUX</code> / <code>RUNNER_WINDOWS</code> (the old static label-array variables) are retired —
-the exact self-hosted labels (<code>self-hosted, Linux, X64</code> / <code>self-hosted, Windows, X64</code>) are
-now hardcoded inside <code>_check-runners.yml</code>, since they must match what the <code>ci-runners</code> fleet
-actually registers with.</p>
+the exact self-hosted labels (<code>self-hosted, Linux, X64, shared</code> /
+<code>self-hosted, Windows, X64, shared</code>, plus the <code>big</code> variants) are now hardcoded inside
+<code>_check-runners.yml</code>, since they must match what the <code>ci-runners</code> fleet actually registers
+with. The <code>shared</code> label exists so an ordinary leg cannot be scheduled onto the big pair —
+<code>runs-on</code> matches any runner whose labels are a superset and has no NOT operator.</p>
 <h3 id="repository-secret">Repository secret<a class="headerlink" href="#repository-secret" title="Permanent link">&para;</a></h3>
 <p><code>ORG_RUNNERS_TOKEN</code> (optional) — an org-scoped PAT or GitHub App token with "Self-hosted
 runners: read" on <code>iainchesworthlabs</code>, letting <code>check-runners</code> see the org-level fleet in
@@ -3064,7 +3318,7 @@ across every repo in the org — not in this repo's <code>cicd/</code>.</p>
 <h2 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h2>
 <h3 id="vcpkg-binary-cache">vcpkg binary cache<a class="headerlink" href="#vcpkg-binary-cache" title="Permanent link">&para;</a></h3>
 <p>The <code>setup-vcpkg-cache</code> composite action restores the vcpkg binary cache. It is keyed by runner OS, not by job:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>vcpkg-${{ runner.os }}-&lt;vcpkg-commit-hash&gt;-&lt;hashFiles(vcpkg.json, vcpkg-configuration.json, triplets, overlays)&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>vcpkg-${{ runner.os }}-&lt;vcpkg-commit-hash&gt;-&lt;hashFiles(vcpkg.json, vcpkg-configuration.json, triplets, overlays)&gt;
 </code></pre></div>
 <p>Because OS maps 1:1 to the triplet in use, jobs that share a triplet — <code>build-and-test</code>, CodeQL, and SonarCloud all use <code>x64-linux-gcc</code> — share one cache instead of keeping four disjoint copies. The action still accepts a <code>cache-key-prefix</code> input for backward compatibility, but it is <strong>deprecated and ignored</strong>: it no longer affects the binary cache key.</p>
 <p>Self-hosted runners use a persistent on-disk <code>~/.cache/vcpkg/archives</code> instead of the <code>actions/cache</code> restore, set up by the inline "Setup vcpkg cache (self-hosted)" steps.</p>

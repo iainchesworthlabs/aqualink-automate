@@ -1732,7 +1732,8 @@ font-load assertion in <code>e2e/i18n.spec.ts</code> if vendored.</p>
 <li>Flat dot keys, namespaced by surface: <code>nav.*</code>, <code>login.*</code>, <code>dash.*</code>,
   <code>detail.*</code>, <code>diag.*</code>, <code>devcard.*</code>, <code>trends.*</code>, <code>sched.*</code>, <code>settings.*</code>,
   <code>about.*</code>, plus shared <code>common.*</code>, <code>status.*</code>, <code>cmd.*</code>, <code>alert.*</code>,
-  <code>toast.*</code>, <code>time.*</code>, <code>tier.*</code>, <code>chem.*</code>, <code>swg_health.*</code>, <code>day.*</code>.</li>
+  <code>toast.*</code>, <code>time.*</code>, <code>tier.*</code>, <code>chem.*</code>, <code>swg_health.*</code>, <code>swg_reason.*</code>,
+  <code>day.*</code>.</li>
 <li>Placeholders are <code>{name}</code> and are substituted by <code>t()</code>; never rebuild
   sentences by string concatenation — word order differs across languages.</li>
 <li><strong>Number-typed</strong> placeholder values are rendered with <code>Intl.NumberFormat</code>
@@ -1801,8 +1802,10 @@ view is open.</p>
   lines, controller program names — these arrive over RS-485 (or are
   user-configured) and pass through verbatim.</li>
 <li><strong>Technical tokens</strong>: backend enum values used as wire/comparison values
-  (the display layer maps the known ones via <code>status.*</code> / <code>swg_health.*</code>
-  catalog keys and falls back to the raw name for unknown values), log
+  (the display layer maps the known ones via <code>status.*</code> / <code>swg_health.*</code> /
+  <code>swg_reason.*</code> catalog keys and falls back to the raw name for unknown
+  values -- <code>swg_reason.*</code> covers the <code>ChlorinatorGeneratingReason</code> names that
+  explain why the SWG is at its current output), log
   severity levels and channel names, JSON field names, MQTT payloads, units
   attached to raw diagnostics, endpoint paths, the brand name.</li>
 <li><strong>Backend prose</strong> (HTTP error bodies, alert <code>detail</code> text) still arrives in

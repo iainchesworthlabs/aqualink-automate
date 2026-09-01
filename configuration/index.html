@@ -812,6 +812,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#where-on-demand-captures-are-written" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where on-demand captures are written
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#logging-sinks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1985,6 +1996,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#where-on-demand-captures-are-written" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where on-demand captures are written
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#logging-sinks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2996,7 +3018,14 @@
 <td></td>
 <td>string</td>
 <td>none</td>
-<td>Record serial port data to a file for later replay.</td>
+<td>Record serial port data to a file for later replay. The path is taken as given (relative to the working directory) and is <strong>not</strong> confined to <code>--capture-directory</code>.</td>
+</tr>
+<tr>
+<td><code>--capture-directory</code></td>
+<td></td>
+<td>string</td>
+<td><code>captures</code></td>
+<td>Directory that <strong>on-demand</strong> captures (started from the web UI's Diagnostics page or <code>POST /api/diagnostics/recording</code>) are written to and downloaded from. Relative paths resolve against the working directory; it is created on the first recording.</td>
 </tr>
 <tr>
 <td><code>--decode-to-master</code></td>
@@ -3047,6 +3076,10 @@ privileged actions) is a separate subsystem, not an operational log channel, so
 there is deliberately no <code>--loglevel-audit</code>. See
 <a href="../SECURITY/">Security → Audit trail</a> for where audit events are routed.</p>
 </blockquote>
+<h3 id="where-on-demand-captures-are-written">Where on-demand captures are written<a class="headerlink" href="#where-on-demand-captures-are-written" title="Permanent link">&para;</a></h3>
+<p><code>--capture-directory</code> is the one directory the runtime recording feature is allowed to touch. The filename supplied by <code>POST /api/diagnostics/recording</code> is jailed into it as a bare <code>*.cap</code> basename — path separators, drive letters, leading separators, <code>..</code>, control characters, and quotes are all rejected — and <code>GET /api/diagnostics/recording/captures/{filename}</code> serves back out of that same jail, so neither endpoint can reach a file elsewhere on the host.</p>
+<p>The default (<code>captures</code>, relative to the working directory) keeps existing installs unchanged. Point it somewhere the operator can actually reach when the app runs somewhere they cannot get a shell — this is exactly what the Home Assistant add-on does, mapping it onto its user-browsable <code>app_config</code> share (see <a href="../homeassistant-addon/">Home Assistant add-on</a>).</p>
+<p><code>--record-serial</code> is unaffected: it is an operator-supplied path on the command line, so it is used as given.</p>
 <h3 id="logging-sinks">Logging sinks<a class="headerlink" href="#logging-sinks" title="Permanent link">&para;</a></h3>
 <p>Where operational log records are delivered is configured by the <strong>Logging</strong>
 options. By default (<code>--log-sinks auto</code>) the destination is derived from the run

@@ -1060,6 +1060,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-big-pair-heavy-legs-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The big pair (heavy legs only)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The big pair (heavy legs only)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#which-legs-go-there-and-why-not-all-of-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which legs go there, and why not all of them
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-known-sharp-edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two known sharp edges
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#why-the-check-not-a-static-switch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1454,6 +1493,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-big-pair-heavy-legs-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The big pair (heavy legs only)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The big pair (heavy legs only)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#which-legs-go-there-and-why-not-all-of-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which legs go there, and why not all of them
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-known-sharp-edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two known sharp edges
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#why-the-check-not-a-static-switch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1504,8 +1582,10 @@
 
 <h1 id="self-hosted-ci-runners">Self-hosted CI runners<a class="headerlink" href="#self-hosted-ci-runners" title="Permanent link">&para;</a></h1>
 <p>Several Linux and Windows jobs across <code>.github/workflows/</code> can run on a self-hosted runner
-instead of a GitHub-hosted one — but only when one is actually online and idle right now,
-never as an all-or-nothing switch. The two macOS-only and one arm64-only leg of
+instead of a GitHub-hosted one — but only when one is actually available right now, never as
+an all-or-nothing switch. ("Available" means <em>online and idle</em> for the shared fleet, and
+merely <em>online</em> for the two <code>big</code> runners — see
+<a href="#the-big-pair-heavy-legs-only">The <code>big</code> pair</a> for why those differ.) The two macOS-only and one arm64-only leg of
 <a href="https://github.com/iainchesworthlabs/aqualink-automate/blob/main/.github/workflows/_build.yml"><code>_build.yml</code></a>
 always stay on GitHub-hosted runners; there's no self-hosted equivalent for either
 (<code>RUNNER_LINUX_ARM</code> remains a static optional override for the arm64 leg — see below).</p>
@@ -1523,8 +1603,9 @@ Windows. Every workflow that can build on the fleet — <code>_build.yml</code> 
 (<code>e2e-ui</code>, <code>matter-bridge</code>, <code>docker-verify</code>), <code>release.yml</code> directly (<code>docker-publish</code>,
 <code>homeassistant-addon-publish</code>), <code>fuzzing.yml</code>, and <code>automated-codescanning.yml</code> — calls it
 once as its own <code>check-runners</code> job and reads <code>needs.check-runners.outputs.linux_runner</code> /
-<code>windows_runner</code> at every <code>runs-on:</code> and <code>contains(..., 'self-hosted')</code> step-gate that used
-to read a static repository variable. One definition, no duplicated bash across six callers.</p>
+<code>windows_runner</code> (or their <code>_big</code> counterparts) at every <code>runs-on:</code> and
+<code>contains(..., 'self-hosted')</code> step-gate that used to read a static repository variable. One
+definition, no duplicated bash across six callers.</p>
 <p>Per OS, in order:</p>
 <ol>
 <li><strong>Fork PRs always get GitHub-hosted</strong>, no exceptions and no live check. Untrusted code
@@ -1548,14 +1629,168 @@ to read a static repository variable. One definition, no duplicated bash across 
 </ol>
 <p>Either check finding at least one runner that is <code>online</code>, not <code>busy</code>, and labelled with
    both <code>self-hosted</code> and the right OS (<code>Linux</code> or <code>Windows</code>) selects the self-hosted label
-   set (<code>self-hosted, Linux, X64</code> / <code>self-hosted, Windows, X64</code> — the exact labels the
-   <code>ci-runners</code> fleet registers with). Finding nothing, or the API call itself failing for
+   set (<code>self-hosted, Linux, X64, shared</code> / <code>self-hosted, Windows, X64, shared</code> — the exact
+   labels the <code>ci-runners</code> fleet registers with). The <code>shared</code> label is what keeps an ordinary
+   leg off the big pair, which carries <code>big</code> instead; see
+   <a href="#the-big-pair-heavy-legs-only">The <code>big</code> pair</a>. The <code>_big</code> outputs run the same three
+   steps against a stricter label set and a looser liveness test — see below. Finding nothing, or the API call itself failing for
    any reason, falls back to GitHub-hosted (<code>ubuntu-latest</code> / <code>windows-latest</code>) — this check
    being unavailable is never a reason to block CI.</p>
 <p>Until the repo is added to the runner group's "selected repositories" allow-list (and
 <code>ORG_RUNNERS_TOKEN</code> is provisioned), every leg simply keeps building on GitHub-hosted
 runners — a deliberate no-op, not a bug: the mechanism is inert until the infrastructure
 side is wired up.</p>
+<h2 id="the-big-pair-heavy-legs-only">The <code>big</code> pair (heavy legs only)<a class="headerlink" href="#the-big-pair-heavy-legs-only" title="Permanent link">&para;</a></h2>
+<p>Two runners in the fleet are deliberately larger, and live in their own runner group
+(<code>Labs CI Big Runners</code>, scoped to this repo alone) with an extra <code>big</code> label:</p>
+<table>
+<thead>
+<tr>
+<th>Runner</th>
+<th>vCPU</th>
+<th>RAM</th>
+<th>Data disk</th>
+<th>Labels</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tf-gh-big-linux-runner-01</code></td>
+<td>8</td>
+<td>32 GB</td>
+<td><code>/data</code> 48 GB</td>
+<td><code>self-hosted, Linux, X64, big</code></td>
+</tr>
+<tr>
+<td><code>tf-gh-big-windows-runner-01</code></td>
+<td>8</td>
+<td>24 GB</td>
+<td><code>D:</code> 48 GB</td>
+<td><code>self-hosted, X64, Windows, big</code></td>
+</tr>
+</tbody>
+</table>
+<p>They exist because the heavy legs OOM-killed and filled the disks on the shared 12 GB /
+16 GB shape. <code>_check-runners.yml</code> exposes them as two extra outputs, <code>linux_runner_big</code> and
+<code>windows_runner_big</code>, resolved by the same fork-PR guard, the same <code>RUNNER_*_MODE</code> overrides
+and the same repo-then-org live check as the ordinary outputs — with two deliberate
+differences:</p>
+<ul>
+<li><strong>The probe requires the <code>big</code> label.</strong> Without it the gate would pass because some
+  <em>shared</em> runner is idle, and the job would then queue against a label nothing idle
+  carries. Getting only half of this change (the <code>runs-on</code> array but not the probe) is the
+  easy mistake; the probe and the emitted array must agree.</li>
+<li><strong>The probe requires <code>online</code> but <em>not</em> <code>busy == false</code>.</strong> For the shared fleet, "something
+  is idle" is a fair proxy for "there is capacity" across 8 Linux / 5 Windows runners. There
+  is only <em>one</em> big runner per OS, so demanding idle would bounce a heavy leg to
+  GitHub-hosted the moment the big runner picked up anything else — and GitHub-hosted is
+  precisely where those legs die. Queueing behind the current job is strictly better than
+  routing to a runner that cannot finish. A registered, online runner drains its queue; only
+  an <em>absent</em> label waits forever, which is what the probe actually guards against.</li>
+</ul>
+<h3 id="which-legs-go-there-and-why-not-all-of-them">Which legs go there, and why not all of them<a class="headerlink" href="#which-legs-go-there-and-why-not-all-of-them" title="Permanent link">&para;</a></h3>
+<p>Three jobs currently ask for <code>big</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Job</th>
+<th>Output</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CodeScanning_CodeQL (c-cpp)</code></td>
+<td><code>linux_runner_big</code></td>
+<td>The only leg with direct evidence it <em>cannot</em> complete on a GitHub-hosted runner: killed twice mid-build, once at 108 min (<code>exit 143</code>, at object 721 of 762) and once at 2h33m. Both are resource kills deep into a near-complete build, not flakes — a retry will not clear them.</td>
+</tr>
+<tr>
+<td><code>CodeScanning_MSVCCodeAnalysis</code></td>
+<td><code>windows_runner_big</code></td>
+<td>The longest job in CI at ~140 min, so it <em>is</em> the critical path; it also filled the shared 16 GB <code>D:</code>.</td>
+</tr>
+<tr>
+<td><code>Build &amp; Test / Windows MSVC</code></td>
+<td><code>windows_runner_big</code></td>
+<td>Cannot reliably fit the shared 16 GB <code>D:</code>. Measured on <code>tf-gh-windows-runner-01</code> mid-job on 2026-08-31: a 10.1 GB build tree against a volume that also carries a ~2 GB cache, leaving 3.6 GB free at peak — and on 2026-08-30 <code>tf-gh-windows-runner-05</code> tipped over it with <code>fatal error C1085 ... No space left on device</code>. Nearly all of it is LTCG: <code>INTERPROCEDURAL_OPTIMIZATION_RELEASE</code> puts <code>/GL</code> on <code>libaqualink-{automate,jandy,pentair}</code>, so their objects carry intermediate language and each <code>.lib</code> archives a second copy — 4.5 GB of <code>.obj</code> plus 4.7 GB of <code>.lib</code> across just those three targets, against 0.35 GB of PDBs and 0.65 GB of <code>vcpkg_installed</code>.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Windows <code>big</code> is now oversubscribed, and that is the live risk to watch.</strong> Both Windows
+entries above queue on the <em>same single machine</em>, and one of them is the ~140 min
+<code>CodeScanning_MSVCCodeAnalysis</code>. Because the <code>_big</code> probe accepts a <em>busy</em> runner (see
+above), a <code>Build &amp; Test / Windows MSVC</code> leg can now sit behind that scan rather than
+falling back to <code>windows-latest</code> — so the Windows build gate's worst-case wait went up,
+on every PR, in exchange for it no longer dying on a full disk. If that queue starts
+hurting more than the disk exhaustion did, the cheaper lever is <code>ENABLE_IPO=OFF</code>
+(<code>CMakeLists.txt:38</code>, declared before <code>project()</code> precisely so a preset can override it)
+on the CI configure: that reclaims ~9 GB, puts the leg back on the shared fleet, and
+costs only that PR CI stops exercising the LTCG code path. The other lever is a second
+big Windows runner — see the count knobs below.</p>
+</blockquote>
+<p>Everything else stays where it is. That is a measured decision, not an oversight — routing
+<em>every</em> heavy leg to <code>big</code> is slower, because the big pair is one machine per OS and jobs
+pointed at it serialise:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Linux</th>
+<th>Windows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sum of heavy legs (GitHub-hosted timings)</td>
+<td>212 min</td>
+<td>221 min</td>
+</tr>
+<tr>
+<td>All of them serialised on one big runner, at an assumed 1.5–2× per-job speedup</td>
+<td>106–141 min</td>
+<td>111–126 min</td>
+</tr>
+<tr>
+<td>Today's critical path (longest single job, run in parallel)</td>
+<td>~108 min</td>
+<td>~140 min</td>
+</tr>
+<tr>
+<td><strong>Only the longest leg moved to <code>big</code>, rest parallel on hosted</strong></td>
+<td><strong>~54–72 min</strong></td>
+<td><strong>~80 min</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Moving everything trades parallelism for per-job speed and roughly breaks even; moving only
+the critical-path job keeps the parallelism <em>and</em> shortens the longest pole. (That arithmetic
+covers the <em>scanning</em> legs only, and it still describes Linux exactly. Windows has since
+gained a second <code>big</code> tenant — <code>Build &amp; Test / Windows MSVC</code>, routed there for disk headroom
+rather than speed — so the Windows column now understates contention; see the note above.)</p>
+<p>If a second big runner per OS is ever provisioned (<code>big_linux_runner_count</code> / <code>big_windows_runner_count</code> in
+<code>ci-runners</code>' <code>terraform.tfvars</code>), re-run this arithmetic before widening the routing —
+check host capacity first, as <code>esxi-00</code> is CPU-saturated under load.</p>
+<blockquote>
+<p>The 1.5–2× speedup is an <em>assumption</em> from the hardware delta (8 vCPU / 32 GB against
+hosted's ~4 vCPU / 16 GB), not a measurement. It is the number to verify first; if it does
+not hold, the table above changes.</p>
+</blockquote>
+<h3 id="two-known-sharp-edges">Two known sharp edges<a class="headerlink" href="#two-known-sharp-edges" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>~~A <code>big</code> runner also satisfies the plain array.~~ Fixed in <code>ci-runners</code>.</strong> It carries
+  <code>self-hosted, Linux, X64</code> as well as <code>big</code>, so an ordinary leg asking for the bare array was
+  eligible for it — the probe counted 9 Linux runners, not 8. Under saturation that is worse
+  than a delay: the big runner gets taken by ordinary work <em>and</em> the heavy leg's probe then
+  falls back to GitHub-hosted, losing the big runner exactly when it was needed. The shared
+  fleet now carries a <code>shared</code> label the big pair does not, and the ordinary outputs name it.</li>
+<li><strong>The vcpkg cache is never pruned.</strong> <code>_build.yml</code>'s self-hosted <code>Clean workspace</code> step does
+  <code>rm -rf build install</code> and does not touch <code>deps/vcpkg</code>; <code>buildtrees</code> + <code>downloads</code> +
+  <code>packages</code> grow monotonically (measured at 6.2 GB, with OpenSSL's buildtree alone ~1.0 GB
+  and <code>boost-test</code> next at 425 MB). This is what filled the disks on the old shared fleet. A
+  48 GB data disk gives the big pair a longer runway, but it is a runway, not a fix — the
+  same wall arrives later unless something prunes.</li>
+</ul>
 <h2 id="why-the-check-not-a-static-switch">Why the check, not a static switch<a class="headerlink" href="#why-the-check-not-a-static-switch" title="Permanent link">&para;</a></h2>
 <p>The earlier design — a single repository variable (<code>RUNNER_LINUX</code> / <code>RUNNER_WINDOWS</code>)
 holding the literal runner-label array, read directly at each <code>runs-on:</code> — only answered

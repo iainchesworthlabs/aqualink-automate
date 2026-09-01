@@ -1182,6 +1182,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#5-record-at-runtime-and-get-the-file-back" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Record at runtime, and get the file back
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Record at runtime, and get the file back">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-those-captures-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where those captures go
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-capture-off-the-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting the capture off the machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1565,6 +1604,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#5-record-at-runtime-and-get-the-file-back" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Record at runtime, and get the file back
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Record at runtime, and get the file back">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-those-captures-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where those captures go
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-capture-off-the-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting the capture off the machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1593,7 +1671,7 @@
 
 
 <h1 id="serial-record--replay">Serial record / replay<a class="headerlink" href="#serial-record--replay" title="Permanent link">&para;</a></h1>
-<p><em>For contributors capturing real RS-485 traffic and replaying it (live or as a test fixture). Full developer-option semantics live in <a href="../configuration/">docs/configuration.md</a>; the runtime recording route lives in <a href="../usage-and-api/">docs/usage-and-api.md</a>.</em></p>
+<p><em>For contributors capturing real RS-485 traffic and replaying it (live or as a test fixture). Full developer-option semantics live in <a href="../configuration/">docs/configuration.md</a>; the runtime recording routes live in <a href="../usage-and-api/">docs/usage-and-api.md</a>.</em></p>
 <p>Aqualink-Automate can <strong>record</strong> the raw RS-485 serial traffic it exchanges with
 real hardware to a capture file, and later <strong>replay</strong> that file instead of a real
 port. The recorder and replayer share one on-disk format, so a capture records
@@ -1828,8 +1906,53 @@ used as-is.</p>
 conversion step is needed; that round-trip (record → replay-as-fixture) is
 covered by <code>test/unit/protocol/test_record_replay_roundtrip.cpp</code>.</p>
 <p>You can also start and stop recording on a <strong>running</strong> system through the
-diagnostics web UI / REST route rather than from boot — see the recording route
-in <a href="../usage-and-api/">docs/usage-and-api.md</a>.</p>
+diagnostics web UI / REST route rather than from boot — see section 5 below and
+the recording routes in <a href="../usage-and-api/">docs/usage-and-api.md</a>.</p>
+<hr />
+<h2 id="5-record-at-runtime-and-get-the-file-back">5. Record at runtime, and get the file back<a class="headerlink" href="#5-record-at-runtime-and-get-the-file-back" title="Permanent link">&para;</a></h2>
+<p><code>--record-serial</code> records from boot to a path you choose. The <strong>Diagnostics page</strong>
+of the web UI records on demand against a system that is already running, which is
+usually what you want when chasing a behaviour you can reproduce live.</p>
+<h3 id="where-those-captures-go">Where those captures go<a class="headerlink" href="#where-those-captures-go" title="Permanent link">&para;</a></h3>
+<p>On-demand captures are confined to one directory — <code>--capture-directory</code>, default
+<code>captures</code> under the working directory. Everything about that directory is
+deliberate:</p>
+<ul>
+<li>The filename you type in the UI (or send as <code>POST /api/diagnostics/recording</code>
+  <code>{"action":"start","filename":"..."}</code>) is treated as a <strong>bare <code>*.cap</code> basename</strong>
+  and jailed into the directory. Path separators, drive letters, leading
+  separators, <code>..</code>, control characters, and quotes are rejected with <code>400</code>, so the
+  endpoint can never be steered at another file on the host.</li>
+<li>The directory is created on the first recording, so a fresh install leaves
+  nothing behind until you actually record.</li>
+<li><code>--record-serial</code> is <strong>not</strong> affected: it is an operator-supplied path on the
+  command line and is used exactly as given.</li>
+</ul>
+<p>Point <code>--capture-directory</code> somewhere you can reach when the app runs where you
+cannot get a shell. That is precisely what the <strong>Home Assistant add-on</strong> does: it
+passes <code>--capture-directory /config/captures</code>, which is the add-on's <code>app_config</code>
+map — reachable on the host at <code>/app_configs/aqualink_automate/captures</code>
+(<code>/addon_configs/...</code> before Supervisor 2026.07) through the Samba or File editor
+add-ons. See <a href="../homeassistant-addon/">docs/homeassistant-addon.md</a>.</p>
+<h3 id="getting-the-capture-off-the-machine">Getting the capture off the machine<a class="headerlink" href="#getting-the-capture-off-the-machine" title="Permanent link">&para;</a></h3>
+<p>The Diagnostics page's <strong>Serial Recording</strong> card lists the captures already on the
+server (name, size, timestamp) with a <strong>Download</strong> button on each, so a finished
+capture reaches your machine without a shell on the host. The same surface is
+available directly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># List what is there</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>curl<span class="w"> </span>-s<span class="w"> </span>http://&lt;host&gt;/api/diagnostics/recording/captures
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Pull one down</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>curl<span class="w"> </span>-sOJ<span class="w"> </span>http://&lt;host&gt;/api/diagnostics/recording/captures/session.cap
+</code></pre></div>
+<p>The download route applies the <strong>same</strong> jail as the recording route, so it only
+ever serves a capture from the capture directory (and never a symlink pointing out
+of it). Because the response is buffered rather than streamed, a capture larger
+than <strong>64 MiB</strong> is refused with <code>413</code> — at the bus's ~5 KB/s of capture text that
+is a multi-hour recording; copy those straight out of the capture directory
+instead.</p>
+<p>A downloaded capture is byte-for-byte the format in section 3, so it replays with
+<code>--replay-filename</code> and drops straight into <code>test/fixtures/</code> as a fixture.</p>
 
 
 
