@@ -379,6 +379,17 @@ jobs:
               # checkout fails. Chown the tree back to the invoking host user on exit,
               # via a trap so it runs even if configure/build/test/package fails.
               trap "chown -R $HOST_UID:$HOST_GID /work 2>/dev/null || true" EXIT
+              # GitHub-hosted runners leak the HOST HOME (/home/runner) into this
+              # root-run container even though it is never passed via -e; that path
+              # does not exist here, and the aclocal macros belonging to
+              # autoconf-archive and libltdl-dev silently fail to register under it,
+              # while the built-in search that automake and libtool already carry
+              # still works (diagnosed via a full env dump: two
+              # guessed-at apt packages both installed cleanly and made no
+              # difference, and env showed HOME=/home/runner, USER=runner -- host
+              # values -- inside a container the image runs as root). Force a real,
+              # writable HOME regardless of what leaked in.
+              export HOME=/root
               export DEBIAN_FRONTEND=noninteractive
               apt-get update -qq
               apt-get install -y -qq --no-install-recommends \
