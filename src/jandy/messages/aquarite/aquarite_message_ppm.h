@@ -42,6 +42,17 @@ namespace AqualinkAutomate::Messages
 		uint16_t SaltConcentrationPPM() const;
 		AquariteStatuses Status() const;
 
+		// The wire status byte is a true bitfield (confirmed against the vendor's own
+		// simulator - see docs/alwin32_simulator_protocol.md), but 5 of the 13 named
+		// AquariteStatuses values are whole-byte vendor sentinels, not bit-combinations,
+		// and their bit patterns collide with real combinations of the other 8 (each a
+		// single bit). StatusFlags() therefore tries an exact match first (identical to
+		// Status()) and only decomposes into individual flags when the byte matches no
+		// named value - so a single-flag or sentinel byte always yields exactly the same
+		// one-element result as Status(), and only a genuine simultaneous combination
+		// (e.g. Warning_LowSalt|Warning_HighSalt) yields more than one element.
+		std::vector<AquariteStatuses> StatusFlags() const;
+
 		std::string ToString() const override;
 
 		bool SerializeContents(std::vector<uint8_t>& message_bytes) const override;
@@ -50,6 +61,7 @@ namespace AqualinkAutomate::Messages
 	private:
 		uint16_t m_PPM{ 0 };
 		AquariteStatuses m_Status{ AquariteStatuses::Unknown };
+		std::vector<AquariteStatuses> m_StatusFlags{ AquariteStatuses::Unknown };
 	};
 
 }

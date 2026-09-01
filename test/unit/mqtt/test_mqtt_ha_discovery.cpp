@@ -1470,6 +1470,17 @@ BOOST_AUTO_TEST_CASE(Test_ChlorinatorComponents_LabelledChlorinator_EmitsRichEnt
 
 	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_health"));
 	BOOST_CHECK_EQUAL(cmps["chlorinator_aquapure_health"]["p"], "sensor");
+	BOOST_CHECK_EQUAL(cmps["chlorinator_aquapure_health"]["value_template"], "{{ value_json.chlorinator_health }}");
+
+	// The "every active flag" sensor - the wire status byte is a true bitfield, so more
+	// than one health flag can be reported simultaneously; this comma-joins the full set
+	// (an HA sensor state is scalar text, so the array is flattened at the template level).
+	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_health_flags"));
+	BOOST_CHECK_EQUAL(cmps["chlorinator_aquapure_health_flags"]["p"], "sensor");
+	BOOST_CHECK_EQUAL(cmps["chlorinator_aquapure_health_flags"]["value_template"],
+		"{{ value_json.chlorinator_health_flags | join(', ') }}");
+	BOOST_CHECK(!cmps["chlorinator_aquapure_health_flags"].contains("unit_of_measurement"));
+	BOOST_CHECK(!cmps["chlorinator_aquapure_health_flags"].contains("state_class"));
 
 	// The generating-percentage setpoint number entity: min/max/step (uncovered lines).
 	BOOST_REQUIRE(cmps.contains("chlorinator_aquapure_pct_cmd"));

@@ -31,6 +31,9 @@ BOOST_AUTO_TEST_CASE(TestAquariteMessage_PPMConstruction)
 
     BOOST_CHECK_EQUAL(message.SaltConcentrationPPM(), 0);
     BOOST_CHECK_EQUAL(message.Status(), AquariteStatuses::Unknown);
+
+    const std::vector<AquariteStatuses> expected_flags{ AquariteStatuses::Unknown };
+    BOOST_TEST(message.StatusFlags() == expected_flags, boost::test_tools::per_element());
 }
 
 BOOST_AUTO_TEST_CASE(TestSerializationDeserialization)
@@ -74,6 +77,8 @@ BOOST_AUTO_TEST_CASE(TestSerializationDeserialization)
         BOOST_REQUIRE(message2.Deserialize(std::as_bytes(std::span<uint8_t>(message_bytes))));
         BOOST_CHECK_EQUAL(0, message2.SaltConcentrationPPM());
         BOOST_CHECK_EQUAL(AquariteStatuses::On, message2.Status());
+        const std::vector<AquariteStatuses> expected_flags{ AquariteStatuses::On };
+        BOOST_TEST(message2.StatusFlags() == expected_flags, boost::test_tools::per_element());
     }
 
     message_bytes[4] = 0x1E;
@@ -83,6 +88,8 @@ BOOST_AUTO_TEST_CASE(TestSerializationDeserialization)
         BOOST_REQUIRE(message2.Deserialize(std::as_bytes(std::span<uint8_t>(message_bytes))));
         BOOST_CHECK_EQUAL(3000, message2.SaltConcentrationPPM());
         BOOST_CHECK_EQUAL(AquariteStatuses::Warning_LowSalt, message2.Status());
+        const std::vector<AquariteStatuses> expected_flags{ AquariteStatuses::Warning_LowSalt };
+        BOOST_TEST(message2.StatusFlags() == expected_flags, boost::test_tools::per_element());
     }
 
     message_bytes[4] = 0x28;
@@ -92,6 +99,10 @@ BOOST_AUTO_TEST_CASE(TestSerializationDeserialization)
         BOOST_REQUIRE(message2.Deserialize(std::as_bytes(std::span<uint8_t>(message_bytes))));
         BOOST_CHECK_EQUAL(4000, message2.SaltConcentrationPPM());
         BOOST_CHECK_EQUAL(AquariteStatuses::TurningOff, message2.Status());
+        // TurningOff (0x09) bit-collides with Warning_NoFlow|Warning_CleanCell - this is
+        // the case that proves exact-match-first ordering: it must NOT decompose.
+        const std::vector<AquariteStatuses> expected_flags{ AquariteStatuses::TurningOff };
+        BOOST_TEST(message2.StatusFlags() == expected_flags, boost::test_tools::per_element());
     }
 
     message_bytes[4] = 0xFF;
@@ -101,6 +112,114 @@ BOOST_AUTO_TEST_CASE(TestSerializationDeserialization)
         BOOST_REQUIRE(message2.Deserialize(std::as_bytes(std::span<uint8_t>(message_bytes))));
         BOOST_CHECK_EQUAL(25500, message2.SaltConcentrationPPM());
         BOOST_CHECK_EQUAL(AquariteStatuses::Off, message2.Status());
+        // Off (0xFF) bit-collides with every warning flag ORed together - must NOT decompose.
+        const std::vector<AquariteStatuses> expected_flags{ AquariteStatuses::Off };
+        BOOST_TEST(message2.StatusFlags() == expected_flags, boost::test_tools::per_element());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(TestStatusFlags_CombinedByte_Decomposes)
+{
+    // Regression: a status byte that matches no single named AquariteStatuses value
+    // used to fall back to Status() == Unknown and be silently lost downstream (the
+    // dwell filter swallows Unknown readings). StatusFlags() must decompose it into
+    // every individual flag it is made of instead.
+    AquariteMessage_PPM message;
+
+    std::vector<uint8_t> message_bytes =
+    {
+        HEADER_BYTE_DLE,
+        HEADER_BYTE_STX,
+        0x00,
+        magic_enum::enum_integer(JandyMessageIds::AQUARITE_PPM),
+        0x00,
+        0x00,
+        0x00,
+        HEADER_BYTE_DLE,
+        HEADER_BYTE_ETX
+    };
+
+    auto deserialize_status = [&](uint8_t raw_status) -> AquariteMessage_PPM
+    {
+        message_bytes[5] = raw_status;
+        message_bytes[6] = AqualinkAutomate::Utility::JandyPacket_CalculateChecksum(message_bytes.begin(), message_bytes.begin() + 6);
+        AquariteMessage_PPM decoded;
+        BOOST_REQUIRE(decoded.Deserialize(std::as_bytes(std::span<uint8_t>(message_bytes))));
+        return decoded;
+    };
+
+    {
+        // 0x06 = Warning_LowSalt(0x02) | Warning_HighSalt(0x04)
+        auto decoded = deserialize_status(0x06);
+        BOOST_CHECK_EQUAL(AquariteStatuses::Unknown, decoded.Status());
+        const std::vector<AquariteStatuses> expected{ AquariteStatuses::Warning_LowSalt, AquariteStatuses::Warning_HighSalt };
+        BOOST_TEST(decoded.StatusFlags() == expected, boost::test_tools::per_element());
+    }
+
+    {
+        // 0x03 = Warning_NoFlow(0x01) | Warning_LowSalt(0x02)
+        auto decoded = deserialize_status(0x03);
+        const std::vector<AquariteStatuses> expected{ AquariteStatuses::Warning_NoFlow, AquariteStatuses::Warning_LowSalt };
+        BOOST_TEST(decoded.StatusFlags() == expected, boost::test_tools::per_element());
+    }
+
+    {
+        // 0x11 = Warning_NoFlow(0x01) | Warning_HighCurrent(0x10)
+        auto decoded = deserialize_status(0x11);
+        const std::vector<AquariteStatuses> expected{ AquariteStatuses::Warning_NoFlow, AquariteStatuses::Warning_HighCurrent };
+        BOOST_TEST(decoded.StatusFlags() == expected, boost::test_tools::per_element());
+    }
+
+    {
+        // 0x82 = Warning_LowSalt(0x02) | Error_CheckPCB(0x80)
+        auto decoded = deserialize_status(0x82);
+        const std::vector<AquariteStatuses> expected{ AquariteStatuses::Warning_LowSalt, AquariteStatuses::Error_CheckPCB };
+        BOOST_TEST(decoded.StatusFlags() == expected, boost::test_tools::per_element());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(TestStatusFlags_SentinelBytes_NeverDecomposed)
+{
+    // GeneralFault (0xFD) and Unknown (0xFE) each bit-collide with a real 7-flag
+    // combination, and Off (0xFF, covered in TestSerializationDeserialization above)
+    // collides with all 8 flags at once. Exact-match-first ordering must intercept all
+    // of these before decomposition ever runs, so they stay single-element.
+    AquariteMessage_PPM message;
+
+    std::vector<uint8_t> message_bytes =
+    {
+        HEADER_BYTE_DLE,
+        HEADER_BYTE_STX,
+        0x00,
+        magic_enum::enum_integer(JandyMessageIds::AQUARITE_PPM),
+        0x00,
+        0x00,
+        0x00,
+        HEADER_BYTE_DLE,
+        HEADER_BYTE_ETX
+    };
+
+    auto deserialize_status = [&](uint8_t raw_status) -> AquariteMessage_PPM
+    {
+        message_bytes[5] = raw_status;
+        message_bytes[6] = AqualinkAutomate::Utility::JandyPacket_CalculateChecksum(message_bytes.begin(), message_bytes.begin() + 6);
+        AquariteMessage_PPM decoded;
+        BOOST_REQUIRE(decoded.Deserialize(std::as_bytes(std::span<uint8_t>(message_bytes))));
+        return decoded;
+    };
+
+    {
+        auto decoded = deserialize_status(0xFD);
+        BOOST_CHECK_EQUAL(AquariteStatuses::GeneralFault, decoded.Status());
+        const std::vector<AquariteStatuses> expected{ AquariteStatuses::GeneralFault };
+        BOOST_TEST(decoded.StatusFlags() == expected, boost::test_tools::per_element());
+    }
+
+    {
+        auto decoded = deserialize_status(0xFE);
+        BOOST_CHECK_EQUAL(AquariteStatuses::Unknown, decoded.Status());
+        const std::vector<AquariteStatuses> expected{ AquariteStatuses::Unknown };
+        BOOST_TEST(decoded.StatusFlags() == expected, boost::test_tools::per_element());
     }
 }
 

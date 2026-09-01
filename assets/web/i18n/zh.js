@@ -151,6 +151,7 @@
         'dash.water_chemistry': '水质',
         'dash.swg_output': 'SWG 输出',
         'dash.swg_aria': '盐氯机输出与目标值控制',
+        'dash.swg_also': '另外：{list}',
         'dash.target': '目标',
         'dash.target_aria': '目标输出百分比',
         'dash.target_body_aria': '{body} 的氯发生器目标输出',

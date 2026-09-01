@@ -50,6 +50,27 @@ namespace AqualinkAutomate::HTTP
 				? nlohmann::json(std::string{ magic_enum::enum_name(*(device->AuxillaryTraits[ChlorinatorHealthTrait{}])) })
 				: nlohmann::json(std::string{ magic_enum::enum_name(Kernel::ChlorinatorHealth::Unknown) });
 
+			// Every health flag currently active simultaneously (the wire status byte is a
+			// true bitfield, so e.g. low salt and high current can both be set at once).
+			// "health" above remains the single worst-of-the-set value for backward
+			// compatibility; this carries the full set. Falls back to ["Unknown"] to mirror
+			// "health"'s own Unknown fallback when the trait is absent.
+			{
+				nlohmann::json health_flags = nlohmann::json::array();
+				if (device->AuxillaryTraits.Has(ChlorinatorHealthFlagsTrait{}))
+				{
+					for (const auto flag : *(device->AuxillaryTraits[ChlorinatorHealthFlagsTrait{}]))
+					{
+						health_flags.push_back(std::string{ magic_enum::enum_name(flag) });
+					}
+				}
+				else
+				{
+					health_flags.push_back(std::string{ magic_enum::enum_name(Kernel::ChlorinatorHealth::Unknown) });
+				}
+				chlorinator["health_flags"] = std::move(health_flags);
+			}
+
 			// Configured Pool / Spa output setpoints (scraped from the Set AquaPure menu),
 			// distinct from generating_percent (the instantaneous output, 0 while idle).
 			const auto pool_setpoint = device->AuxillaryTraits.Has(ChlorinatorPoolSetpointTrait{})

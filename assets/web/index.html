@@ -1336,6 +1336,10 @@
                     <!-- Why that number: "0%" alone cannot say whether the cell is off or
                          just waiting for the filter pump. -->
                     <div class="swg-reason" :class="{ 'is-idle': reasonIsIdle }" x-show="reasonLabel" x-cloak x-text="reasonLabel"></div>
+                    <!-- The wire status byte is a bitfield: more than one health flag can be
+                         active at once. The badge above shows the worst one; this lists the rest. -->
+                    <div class="swg-health-flags" x-show="secondaryHealthLabels.length > 0" x-cloak
+                         x-text="$t('dash.swg_also', { list: secondaryHealthLabels.join(', ') })"></div>
                     <!-- Pool and spa carry INDEPENDENT setpoints on the panel, so each gets its
                          own target and its own Set. The spa row appears only on a dual-body system. -->
                     <template x-for="body in bodies" :key="body">
@@ -1396,6 +1400,8 @@
                             <span class="chem-swg-value" :style="`color:${healthColor}`" x-text="actualLabel"></span>
                             <span class="gauge-band-indicator" x-show="healthBand" x-cloak :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
                             <span class="swg-reason" :class="{ 'is-idle': reasonIsIdle }" x-show="reasonLabel" x-cloak x-text="reasonLabel"></span>
+                            <span class="swg-health-flags" x-show="secondaryHealthLabels.length > 0" x-cloak
+                                  x-text="$t('dash.swg_also', { list: secondaryHealthLabels.join(', ') })"></span>
                         </div>
                         <div class="swg-actions">
                             <template x-if="$store.auth.can('equipment.control.chlorinator')">
