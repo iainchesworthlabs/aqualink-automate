@@ -256,6 +256,7 @@ target_sources(
 	unit/profiling/test_profiling_factories.cpp
 	unit/profiling/test_profiling_controller.cpp
 	unit/options/test_options_settings.cpp
+	unit/platform/test_aligned_alloc.cpp
 	unit/serial/test_mock_serial_port_impl.cpp
 	unit/serial/test_mock_serial_replay_format.cpp
 	unit/serial/test_rfc2217_inbound_filter.cpp

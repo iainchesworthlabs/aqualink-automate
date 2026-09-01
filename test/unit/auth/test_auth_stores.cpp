@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "auth/api_key_store.h"
 #include "auth/group_store.h"
 #include "auth/user_store.h"
@@ -312,6 +314,26 @@ BOOST_FIXTURE_TEST_CASE(Test_AuthStore_UnknownSchemaVersionThrows, TempDirFixtur
 	}
 
 	BOOST_CHECK_THROW(Auth::ApiKeyStore::Load(file), AqualinkAutomate::Exceptions::Auth_StoreError);
+}
+
+BOOST_FIXTURE_TEST_CASE(Test_ApiKeyStore_Load_ThrowsOnMalformedEntitlementsType, TempDirFixture)
+{
+	const auto file = Dir / "api-keys.json";
+
+	{
+		// Syntactically valid JSON with the current schema version, but a key entry
+		// whose "entitlements" is present with the WRONG type (a string, not an
+		// array). nlohmann's json::value<vector<string>> only substitutes the
+		// default for an ABSENT key - a present-but-wrong-typed value throws
+		// json::type_error, uncaught, out of Load(). This is a different failure
+		// mode than the corrupt-JSON-syntax / unknown-schema-version cases above
+		// (which LoadAuthStoreFile wraps as Auth_StoreError before any key is
+		// even parsed).
+		std::ofstream stream(file);
+		stream << R"({"schema_version":1,"keys":[{"id":"x","entitlements":"not-an-array"}]})";
+	}
+
+	BOOST_CHECK_THROW(Auth::ApiKeyStore::Load(file), nlohmann::json::type_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(Test_ApiKeyStore_BootstrapLegacyTokenFoldIn, TempDirFixture)
