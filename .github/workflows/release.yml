@@ -133,8 +133,8 @@ jobs:
           fi
 
       # Version lock-step: the Home Assistant add-on wraps the image this very release
-      # publishes, so the RELEASED channel's config.yaml `version` + build.yaml build_from
-      # tags MUST equal the release version. A prerelease releases the `edge` channel; a
+      # publishes, so the RELEASED channel's config.yaml `version` MUST equal the release
+      # version (the Dockerfile derives its base image from it; there is no build.yaml). A prerelease releases the `edge` channel; a
       # stable release the `stable` channel. Fail fast here (before any build) if that
       # channel was not bumped in release prep, so a released add-on can never point at an
       # image that does not exist. Bump with:

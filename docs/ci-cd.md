@@ -329,7 +329,7 @@ One `validate` job (GitHub-hosted, no third-party actions to pin) checks, in ord
 2. **The Edge channel is generated, not hand-edited** — re-runs `scripts/gen-homeassistant-edge-addon.ps1` and fails on any diff, so the two channels can never drift by hand.
 3. **Options translations cover `config.yaml`** — every locale must document exactly the schema keys (`configuration:`) and ports (`network:`), no missing and no extra (mirrors the web UI's i18n key check).
 4. **`run.sh` passes shellcheck.**
-5. **Version lock-step** — each channel's `config.yaml` `version` equals every `build.yaml` base-image tag, via `scripts/sync-homeassistant-addon-version.ps1 -Check` (the same script the release process uses as the single writer in set mode, and which `release.yml` re-checks — so CI and release can never disagree).
+5. **Version present and readable** — each channel's `config.yaml` carries a parseable `version:`, via `scripts/sync-homeassistant-addon-version.ps1 -Check`. The Dockerfile derives its base-image tag from that version through `BUILD_VERSION`; there is no `build.yaml`. Pinning that version to the *release* version happens in `release.yml` (`-Check -Channel <c> -Version <v>`), not here. The same script is the single writer in set mode, so CI and release can never disagree about the format.
 
 The add-on wrapper **images** are published by `release.yml`'s `homeassistant-addon-publish` job, not by this workflow.
 
