@@ -385,6 +385,36 @@ jobs:
                 ninja-build git ca-certificates curl zip unzip tar make \
                 autoconf autoconf-archive automake libtool libltdl-dev pkg-config python3 \
                 binutils file rpm fakeroot >/dev/null
+              # TEMPORARY DIAGNOSTIC (remove once the real gap is identified): run
+              # vcpkg-make's own prerequisite probe directly and print its raw
+              # output, since three guesses at the missing apt package in a row
+              # have all failed identically despite the packages genuinely
+              # installing with no apt errors.
+              echo "::group::libbacktrace prerequisite diagnostic"
+              dpkg -l | grep -E "autoconf|automake|libtool" || true
+              echo "--- which ---"
+              which aclocal autoconf autoreconf libtoolize automake m4 || true
+              echo "--- aclocal search path ---"
+              aclocal --print-ac-dir || true
+              echo "\$ACLOCAL_PATH=$ACLOCAL_PATH"
+              echo "--- ls autoconf-archive macro dir ---"
+              ls "$(aclocal --print-ac-dir)"/ax_check_compile_flag.m4 2>&1 || true
+              ls "$(aclocal --print-ac-dir)"/libtool.m4 2>&1 || true
+              ls "$(aclocal --print-ac-dir)"/ltdl.m4 2>&1 || true
+              echo "--- reproducing vcpkg-make's own probe ---"
+              probe_dir=/tmp/probe && rm -rf "$probe_dir" && mkdir -p "$probe_dir"
+              cat > "$probe_dir/configure.ac" <<PROBE
+AC_INIT([check-autoconf], [1.0])
+AM_INIT_AUTOMAKE
+# vcpkg begin
+m4_ifndef([AX_CHECK_COMPILE_FLAG], [m4_errprintn([System package autoconf-archive is missing.])])
+m4_ifndef([LT_INIT],               [m4_errprintn([System package libtool is missing.])])
+m4_ifndef([LTDL_INIT],             [m4_errprintn([System package libltdl-dev is missing.])])
+# vcpkg end
+AC_OUTPUT
+PROBE
+              (cd "$probe_dir" && aclocal --dry-run); echo "aclocal exit=$?"
+              echo "::endgroup::"
               ARCH=$(uname -m)
               curl -fsSL "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-linux-${ARCH}.tar.gz" | tar xz -C /opt
               export PATH="/opt/cmake-3.31.12-linux-${ARCH}/bin:$PATH"
