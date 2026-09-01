@@ -398,7 +398,7 @@ jobs:
               which aclocal autoconf autoreconf libtoolize automake m4 || true
               echo "--- aclocal search path ---"
               aclocal --print-ac-dir || true
-              echo "ACLOCAL_PATH=$ACLOCAL_PATH"
+              echo "ACLOCAL_PATH=${ACLOCAL_PATH:-<unset>}"
               echo "--- macro files present? ---"
               ls "$(aclocal --print-ac-dir)"/ax_check_compile_flag.m4 2>&1 || true
               ls "$(aclocal --print-ac-dir)"/libtool.m4 2>&1 || true
