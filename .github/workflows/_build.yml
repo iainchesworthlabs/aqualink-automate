@@ -385,35 +385,24 @@ jobs:
                 ninja-build git ca-certificates curl zip unzip tar make \
                 autoconf autoconf-archive automake libtool libltdl-dev pkg-config python3 \
                 binutils file rpm fakeroot >/dev/null
-              # TEMPORARY DIAGNOSTIC (remove once the real gap is identified): run
-              # vcpkg-make's own prerequisite probe directly and print its raw
-              # output, since three guesses at the missing apt package in a row
-              # have all failed identically despite the packages genuinely
-              # installing with no apt errors.
-              echo "::group::libbacktrace prerequisite diagnostic"
+              # TEMPORARY DIAGNOSTIC (remove once the real gap is identified): two
+              # guesses at the missing apt package (libtool-bin, then libltdl-dev)
+              # both installed cleanly with zero apt errors, yet the IDENTICAL
+              # vcpkg-make error persisted byte-for-byte across three dry runs.
+              # Print environment facts, then let the real failure happen below and
+              # dump the aclocal log vcpkg itself generated (the if-check below
+              # keeps the script going long enough to print it before failing).
+              echo "::group::libbacktrace prerequisite diagnostic (pre-build)"
               dpkg -l | grep -E "autoconf|automake|libtool" || true
               echo "--- which ---"
               which aclocal autoconf autoreconf libtoolize automake m4 || true
               echo "--- aclocal search path ---"
               aclocal --print-ac-dir || true
-              echo "\$ACLOCAL_PATH=$ACLOCAL_PATH"
-              echo "--- ls autoconf-archive macro dir ---"
+              echo "ACLOCAL_PATH=$ACLOCAL_PATH"
+              echo "--- macro files present? ---"
               ls "$(aclocal --print-ac-dir)"/ax_check_compile_flag.m4 2>&1 || true
               ls "$(aclocal --print-ac-dir)"/libtool.m4 2>&1 || true
               ls "$(aclocal --print-ac-dir)"/ltdl.m4 2>&1 || true
-              echo "--- reproducing vcpkg-make's own probe ---"
-              probe_dir=/tmp/probe && rm -rf "$probe_dir" && mkdir -p "$probe_dir"
-              cat > "$probe_dir/configure.ac" <<PROBE
-AC_INIT([check-autoconf], [1.0])
-AM_INIT_AUTOMAKE
-# vcpkg begin
-m4_ifndef([AX_CHECK_COMPILE_FLAG], [m4_errprintn([System package autoconf-archive is missing.])])
-m4_ifndef([LT_INIT],               [m4_errprintn([System package libtool is missing.])])
-m4_ifndef([LTDL_INIT],             [m4_errprintn([System package libltdl-dev is missing.])])
-# vcpkg end
-AC_OUTPUT
-PROBE
-              (cd "$probe_dir" && aclocal --dry-run); echo "aclocal exit=$?"
               echo "::endgroup::"
               ARCH=$(uname -m)
               curl -fsSL "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-linux-${ARCH}.tar.gz" | tar xz -C /opt
@@ -428,7 +417,15 @@ PROBE
               # 12 GB box.
               export CMAKE_BUILD_PARALLEL_LEVEL=6
               ./deps/vcpkg/bootstrap-vcpkg.sh -disableMetrics >/dev/null
-              cmake --preset "$CONFIGURE_PRESET" -DDERIVED_VERSION_OVERRIDE="$VERSION_OVERRIDE"
+              if ! cmake --preset "$CONFIGURE_PRESET" -DDERIVED_VERSION_OVERRIDE="$VERSION_OVERRIDE"; then
+                echo "::group::vcpkg aclocal error log (TEMPORARY DIAGNOSTIC)"
+                find deps/vcpkg/buildtrees -iname "aclocal-*-err.log" -o -iname "aclocal-*-out.log" | while read -r f; do
+                  echo "--- $f ---"
+                  cat "$f"
+                done
+                echo "::endgroup::"
+                exit 1
+              fi
               cmake --build --preset "$BUILD_PRESET"
               ctest --preset "$TEST_PRESET"
               if [ "$PACK_INSTALLTREE" = "true" ]; then
