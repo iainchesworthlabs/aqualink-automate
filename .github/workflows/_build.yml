@@ -372,19 +372,40 @@ jobs:
             -e PACKAGE_PRESET -e PACK_INSTALLTREE -e INSTALLTREE_NAME \
             -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
             gcc:15-bookworm bash -eu -c '
-              # This container runs as root (needed for apt-get and writing /opt), so
-              # every file it creates under the bind-mounted /work is root-owned on the
-              # host. On a persistent self-hosted runner that poisons the shared
-              # workspace -- the next jobs (CodeQL, CI) cannot delete build/ and their
-              # checkout fails. Chown the tree back to the invoking host user on exit,
-              # via a trap so it runs even if configure/build/test/package fails.
+              # NOTE: despite no --user flag and this image defaulting to root, `id`
+              # inside this container on the self-hosted fleet reports uid=1000
+              # (the host runner account), not root -- confirmed directly via a
+              # probe (mkdir under /etc failed with Permission denied; see
+              # CPACK_SET_DESTDIR in cmake/CPackConfig.cmake for the packaging
+              # consequence). Mechanism not fully diagnosed. Files this step
+              # creates under the bind-mounted /work are still owned by whatever
+              # UID that is, which -- on a persistent self-hosted runner -- poisons
+              # the shared workspace for the next job (CodeQL, CI cannot delete
+              # build/ and their checkout fails) unless reversed. Chown the tree
+              # back to the invoking host user on exit, via a trap so it runs even
+              # if configure/build/test/package fails.
               trap "chown -R $HOST_UID:$HOST_GID /work 2>/dev/null || true" EXIT
+              # GitHub-hosted runners leak the HOST HOME (/home/runner) into this
+              # root-run container even though it is never passed via -e; that path
+              # does not exist here, and the aclocal macros belonging to
+              # autoconf-archive and libltdl-dev silently fail to register under it,
+              # while the built-in search that automake and libtool already carry
+              # still works (diagnosed via a full env dump: two
+              # guessed-at apt packages both installed cleanly and made no
+              # difference, and env showed HOME=/home/runner, USER=runner -- host
+              # values -- inside a container the image runs as root). Force a real,
+              # writable HOME regardless of what leaked in.
+              export HOME=/root
               export DEBIAN_FRONTEND=noninteractive
               apt-get update -qq
               apt-get install -y -qq --no-install-recommends \
                 ninja-build git ca-certificates curl zip unzip tar make \
-                autoconf autoconf-archive automake libtool pkg-config python3 \
+                autoconf autoconf-archive automake libtool libltdl-dev pkg-config python3 \
                 binutils file rpm fakeroot >/dev/null
+              # RESOLVED: the aclocal/libbacktrace prerequisite failure chased through
+              # several commits on this branch turned out to be specific to
+              # GitHub-hosted runners (a self-hosted dry run built libbacktrace with
+              # zero issues on the exact same commit) -- diagnostics for that removed.
               ARCH=$(uname -m)
               curl -fsSL "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-linux-${ARCH}.tar.gz" | tar xz -C /opt
               export PATH="/opt/cmake-3.31.12-linux-${ARCH}/bin:$PATH"
@@ -394,7 +415,7 @@ jobs:
               git config --global --add safe.directory /work/deps/vcpkg
               export VCPKG_DEFAULT_BINARY_CACHE=/vcpkgcache
               # Same Ninja nproc+2 cap as the host Linux legs above — the container
-              # sees the guest's 8 vCPU, so it would otherwise build at -j10 on a
+              # sees the guest 8 vCPU, so it would otherwise build at -j10 on a
               # 12 GB box.
               export CMAKE_BUILD_PARALLEL_LEVEL=6
               ./deps/vcpkg/bootstrap-vcpkg.sh -disableMetrics >/dev/null
