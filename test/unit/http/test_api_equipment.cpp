@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <set>
 #include <string>
 
 #include <boost/beast/core/buffers_to_string.hpp>
@@ -225,6 +226,7 @@ BOOST_AUTO_TEST_CASE(Test_HttpRoutes_ApiEquipment_ChemistryNestedShape_WithChlor
 		chlorinator->AuxillaryTraits.Set(ChlorinatorSpaSetpointTrait{}, static_cast<uint8_t>(50));
 		chlorinator->AuxillaryTraits.Set(ChlorinatorStatusTrait{}, Kernel::ChlorinatorStatuses::On);
 		chlorinator->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Ok);
+		chlorinator->AuxillaryTraits.Set(ChlorinatorHealthFlagsTrait{}, std::set<Kernel::ChlorinatorHealth>{ Kernel::ChlorinatorHealth::Ok });
 		DataHub().Devices.Add(std::move(chlorinator));
 	}
 
@@ -263,6 +265,10 @@ BOOST_AUTO_TEST_CASE(Test_HttpRoutes_ApiEquipment_ChemistryNestedShape_WithChlor
 	BOOST_CHECK_EQUAL("On", chlorinator["status"]);
 	BOOST_REQUIRE(chlorinator.contains("health"));
 	BOOST_CHECK_EQUAL("Ok", chlorinator["health"]);
+	BOOST_REQUIRE(chlorinator.contains("health_flags"));
+	BOOST_REQUIRE(chlorinator["health_flags"].is_array());
+	BOOST_REQUIRE_EQUAL(1u, chlorinator["health_flags"].size());
+	BOOST_CHECK_EQUAL("Ok", chlorinator["health_flags"][0]);
 
 	// Configured Pool / Spa setpoints surfaced, plus the resolved headline target. With no
 	// active spa body configured, the headline setpoint resolves to the Pool value.
@@ -363,6 +369,59 @@ BOOST_AUTO_TEST_CASE(Test_HttpRoutes_ApiEquipment_ChlorinatorSetpointFallback)
 	BOOST_CHECK(chlorinator["spa_setpoint_percent"].is_null());
 	BOOST_REQUIRE(chlorinator.contains("setpoint_percent"));
 	BOOST_CHECK_EQUAL(55, chlorinator["setpoint_percent"]);
+
+	// Neither ChlorinatorHealthTrait nor ChlorinatorHealthFlagsTrait was seeded here ->
+	// both fall back to Unknown, and health_flags mirrors that as a single-element array
+	// rather than an empty one or a null.
+	BOOST_REQUIRE(chlorinator.contains("health"));
+	BOOST_CHECK_EQUAL("Unknown", chlorinator["health"]);
+	BOOST_REQUIRE(chlorinator.contains("health_flags"));
+	BOOST_REQUIRE(chlorinator["health_flags"].is_array());
+	BOOST_REQUIRE_EQUAL(1u, chlorinator["health_flags"].size());
+	BOOST_CHECK_EQUAL("Unknown", chlorinator["health_flags"][0]);
+}
+
+// The wire status byte is a true bitfield: more than one health flag can be active at
+// once (e.g. a low-salt warning together with a check-PCB fault). health_flags must
+// carry every one, while health stays the single worst-of-the-set value.
+BOOST_AUTO_TEST_CASE(Test_HttpRoutes_ApiEquipment_ChlorinatorHealthFlags_MultipleActive)
+{
+	using namespace Kernel::AuxillaryTraitsTypes;
+
+	HTTP::Routing::Clear();
+
+	{
+		auto chlorinator = std::make_shared<Kernel::AuxillaryDevice>();
+		chlorinator->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Chlorinator);
+		chlorinator->AuxillaryTraits.Set(LabelTrait{}, std::string{ "AquaPure" });
+		chlorinator->AuxillaryTraits.Set(ChlorinatorStatusTrait{}, Kernel::ChlorinatorStatuses::On);
+		chlorinator->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Error_CheckPCB);
+		chlorinator->AuxillaryTraits.Set(ChlorinatorHealthFlagsTrait{}, std::set<Kernel::ChlorinatorHealth>{
+			Kernel::ChlorinatorHealth::Warning_LowSalt, Kernel::ChlorinatorHealth::Error_CheckPCB });
+		DataHub().Devices.Add(std::move(chlorinator));
+	}
+
+	auto route = std::make_unique<HTTP::WebRoute_Equipment>(*this);
+	const auto route_url = route->Route();
+	HTTP::Routing::Add(std::move(route));
+
+	auto resp = Test::PerformHttpRequestResponse(route_url);
+	BOOST_CHECK_EQUAL(boost::beast::http::status::ok, resp.result());
+
+	const auto json_response = nlohmann::json::parse(resp.body());
+	const auto& chlorinator = json_response["chemistry"]["chlorinator"];
+	BOOST_REQUIRE(!chlorinator.is_null());
+
+	BOOST_REQUIRE(chlorinator.contains("health"));
+	BOOST_CHECK_EQUAL("Error_CheckPCB", chlorinator["health"]);
+
+	BOOST_REQUIRE(chlorinator.contains("health_flags"));
+	BOOST_REQUIRE(chlorinator["health_flags"].is_array());
+	BOOST_REQUIRE_EQUAL(2u, chlorinator["health_flags"].size());
+	// std::set<ChlorinatorHealth> iterates in enum-declaration order (Warning_LowSalt is
+	// declared before Error_CheckPCB), which is what json_data_hub/webroute both mirror.
+	BOOST_CHECK_EQUAL("Warning_LowSalt", chlorinator["health_flags"][0]);
+	BOOST_CHECK_EQUAL("Error_CheckPCB", chlorinator["health_flags"][1]);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

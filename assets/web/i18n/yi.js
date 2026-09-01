@@ -150,6 +150,7 @@
         'dash.water_chemistry': 'וואַסער-כעמיע',
         'dash.swg_output': 'כלאָרינאַטאָר-אויסגאַנג',
         'dash.swg_aria': 'קאָנטראָל פֿון כלאָרינאַטאָר-אויסגאַנג און ציל',
+        'dash.swg_also': 'אויך: {list}',
         'dash.target': 'ציל',
         'dash.target_aria': 'ציל-אויסגאַנג-פּראָצענט',
         'dash.target_body_aria': 'כלאָר־גענעראַטאָר ציל־אויסגאַנג פֿאַר {body}',

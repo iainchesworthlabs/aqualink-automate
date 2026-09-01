@@ -152,6 +152,7 @@
         'dash.water_chemistry': 'כימיית המים',
         'dash.swg_output': 'תפוקת SWG',
         'dash.swg_aria': 'בקרת תפוקת מכשיר ההכלרה והיעד שלו',
+        'dash.swg_also': 'גם: {list}',
         'dash.target': 'יעד',
         'dash.target_aria': 'אחוז התפוקה הרצוי',
         'dash.target_body_aria': 'יעד תפוקת הכלוריניטור עבור {body}',

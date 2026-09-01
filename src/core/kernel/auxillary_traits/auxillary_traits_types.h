@@ -118,6 +118,19 @@ namespace AqualinkAutomate::Kernel::AuxillaryTraitsTypes
 		TraitKey Name() const final { return std::string{"ChlorinatorHealthTrait"}; }
 	};
 
+	// Every ChlorinatorHealth flag the cell is currently reporting simultaneously (the wire
+	// status byte is a true bitfield - see docs/alwin32_simulator_protocol.md - so more than
+	// one warning/fault can be active at once). ChlorinatorHealthTrait remains the single
+	// worst-of-the-set value for backward-compatible consumers; this trait carries the full
+	// set for anyone who needs it. Iteration order is enum declaration order (std::set), NOT
+	// severity order. Always written together with ChlorinatorHealthTrait so the two can
+	// never disagree - see AquariteDevice::PushPPMToDataHub.
+	class ChlorinatorHealthFlagsTrait : public MutableTraitType<std::set<ChlorinatorHealth>>
+	{
+	public:
+		TraitKey Name() const final { return std::string{"ChlorinatorHealthFlagsTrait"}; }
+	};
+
 	// Configured POOL output setpoint % (the value the user has dialled in on the
 	// "Set AquaPure" menu), as distinct from GeneratingPercentageTrait which is the
 	// instantaneous output (0 while the cell is idle). Populated by the OneTouch/iAQ

@@ -4,6 +4,7 @@
 #include <deque>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <thread>
 
@@ -877,6 +878,42 @@ BOOST_AUTO_TEST_CASE(Test_PublishDeviceStatus_DeviceWithoutLabel_Skipped)
 		}
 	}
 	BOOST_CHECK_EQUAL(device_topic_count, 1u);
+
+	hub.Stop();
+}
+
+// The wire status byte is a true bitfield: more than one chlorinator health flag can
+// be active simultaneously. The full set must appear in the published device/{slug}
+// JSON as chlorinator_health_flags, alongside the existing single-value
+// chlorinator_health, so MQTT/HA consumers are not limited to the worst-of-the-set.
+BOOST_AUTO_TEST_CASE(Test_PublishDeviceStatus_ChlorinatorHealthFlags_PublishedAsArray)
+{
+	namespace Traits = Kernel::AuxillaryTraitsTypes;
+
+	boost::asio::io_context ioc;
+	auto settings = MakeHubTestSettings();
+	Mqtt::MqttHub hub(ioc, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	auto chlorinator = MakeDeviceOfType(Traits::AuxillaryTypes::Chlorinator, "AquaPure");
+	chlorinator->AuxillaryTraits.Set(Traits::ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Error_CheckPCB);
+	chlorinator->AuxillaryTraits.Set(Traits::ChlorinatorHealthFlagsTrait{}, std::set<Kernel::ChlorinatorHealth>{
+		Kernel::ChlorinatorHealth::Warning_LowSalt, Kernel::ChlorinatorHealth::Error_CheckPCB });
+	data_hub->Devices.Add(chlorinator);
+	hub.ConnectDataHub(data_hub);
+
+	auto& queue = PublishAllAndGetQueue(hub);
+
+	auto payload = FindPayloadContaining(queue, "/device/aquapure");
+	BOOST_REQUIRE(payload.has_value());
+	BOOST_CHECK_EQUAL((*payload)["chlorinator_health"].get<std::string>(), "Error_CheckPCB");
+
+	BOOST_REQUIRE(payload->contains("chlorinator_health_flags"));
+	const auto& flags = (*payload)["chlorinator_health_flags"];
+	BOOST_REQUIRE(flags.is_array());
+	BOOST_REQUIRE_EQUAL(flags.size(), 2u);
+	BOOST_CHECK_EQUAL(flags[0].get<std::string>(), "Warning_LowSalt");
+	BOOST_CHECK_EQUAL(flags[1].get<std::string>(), "Error_CheckPCB");
 
 	hub.Stop();
 }

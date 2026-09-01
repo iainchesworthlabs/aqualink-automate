@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <set>
 
 #include <boost/test/unit_test.hpp>
 
@@ -601,32 +602,69 @@ BOOST_AUTO_TEST_CASE(Status_GeneralFault_MapsToGeneralFaultHealth)
 	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::GeneralFault);
 }
 
-// An undecodable status byte (e.g. 0x03 == LowSalt|HighSalt bit-flags combined)
-// deserialises to AquariteStatuses::Unknown, which ConvertToChlorinatorHealthStatus
-// maps via its default arm to ChlorinatorHealth::Unknown, and DwellChlorinatorHealth
-// then swallows (returns nullopt) so the health trait is never written.  Operating
-// status still follows the raw wire status (On, since it is neither Off nor TurningOff).
-BOOST_AUTO_TEST_CASE(Status_UndecodableByte_YieldsUnknownAndDwellHoldsHealth)
+// A combined status byte (e.g. 0x03 == Warning_NoFlow|Warning_LowSalt bit-flags
+// together) used to deserialise to AquariteStatuses::Unknown, which
+// ConvertToChlorinatorHealthStatus mapped via its default arm to
+// ChlorinatorHealth::Unknown, and DwellChlorinatorHealth then swallowed (returned
+// nullopt) so the health trait was never written -- the combined warning was
+// silently invisible.  It now decomposes into its constituent flags: the primary
+// ChlorinatorHealthTrait shows the worst of the two (Warning_NoFlow outranks
+// Warning_LowSalt), and the new ChlorinatorHealthFlagsTrait carries the full set.
+// Every single-flag test above (Status_Warning*_MapsTo*Health, etc.) continues to
+// pass unmodified and is the regression coverage proving a single-bit byte's
+// worst-of-one-element selection is a true no-op.
+BOOST_AUTO_TEST_CASE(Status_CombinedByte_DecomposesAndShowsWorstFlag)
 {
 	Test::MockReplayHarness harness;
 
 	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
 	harness.AddDevice<AquariteDevice>(device_id);
 
-	// 0x03 is not a single AquariteStatuses enumerator -> decodes to Unknown.
+	// 0x03 = Warning_NoFlow(0x01) | Warning_LowSalt(0x02); not a single AquariteStatuses
+	// enumerator, so it decomposes rather than exact-matching.
 	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x03));
 
 	auto chlorinators = harness.DataHub()->Chlorinators();
 	BOOST_REQUIRE_EQUAL(chlorinators.size(), 1u);
 
-	// The dwell returned nullopt for the Unknown reading -> no health trait written.
-	auto health = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorHealthTrait{});
-	BOOST_CHECK(!health.has_value());
+	// Primary health shows the worst of the two active flags.
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Warning_NoFlow);
+
+	// The full set is exposed via the new flags trait.
+	auto flags = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorHealthFlagsTrait{});
+	BOOST_REQUIRE(flags.has_value());
+	const std::set<Kernel::ChlorinatorHealth> expected{ Kernel::ChlorinatorHealth::Warning_NoFlow, Kernel::ChlorinatorHealth::Warning_LowSalt };
+	BOOST_CHECK(flags.value() == expected);
 
 	// Operating status is still published and reflects On for a non-Off/non-TurningOff status.
 	auto status = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorStatusTrait{});
 	BOOST_REQUIRE(status.has_value());
 	BOOST_CHECK(status.value() == Kernel::ChlorinatorStatuses::On);
+}
+
+// A hard fault bit and a warning bit can be active simultaneously (e.g. a check-PCB
+// fault while the cell also happens to be low on salt) -- the fault must win the
+// primary health slot (electrical/hardware faults outrank chemistry warnings), while
+// both remain visible in the flags set.
+BOOST_AUTO_TEST_CASE(Status_FaultAndWarningCombined_FaultWinsPrimaryHealth)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// 0x82 = Warning_LowSalt(0x02) | Error_CheckPCB(0x80).
+	harness.Replay(MakePpmFrame(SALT_BYTE_OK, 0x82));
+
+	auto chlorinators = harness.DataHub()->Chlorinators();
+	BOOST_REQUIRE_EQUAL(chlorinators.size(), 1u);
+
+	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Error_CheckPCB);
+
+	auto flags = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorHealthFlagsTrait{});
+	BOOST_REQUIRE(flags.has_value());
+	const std::set<Kernel::ChlorinatorHealth> expected{ Kernel::ChlorinatorHealth::Warning_LowSalt, Kernel::ChlorinatorHealth::Error_CheckPCB };
+	BOOST_CHECK(flags.value() == expected);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
