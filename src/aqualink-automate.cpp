@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -73,6 +74,7 @@
 #include "http/webroute_auth_refresh.h"
 #include "http/webroute_auth_setup.h"
 #include "http/webroute_diagnostics_actualdevices.h"
+#include "http/webroute_diagnostics_captures.h"
 #include "http/webroute_diagnostics_devices.h"
 #include "http/webroute_diagnostics_matter.h"
 #include "http/webroute_diagnostics_mqtt.h"
@@ -1043,7 +1045,26 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Logging>());
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Options>());
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Profiling>(hub_locator));
-			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Recording>(hub_locator));
+			{
+				// On-demand captures are written to (and served back from) ONE
+				// operator-configured directory (`--capture-directory`, default
+				// <cwd>/captures).  Packaged deployments point it somewhere the
+				// user can actually reach — the Home Assistant add-on uses its
+				// user-browsable app_config share — so a capture is not stranded
+				// inside the container.  The listing/download routes share the
+				// same jail as the recording route.
+				std::filesystem::path capture_directory{ Options::Developer::DEFAULT_CAPTURE_DIRECTORY };
+				if (auto developer_settings_result = settings.Get<Options::Developer::DeveloperSettings>(); developer_settings_result)
+				{
+					capture_directory = developer_settings_result.value().get().capture_directory;
+				}
+
+				const HTTP::CaptureDirectory captures{ capture_directory };
+
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Recording>(hub_locator, captures));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Captures>(captures));
+				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Capture>(captures));
+			}
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_Button>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_Buttons>(hub_locator));

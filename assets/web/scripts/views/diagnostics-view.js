@@ -117,6 +117,14 @@ function diagnosticsView() {
         recordingFilename: 'capture.cap',
         recordingBusy: false,
 
+        // Finished captures sitting in the server's capture directory, so a
+        // capture can be downloaded without shell access to the host. Fetched on
+        // demand (entering the view, after a stop, and on Refresh) rather than
+        // polled — a directory listing is not live data.
+        captures: [],
+        capturesBusy: false,
+        downloadingCapture: '',
+
         // Profiler control state (Tracy / Intel VTune / AMD uProf)
         profiling: { enabled: false, running: false, backend: '', available: [] },
         profilingBusy: false,
@@ -195,6 +203,7 @@ function diagnosticsView() {
             this.fetchEmulatedDevices();
             this.fetchActualDevices();
             this.fetchRecordingStatus();
+            this.fetchCaptures();
             this.fetchMqtt();
             this.fetchHealth();
             if (!_diag.healthTimer) {
@@ -420,6 +429,60 @@ function diagnosticsView() {
             }
         },
 
+        async fetchCaptures() {
+            if (this.capturesBusy) return;
+            this.capturesBusy = true;
+            try {
+                const resp = await fetch('/api/diagnostics/recording/captures');
+                if (!resp.ok) { _handlePollFailure('captures', resp, null); return; }
+                const data = await resp.json();
+                this.captures = Array.isArray(data.captures) ? data.captures : [];
+                _diag.warnedOnce['captures'] = false;
+            } catch (e) {
+                _handlePollFailure('captures', null, e);
+            } finally {
+                this.capturesBusy = false;
+            }
+        },
+
+        /**
+         * Download one capture.
+         *
+         * Goes through fetch (not a plain <a href>) for two reasons: the auth
+         * wrapper attaches the bearer token to fetch only, and the ingress shim
+         * rebases fetch URLs onto Home Assistant's per-session path prefix. The
+         * response is turned into a blob and handed to a synthetic anchor so the
+         * browser saves it under the capture's own name.
+         */
+        async downloadCapture(name) {
+            if (!name || this.downloadingCapture) return;
+            this.downloadingCapture = name;
+            let objectUrl = '';
+            try {
+                const resp = await fetch('/api/diagnostics/recording/captures/' + encodeURIComponent(name));
+                if (!resp.ok) {
+                    const data = await resp.json().catch(() => ({}));
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.capture_download_failed')), 'error');
+                    return;
+                }
+
+                const blob = await resp.blob();
+                objectUrl = URL.createObjectURL(blob);
+
+                const anchor = document.createElement('a');
+                anchor.href = objectUrl;
+                anchor.download = name;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+            } catch (e) {
+                Alpine.store('toast').show(window.AquaI18n.t('toast.capture_download_failed'), 'error');
+            } finally {
+                if (objectUrl) { URL.revokeObjectURL(objectUrl); }
+                this.downloadingCapture = '';
+            }
+        },
+
         async fetchProfilingStatus() {
             try {
                 const resp = await fetch('/api/diagnostics/profiling');
@@ -639,6 +702,8 @@ function diagnosticsView() {
                 if (resp.ok) {
                     this.recording = data;
                     Alpine.store('toast').show(window.AquaI18n.t('toast.recording_stopped'), 'info');
+                    // The capture just became downloadable — surface it immediately.
+                    this.fetchCaptures();
                 } else {
                     Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.recording_stop_failed')), 'error');
                 }
@@ -692,6 +757,13 @@ function diagnosticsView() {
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return n(parseFloat((bytes / Math.pow(k, i)).toFixed(2))) + ' ' + sizes[i];
+        },
+
+        // Capture timestamps arrive as seconds since the Unix epoch; render them in
+        // the active UI locale (not the browser's).
+        formatCaptureTime(unixSeconds) {
+            if (!unixSeconds) return '--';
+            return window.AquaI18n.formatDateTime(unixSeconds * 1000);
         },
 
         formatMicros(us) {

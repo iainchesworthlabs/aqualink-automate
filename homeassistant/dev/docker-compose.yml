@@ -53,6 +53,10 @@ services:
       - "8099:8099"
     volumes:
       - addon-data:/data
+      # Mirrors the add-on's app_config map (/config in-container), where run.sh
+      # points --capture-directory. Without it the capture path would only exist
+      # in the container's writable layer and vanish on recreate.
+      - addon-config:/config
     depends_on:
       supervisor:
         condition: service_healthy
@@ -61,3 +65,4 @@ services:
 
 volumes:
   addon-data:
+  addon-config:

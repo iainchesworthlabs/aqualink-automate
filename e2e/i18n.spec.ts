@@ -356,7 +356,7 @@ test.describe('i18n guard rails', () => {
         '.matter-kv :last-child', '.spaside-key-fn', '.prof-backend-btn', '.prof-state',
         '.accent-swatch-name',                              // theme names (client config values)
         '.trends-chip', '.trends-stat-label', '.trends-readout',
-        '.rec-input-prefix',                                // literal path fragment
+        '.rec-capture-name', '.rec-capture-meta',           // capture filenames + sizes (server data)
         '.health-endpoint', '.sched-empty-pill', '.trends-empty-pill', // endpoint literals
         '.info-grid dd',                                    // About values (server version data / brand fallback)
         '.trends-error',                                    // snapshot error string (translated at assignment time)

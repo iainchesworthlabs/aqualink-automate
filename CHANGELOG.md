@@ -22,10 +22,17 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
   - MQTT gains `command/chlorinator/pool/percentage` and `command/chlorinator/spa/percentage`; the existing `command/chlorinator/percentage` keeps working and still means the pool.
   - Home Assistant gains a **Spa Output** number beside the existing setpoint control, now named **Pool Output**. That control also had its value template corrected — it read the *instantaneous* output, so it snapped back to 0 whenever the cell was idle instead of showing the configured target. It keeps its identity, so existing dashboards and automations survive.
   - The dashboard shows one target slider per body on a dual-body system, each with its own Set.
+- **Home Assistant add-on: captures now land somewhere you can reach.** The add-on passes `--capture-directory /config/captures`, i.e. its own `app_config` map — `/app_configs/aqualink_automate/captures` on the host (`/addon_configs/…` before Supervisor 2026.07), browsable with the Samba or File editor add-ons. Previously a capture was written inside the container, lost on restart or update, and retrievable only with `docker cp`. See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
 
 ### Added
 
 - **The SWG tile explains a 0% reading.** The reported output is the *instantaneous* one and is 0 whenever the cell is idle, which read as "off or broken" even when the chlorinator was configured, healthy, and simply waiting for the filter pump. The dashboard now captions the reading with the reason — "Idle — filter pump off", "Idle — no water flow", "Turned off", and so on. The reason is derived server-side and published as `generating_reason` on `GET /api/equipment` and on the MQTT device topic, with a matching **Output State** sensor (and a **Target %** sensor) in Home Assistant, so automations can act on it instead of guessing from the percentage. See [docs/usage-and-api.md](docs/usage-and-api.md) and [docs/mqtt-home-assistant.md](docs/mqtt-home-assistant.md).
+- **Captures can be downloaded from the web UI.** The Diagnostics page's **Serial Recording** card now lists the captures already on the server (name, size, timestamp) and gives each one a **Download** button, backed by `GET /api/diagnostics/recording/captures` and `GET /api/diagnostics/recording/captures/{filename}`. Retrieving a capture no longer needs a shell on the host. The download route reuses the recording route's path jail, so it can only ever serve a capture out of the capture directory; captures over 64 MiB are refused (copy those from the directory directly). See [docs/RECORD_REPLAY.md](docs/RECORD_REPLAY.md).
+- **`--capture-directory`** sets where on-demand captures are written and served from (default `captures`, relative to the working directory — unchanged for existing installs). `--record-serial` is unaffected; its path is still used as given. See [docs/configuration.md](docs/configuration.md).
+
+### Security
+
+- The capture-filename jail now also rejects **control characters and quotes**, which would otherwise have been echoed into the download's `Content-Disposition` header (CR/LF being header injection). Path separators, drive letters, leading separators, `..`, and non-`.cap` extensions were, and remain, rejected.
 
 ## [0.13.0-beta.1] - 2026-08-18
 

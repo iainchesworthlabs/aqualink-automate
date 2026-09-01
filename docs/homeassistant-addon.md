@@ -87,6 +87,34 @@ The options form maps directly onto the application's settings (full reference:
   package is also reachable without it: one-click import from the
   [docs](homeassistant-companion.md#blueprints), or the release zip.
 
+## Serial captures
+
+The web UI's **Diagnostics → Serial Recording** card records raw RS-485 traffic on
+demand. In a container the app's default capture directory (`<cwd>/captures`) is
+neither persisted nor reachable without a Docker shell, which is useless for the one
+workflow that most needs the file afterwards — so `run.sh` pins it:
+
+```
+--capture-directory /config/captures
+```
+
+`/config` in the container is the add-on's **`app_config`** map, so captures land on
+the host at `/app_configs/aqualink_automate/captures` (`/addon_configs/…` before
+Supervisor 2026.07). That path is read-write, survives restarts and add-on updates,
+and is browsable with the **Samba** or **File editor** add-ons — no Terminal & SSH,
+no Protection-mode toggle, no `docker cp`.
+
+`app_config` is used rather than `share` on purpose: it is already mapped (adding a
+`share` map would ask the user for a broader, cross-add-on permission this feature
+does not need), and captures stay in the add-on's own directory where they cannot
+collide with another add-on's files and are removed when the add-on is uninstalled.
+
+The Diagnostics page also lists the captures already on the server and offers a
+**Download** button on each, so the usual path off the machine needs neither share
+nor shell. Captures over 64 MiB are refused by the download route (the response is
+buffered) — copy those from the share instead. Full detail:
+[Serial record / replay](RECORD_REPLAY.md).
+
 ## Notes
 
 - The bundled **Matter** bridge is disabled in the add-on — Home Assistant is already a

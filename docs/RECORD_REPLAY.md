@@ -1,6 +1,6 @@
 # Serial record / replay
 
-*For contributors capturing real RS-485 traffic and replaying it (live or as a test fixture). Full developer-option semantics live in [docs/configuration.md](configuration.md); the runtime recording route lives in [docs/usage-and-api.md](usage-and-api.md).*
+*For contributors capturing real RS-485 traffic and replaying it (live or as a test fixture). Full developer-option semantics live in [docs/configuration.md](configuration.md); the runtime recording routes live in [docs/usage-and-api.md](usage-and-api.md).*
 
 Aqualink-Automate can **record** the raw RS-485 serial traffic it exchanges with
 real hardware to a capture file, and later **replay** that file instead of a real
@@ -223,5 +223,61 @@ conversion step is needed; that round-trip (record → replay-as-fixture) is
 covered by `test/unit/protocol/test_record_replay_roundtrip.cpp`.
 
 You can also start and stop recording on a **running** system through the
-diagnostics web UI / REST route rather than from boot — see the recording route
-in [docs/usage-and-api.md](usage-and-api.md).
+diagnostics web UI / REST route rather than from boot — see section 5 below and
+the recording routes in [docs/usage-and-api.md](usage-and-api.md).
+
+---
+
+## 5. Record at runtime, and get the file back
+
+`--record-serial` records from boot to a path you choose. The **Diagnostics page**
+of the web UI records on demand against a system that is already running, which is
+usually what you want when chasing a behaviour you can reproduce live.
+
+### Where those captures go
+
+On-demand captures are confined to one directory — `--capture-directory`, default
+`captures` under the working directory. Everything about that directory is
+deliberate:
+
+- The filename you type in the UI (or send as `POST /api/diagnostics/recording`
+  `{"action":"start","filename":"..."}`) is treated as a **bare `*.cap` basename**
+  and jailed into the directory. Path separators, drive letters, leading
+  separators, `..`, control characters, and quotes are rejected with `400`, so the
+  endpoint can never be steered at another file on the host.
+- The directory is created on the first recording, so a fresh install leaves
+  nothing behind until you actually record.
+- `--record-serial` is **not** affected: it is an operator-supplied path on the
+  command line and is used exactly as given.
+
+Point `--capture-directory` somewhere you can reach when the app runs where you
+cannot get a shell. That is precisely what the **Home Assistant add-on** does: it
+passes `--capture-directory /config/captures`, which is the add-on's `app_config`
+map — reachable on the host at `/app_configs/aqualink_automate/captures`
+(`/addon_configs/...` before Supervisor 2026.07) through the Samba or File editor
+add-ons. See [docs/homeassistant-addon.md](homeassistant-addon.md).
+
+### Getting the capture off the machine
+
+The Diagnostics page's **Serial Recording** card lists the captures already on the
+server (name, size, timestamp) with a **Download** button on each, so a finished
+capture reaches your machine without a shell on the host. The same surface is
+available directly:
+
+```bash
+# List what is there
+curl -s http://<host>/api/diagnostics/recording/captures
+
+# Pull one down
+curl -sOJ http://<host>/api/diagnostics/recording/captures/session.cap
+```
+
+The download route applies the **same** jail as the recording route, so it only
+ever serves a capture from the capture directory (and never a symlink pointing out
+of it). Because the response is buffered rather than streamed, a capture larger
+than **64 MiB** is refused with `413` — at the bus's ~5 KB/s of capture text that
+is a multi-hour recording; copy those straight out of the capture directory
+instead.
+
+A downloaded capture is byte-for-byte the format in section 3, so it replays with
+`--replay-filename` and drops straight into `test/fixtures/` as a fixture.

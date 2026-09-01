@@ -2056,7 +2056,6 @@
                     <div class="rec-field-file">
                         <label class="rec-field-label" x-text="$t('diag.capture_file')"></label>
                         <div class="rec-input-wrap" :class="{ 'is-disabled': recording.recording }">
-                            <span class="rec-input-prefix">captures/</span>
                             <input type="text" class="rec-input"
                                    x-model="recordingFilename"
                                    :disabled="recording.recording"
@@ -2073,6 +2072,35 @@
                 <div class="rec-hint">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
                     <span x-html="$t('diag.rec_hint_html')"></span>
+                </div>
+
+                <!-- Saved captures: download a finished capture without shell access to the host. -->
+                <div class="rec-captures">
+                    <div class="rec-captures-head">
+                        <label class="rec-field-label" x-text="$t('diag.saved_captures')"></label>
+                        <button type="button" class="rec-captures-refresh"
+                                :disabled="capturesBusy"
+                                @click="fetchCaptures()"
+                                x-text="$t('diag.refresh')"></button>
+                    </div>
+                    <template x-if="captures.length === 0">
+                        <div class="rec-captures-empty" x-text="$t('diag.no_captures')"></div>
+                    </template>
+                    <template x-if="captures.length > 0">
+                        <ul class="rec-capture-list">
+                            <template x-for="capture in captures" :key="capture.name">
+                                <li class="rec-capture-row">
+                                    <span class="rec-capture-name" data-i18n-exempt x-text="capture.name"></span>
+                                    <span class="rec-capture-meta" data-i18n-exempt x-text="formatBytes(capture.bytes) + ' · ' + formatCaptureTime(capture.modified)"></span>
+                                    <button type="button" class="rec-download"
+                                            :disabled="downloadingCapture === capture.name"
+                                            @click="downloadCapture(capture.name)"
+                                            :aria-label="$t('diag.download_capture_aria', { name: capture.name })"
+                                            x-text="$t('diag.download')"></button>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
                 </div>
             </div>
             </div><!-- /.diag-adv-tail -->

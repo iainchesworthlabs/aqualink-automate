@@ -196,10 +196,14 @@ All routes below are registered in a single block when the web server is enabled
 | GET | `/api/diagnostics/options` | `200` JSON | `options[]` of `{name, short_name, description}`. |
 | GET | `/api/diagnostics/mqtt` | `200` JSON | `enabled` + MQTT connection diagnostics. |
 | GET | `/api/diagnostics/matter` | `200` JSON | `enabled` + Matter sidecar status (cached). |
-| GET / POST | `/api/diagnostics/recording` | `200` JSON | GET returns `{recording, file, bytes}`; POST starts/stops. |
+| GET / POST | `/api/diagnostics/recording` | `200` JSON | GET returns `{recording, file, bytes}`; POST starts/stops. `400` bad body / rejected filename; `409` already/not recording; `503` no recorder (dev-mode/replay). |
+| GET | `/api/diagnostics/recording/captures` | `200` JSON | `captures[]` of `{name, bytes, modified}` — the finished captures on the server, newest first. |
+| GET | `/api/diagnostics/recording/captures/{filename}` | `200` file | Downloads one capture (`Content-Disposition: attachment`). `400` rejected filename; `404` unknown capture; `413` larger than the 64 MiB download limit. |
 | GET / POST | `/api/diagnostics/profiling` | `200` JSON | GET reports `{enabled, running, backend, available}`; POST controls it (`start`/`stop`/`select`). `400` (bad body), `409` (no backend in this build), `503` (no controller). |
 
 Non-`GET` requests to the read-only diagnostics routes return `405` with a JSON body.
+
+**Captures.** A recording started through `POST /api/diagnostics/recording` is written into the server's capture directory (`--capture-directory`, default `<cwd>/captures`). The client-supplied `filename` must be a bare `*.cap` basename and is jailed into that directory; the download route applies the **same** jail to its `{filename}`, so neither endpoint can reach a file elsewhere on the host. Only basenames are ever reported — the server-side directory is not disclosed. The listing reports only what the download route would serve (regular files, never symlinks), and `modified` is seconds since the Unix epoch. All three routes require `diagnostics.view` for `GET` (`system.admin` for the recording `POST`), like every other diagnostics route. See [Serial record / replay](RECORD_REPLAY.md).
 
 ### History
 
