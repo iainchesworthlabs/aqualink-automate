@@ -68,6 +68,17 @@
         'swg_health.check_pcb': 'PCB要点検',
         'swg_health.general_fault': '一般異常',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': '生成中',
+        'swg_reason.off': 'オフ',
+        'swg_reason.pump_off': 'オン、生成なし — ろ過ポンプ停止',
+        'swg_reason.no_flow': 'オン、生成なし — 水流なし',
+        'swg_reason.fault': '生成停止 — セルを確認',
+        'swg_reason.idle': 'オン、生成なし',
+        'swg_reason.unknown': '目標値は未報告',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': '適用済み',
         'cmd.rejected': '拒否',
@@ -143,6 +154,7 @@
         'dash.swg_aria': '塩素発生器の出力と目標値の制御',
         'dash.target': '目標',
         'dash.target_aria': '目標出力パーセント',
+        'dash.target_body_aria': '{body} の塩素発生器の目標出力',
         'dash.set': '設定',
         'dash.boost': 'ブースト',
         'dash.heater': 'ヒーター',
@@ -295,6 +307,11 @@
         'diag.capture_file_aria': 'キャプチャファイル名',
         'diag.bytes_written': '書き込みバイト数',
         'diag.rec_hint_html': '記録は再生可能なレコーダー形式で、そのまま <code>test/fixtures/</code> に配置できます。',
+        'diag.saved_captures': '保存済みの記録',
+        'diag.no_captures': '記録はまだありません。',
+        'diag.refresh': '更新',
+        'diag.download': 'ダウンロード',
+        'diag.download_capture_aria': '{name} をダウンロード',
         'diag.stats_ws': '統計 WebSocket:',
         'diag.observed_button_mapping': '観測されたボタンマッピング',
         'diag.indicators': 'インジケーター',
@@ -609,6 +626,7 @@
         'toast.recording_start_failed': '記録の開始に失敗しました',
         'toast.recording_stopped': 'シリアル記録を停止しました',
         'toast.recording_stop_failed': '記録の停止に失敗しました',
+        'toast.capture_download_failed': '記録のダウンロードに失敗しました',
         'toast.profiling_resumed': 'プロファイリングを再開しました',
         'toast.profiling_resume_failed': 'プロファイリングの再開に失敗しました',
         'toast.profiling_paused': 'プロファイリングを一時停止しました',
@@ -638,6 +656,10 @@
         'error.recording_start_failed': '記録を開始できませんでした。すでに記録中か、ファイルを開けませんでした。',
         'error.recording_not_recording': '現在記録していません。',
         'error.recording_invalid_action': "'action' は 'start' または 'stop' にしてください。",
+        'error.capture_filename_invalid': '記録名はパス区切りを含まない *.cap のファイル名にしてください。',
+        'error.capture_not_found': 'その記録はサーバー上に存在しません。',
+        'error.capture_too_large': '記録が大きすぎてダウンロードできません。記録ディレクトリから直接コピーしてください。',
+        'error.capture_read_failed': '記録を読み取れませんでした。',
         'error.spaside_unavailable': 'このモードではスパサイドリモコンの操作は利用できません。',
         'error.spaside_action_required': "リクエストには 'press' または 'assign' の 'action' が必要です。",
         'error.spaside_press_requires_address': "'press' には 'address' が必要です。",

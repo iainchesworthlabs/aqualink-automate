@@ -133,8 +133,8 @@ jobs:
           fi
 
       # Version lock-step: the Home Assistant add-on wraps the image this very release
-      # publishes, so the RELEASED channel's config.yaml `version` + build.yaml build_from
-      # tags MUST equal the release version. A prerelease releases the `edge` channel; a
+      # publishes, so the RELEASED channel's config.yaml `version` MUST equal the release
+      # version (the Dockerfile derives its base image from it; there is no build.yaml). A prerelease releases the `edge` channel; a
       # stable release the `stable` channel. Fail fast here (before any build) if that
       # channel was not bumped in release prep, so a released add-on can never point at an
       # image that does not exist. Bump with:
@@ -204,7 +204,7 @@ jobs:
       # runtime-assembled stage only unpacks a prebuilt tarball (no compilation), so
       # the emulated work is trivial.
       - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
-      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
       # The Dockerfile's base images (ubuntu:26.04, node:24-bookworm-slim) are
       # pulled from Docker Hub. Anonymous pulls share the runner's egress IP and
@@ -287,7 +287,11 @@ jobs:
           retry_wait_seconds: 30
           retry_on: error
           command: |
+            # runtime-assembled does COPY --from=ci, so this builds the C++ stage
+            # too. Cap Ninja on the 12 GB self-hosted guests for the same reason
+            # ci.yml does -- see docs/ci-cd.md.
             cmd=(docker buildx build --target runtime-assembled --platform linux/amd64,linux/arm64 --push --metadata-file "$RUNNER_TEMP/docker-meta.json")
+            cmd+=(--build-arg "CMAKE_BUILD_PARALLEL_LEVEL=${{ contains(needs.check-runners.outputs.linux_runner, 'self-hosted') && '6' || '' }}")
             while IFS= read -r tag;   do [ -n "$tag" ]   && cmd+=(--tag   "$tag");   done <<< "${IMAGE_TAGS}"
             while IFS= read -r label; do [ -n "$label" ] && cmd+=(--label "$label"); done <<< "${IMAGE_LABELS}"
             cmd+=(.)
@@ -407,7 +411,7 @@ jobs:
       # QEMU lets buildx assemble the linux/arm64 wrapper on the x64 runner. The layer
       # is just apt (jq) + a bashio tarball + run.sh, so the emulated work is light.
       - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
-      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
       - name: Login to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4

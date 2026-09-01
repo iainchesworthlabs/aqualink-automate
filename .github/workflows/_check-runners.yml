@@ -36,6 +36,17 @@ on:
       windows_runner:
         description: 'JSON label array for the Windows leg, e.g. ["self-hosted","Windows","X64"] or ["windows-latest"].'
         value: ${{ jobs.check-runners.outputs.windows_runner }}
+      linux_runner_big:
+        description: >-
+          JSON label array for a HEAVY Linux leg — one that OOMs or fills the disk
+          on the shared shape. Resolves to the `big` self-hosted pair
+          (["self-hosted","Linux","X64","big"]) or ["ubuntu-latest"]. Use this only
+          for legs that genuinely need the headroom: the big pair is ONE machine per
+          OS, so every job pointed at it serialises behind the others.
+        value: ${{ jobs.check-runners.outputs.linux_runner_big }}
+      windows_runner_big:
+        description: 'As linux_runner_big, for Windows: ["self-hosted","Windows","X64","big"] or ["windows-latest"].'
+        value: ${{ jobs.check-runners.outputs.windows_runner_big }}
 
 permissions:
   contents: read
@@ -50,6 +61,8 @@ jobs:
     outputs:
       linux_runner: ${{ steps.decide.outputs.linux_runner }}
       windows_runner: ${{ steps.decide.outputs.windows_runner }}
+      linux_runner_big: ${{ steps.decide.outputs.linux_runner_big }}
+      windows_runner_big: ${{ steps.decide.outputs.windows_runner_big }}
     steps:
       - name: Decide runner labels per OS
         id: decide
@@ -66,49 +79,104 @@ jobs:
           set -uo pipefail
           HOSTED_LINUX='["ubuntu-latest"]'
           HOSTED_WINDOWS='["windows-latest"]'
-          SELF_LINUX='["self-hosted","Linux","X64"]'
-          SELF_WINDOWS='["self-hosted","Windows","X64"]'
+          # The shared fleet carries a `shared` label the big pair does not. Naming
+          # it is what keeps ordinary work OFF the big runners: GitHub matches a
+          # job to any runner whose labels are a SUPERSET of runs-on and there is
+          # no NOT operator, so a bare ["self-hosted","Linux","X64"] also matched
+          # tf-gh-big-linux-runner-01 (the probe counted 9 Linux runners, not 8).
+          # Under saturation that is worse than a delay: the big runner gets taken
+          # by ordinary work AND the heavy leg's probe then falls back to
+          # GitHub-hosted, losing the big runner exactly when it was needed.
+          SELF_LINUX='["self-hosted","Linux","X64","shared"]'
+          SELF_WINDOWS='["self-hosted","Windows","X64","shared"]'
+          # The "big" pair - tf-gh-big-{linux,windows}-runner-01, in the
+          # aqualink-only "Labs CI Big Runners" group - carries an extra `big`
+          # label on top of the usual set (8 vCPU / 32 GB Linux, 8 vCPU / 24 GB
+          # Windows, 48 GB data disks). It exists because the heavy legs OOM-killed
+          # and filled the disks on the shared 12/16 GB shape. Asking for `big`
+          # EXCLUDES the shared fleet: no shared runner carries that label.
+          SELF_LINUX_BIG='["self-hosted","Linux","X64","big"]'
+          SELF_WINDOWS_BIG='["self-hosted","Windows","X64","big"]'
 
           # Untrusted fork-PR code never touches self-hosted infra - decided here,
           # before either mode override or the live check even run.
           if [ "$IS_FORK_PR" = "true" ]; then
-            echo "linux_runner=$HOSTED_LINUX" >> "$GITHUB_OUTPUT"
-            echo "windows_runner=$HOSTED_WINDOWS" >> "$GITHUB_OUTPUT"
-            echo "Fork PR - both legs stay on GitHub-hosted runners."
+            {
+              echo "linux_runner=$HOSTED_LINUX"
+              echo "windows_runner=$HOSTED_WINDOWS"
+              echo "linux_runner_big=$HOSTED_LINUX"
+              echo "windows_runner_big=$HOSTED_WINDOWS"
+            } >> "$GITHUB_OUTPUT"
+            echo "Fork PR - every leg stays on GitHub-hosted runners."
             exit 0
           fi
 
-          # At least one online, idle runner carrying both "self-hosted" and $2 (the
-          # OS label) in $1's runner list. Never fails the job: a missing/errored API
-          # response (e.g. no runner registered against this repo yet, or ORG_TOKEN
-          # unset) just means "not found".
+          # At least one runner in $1's list carrying "self-hosted" + $2 (the OS
+          # label) + $3 (an extra label, or "" for none). $4 = "idle" to also
+          # require .busy==false, "online" to accept a busy runner.
+          #
+          # Why the idle requirement is conditional: the SHARED fleet has 8 Linux /
+          # 5 Windows runners, so "something is idle right now" is a fair proxy for
+          # "there is capacity". The BIG pair is ONE machine per OS, so demanding
+          # idle would bounce a heavy leg to GitHub-hosted the moment the big runner
+          # picked up any other job - and GitHub-hosted is exactly where those legs
+          # die (CodeQL c-cpp has been killed there twice, once at 108 min and once
+          # at 2h33m, both deep into a near-complete build). Queueing behind the
+          # current job is strictly better than routing to a runner that cannot
+          # finish. A registered-and-online runner drains its queue; it is only an
+          # ABSENT label that would wait forever, which is what this probe checks.
+          #
+          # Never fails the job: a missing/errored API response (e.g. no runner
+          # registered against this repo, or ORG_TOKEN unset) just means "not found".
           runner_available() {
-            local scope="$1" os_label="$2" json count
+            local scope="$1" os_label="$2" extra_label="${3:-}" liveness="${4:-idle}"
+            local json count filter
             json="$(gh api "$scope/actions/runners" --jq '.runners' 2>/dev/null)" || return 1
-            count="$(printf '%s' "$json" | jq "[.[] | select(.status==\"online\" and .busy==false and any(.labels[]; .name==\"self-hosted\") and any(.labels[]; .name==\"$os_label\"))] | length" 2>/dev/null)" || return 1
+            filter="[.[] | select(.status==\"online\""
+            [ "$liveness" = "idle" ] && filter="$filter and .busy==false"
+            filter="$filter and any(.labels[]; .name==\"self-hosted\") and any(.labels[]; .name==\"$os_label\")"
+            [ -n "$extra_label" ] && filter="$filter and any(.labels[]; .name==\"$extra_label\")"
+            filter="$filter)] | length"
+            count="$(printf '%s' "$json" | jq "$filter" 2>/dev/null)" || return 1
             [ "${count:-0}" -gt 0 ]
           }
 
           decide_for_os() {
             local mode="$1" os_label="$2" hosted="$3" self_hosted="$4"
+            local extra_label="${5:-}" liveness="${6:-idle}"
             case "$mode" in
               self-hosted)   printf '%s' "$self_hosted"; return ;;
               github-hosted) printf '%s' "$hosted"; return ;;
             esac
             # auto: repo-level first (works today with zero extra setup), then
             # org-level if a token for it was provisioned.
-            if runner_available "repos/$REPO" "$os_label"; then
+            if runner_available "repos/$REPO" "$os_label" "$extra_label" "$liveness"; then
               printf '%s' "$self_hosted"; return
             fi
-            if [ -n "${ORG_TOKEN:-}" ] && GH_TOKEN="$ORG_TOKEN" runner_available "orgs/$ORG" "$os_label"; then
+            if [ -n "${ORG_TOKEN:-}" ] && GH_TOKEN="$ORG_TOKEN" runner_available "orgs/$ORG" "$os_label" "$extra_label" "$liveness"; then
               printf '%s' "$self_hosted"; return
             fi
             printf '%s' "$hosted"
           }
 
-          linux_runner="$(decide_for_os "$LINUX_MODE" "Linux" "$HOSTED_LINUX" "$SELF_LINUX")"
-          windows_runner="$(decide_for_os "$WINDOWS_MODE" "Windows" "$HOSTED_WINDOWS" "$SELF_WINDOWS")"
-          echo "linux_runner=$linux_runner" >> "$GITHUB_OUTPUT"
-          echo "windows_runner=$windows_runner" >> "$GITHUB_OUTPUT"
-          echo "Linux: mode=$LINUX_MODE -> $linux_runner"
-          echo "Windows: mode=$WINDOWS_MODE -> $windows_runner"
+          # INVARIANT: the probe must ask for the EXACT label set the job will
+          # demand. The extra_label argument here has to match the extra label in
+          # the corresponding SELF_* array, or availability becomes advisory
+          # rather than actual — e.g. probing for self-hosted+Linux while the job
+          # demands ...+shared would let an idle BIG runner be read as shared-fleet
+          # capacity, resolve to self-hosted, and then queue instead of falling
+          # back to hosted. That degrades quietly, which is worse than failing.
+          linux_runner="$(decide_for_os "$LINUX_MODE" "Linux" "$HOSTED_LINUX" "$SELF_LINUX" "shared")"
+          windows_runner="$(decide_for_os "$WINDOWS_MODE" "Windows" "$HOSTED_WINDOWS" "$SELF_WINDOWS" "shared")"
+          linux_runner_big="$(decide_for_os "$LINUX_MODE" "Linux" "$HOSTED_LINUX" "$SELF_LINUX_BIG" "big" "online")"
+          windows_runner_big="$(decide_for_os "$WINDOWS_MODE" "Windows" "$HOSTED_WINDOWS" "$SELF_WINDOWS_BIG" "big" "online")"
+          {
+            echo "linux_runner=$linux_runner"
+            echo "windows_runner=$windows_runner"
+            echo "linux_runner_big=$linux_runner_big"
+            echo "windows_runner_big=$windows_runner_big"
+          } >> "$GITHUB_OUTPUT"
+          echo "Linux:       mode=$LINUX_MODE -> $linux_runner"
+          echo "Windows:     mode=$WINDOWS_MODE -> $windows_runner"
+          echo "Linux (big): mode=$LINUX_MODE -> $linux_runner_big"
+          echo "Windows(big):mode=$WINDOWS_MODE -> $windows_runner_big"

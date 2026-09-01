@@ -29,11 +29,7 @@ namespace AqualinkAutomate::Devices
 		// the 0x33 ACK channel as documented in iaq_protocol.md; named here so the queue
 		// builders below are self-describing rather than a string of bare hex literals.
 		constexpr uint8_t IAQ_CMD_BACK{ 0x02 };                 // navigate back / clean state
-		constexpr uint8_t IAQ_CMD_OPEN_AQUAPURE_PAGE{ 0x19 };   // open the AquaPure settings page
-		constexpr uint8_t IAQ_CMD_SELECT_POOL{ 0x11 };          // select Pool (button index 0)
 		constexpr uint8_t IAQ_CMD_PAGE_BUTTON_BASE{ 0x11 };     // press on-screen PageButton index N -> 0x11 + N
-		constexpr uint8_t IAQ_CMD_QUICK_BOOST{ 0x13 };          // Quick Boost (button index 2) / Stop
-		constexpr uint8_t IAQ_CMD_BOOST_START{ 0x12 };          // Start boost (button index 1)
 		constexpr uint8_t IAQ_CMD_SUBMIT_VALUE{ 0x80 };         // submit the entered value
 
 		// Set Temperature page (verified vs iaq_aux_setpoint.cap): from a clean state, 0x14
@@ -113,7 +109,8 @@ namespace AqualinkAutomate::Devices
 	{
 		// On the AqualinkTouch (0x33) page protocol a button is "pressed" by sending the
 		// command (0x11 + button_index) in the next IAQ_Poll ACK: 0x11 selects the page's
-		// button index 0 (cf. IAQ_CMD_SELECT_POOL), so on-screen button N is 0x11 + N. The
+		// button index 0 (AqualinkD calls these KEY_IAQTCH_KEY01..KEY15), so on-screen button
+		// N is 0x11 + N. The
 		// command is page-relative -- it presses whatever button currently occupies that
 		// index -- which is how the master drives navigation between pages.
 		const auto command = static_cast<uint8_t>(IAQ_CMD_PAGE_BUTTON_BASE + button_index);
@@ -143,52 +140,31 @@ namespace AqualinkAutomate::Devices
 		m_CommandQueue.assign(commands.begin(), commands.end());
 	}
 
-	void IAQDevice::QueueChlorinatorPercentage(uint8_t percentage)
+	Capabilities::ActuationResult IAQDevice::SetChlorinatorPercentage(uint8_t percentage, Kernel::BodyOfWaterIds body)
 	{
-		LogInfo(Channel::Devices, [this, percentage]() { return std::format("IAQ ({}): QueueChlorinatorPercentage({}%) - queuing command sequence", DeviceId(), percentage); });
-
-		m_CommandQueue.clear();
-		m_CommandQueue.push_back(IAQ_CMD_BACK);
-		m_CommandQueue.push_back(IAQ_CMD_OPEN_AQUAPURE_PAGE);
-		m_CommandQueue.push_back(IAQ_CMD_SELECT_POOL);
-		m_CommandQueue.push_back(IAQ_CMD_SUBMIT_VALUE);
-
-		m_AwaitingControlReady = true;
-		m_ControlDataValue = std::format("{}{}", IAQ_BUTTON_INDEX_POOL, percentage);
-	}
-
-	void IAQDevice::QueueChlorinatorBoost(bool enable)
-	{
-		LogInfo(Channel::Devices, [this, enable]() { return std::format("IAQ ({}): QueueChlorinatorBoost({}) - queuing command sequence", DeviceId(), enable); });
-
-		m_CommandQueue.clear();
-		m_CommandQueue.push_back(IAQ_CMD_BACK);
-		m_CommandQueue.push_back(IAQ_CMD_OPEN_AQUAPURE_PAGE);
-		m_CommandQueue.push_back(IAQ_CMD_QUICK_BOOST);
-
-		if (enable)
-		{
-			m_CommandQueue.push_back(IAQ_CMD_BOOST_START);
-		}
-		else
-		{
-			m_CommandQueue.push_back(IAQ_CMD_QUICK_BOOST);  // Stop
-		}
-
-		m_AwaitingControlReady = false;
-		m_ControlDataValue.clear();
-	}
-
-	Capabilities::ActuationResult IAQDevice::SetChlorinatorPercentage(uint8_t percentage)
-	{
-		QueueChlorinatorPercentage(percentage);
-		return Capabilities::ActuationResult::Accepted;
+		// Delegate to the page-gated AquaPure write state machine. It walks Menu -> AquaPure page
+		// VERIFYING each hop, resolves the requested body's row BY LABEL on that page, and submits
+		// the ABSOLUTE value -- the fast path, versus the OneTouch writer's 5%-per-keypress
+		// stepping. The command channel's busy state (a draining sequence or an in-flight
+		// control-data handshake) gates a fresh goal, mirroring the writer's one-goal-at-a-time rule.
+		return m_AquaPureWriter.QueuePercentage(percentage, body, IsEmulationActive(), ChannelBusy(), DeviceId());
 	}
 
 	Capabilities::ActuationResult IAQDevice::SetChlorinatorBoost(bool enable)
 	{
-		QueueChlorinatorBoost(enable);
-		return Capabilities::ActuationResult::Accepted;
+		return m_AquaPureWriter.QueueBoost(enable, IsEmulationActive(), ChannelBusy(), DeviceId());
+	}
+
+	bool IAQDevice::ChannelBusy() const
+	{
+		// ONE poll-ACK command channel serves every writer, so a goal in any of them blocks the
+		// rest -- otherwise two page-gated walks would interleave their key presses and could
+		// commit a value on whichever screen happened to be showing. IsBusy() covers the legacy
+		// command queue and an open control-data handshake.
+		return m_AquaPureWriter.HasPendingGoal()
+			|| m_SpaSwitchWriter.HasPendingGoal()
+			|| m_ScheduleWriter.HasPendingGoal()
+			|| IsBusy();
 	}
 
 	Capabilities::ActuationResult IAQDevice::ActuatePageButton(uint8_t button_index)
@@ -300,8 +276,7 @@ namespace AqualinkAutomate::Devices
 		// Delegate to the extracted spa-switch write state machine. The command channel's busy state
 		// (a draining sequence or an in-flight control-data handshake) gates a fresh goal, mirroring
 		// the writer's own one-goal-at-a-time rule.
-		const bool channel_busy = !m_CommandQueue.empty() || m_AwaitingControlReady;
-		return m_SpaSwitchWriter.Queue(switch_number, button_number, function, IsEmulationActive(), channel_busy, DeviceId());
+		return m_SpaSwitchWriter.Queue(switch_number, button_number, function, IsEmulationActive(), ChannelBusy(), DeviceId());
 	}
 
 	std::vector<std::string> IAQDevice::AvailableFunctions() const
@@ -317,24 +292,21 @@ namespace AqualinkAutomate::Devices
 
 		// Delegate to the extracted controller-schedule write state machine. Busy = another writer or
 		// the command channel is occupied; the writer applies its own passive / feasibility gates.
-		const bool channel_busy = m_SpaSwitchWriter.HasPendingGoal() || !m_CommandQueue.empty() || m_AwaitingControlReady;
-		return m_ScheduleWriter.QueueCreate(program, IsEmulated(), channel_busy, DeviceId());
+		return m_ScheduleWriter.QueueCreate(program, IsEmulated(), ChannelBusy(), DeviceId());
 	}
 
 	Capabilities::ActuationResult IAQDevice::DeleteControllerProgram(const Scheduling::ControllerSchedule& program)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::DeleteControllerProgram", std::source_location::current());
 
-		const bool channel_busy = m_SpaSwitchWriter.HasPendingGoal() || !m_CommandQueue.empty() || m_AwaitingControlReady;
-		return m_ScheduleWriter.QueueDelete(program, IsEmulated(), channel_busy, DeviceId());
+		return m_ScheduleWriter.QueueDelete(program, IsEmulated(), ChannelBusy(), DeviceId());
 	}
 
 	Capabilities::ActuationResult IAQDevice::EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired)
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::EditControllerProgram", std::source_location::current());
 
-		const bool channel_busy = m_SpaSwitchWriter.HasPendingGoal() || !m_CommandQueue.empty() || m_AwaitingControlReady;
-		return m_ScheduleWriter.QueueEdit(existing, desired, IsEmulated(), channel_busy, DeviceId());
+		return m_ScheduleWriter.QueueEdit(existing, desired, IsEmulated(), ChannelBusy(), DeviceId());
 	}
 
 	void IAQDevice::ProcessControllerUpdates()
@@ -396,6 +368,20 @@ namespace AqualinkAutomate::Devices
 		if (is_poll_message && m_SpaSwitchWriter.HasPendingGoal())
 		{
 			m_SpaSwitchWriter.ProcessStep(m_PageModel, *this, m_DataHub.get(), DeviceId());
+		}
+
+		// Learn the menu -> AquaPure route whenever the menu page happens to render, for ANY reason
+		// (the spa-switch writer walks through it, for instance), so a later chlorinator request can
+		// answer honestly up-front instead of discovering the route mid-navigation. Cheap, and a
+		// no-op off that page.
+		m_AquaPureWriter.ObserveMenuPage(m_PageModel);
+
+		// Service an in-flight chlorinator (AquaPure) write goal: it inspects the current page and
+		// sets the single next command, verifying each navigation hop before the following one.
+		// Poll only -- commands ride the poll ACK - and mutually exclusive with the other writers.
+		if (is_poll_message && m_AquaPureWriter.HasPendingGoal())
+		{
+			m_AquaPureWriter.ProcessStep(m_PageModel, *this, DeviceId());
 		}
 
 		// Service an in-flight controller-schedule write goal (create a program) the same way:

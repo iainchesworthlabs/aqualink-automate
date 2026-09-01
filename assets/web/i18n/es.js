@@ -69,6 +69,17 @@
         'swg_health.check_pcb': 'Revisar PCB',
         'swg_health.general_fault': 'Falla general',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'Generando',
+        'swg_reason.off': 'Apagado',
+        'swg_reason.pump_off': 'Encendido, sin generar — bomba de filtro apagada',
+        'swg_reason.no_flow': 'Encendido, sin generar — sin flujo de agua',
+        'swg_reason.fault': 'Sin generar — revise la celda',
+        'swg_reason.idle': 'Encendido, sin generar',
+        'swg_reason.unknown': 'Objetivo aún no informado',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'Aplicado',
         'cmd.rejected': 'Rechazado',
@@ -144,6 +155,7 @@
         'dash.swg_aria': 'Salida del clorador y control del objetivo',
         'dash.target': 'Objetivo',
         'dash.target_aria': 'Porcentaje de salida objetivo',
+        'dash.target_body_aria': 'Objetivo de salida del clorador para {body}',
         'dash.set': 'Ajustar',
         'dash.boost': 'Boost',
         'dash.heater': 'Calentador',
@@ -296,6 +308,11 @@
         'diag.capture_file_aria': 'Nombre del archivo de captura',
         'diag.bytes_written': 'Bytes escritos',
         'diag.rec_hint_html': 'La grabación está en el formato reproducible del grabador y puede colocarse directamente en <code>test/fixtures/</code>.',
+        'diag.saved_captures': 'Grabaciones guardadas',
+        'diag.no_captures': 'Aún no hay grabaciones.',
+        'diag.refresh': 'Actualizar',
+        'diag.download': 'Descargar',
+        'diag.download_capture_aria': 'Descargar {name}',
         'diag.stats_ws': 'WebSocket de estadísticas:',
         'diag.observed_button_mapping': 'Asignación de botones observada',
         'diag.indicators': 'Indicadores',
@@ -610,6 +627,7 @@
         'toast.recording_start_failed': 'No se pudo iniciar la grabación',
         'toast.recording_stopped': 'Grabación serie detenida',
         'toast.recording_stop_failed': 'No se pudo detener la grabación',
+        'toast.capture_download_failed': 'No se pudo descargar la grabación',
         'toast.profiling_resumed': 'Perfilado reanudado',
         'toast.profiling_resume_failed': 'No se pudo reanudar el perfilado',
         'toast.profiling_paused': 'Perfilado en pausa',
@@ -639,6 +657,10 @@
         'error.recording_start_failed': 'No se pudo iniciar la grabación: ya hay una grabación activa o no se pudo abrir el archivo.',
         'error.recording_not_recording': 'No hay ninguna grabación en curso.',
         'error.recording_invalid_action': "'action' debe ser 'start' o 'stop'.",
+        'error.capture_filename_invalid': 'El nombre de la grabación debe ser un nombre *.cap simple sin separadores de ruta.',
+        'error.capture_not_found': 'Esa grabación ya no existe en el servidor.',
+        'error.capture_too_large': 'La grabación es demasiado grande para descargarla; cópiela desde el directorio de grabaciones.',
+        'error.capture_read_failed': 'No se pudo leer la grabación.',
         'error.spaside_unavailable': 'El control remoto del spa no está disponible en este modo.',
         'error.spaside_action_required': "La solicitud debe contener una 'action' de 'press' o 'assign'.",
         'error.spaside_press_requires_address': "'press' requiere una 'address'.",

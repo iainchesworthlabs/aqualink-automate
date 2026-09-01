@@ -68,6 +68,17 @@
         'swg_health.check_pcb': 'افحص لوحة PCB',
         'swg_health.general_fault': 'عطل عام',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'قيد الإنتاج',
+        'swg_reason.off': 'مُطفأ',
+        'swg_reason.pump_off': 'قيد التشغيل، لا ينتج — مضخة الفلتر متوقفة',
+        'swg_reason.no_flow': 'قيد التشغيل، لا ينتج — لا يوجد تدفق مياه',
+        'swg_reason.fault': 'لا يوجد إنتاج — افحص الخلية',
+        'swg_reason.idle': 'قيد التشغيل، لا ينتج',
+        'swg_reason.unknown': 'لم يتم الإبلاغ عن الهدف بعد',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'تم التطبيق',
         'cmd.rejected': 'مرفوض',
@@ -143,6 +154,7 @@
         'dash.swg_aria': 'التحكم في خرج جهاز الكلورة وهدفه',
         'dash.target': 'الهدف',
         'dash.target_aria': 'نسبة الخرج المستهدفة',
+        'dash.target_body_aria': 'هدف إنتاج المكلور لـ {body}',
         'dash.set': 'ضبط',
         'dash.boost': 'تعزيز',
         'dash.heater': 'السخّان',
@@ -295,6 +307,11 @@
         'diag.capture_file_aria': 'اسم ملف الالتقاط',
         'diag.bytes_written': 'البايتات المكتوبة',
         'diag.rec_hint_html': 'التسجيل بتنسيق المسجّل القابل لإعادة التشغيل ويمكن وضعه مباشرة في <code>test/fixtures/</code>.',
+        'diag.saved_captures': 'التسجيلات المحفوظة',
+        'diag.no_captures': 'لا توجد تسجيلات بعد.',
+        'diag.refresh': 'تحديث',
+        'diag.download': 'تنزيل',
+        'diag.download_capture_aria': 'تنزيل {name}',
         'diag.stats_ws': 'WebSocket الإحصاءات:',
         'diag.observed_button_mapping': 'تخطيط الأزرار المرصود',
         'diag.indicators': 'المؤشرات',
@@ -609,6 +626,7 @@
         'toast.recording_start_failed': 'فشل بدء التسجيل',
         'toast.recording_stopped': 'توقف التسجيل التسلسلي',
         'toast.recording_stop_failed': 'فشل إيقاف التسجيل',
+        'toast.capture_download_failed': 'فشل تنزيل التسجيل',
         'toast.profiling_resumed': 'استؤنف تحليل الأداء',
         'toast.profiling_resume_failed': 'فشل استئناف تحليل الأداء',
         'toast.profiling_paused': 'أُوقف تحليل الأداء مؤقتًا',
@@ -638,6 +656,10 @@
         'error.recording_start_failed': 'تعذّر بدء التسجيل: تسجيل جارٍ بالفعل أو تعذّر فتح الملف.',
         'error.recording_not_recording': 'لا يوجد تسجيل جارٍ حاليًا.',
         'error.recording_invalid_action': "يجب أن تكون 'action' إما 'start' أو 'stop'.",
+        'error.capture_filename_invalid': 'يجب أن يكون اسم التسجيل اسم ‎*.cap‎ مجردًا بدون فواصل مسار.',
+        'error.capture_not_found': 'لم يعد هذا التسجيل موجودًا على الخادم.',
+        'error.capture_too_large': 'التسجيل أكبر من أن يُنزَّل؛ انسخه من دليل التسجيلات بدلاً من ذلك.',
+        'error.capture_read_failed': 'تعذّرت قراءة التسجيل.',
         'error.spaside_unavailable': 'التحكم بجهاز جانب المنتجع غير متاح في هذا الوضع.',
         'error.spaside_action_required': "يجب أن يحتوي الطلب على 'action' بقيمة 'press' أو 'assign'.",
         'error.spaside_press_requires_address': "يتطلب 'press' تحديد 'address'.",

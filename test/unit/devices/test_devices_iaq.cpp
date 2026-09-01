@@ -89,62 +89,6 @@ BOOST_AUTO_TEST_CASE(TestQueueCommand_MultipleCommands)
 }
 
 // =============================================================================
-// QueueChlorinatorPercentage
-// =============================================================================
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorPercentage_DoesNotThrow)
-{
-	IAQDevice device(device_type, *this, true);
-	BOOST_CHECK_NO_THROW(device.QueueChlorinatorPercentage(75));
-}
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorPercentage_Zero)
-{
-	IAQDevice device(device_type, *this, true);
-	BOOST_CHECK_NO_THROW(device.QueueChlorinatorPercentage(0));
-}
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorPercentage_Hundred)
-{
-	IAQDevice device(device_type, *this, true);
-	BOOST_CHECK_NO_THROW(device.QueueChlorinatorPercentage(100));
-}
-
-// =============================================================================
-// QueueChlorinatorBoost
-// =============================================================================
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorBoost_Enable)
-{
-	IAQDevice device(device_type, *this, true);
-	BOOST_CHECK_NO_THROW(device.QueueChlorinatorBoost(true));
-}
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorBoost_Disable)
-{
-	IAQDevice device(device_type, *this, true);
-	BOOST_CHECK_NO_THROW(device.QueueChlorinatorBoost(false));
-}
-
-// =============================================================================
-// Command sequencing
-// =============================================================================
-
-BOOST_AUTO_TEST_CASE(TestQueuePercentage_ThenBoost_DoesNotThrow)
-{
-	IAQDevice device(device_type, *this, true);
-	device.QueueChlorinatorPercentage(50);
-	BOOST_CHECK_NO_THROW(device.QueueChlorinatorBoost(true));
-}
-
-BOOST_AUTO_TEST_CASE(TestQueueBoost_ThenPercentage_DoesNotThrow)
-{
-	IAQDevice device(device_type, *this, true);
-	device.QueueChlorinatorBoost(true);
-	BOOST_CHECK_NO_THROW(device.QueueChlorinatorPercentage(75));
-}
-
-// =============================================================================
 // Destruction after queuing
 // =============================================================================
 
@@ -153,8 +97,6 @@ BOOST_AUTO_TEST_CASE(TestDestruction_AfterQueuing)
 	{
 		IAQDevice device(device_type, *this, true);
 		device.QueueCommand(0x19);
-		device.QueueChlorinatorPercentage(50);
-		device.QueueChlorinatorBoost(false);
 	}
 	// If we reach here without crash, destruction is clean
 	BOOST_CHECK(true);
@@ -831,28 +773,52 @@ BOOST_AUTO_TEST_CASE(ActuatePageButton_ReturnsAcceptedAndQueues)
 	BOOST_CHECK_EQUAL(PendingCommand(device), std::string("0x11"));
 }
 
-BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_AcceptedAndQueuesSequence)
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhenEmulating_Accepted)
 {
+	// The chlorinator write is a page-GATED walk (see AquaPureWriter): accepting only arms the
+	// goal, which then navigates Menu -> AquaPure page verifying each hop. Nothing is queued
+	// up-front, so there is no fixed command sequence to assert here -- the navigation itself is
+	// covered in test_devices_iaq_aquapure_writer.cpp.
 	IAQDevice device(device_type, *this, /*is_emulated=*/true);
-	const auto result = device.SetChlorinatorPercentage(60);
-	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
-	// BACK, OPEN_AQUAPURE, SELECT_POOL, SUBMIT -> 4 queued commands.
-	BOOST_CHECK_EQUAL(QueueDepth(device), 4u);
-	// The absolute value rides the control-data response ("1" + value).
-	auto diag = device.DescribeDiagnostics();
-	BOOST_CHECK(diag["awaiting_control_ready"].get<bool>());
-	BOOST_CHECK_EQUAL(diag["control_data_value"].get<std::string>(), std::string("160"));
+
+	BOOST_CHECK(device.SetChlorinatorPercentage(60, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::Accepted);
 }
 
-BOOST_AUTO_TEST_CASE(SetChlorinatorBoost_AcceptedAndQueuesSequence)
+BOOST_AUTO_TEST_CASE(SetChlorinatorBoost_WhenEmulating_Accepted)
 {
 	IAQDevice device(device_type, *this, /*is_emulated=*/true);
-	const auto result = device.SetChlorinatorBoost(true);
-	BOOST_CHECK(result == Capabilities::ActuationResult::Accepted);
-	// BACK, OPEN_AQUAPURE, QUICK_BOOST, BOOST_START -> 4 queued commands.
-	BOOST_CHECK_EQUAL(QueueDepth(device), 4u);
-	// Boost does not use the control-data submit path.
-	BOOST_CHECK(!device.DescribeDiagnostics()["awaiting_control_ready"].get<bool>());
+
+	BOOST_CHECK(device.SetChlorinatorBoost(true) == Capabilities::ActuationResult::Accepted);
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhenNotEmulating_NotSupported)
+{
+	// REGRESSION: this used to be accepted unconditionally. A passive (or presence-suppressed)
+	// IAQ cannot transmit, so accepting would strand the goal AND stop the CommandDispatcher
+	// trying the next capable controller -- the command would silently do nothing while the UI
+	// reported success.
+	IAQDevice device(device_type, *this, /*is_emulated=*/false);
+
+	BOOST_CHECK(device.SetChlorinatorPercentage(60, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(device.SetChlorinatorBoost(true) == Capabilities::ActuationResult::NotSupported);
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhileAnotherGoalInFlight_NotSupported)
+{
+	// One goal at a time on the shared panel UI: two walks would fight for the single command
+	// channel and could submit a value on the wrong screen.
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+
+	BOOST_REQUIRE(device.SetChlorinatorPercentage(60, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::Accepted);
+	BOOST_CHECK(device.SetChlorinatorPercentage(30, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(device.SetChlorinatorBoost(true) == Capabilities::ActuationResult::NotSupported);
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_OutOfRange_InvalidValue)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+
+	BOOST_CHECK(device.SetChlorinatorPercentage(101, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::InvalidValue);
 }
 
 BOOST_AUTO_TEST_CASE(SetPoolSetpoint_WhenEmulating_AcceptedAndQueuesSubmit)
@@ -1017,11 +983,22 @@ BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_ValidRow_Accepted)
 
 BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_WhenBusy_Rejected)
 {
-	// One goal at a time on the shared panel UI: a second request while a command
-	// queue is already pending is rejected.
+	// REGRESSION: every write goal shares the SINGLE poll-ACK command channel, so a goal in any
+	// writer must block the others -- two page-gated walks would interleave their key presses and
+	// could commit a value on whichever screen happened to be showing. This is checked BOTH ways
+	// because a new writer is easy to leave out of one direction's busy test.
 	IAQDevice device(device_type, *this, /*is_emulated=*/true);
-	device.SetChlorinatorPercentage(50);   // leaves a non-empty command queue + awaiting-control-ready
+
+	BOOST_REQUIRE(device.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::Accepted);
 	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::NotSupported);
+}
+
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhileSpaSwitchGoalInFlight_Rejected)
+{
+	IAQDevice device(device_type, *this, /*is_emulated=*/true);
+
+	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Accepted);
+	BOOST_CHECK(device.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::NotSupported);
 }
 
 BOOST_AUTO_TEST_CASE(SpaSwitchWrite_HappyPath_CommitsAndCompletes)

@@ -73,6 +73,17 @@
         'swg_health.check_pcb': 'Check PCB',
         'swg_health.general_fault': 'General fault',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'Generating',
+        'swg_reason.off': 'Turned off',
+        'swg_reason.pump_off': 'On, not generating — filter pump off',
+        'swg_reason.no_flow': 'On, not generating — no water flow',
+        'swg_reason.fault': 'Not generating — check the cell',
+        'swg_reason.idle': 'On, not generating',
+        'swg_reason.unknown': 'Target not reported yet',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'Applied',
         'cmd.rejected': 'Rejected',
@@ -148,6 +159,7 @@
         'dash.swg_aria': 'Chlorinator output and target control',
         'dash.target': 'Target',
         'dash.target_aria': 'Target output percentage',
+        'dash.target_body_aria': 'Chlorinator output target for the {body}',
         'dash.set': 'Set',
         'dash.boost': 'Boost',
         'dash.heater': 'Heater',
@@ -300,6 +312,11 @@
         'diag.capture_file_aria': 'Capture file name',
         'diag.bytes_written': 'Bytes written',
         'diag.rec_hint_html': 'The recording is in the replayable recorder format and can be dropped straight into <code>test/fixtures/</code>.',
+        'diag.saved_captures': 'Saved captures',
+        'diag.no_captures': 'No captures yet.',
+        'diag.refresh': 'Refresh',
+        'diag.download': 'Download',
+        'diag.download_capture_aria': 'Download {name}',
         'diag.stats_ws': 'Stats WebSocket:',
         'diag.observed_button_mapping': 'Observed Button Mapping',
         'diag.indicators': 'Indicators',
@@ -614,6 +631,7 @@
         'toast.recording_start_failed': 'Failed to start recording',
         'toast.recording_stopped': 'Serial recording stopped',
         'toast.recording_stop_failed': 'Failed to stop recording',
+        'toast.capture_download_failed': 'Failed to download the capture',
         'toast.profiling_resumed': 'Profiling resumed',
         'toast.profiling_resume_failed': 'Failed to resume profiling',
         'toast.profiling_paused': 'Profiling paused',
@@ -643,6 +661,10 @@
         'error.recording_start_failed': 'Could not start recording: already recording or the file could not be opened.',
         'error.recording_not_recording': 'Not currently recording.',
         'error.recording_invalid_action': "'action' must be 'start' or 'stop'.",
+        'error.capture_filename_invalid': 'The capture name must be a bare *.cap name without path separators.',
+        'error.capture_not_found': 'That capture no longer exists on the server.',
+        'error.capture_too_large': 'The capture is too large to download; copy it from the capture directory instead.',
+        'error.capture_read_failed': 'The capture could not be read.',
         'error.spaside_unavailable': 'Spa-side remote control is not available in this mode.',
         'error.spaside_action_required': "The request must contain an 'action' of 'press' or 'assign'.",
         'error.spaside_press_requires_address': "'press' requires an 'address'.",

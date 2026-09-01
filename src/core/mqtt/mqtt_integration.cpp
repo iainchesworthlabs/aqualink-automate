@@ -869,12 +869,20 @@ namespace AqualinkAutomate::Mqtt
 		}
 
 		// Chlorinator-specific command handlers
-		if (!m_Hub->HasCommand("chlorinator/percentage"))
+		// The panel keeps INDEPENDENT pool and spa chlorinator setpoints, so there is a topic per
+		// body. `chlorinator/percentage` is kept as-is and drives the POOL -- which is what it has
+		// always done -- so existing automations are unaffected.
+		const auto register_percentage_command = [this, weak_dispatcher](const std::string& command_key, Kernel::BodyOfWaterIds body)
 		{
-			m_Hub->RegisterCommand("chlorinator/percentage",
-				[weak_dispatcher](const std::string& /*topic*/, const nlohmann::json& payload)
+			if (m_Hub->HasCommand(command_key))
+			{
+				return;
+			}
+
+			m_Hub->RegisterCommand(command_key,
+				[weak_dispatcher, body](const std::string& /*topic*/, const nlohmann::json& payload)
 				{
-					LogDebug(Channel::Mqtt, "Received chlorinator percentage command");
+					LogDebug(Channel::Mqtt, [body]() { return std::format("Received {} chlorinator percentage command", magic_enum::enum_name(body)); });
 					try
 					{
 						auto dispatcher = weak_dispatcher.lock();
@@ -886,15 +894,19 @@ namespace AqualinkAutomate::Mqtt
 
 						auto percentage = ParsePayloadNumber<uint8_t>(payload);
 
-						auto result = dispatcher->SetChlorinatorPercentage(percentage);
-						LogDebug(Channel::Mqtt, std::format("Chlorinator percentage command: {}%, result={}", static_cast<unsigned int>(percentage), std::to_underlying(result)));
+						auto result = dispatcher->SetChlorinatorPercentage(percentage, body);
+						LogDebug(Channel::Mqtt, [body, percentage, result]() { return std::format("Chlorinator {} percentage command: {}%, result={}", magic_enum::enum_name(body), static_cast<unsigned int>(percentage), std::to_underlying(result)); });
 					}
 					catch (const std::exception& ex)
 					{
 						LogError(Channel::Mqtt, std::format("Error handling chlorinator percentage command: {}", ex.what()));
 					}
 				});
-		}
+		};
+
+		register_percentage_command("chlorinator/percentage", Kernel::BodyOfWaterIds::Pool);
+		register_percentage_command("chlorinator/pool/percentage", Kernel::BodyOfWaterIds::Pool);
+		register_percentage_command("chlorinator/spa/percentage", Kernel::BodyOfWaterIds::Spa);
 
 		if (!m_Hub->HasCommand("chlorinator/boost"))
 		{

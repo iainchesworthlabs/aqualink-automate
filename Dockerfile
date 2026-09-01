@@ -2,7 +2,7 @@
 # Stage: base (shared tooling for dev, ci, and runtime builds)
 # ==============================================================================
 
-FROM ubuntu:26.04@sha256:678c6550cc43645e08669028bc177f50be4e7c5b8cca677067b1914d4afc7a03 AS base
+FROM ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b AS base
 
 ARG GCC_VERSION=15
 ARG LLVM_VERSION=21
@@ -135,7 +135,18 @@ RUN --mount=type=cache,target=/ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
 # Build
+#
+# CMAKE_BUILD_PARALLEL_LEVEL is an ARG so the CALLER decides, because the limit
+# is a property of the build host, not of this image. Ninja defaults to nproc+2,
+# and on the 8-vCPU / 12 GB self-hosted runners that is -j10 against ~1.09 GiB
+# per cc1plus -- which OOMs and kills the runner agent. Observed determinis-
+# tically at object 721/762 (integration_test_scenarios.cpp) on two different
+# hosts. Empty is the default, and CMake documents that as "use the native build
+# tool's default", so a developer building locally is unaffected.
+# See docs/ci-cd.md.
+ARG CMAKE_BUILD_PARALLEL_LEVEL=""
 RUN --mount=type=cache,target=/ccache \
+    CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL}" \
     cmake --build --preset build-linux-gcc
 
 # Test
@@ -156,7 +167,7 @@ RUN DESTDIR=/src/install/config-linux-gcc cmake --install build/config-linux-gcc
 # the glibc Node installed in the runtime stage. @matter/main and ws are pure JS, so
 # this is belt-and-braces, but it keeps the door open for any future native dep.
 
-FROM node:26-bookworm-slim@sha256:cd565714d4da3e84bfd341e31448f81d47c6362198f152345297c9c1154e6341 AS matter-builder
+FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS matter-builder
 
 WORKDIR /opt/matter-bridge
 
@@ -180,7 +191,7 @@ RUN npm run build \
 #   - runtime-assembled : app from a prebuilt install tree staged into the context
 #                         (no recompile; used by release.yml docker-publish)
 
-FROM ubuntu:26.04@sha256:678c6550cc43645e08669028bc177f50be4e7c5b8cca677067b1914d4afc7a03 AS runtime-base
+FROM ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b AS runtime-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 

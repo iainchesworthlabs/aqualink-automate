@@ -44,8 +44,8 @@ on:
           them — this output is what keeps a single workflow run internally consistent.
         value: ${{ jobs.check-runners.outputs.linux_runner }}
       windows_runner:
-        description: "The resolved Windows runner label set the build matrix actually used. See linux_runner's description — Windows has no equivalent cross-job artifact consumer today, but this is exposed for symmetry and any future one."
-        value: ${{ jobs.check-runners.outputs.windows_runner }}
+        description: "The resolved Windows runner label set the build matrix actually used — the BIG pair, not the shared fleet (see the Windows MSVC matrix entry for why). See linux_runner's description — Windows has no equivalent cross-job artifact consumer today, but this is exposed for symmetry and any future one, and it has to keep tracking whatever the matrix actually resolved to or it silently becomes wrong."
+        value: ${{ jobs.check-runners.outputs.windows_runner_big }}
 
 permissions:
   contents: read
@@ -101,8 +101,27 @@ jobs:
             package_preset: pack-linux-gcc-arm64
             docker_platform: linux/arm64
             installtree_name: installtree-linux-gcc-arm64
+          # Routed to the BIG Windows runner, not the shared fleet. Measured on
+          # tf-gh-windows-runner-01 mid-job (2026-08-31): this leg's build tree is
+          # 10.1 GB on a 16 GB D: that also carries a ~2 GB cache, leaving 3.6 GB
+          # free at peak — and on 2026-08-30 tf-gh-windows-runner-05 tipped over it
+          # with `fatal error C1085 ... No space left on device`. Nearly all of it is
+          # LTCG: INTERPROCEDURAL_OPTIMIZATION_RELEASE (CMakeLists.txt) puts /GL on
+          # libaqualink-{automate,jandy,pentair}, so their objects carry intermediate
+          # language and each .lib archives a second copy of it — 4.5 GB of .obj plus
+          # 4.7 GB of .lib across just those three targets, against 0.35 GB of PDBs
+          # and 0.65 GB of vcpkg_installed. The big pair's 48 GB D: absorbs that.
+          #
+          # The cost is deliberate: windows_runner_big probes for "online", not
+          # "idle" (see _check-runners.yml), so this leg QUEUES behind whatever the
+          # single big Windows runner is already doing instead of falling back to
+          # windows-latest. Concurrent PRs serialise here. That is the accepted price
+          # of NOT disabling IPO in CI — this way CI keeps validating the exact LTCG
+          # build that ships. If the queue ever hurts more than the coverage helps,
+          # the cheaper lever is ENABLE_IPO=OFF (CMakeLists.txt:38) on this preset,
+          # which reclaims ~9 GB and puts the leg back on the shared fleet.
           - name: "Windows MSVC"
-            runner: ${{ needs.check-runners.outputs.windows_runner }}
+            runner: ${{ needs.check-runners.outputs.windows_runner_big }}
             compiler: msvc
             configure_preset: config-windows-msvc
             build_preset: build-windows-msvc
@@ -133,6 +152,16 @@ jobs:
             docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
           fi
           rm -rf build install
+          # Reclaim what VCPKG_INSTALL_OPTIONS can only prevent going forward.
+          # deps/vcpkg persists between jobs on a self-hosted runner (that is why
+          # this step exists at all), so buildtrees/ and packages/ accumulate from
+          # EVERY previous run until a build dies with 'No space left on device'.
+          # Both are pure intermediates -- the binary cache lives in
+          # $HOME/.cache/vcpkg/archives and is untouched, so ports still restore
+          # from cache rather than rebuilding. downloads/ is deliberately NOT
+          # pruned: on self-hosted it is redirected to the size-capped persistent
+          # cache, and clearing it would force re-downloads for no disk win.
+          rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -271,6 +300,16 @@ jobs:
           buildPreset: ${{ matrix.build_preset }}
         env:
           VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
+          # Ninja defaults to nproc+2 and no preset sets `jobs`, so an 8-vCPU
+          # shared guest builds at -j10. At ~1.09 GiB per cc1plus (measured from an
+          # oom-killer dump: 10 concurrent cc1plus, 10.9 GiB anon RSS) that is
+          # 10.9 GiB against 11.7 GiB usable on the 12 GB Linux guests — ~7%
+          # headroom, which the heaviest Boost/C++23 TUs consume. Note the fleet's
+          # RAM:vCPU ratio is unchanged across the 2026-08-27 right-size (1.5 GB per
+          # vCPU either way); what broke is that Ninja's `+2` is ADDITIVE, so it
+          # overshoots 25% at 8 cores against 6% at 32. Cap CI only — no preset
+          # change, so developer machines keep the default.
+          CMAKE_BUILD_PARALLEL_LEVEL: ${{ runner.os == 'Linux' && '6' || '' }}
 
       - name: Show build errors on failure
         if: ${{ failure() && !(inputs.do_package && runner.os == 'Linux') }}
@@ -279,6 +318,8 @@ jobs:
           echo "::group::CMake build retry (verbose)"
           cmake --build --preset ${{ matrix.build_preset }} -- -k 1 2>&1 | tail -200 || true
           echo "::endgroup::"
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: ${{ runner.os == 'Linux' && '6' || '' }}
 
       - name: Test
         if: ${{ !(inputs.do_package && runner.os == 'Linux') }}
@@ -352,6 +393,10 @@ jobs:
               git config --global --add safe.directory /work
               git config --global --add safe.directory /work/deps/vcpkg
               export VCPKG_DEFAULT_BINARY_CACHE=/vcpkgcache
+              # Same Ninja nproc+2 cap as the host Linux legs above — the container
+              # sees the guest's 8 vCPU, so it would otherwise build at -j10 on a
+              # 12 GB box.
+              export CMAKE_BUILD_PARALLEL_LEVEL=6
               ./deps/vcpkg/bootstrap-vcpkg.sh -disableMetrics >/dev/null
               cmake --preset "$CONFIGURE_PRESET" -DDERIVED_VERSION_OVERRIDE="$VERSION_OVERRIDE"
               cmake --build --preset "$BUILD_PRESET"

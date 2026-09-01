@@ -69,6 +69,17 @@
         'swg_health.check_pcb': 'PCB prüfen',
         'swg_health.general_fault': 'Allgemeiner Fehler',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'Erzeugt',
+        'swg_reason.off': 'Ausgeschaltet',
+        'swg_reason.pump_off': 'Ein, erzeugt nicht — Filterpumpe aus',
+        'swg_reason.no_flow': 'Ein, erzeugt nicht — kein Wasserdurchfluss',
+        'swg_reason.fault': 'Keine Erzeugung — Zelle prüfen',
+        'swg_reason.idle': 'Ein, erzeugt nicht',
+        'swg_reason.unknown': 'Sollwert noch nicht gemeldet',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'Übernommen',
         'cmd.rejected': 'Abgelehnt',
@@ -144,6 +155,7 @@
         'dash.swg_aria': 'Chlorinator-Leistung und Sollwert-Steuerung',
         'dash.target': 'Soll',
         'dash.target_aria': 'Soll-Leistung in Prozent',
+        'dash.target_body_aria': 'Chlorinator-Sollwert für {body}',
         'dash.set': 'Setzen',
         'dash.boost': 'Boost',
         'dash.heater': 'Heizung',
@@ -296,6 +308,11 @@
         'diag.capture_file_aria': 'Name der Aufzeichnungsdatei',
         'diag.bytes_written': 'Geschriebene Bytes',
         'diag.rec_hint_html': 'Die Aufzeichnung liegt im wieder abspielbaren Recorder-Format vor und kann direkt in <code>test/fixtures/</code> abgelegt werden.',
+        'diag.saved_captures': 'Gespeicherte Aufzeichnungen',
+        'diag.no_captures': 'Noch keine Aufzeichnungen.',
+        'diag.refresh': 'Aktualisieren',
+        'diag.download': 'Herunterladen',
+        'diag.download_capture_aria': '{name} herunterladen',
         'diag.stats_ws': 'Statistik-WebSocket:',
         'diag.observed_button_mapping': 'Beobachtete Tastenbelegung',
         'diag.indicators': 'Indikatoren',
@@ -610,6 +627,7 @@
         'toast.recording_start_failed': 'Aufzeichnung konnte nicht gestartet werden',
         'toast.recording_stopped': 'Serielle Aufzeichnung gestoppt',
         'toast.recording_stop_failed': 'Aufzeichnung konnte nicht gestoppt werden',
+        'toast.capture_download_failed': 'Aufzeichnung konnte nicht heruntergeladen werden',
         'toast.profiling_resumed': 'Profiling fortgesetzt',
         'toast.profiling_resume_failed': 'Profiling konnte nicht fortgesetzt werden',
         'toast.profiling_paused': 'Profiling pausiert',
@@ -639,6 +657,10 @@
         'error.recording_start_failed': 'Aufzeichnung konnte nicht gestartet werden: bereits aktiv oder Datei nicht öffenbar.',
         'error.recording_not_recording': 'Derzeit keine Aufzeichnung aktiv.',
         'error.recording_invalid_action': "'action' muss 'start' oder 'stop' sein.",
+        'error.capture_filename_invalid': 'Der Aufzeichnungsname muss ein reiner *.cap-Name ohne Pfadtrenner sein.',
+        'error.capture_not_found': 'Diese Aufzeichnung existiert auf dem Server nicht mehr.',
+        'error.capture_too_large': 'Die Aufzeichnung ist zu groß zum Herunterladen; kopieren Sie sie stattdessen aus dem Aufzeichnungsverzeichnis.',
+        'error.capture_read_failed': 'Die Aufzeichnung konnte nicht gelesen werden.',
         'error.spaside_unavailable': 'Spa-Side-Fernbedienung ist in diesem Modus nicht verfügbar.',
         'error.spaside_action_required': "Die Anfrage muss eine 'action' aus 'press' oder 'assign' enthalten.",
         'error.spaside_press_requires_address': "'press' erfordert eine 'address'.",

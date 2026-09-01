@@ -1333,18 +1333,28 @@
                               :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
                     </div>
                     <div class="gauge-value" :style="`color:${healthColor}`" x-text="actualLabel"></div>
-                    <div class="swg-target">
-                        <span class="swg-target-label" x-text="$t('dash.target')"></span>
-                        <input type="range" min="0" max="100" step="5" class="swg-slider"
-                               x-model.number="target" @input="touched = true"
-                               :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
-                               :aria-label="$t('dash.target_aria')">
-                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
-                    </div>
+                    <!-- Why that number: "0%" alone cannot say whether the cell is off or
+                         just waiting for the filter pump. -->
+                    <div class="swg-reason" :class="{ 'is-idle': reasonIsIdle }" x-show="reasonLabel" x-cloak x-text="reasonLabel"></div>
+                    <!-- Pool and spa carry INDEPENDENT setpoints on the panel, so each gets its
+                         own target and its own Set. The spa row appears only on a dual-body system. -->
+                    <template x-for="body in bodies" :key="body">
+                        <div class="swg-target">
+                            <span class="swg-target-label" x-text="bodyLabel(body)"></span>
+                            <input type="range" min="0" max="100" step="5" class="swg-slider"
+                                   :value="target(body)" @input="setTarget(body, $event.target.value)"
+                                   :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
+                                   :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
+                            <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
+                            <template x-if="$store.auth.can('equipment.control.chlorinator')">
+                                <button class="swg-set-btn" @click="setPercent(body)"
+                                        :disabled="busy || !changed(body)" x-text="$t('dash.set')"></button>
+                            </template>
+                        </div>
+                    </template>
                     <div class="swg-actions">
                         <template x-if="$store.auth.can('equipment.control.chlorinator')">
                             <div class="swg-actions-inner">
-                                <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
                                 <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
                                         :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
                                 <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
@@ -1385,11 +1395,11 @@
                             <span class="chem-swg-label" x-text="$t('dash.swg_output')"></span>
                             <span class="chem-swg-value" :style="`color:${healthColor}`" x-text="actualLabel"></span>
                             <span class="gauge-band-indicator" x-show="healthBand" x-cloak :class="'gauge-band-' + (healthBand || '')" x-text="healthLabel"></span>
+                            <span class="swg-reason" :class="{ 'is-idle': reasonIsIdle }" x-show="reasonLabel" x-cloak x-text="reasonLabel"></span>
                         </div>
                         <div class="swg-actions">
                             <template x-if="$store.auth.can('equipment.control.chlorinator')">
                                 <div class="swg-actions-inner">
-                                    <button class="swg-set-btn" @click="setPercent()" :disabled="busy || !changed" x-text="$t('dash.set')"></button>
                                     <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
                                             :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
                                     <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
@@ -1399,14 +1409,18 @@
                             <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
                         </div>
                     </div>
-                    <div class="swg-target" x-show="$store.auth.can('equipment.control.chlorinator')" x-cloak>
-                        <span class="swg-target-label" x-text="$t('dash.target')"></span>
-                        <input type="range" min="0" max="100" step="5" class="swg-slider"
-                               x-model.number="target" @input="touched = true"
-                               :disabled="busy"
-                               :aria-label="$t('dash.target_aria')">
-                        <span class="swg-target-value" x-text="$n(target) + '%'"></span>
-                    </div>
+                    <template x-for="body in bodies" :key="body">
+                        <div class="swg-target" x-show="$store.auth.can('equipment.control.chlorinator')" x-cloak>
+                            <span class="swg-target-label" x-text="bodyLabel(body)"></span>
+                            <input type="range" min="0" max="100" step="5" class="swg-slider"
+                                   :value="target(body)" @input="setTarget(body, $event.target.value)"
+                                   :disabled="busy"
+                                   :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
+                            <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
+                            <button class="swg-set-btn" @click="setPercent(body)"
+                                    :disabled="busy || !changed(body)" x-text="$t('dash.set')"></button>
+                        </div>
+                    </template>
                 </div>
             </div>
             </template>
@@ -2042,7 +2056,6 @@
                     <div class="rec-field-file">
                         <label class="rec-field-label" x-text="$t('diag.capture_file')"></label>
                         <div class="rec-input-wrap" :class="{ 'is-disabled': recording.recording }">
-                            <span class="rec-input-prefix">captures/</span>
                             <input type="text" class="rec-input"
                                    x-model="recordingFilename"
                                    :disabled="recording.recording"
@@ -2059,6 +2072,35 @@
                 <div class="rec-hint">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
                     <span x-html="$t('diag.rec_hint_html')"></span>
+                </div>
+
+                <!-- Saved captures: download a finished capture without shell access to the host. -->
+                <div class="rec-captures">
+                    <div class="rec-captures-head">
+                        <label class="rec-field-label" x-text="$t('diag.saved_captures')"></label>
+                        <button type="button" class="rec-captures-refresh"
+                                :disabled="capturesBusy"
+                                @click="fetchCaptures()"
+                                x-text="$t('diag.refresh')"></button>
+                    </div>
+                    <template x-if="captures.length === 0">
+                        <div class="rec-captures-empty" x-text="$t('diag.no_captures')"></div>
+                    </template>
+                    <template x-if="captures.length > 0">
+                        <ul class="rec-capture-list">
+                            <template x-for="capture in captures" :key="capture.name">
+                                <li class="rec-capture-row">
+                                    <span class="rec-capture-name" data-i18n-exempt x-text="capture.name"></span>
+                                    <span class="rec-capture-meta" data-i18n-exempt x-text="formatBytes(capture.bytes) + ' · ' + formatCaptureTime(capture.modified)"></span>
+                                    <button type="button" class="rec-download"
+                                            :disabled="downloadingCapture === capture.name"
+                                            @click="downloadCapture(capture.name)"
+                                            :aria-label="$t('diag.download_capture_aria', { name: capture.name })"
+                                            x-text="$t('diag.download')"></button>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
                 </div>
             </div>
             </div><!-- /.diag-adv-tail -->

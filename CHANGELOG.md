@@ -8,6 +8,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.14.0-beta.1] - 2026-09-01
+
+### Fixed
+
+- **Phantom auxiliaries no longer appear.** Auxiliary discovery had no check that a relay actually exists: anything that looked like an auxiliary — a status reply, or a labelling page the controller offers for every slot it *could* have — became a device, so a single-power-centre panel (an RS-8 Combo has seven relays on one centre) could grow a full set of "Aux B1" … "Aux D8" entries, which then reached the web UI, MQTT and Home Assistant discovery and persisted in the equipment cache. Discovery is now bounded by the model **the panel itself reports**, and relays outside it are removed on the first version-page scrape (so an existing cache is cleaned up too). A relay carrying a name you assigned is never removed, even if it falls outside the model's span, and the shared "Extra Aux" relay (which belongs to no power centre, and which a live capture confirms the panel does report) is left alone.
+- **Setting the chlorinator output works again — and fast.** The iAQ (AqualinkTouch) accepted every chlorinator command unconditionally and fired a fixed sequence of page-button presses, assuming the AquaPure page always opened from the same index. The panel lays each page out from the installed equipment, and the panel's Menu/Back key is *one* button whose meaning depends on the screen it is pressed from, so those presses could land anywhere — while the iAQ still reported success, so the command dispatcher never fell back to a controller that could reach the setting, and the dashboard showed a target the panel never received. The iAQ now walks to the AquaPure page **verifying each hop**, resolves the Pool/Spa row **by its on-screen label**, and submits the value **absolutely** — where the OneTouch route can only step it 5% per key press. If the panel's menu has no AquaPure entry, it says so and defers to the OneTouch instead of guessing a button. Every write goal now also blocks the others, so two page walks can no longer interleave on the shared command channel.
+
+### Changed
+
+- **Pool and spa chlorinator outputs are now set independently.** The panel holds a **separate** output setpoint for each body — you can run the spa at 70% while the pool sits at 40% — but the app only ever wrote one of them, and which one depended on who serviced the command: the OneTouch always drove the pool row, while the iAQ path guessed from whichever body happened to be circulating. Setting "the" chlorinator percentage could therefore change the wrong body, or look like it did nothing because the value shown belonged to the other one. The body is now part of the command everywhere:
+  - `POST /api/equipment/chlorinator` takes an optional `body` (`Pool` | `Spa`), defaulting to `Pool` — the body the single-value form always drove, so existing callers are unaffected.
+  - MQTT gains `command/chlorinator/pool/percentage` and `command/chlorinator/spa/percentage`; the existing `command/chlorinator/percentage` keeps working and still means the pool.
+  - Home Assistant gains a **Spa Output** number beside the existing setpoint control, now named **Pool Output**. That control also had its value template corrected — it read the *instantaneous* output, so it snapped back to 0 whenever the cell was idle instead of showing the configured target. It keeps its identity, so existing dashboards and automations survive.
+  - The dashboard shows one target slider per body on a dual-body system, each with its own Set.
+- **Home Assistant add-on: captures now land somewhere you can reach.** The add-on passes `--capture-directory /config/captures`, i.e. its own `app_config` map — `/app_configs/aqualink_automate/captures` on the host (`/addon_configs/…` before Supervisor 2026.07), browsable with the Samba or File editor add-ons. Previously a capture was written inside the container, lost on restart or update, and retrievable only with `docker cp`. See [docs/homeassistant-addon.md](docs/homeassistant-addon.md).
+
+### Added
+
+- **The SWG tile explains a 0% reading.** The reported output is the *instantaneous* one and is 0 whenever the cell is idle, which read as "off or broken" even when the chlorinator was configured, healthy, and simply waiting for the filter pump. The dashboard now captions the reading with the reason — "Idle — filter pump off", "Idle — no water flow", "Turned off", and so on. The reason is derived server-side and published as `generating_reason` on `GET /api/equipment` and on the MQTT device topic, with a matching **Output State** sensor (and a **Target %** sensor) in Home Assistant, so automations can act on it instead of guessing from the percentage. See [docs/usage-and-api.md](docs/usage-and-api.md) and [docs/mqtt-home-assistant.md](docs/mqtt-home-assistant.md).
+- **Captures can be downloaded from the web UI.** The Diagnostics page's **Serial Recording** card now lists the captures already on the server (name, size, timestamp) and gives each one a **Download** button, backed by `GET /api/diagnostics/recording/captures` and `GET /api/diagnostics/recording/captures/{filename}`. Retrieving a capture no longer needs a shell on the host. The download route reuses the recording route's path jail, so it can only ever serve a capture out of the capture directory; captures over 64 MiB are refused (copy those from the directory directly). See [docs/RECORD_REPLAY.md](docs/RECORD_REPLAY.md).
+- **`--capture-directory`** sets where on-demand captures are written and served from (default `captures`, relative to the working directory — unchanged for existing installs). `--record-serial` is unaffected; its path is still used as given. See [docs/configuration.md](docs/configuration.md).
+
+### Security
+
+- The capture-filename jail now also rejects **control characters and quotes**, which would otherwise have been echoed into the download's `Content-Disposition` header (CR/LF being header injection). Path separators, drive letters, leading separators, `..`, and non-`.cap` extensions were, and remain, rejected.
+
 ## [0.13.0-beta.1] - 2026-08-18
 
 ### Added

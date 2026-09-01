@@ -1823,10 +1823,19 @@ html.dark .gauge-card { border-color: var(--border); }
 .gauge-band-bad  { background: oklch(0.68 0.16 25 / .15);  color: var(--bad); }
 
 /* --- SWG card ------------------------------------------------------------ */
-.swg-target { display: flex; align-items: center; gap: 12px; margin: 14px 0 12px; }
-.swg-target-label { font: 600 11px/1 var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); }
-.swg-target-value { font: 600 14px/1 var(--font-display); color: var(--text); font-variant-numeric: tabular-nums; margin-inline-start: auto; }
-.swg-slider { flex: 1; accent-color: var(--accent); }
+/* Caption under the output reading explaining WHY it reads what it does. An idle
+   chlorinator is muted (informational, not a fault); anything else inherits the
+   warning colour so a genuine problem still stands out. */
+.swg-reason { font: 500 11.5px/1.35 var(--font-ui); color: var(--warn); margin-top: 4px; }
+.swg-reason.is-idle { color: var(--text-faint); }
+/* One row per body (pool / spa), each: label - slider - value - Set. The slider absorbs the
+   slack, so the value and button do NOT get pushed out past the card edge. */
+.swg-target { display: flex; align-items: center; gap: 10px; margin: 10px 0; min-width: 0; }
+.swg-target-label { flex: 0 0 auto; font: 600 11px/1 var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); }
+.swg-target-value { flex: 0 0 auto; min-width: 3.5ch; text-align: end; font: 600 14px/1 var(--font-display); color: var(--text); font-variant-numeric: tabular-nums; }
+/* The per-row Set is a compact affordance, not the card's primary action. */
+.swg-target .swg-set-btn { flex: 0 0 auto; padding: 6px 12px; font-size: 12px; }
+.swg-slider { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
 .swg-actions { display: flex; align-items: center; gap: 8px; }
 .swg-set-btn, .swg-boost-btn {
     padding: 8px 16px; border-radius: 10px; font: 600 12.5px/1 var(--font-ui);
@@ -2777,10 +2786,6 @@ main input[type="range"] { accent-color: var(--accent); }
 }
 .rec-input-wrap:focus-within { border-color: var(--border-strong); }
 .rec-input-wrap.is-disabled { opacity: .65; }
-.rec-input-prefix {
-    padding: 10px 0 10px 13px; color: var(--text-faint);
-    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 13px; flex: none;
-}
 .rec-input {
     flex: 1; min-width: 0; padding: 10px 12px; background: transparent; border: none;
     color: var(--text); font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 13px; outline: none;
@@ -2793,6 +2798,37 @@ main input[type="range"] { accent-color: var(--accent); }
 .rec-bytes-box.is-active { color: var(--accent); }
 .rec-hint { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--text-faint); }
 .rec-hint svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+
+/* Saved captures: download a finished capture without shell access to the host. */
+.rec-captures { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.rec-captures-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rec-captures-head .rec-field-label { margin-bottom: 0; }
+.rec-captures-refresh {
+    padding: 6px 12px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-dim); font: 600 12px/1 var(--font-ui); cursor: pointer; flex: none;
+    transition: color .16s, border-color .16s;
+}
+.rec-captures-refresh:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+.rec-captures-refresh:disabled { opacity: .5; cursor: default; }
+.rec-captures-empty { margin-top: 10px; font-size: 13px; color: var(--text-faint); }
+.rec-capture-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+.rec-capture-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.rec-capture-row:last-child { border-bottom: none; }
+.rec-capture-name {
+    flex: 1; min-width: 160px; overflow-wrap: anywhere;
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 13px; color: var(--text);
+}
+.rec-capture-meta { font-size: 12.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; flex: none; }
+.rec-download {
+    padding: 7px 14px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text); font: 600 12px/1 var(--font-ui); cursor: pointer; flex: none;
+    transition: border-color .16s, filter .16s;
+}
+.rec-download:hover:not(:disabled) { border-color: var(--border-strong); }
+.rec-download:disabled { opacity: .5; cursor: default; }
 
 /* --- Diagnostics modals (device / log / message) ------------------------ */
 .diag-modal-overlay { padding: 24px; }
@@ -3078,6 +3114,9 @@ main input[type="range"] { accent-color: var(--accent); }
     .chem-swg-meter { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .chem-swg-label { font: 600 10px/1 var(--font-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); }
     .chem-swg-value { font-family: var(--font-display); font-weight: 600; font-size: 22px; font-variant-numeric: tabular-nums; }
+    /* On the phone card the reason sits inline with the reading, so it wraps to its
+       own full-width line rather than adding a top margin under a baseline row. */
+    .chem-swg-meter .swg-reason { flex: 1 0 100%; margin-top: 2px; }
     .chem-swg-top .swg-actions { margin-inline-start: auto; }
 
     /* Compact status summary: divided Pool·Spa·Air temps, a divider, then an

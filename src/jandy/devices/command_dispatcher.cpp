@@ -147,7 +147,7 @@ namespace AqualinkAutomate::Devices
 			CommandResult::NoSerialAdapter);
 	}
 
-	CommandDispatcher::CommandResult CommandDispatcher::SetChlorinatorPercentage(uint8_t percentage)
+	CommandDispatcher::CommandResult CommandDispatcher::SetChlorinatorPercentage(uint8_t percentage, Kernel::BodyOfWaterIds body)
 	{
 		if (percentage > 100)
 		{
@@ -155,26 +155,34 @@ namespace AqualinkAutomate::Devices
 			return CommandResult::InvalidValue;
 		}
 
-		LogInfo(Channel::Devices, std::format("CommandDispatcher: Setting chlorinator percentage to {}%", percentage));
+		// Pool and spa are INDEPENDENT setpoints on the panel, so only those two are addressable
+		// here -- "Shared"/"Unknown" would have to guess a row, which is what this parameter
+		// exists to stop.
+		if ((body != Kernel::BodyOfWaterIds::Pool) && (body != Kernel::BodyOfWaterIds::Spa))
+		{
+			LogWarning(Channel::Devices, std::format("CommandDispatcher: Chlorinator output must target the pool or the spa, not {}", magic_enum::enum_name(body)));
+			return CommandResult::InvalidValue;
+		}
+
+		LogInfo(Channel::Devices, std::format("CommandDispatcher: Setting {} chlorinator percentage to {}%", magic_enum::enum_name(body), percentage));
 		const auto result = DispatchToCapable<Capabilities::ChlorinatorController>(
-			std::format("set the chlorinator to {}%", percentage),
-			[&percentage](Capabilities::ChlorinatorController& controller) { return controller.SetChlorinatorPercentage(percentage); },
+			std::format("set the {} chlorinator to {}%", magic_enum::enum_name(body), percentage),
+			[&percentage, &body](Capabilities::ChlorinatorController& controller) { return controller.SetChlorinatorPercentage(percentage, body); },
 			CommandResult::DeviceNotFound);
 
 		// Write-through cache: on a successfully-queued set, optimistically update the SAME
 		// configured-setpoint trait the Set-AquaPure menu scrape populates, so the dashboard
-		// reflects the new target immediately rather than waiting for the next re-scrape. The
-		// single-% command drives the POOL row (see OneTouch/IAQ SetChlorinatorPercentage), so
-		// it writes the Pool setpoint; a later scrape reconciles any device-side rounding.
+		// reflects the new target immediately rather than waiting for the next re-scrape. A later
+		// scrape reconciles any device-side rounding.
 		if (result == CommandResult::Success)
 		{
-			WriteThroughChlorinatorSetpoint(percentage);
+			WriteThroughChlorinatorSetpoint(percentage, body);
 		}
 
 		return result;
 	}
 
-	void CommandDispatcher::WriteThroughChlorinatorSetpoint(uint8_t percentage) const
+	void CommandDispatcher::WriteThroughChlorinatorSetpoint(uint8_t percentage, Kernel::BodyOfWaterIds body) const
 	{
 		if (!m_DataHub)
 		{
@@ -192,8 +200,16 @@ namespace AqualinkAutomate::Devices
 			return;
 		}
 
-		chlorinators.front()->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, percentage);
-		LogDebug(Channel::Devices, std::format("CommandDispatcher: wrote chlorinator Pool setpoint {}% through to cache", percentage));
+		if (Kernel::BodyOfWaterIds::Spa == body)
+		{
+			chlorinators.front()->AuxillaryTraits.Set(ChlorinatorSpaSetpointTrait{}, percentage);
+		}
+		else
+		{
+			chlorinators.front()->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, percentage);
+		}
+
+		LogDebug(Channel::Devices, std::format("CommandDispatcher: wrote chlorinator {} setpoint {}% through to cache", magic_enum::enum_name(body), percentage));
 	}
 
 	CommandDispatcher::CommandResult CommandDispatcher::SetChlorinatorBoost(bool enable)

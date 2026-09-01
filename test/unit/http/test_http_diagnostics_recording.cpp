@@ -3,11 +3,13 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <system_error>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/beast.hpp>
 #include <nlohmann/json.hpp>
 
+#include "http/capture_directory.h"
 #include "http/webroute_diagnostics_recording.h"
 #include "interfaces/irecordingcontroller.h"
 #include "kernel/hub_locator.h"
@@ -27,6 +29,21 @@ using namespace AqualinkAutomate;
 
 namespace
 {
+	// The historical (and still default) capture directory: a relative "captures"
+	// under the working directory.  Tests that exercise the CONFIGURABLE root use
+	// a unique temporary directory instead (see MakeTempCaptureDir).
+	constexpr const char* DEFAULT_CAPTURE_DIR{ "captures" };
+
+	// A unique, empty capture root for the configurable-directory tests.  Named
+	// per-test (not randomly) so a crashed run leaves an obvious artefact behind.
+	std::filesystem::path MakeTempCaptureDir(const std::string& tag)
+	{
+		auto dir = std::filesystem::temp_directory_path() / ("aqualink-captures-" + tag);
+		std::error_code ec;
+		std::filesystem::remove_all(dir, ec);
+		return dir;
+	}
+
 	// Minimal in-memory recording controller for route tests.
 	class FakeRecordingController : public Interfaces::IRecordingController
 	{
@@ -141,7 +158,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_Get_ReportsStatus)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	auto req = MakeGet();
 	auto resp = InvokeRoute(route, req);
@@ -167,7 +184,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_StartsAndReportsStatus)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	auto req = MakePost(R"({"action":"start","filename":"session.cap"})");
 	auto resp = InvokeRoute(route, req);
@@ -201,7 +218,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStop_Stops)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	// Start, then stop.
 	{
@@ -230,7 +247,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_WhenAlreadyRecording_Conflict)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	{
 		auto req = MakePost(R"({"action":"start","filename":"a.cap"})");
@@ -255,7 +272,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStop_WhenNotRecording_Conflict)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	auto req = MakePost(R"({"action":"stop"})");
 	auto resp = InvokeRoute(route, req);
@@ -272,7 +289,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_Post_BadRequests)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	// Invalid JSON.
 	{
@@ -318,7 +335,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_ControllerRefuses_Conflict)
 	controller->fail_start = true;
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	// A valid bare basename so the request passes the path jail and actually
 	// reaches the controller, which then refuses (e.g. file could not be opened).
@@ -341,7 +358,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_PathTraversal_Rejected)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	const std::string malicious[] =
 	{
@@ -379,7 +396,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_WrongExtension_Rejected)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	auto req = MakePost(R"({"action":"start","filename":"config.conf"})");
 	auto resp = InvokeRoute(route, req);
@@ -399,7 +416,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_BareName_IsJailedIntoCaptureDir)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	auto req = MakePost(R"({"action":"start","filename":"capture.cap"})");
 	auto resp = InvokeRoute(route, req);
@@ -424,7 +441,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_MethodNotAllowed)
 	auto controller = std::make_shared<FakeRecordingController>();
 	hub_locator.Register<Interfaces::IRecordingController>(controller);
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	HTTP::Request req;
 	req.version(11);
@@ -444,7 +461,7 @@ BOOST_AUTO_TEST_CASE(Test_Recording_NoController_GetFalse_PostUnavailable)
 {
 	Kernel::HubLocator hub_locator; // no IRecordingController registered
 
-	HTTP::WebRoute_Diagnostics_Recording route(hub_locator);
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ DEFAULT_CAPTURE_DIR });
 
 	auto get_req = MakeGet();
 	auto get_resp = InvokeRoute(route, get_req);
@@ -455,6 +472,134 @@ BOOST_AUTO_TEST_CASE(Test_Recording_NoController_GetFalse_PostUnavailable)
 	auto post_req = MakePost(R"({"action":"start","filename":"x.cap"})");
 	auto post_resp = InvokeRoute(route, post_req);
 	BOOST_CHECK_EQUAL(boost::beast::http::status::service_unavailable, post_resp.result());
+}
+
+//-----------------------------------------------------------------------------
+// The capture directory is CONFIGURABLE (--capture-directory): a start request
+// must land inside whatever root the route was constructed with, not a
+// hardcoded "captures" under the working directory.  This is what lets a
+// packaged deployment (the Home Assistant add-on) put captures somewhere the
+// user can reach.
+//-----------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_JailsIntoConfiguredDirectory)
+{
+	const auto capture_dir = MakeTempCaptureDir("configured");
+
+	Kernel::HubLocator hub_locator;
+	auto controller = std::make_shared<FakeRecordingController>();
+	hub_locator.Register<Interfaces::IRecordingController>(controller);
+
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ capture_dir });
+
+	auto req = MakePost(R"({"action":"start","filename":"configured.cap"})");
+	auto resp = InvokeRoute(route, req);
+
+	BOOST_CHECK_EQUAL(boost::beast::http::status::ok, resp.result());
+	BOOST_REQUIRE_EQUAL(controller->start_calls, 1);
+
+	// The controller was handed a path inside the CONFIGURED root...
+	const std::filesystem::path handed{ controller->last_start_filename };
+	BOOST_CHECK_EQUAL(handed.filename().string(), "configured.cap");
+
+	std::error_code ec;
+	const auto canonical_root = std::filesystem::weakly_canonical(capture_dir, ec);
+	BOOST_REQUIRE(!ec);
+	BOOST_CHECK_EQUAL(handed.parent_path().string(), canonical_root.string());
+
+	// ...and the root was created on demand (a start must not fail because the
+	// operator never made the directory).
+	BOOST_CHECK(std::filesystem::is_directory(capture_dir));
+
+	// The wire response still reports only the basename, never the server path.
+	auto json = nlohmann::json::parse(resp.body());
+	BOOST_CHECK_EQUAL(json["file"].get<std::string>(), "configured.cap");
+
+	std::filesystem::remove_all(capture_dir, ec);
+}
+
+//-----------------------------------------------------------------------------
+// SECURITY REGRESSION: making the capture directory configurable must NOT have
+// widened the jail.  Every traversal form is still rejected with 400 before the
+// controller is asked to open anything - now measured against a configured
+// (non-default) root, and additionally asserting nothing escaped onto disk.
+//-----------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_PathTraversal_RejectedAgainstConfiguredDirectory)
+{
+	const auto capture_dir = MakeTempCaptureDir("traversal");
+	std::filesystem::create_directories(capture_dir);
+
+	Kernel::HubLocator hub_locator;
+	auto controller = std::make_shared<FakeRecordingController>();
+	hub_locator.Register<Interfaces::IRecordingController>(controller);
+
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ capture_dir });
+
+	const std::string malicious[] =
+	{
+		R"({"action":"start","filename":"../escape.cap"})",             // parent traversal
+		R"({"action":"start","filename":"../../etc/passwd.cap"})",      // deep POSIX traversal
+		R"({"action":"start","filename":"sub/dir/file.cap"})",          // nested separator
+		R"({"action":"start","filename":"/etc/cron.d/evil.cap"})",      // absolute POSIX
+		R"({"action":"start","filename":"\windows\system32\x.cap"})", // backslash separators
+		R"({"action":"start","filename":"C:\windows\evil.cap"})",     // drive letter
+		R"({"action":"start","filename":"..\escape.cap"})",            // windows parent traversal
+		R"({"action":"start","filename":"good..\..\escape.cap"})",    // embedded dot-dot
+		R"({"action":"start","filename":"notes.txt"})",                 // wrong extension
+	};
+
+	for (const auto& body : malicious)
+	{
+		auto req = MakePost(body);
+		auto resp = InvokeRoute(route, req);
+		BOOST_CHECK_MESSAGE(boost::beast::http::status::bad_request == resp.result(),
+			"Expected 400 for malicious filename body: " << body);
+	}
+
+	BOOST_CHECK_EQUAL(controller->start_calls, 0);
+	BOOST_CHECK(!controller->IsRecording());
+
+	// Nothing was created inside the jail either.
+	BOOST_CHECK(std::filesystem::is_empty(capture_dir));
+
+	std::error_code ec;
+	std::filesystem::remove_all(capture_dir, ec);
+}
+
+//-----------------------------------------------------------------------------
+// SECURITY REGRESSION: a capture name is echoed back in the download route's
+// Content-Disposition header, so control characters (CR/LF => header injection)
+// and quotes (=> quoted-string break-out) must never survive the jail.
+//-----------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(Test_Recording_PostStart_ControlCharactersAndQuotes_Rejected)
+{
+	const auto capture_dir = MakeTempCaptureDir("headerinject");
+
+	Kernel::HubLocator hub_locator;
+	auto controller = std::make_shared<FakeRecordingController>();
+	hub_locator.Register<Interfaces::IRecordingController>(controller);
+
+	HTTP::WebRoute_Diagnostics_Recording route(hub_locator, HTTP::CaptureDirectory{ capture_dir });
+
+	const std::string malicious[] =
+	{
+		R"({"action":"start","filename":"a\r\nX-Injected: yes.cap"})", // CRLF header injection
+		R"({"action":"start","filename":"a\nb.cap"})",                 // bare LF
+		R"({"action":"start","filename":"a\tb.cap"})",                 // tab (control char)
+		R"({"action":"start","filename":"a\"b.cap"})",                 // quoted-string break-out
+	};
+
+	for (const auto& body : malicious)
+	{
+		auto req = MakePost(body);
+		auto resp = InvokeRoute(route, req);
+		BOOST_CHECK_MESSAGE(boost::beast::http::status::bad_request == resp.result(),
+			"Expected 400 for hostile filename body: " << body);
+	}
+
+	BOOST_CHECK_EQUAL(controller->start_calls, 0);
+
+	std::error_code ec;
+	std::filesystem::remove_all(capture_dir, ec);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

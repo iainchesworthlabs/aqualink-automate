@@ -66,6 +66,17 @@
         'swg_health.check_pcb': 'קאָנטראָלירט די PCB',
         'swg_health.general_fault': 'אַלגעמיינער דעפֿעקט',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'פּראָדוצירט',
+        'swg_reason.off': 'אָפּגעשטעלט',
+        'swg_reason.pump_off': 'אָן, פּראָדוצירט נישט — פֿילטער־פּאָמפּע אויס',
+        'swg_reason.no_flow': 'אָן, פּראָדוצירט נישט — קיין וואַסער־שטראָם',
+        'swg_reason.fault': 'פּראָדוצירט נישט — קאָנטראָלירט די צעל',
+        'swg_reason.idle': 'אָן, פּראָדוצירט נישט',
+        'swg_reason.unknown': 'ציל נאָך נישט געמאָלדן',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'אָנגעווענדט',
         'cmd.rejected': 'אָפּגעווישן',
@@ -141,6 +152,7 @@
         'dash.swg_aria': 'קאָנטראָל פֿון כלאָרינאַטאָר-אויסגאַנג און ציל',
         'dash.target': 'ציל',
         'dash.target_aria': 'ציל-אויסגאַנג-פּראָצענט',
+        'dash.target_body_aria': 'כלאָר־גענעראַטאָר ציל־אויסגאַנג פֿאַר {body}',
         'dash.set': 'שטעלן',
         'dash.boost': 'פֿאַרשטאַרקן',
         'dash.heater': 'היצער',
@@ -293,6 +305,11 @@
         'diag.capture_file_aria': 'נאָמען פֿון כאַפּ-טעקע',
         'diag.bytes_written': 'געשריבענע בייטס',
         'diag.rec_hint_html': 'די רעקאָרדירונג איז אין דעם ווידער-שפּילבאַרן פֿאָרמאַט און קען אַרײַנגעלייגט ווערן גלײַך אין <code>test/fixtures/</code>.',
+        'diag.saved_captures': 'געשפּײַכערטע רעקאָרדירונגען',
+        'diag.no_captures': 'נאָך קיין רעקאָרדירונגען נישטאָ.',
+        'diag.refresh': 'דערפֿרישן',
+        'diag.download': 'אַראָפּלאָדן',
+        'diag.download_capture_aria': 'אַראָפּלאָדן {name}',
         'diag.stats_ws': 'סטאַטיסטיק-WebSocket:',
         'diag.observed_button_mapping': 'באַאָבאַכטע קנאָפּקע-מאַפּירונג',
         'diag.indicators': 'אינדיקאַטאָרן',
@@ -607,6 +624,7 @@
         'toast.recording_start_failed': 'ניט געלונגען אָנהייבן רעקאָרדירונג',
         'toast.recording_stopped': 'סעריעלע רעקאָרדירונג אָפּגעשטעלט',
         'toast.recording_stop_failed': 'ניט געלונגען אָפּשטעלן רעקאָרדירונג',
+        'toast.capture_download_failed': 'ניט געלונגען אַראָפּלאָדן די רעקאָרדירונג',
         'toast.profiling_resumed': 'פּראָפֿילירונג איבערגענומען',
         'toast.profiling_resume_failed': 'ניט געלונגען איבערנעמען פּראָפֿילירונג',
         'toast.profiling_paused': 'פּראָפֿילירונג פֿאַרהאַלטן',
@@ -636,6 +654,10 @@
         'error.recording_start_failed': 'קען ניט אָנהייבן רעקאָרדירן: שוין רעקאָרדירט אָדער די טעקע האָט זיך ניט געעפֿנט.',
         'error.recording_not_recording': 'רעקאָרדירט איצט ניט.',
         'error.recording_invalid_action': "'action' מוז זײַן 'start' אָדער 'stop'.",
+        'error.capture_filename_invalid': 'דער רעקאָרדירונג-נאָמען מוז זײַן אַ בלויזער *.cap נאָמען אָן וועג-צעטיילער.',
+        'error.capture_not_found': 'די דאָזיקע רעקאָרדירונג עקזיסטירט מער נישט אויפֿן סערווער.',
+        'error.capture_too_large': 'די רעקאָרדירונג איז צו גרויס אַראָפּצולאָדן; קאָפּיר זי בעסער פֿונעם רעקאָרדירונג-פּאַפּקע.',
+        'error.capture_read_failed': 'מען האָט נישט געקענט לייענען די רעקאָרדירונג.',
         'error.spaside_unavailable': 'ספּאַ-זײַט דערווײַטער-קאָנטראָל איז ניט פֿאַראַן אין דעם מאָדוס.',
         'error.spaside_action_required': "די פֿאָדערונג מוז אַנטהאַלטן אַן 'action' פֿון 'press' אָדער 'assign'.",
         'error.spaside_press_requires_address': "'press' פֿאָדערט אַן 'address'.",

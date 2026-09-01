@@ -68,6 +68,17 @@
         'swg_health.check_pcb': 'יש לבדוק את ה-PCB',
         'swg_health.general_fault': 'תקלה כללית',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'מייצר',
+        'swg_reason.off': 'כבוי',
+        'swg_reason.pump_off': 'פועל, לא מייצר — משאבת הסינון כבויה',
+        'swg_reason.no_flow': 'פועל, לא מייצר — אין זרימת מים',
+        'swg_reason.fault': 'לא מייצר — בדוק את התא',
+        'swg_reason.idle': 'פועל, לא מייצר',
+        'swg_reason.unknown': 'היעד טרם דווח',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'הוחל',
         'cmd.rejected': 'נדחה',
@@ -143,6 +154,7 @@
         'dash.swg_aria': 'בקרת תפוקת מכשיר ההכלרה והיעד שלו',
         'dash.target': 'יעד',
         'dash.target_aria': 'אחוז התפוקה הרצוי',
+        'dash.target_body_aria': 'יעד תפוקת הכלוריניטור עבור {body}',
         'dash.set': 'הגדרה',
         'dash.boost': 'בוסט',
         'dash.heater': 'מחמם',
@@ -295,6 +307,11 @@
         'diag.capture_file_aria': 'שם קובץ הלכידה',
         'diag.bytes_written': 'בתים שנכתבו',
         'diag.rec_hint_html': 'ההקלטה בפורמט המקליט הניתן לשחזור, וניתן להניח אותה ישירות ב-<code>test/fixtures/</code>.',
+        'diag.saved_captures': 'הקלטות שמורות',
+        'diag.no_captures': 'אין עדיין הקלטות.',
+        'diag.refresh': 'רענון',
+        'diag.download': 'הורדה',
+        'diag.download_capture_aria': 'הורדת {name}',
         'diag.stats_ws': 'WebSocket של סטטיסטיקה:',
         'diag.observed_button_mapping': 'מיפוי לחצנים שנצפה',
         'diag.indicators': 'מחוונים',
@@ -609,6 +626,7 @@
         'toast.recording_start_failed': 'התחלת ההקלטה נכשלה',
         'toast.recording_stopped': 'ההקלטה הטורית הופסקה',
         'toast.recording_stop_failed': 'עצירת ההקלטה נכשלה',
+        'toast.capture_download_failed': 'הורדת ההקלטה נכשלה',
         'toast.profiling_resumed': 'ניתוח הביצועים חודש',
         'toast.profiling_resume_failed': 'חידוש ניתוח הביצועים נכשל',
         'toast.profiling_paused': 'ניתוח הביצועים הושהה',
@@ -638,6 +656,10 @@
         'error.recording_start_failed': 'לא ניתן להתחיל הקלטה: הקלטה כבר מתבצעת או שלא ניתן היה לפתוח את הקובץ.',
         'error.recording_not_recording': 'לא מתבצעת הקלטה כרגע.',
         'error.recording_invalid_action': "'action' חייב להיות 'start' או 'stop'.",
+        'error.capture_filename_invalid': 'שם ההקלטה חייב להיות שם ‎*.cap‎ פשוט ללא מפרידי נתיב.',
+        'error.capture_not_found': 'ההקלטה הזו כבר לא קיימת בשרת.',
+        'error.capture_too_large': 'ההקלטה גדולה מדי להורדה; העתיקו אותה מתיקיית ההקלטות במקום זאת.',
+        'error.capture_read_failed': 'לא ניתן היה לקרוא את ההקלטה.',
         'error.spaside_unavailable': 'שליטה בשלט צד-הספא אינה זמינה במצב זה.',
         'error.spaside_action_required': "הבקשה חייבת להכיל 'action' בערך 'press' או 'assign'.",
         'error.spaside_press_requires_address': "'press' דורש 'address'.",

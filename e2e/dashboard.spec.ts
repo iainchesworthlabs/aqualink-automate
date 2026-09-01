@@ -53,6 +53,23 @@ test('chlorinator output control: API validates, and the slider renders when pre
   await expect(page.locator('.swg-card').getByText('SWG Output')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.swg-card .swg-slider')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.swg-card').getByRole('button', { name: 'Boost' })).toBeVisible({ timeout: 15_000 });
+
+  // A 0% reading must explain itself. generating_percent is the INSTANTANEOUS output and
+  // reads 0 whenever the cell is idle, which alone cannot say whether the chlorinator is
+  // switched off or simply waiting for the filter pump; the card captions it with the
+  // server-derived reason. The caption is deliberately hidden while the cell IS generating,
+  // so key the assertion off what the API reports rather than the fixture's mood.
+  const swg = (await (await request.get('/api/equipment')).json()).chemistry?.chlorinator;
+  if (swg) {
+    expect(swg).toHaveProperty('generating_reason');
+    const reasonCaption = page.locator('.swg-card .swg-reason');
+    if (swg.generating_reason === 'Generating') {
+      await expect(reasonCaption).toBeHidden();
+    } else {
+      await expect(reasonCaption).toBeVisible({ timeout: 15_000 });
+      await expect(reasonCaption).not.toBeEmpty();
+    }
+  }
 });
 
 test('equipment controls render as switches for controllable devices only', async ({ page, request }) => {

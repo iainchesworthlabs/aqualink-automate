@@ -110,108 +110,18 @@ BOOST_AUTO_TEST_CASE(TestQueueCommand_ThenPoll_DispatchesCommand)
 }
 
 // =============================================================================
-// QueueChlorinatorPercentage -> 4 polls dispatch {0x02, 0x19, 0x11, 0x80}
+// The chlorinator sequence is no longer a blind queued burst.
+//
+// It used to be four commands pushed at queue time, assuming the AquaPure page
+// always opened from a FIXED page-button index. The master lays every page out
+// from the installed equipment, so that index is not portable -- and 0x02 is the
+// panel's single "Menu / Back" key, whose meaning depends on the screen it is
+// pressed from, so the burst could not even rely on reaching the menu.
+//
+// It is now produced a command at a time by the page-gated AquaPureWriter, which
+// verifies each navigation hop and resolves buttons by their on-screen label.
+// Covered in test/unit/devices/test_devices_iaq_aquapure_writer.cpp (the state
+// machine) and integration/flows/test_flow_command_to_wire.cpp (to the wire).
 // =============================================================================
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorPercentage_DispatchesSequence)
-{
-	device.QueueChlorinatorPercentage(75);
-	captured_ack_commands.clear();
-
-	std::vector<uint8_t> expected = { 0x02, 0x19, 0x11, 0x80 };
-
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		FirePoll();
-	}
-
-	BOOST_REQUIRE_EQUAL(captured_ack_commands.size(), expected.size());
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		BOOST_CHECK_EQUAL(captured_ack_commands[i], expected[i]);
-	}
-
-	// Next poll should be empty ACK
-	captured_ack_commands.clear();
-	FirePoll();
-	BOOST_REQUIRE(!captured_ack_commands.empty());
-	BOOST_CHECK_EQUAL(captured_ack_commands.back(), static_cast<uint8_t>(0x00));
-}
-
-// =============================================================================
-// QueueChlorinatorBoost(true) -> 4 polls dispatch {0x02, 0x19, 0x13, 0x12}
-// =============================================================================
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorBoost_Enable_DispatchesSequence)
-{
-	device.QueueChlorinatorBoost(true);
-	captured_ack_commands.clear();
-
-	std::vector<uint8_t> expected = { 0x02, 0x19, 0x13, 0x12 };
-
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		FirePoll();
-	}
-
-	BOOST_REQUIRE_EQUAL(captured_ack_commands.size(), expected.size());
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		BOOST_CHECK_EQUAL(captured_ack_commands[i], expected[i]);
-	}
-}
-
-// =============================================================================
-// QueueChlorinatorBoost(false) -> 4 polls dispatch {0x02, 0x19, 0x13, 0x13}
-// =============================================================================
-
-BOOST_AUTO_TEST_CASE(TestQueueChlorinatorBoost_Disable_DispatchesSequence)
-{
-	device.QueueChlorinatorBoost(false);
-	captured_ack_commands.clear();
-
-	std::vector<uint8_t> expected = { 0x02, 0x19, 0x13, 0x13 };
-
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		FirePoll();
-	}
-
-	BOOST_REQUIRE_EQUAL(captured_ack_commands.size(), expected.size());
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		BOOST_CHECK_EQUAL(captured_ack_commands[i], expected[i]);
-	}
-}
-
-// =============================================================================
-// Queue overwrite: percentage then boost -> only boost commands dispatched
-// =============================================================================
-
-BOOST_AUTO_TEST_CASE(TestQueueOverwrite_PercentageThenBoost)
-{
-	device.QueueChlorinatorPercentage(50);
-	device.QueueChlorinatorBoost(true);
-	captured_ack_commands.clear();
-
-	std::vector<uint8_t> expected = { 0x02, 0x19, 0x13, 0x12 };
-
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		FirePoll();
-	}
-
-	BOOST_REQUIRE_EQUAL(captured_ack_commands.size(), expected.size());
-	for (size_t i = 0; i < expected.size(); ++i)
-	{
-		BOOST_CHECK_EQUAL(captured_ack_commands[i], expected[i]);
-	}
-
-	// Verify queue is empty
-	captured_ack_commands.clear();
-	FirePoll();
-	BOOST_REQUIRE(!captured_ack_commands.empty());
-	BOOST_CHECK_EQUAL(captured_ack_commands.back(), static_cast<uint8_t>(0x00));
-}
 
 BOOST_AUTO_TEST_SUITE_END()

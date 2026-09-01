@@ -3,8 +3,8 @@ name: Home Assistant Add-on
 # Validates the add-on wrapper (repo-root repository.yaml + aqualink-automate[-edge]/)
 # whenever it changes: YAML
 # parses, run.sh passes shellcheck, and the add-on version stays in lock-step with
-# the base-image tag it builds from (config.yaml `version` == build.yaml build_from
-# tag). Cheap, self-contained (no third-party actions to pin), and catches the
+# the app release version its Dockerfile derives BUILD_VERSION from (there is no
+# build.yaml). Cheap, self-contained (no third-party actions to pin), and catches the
 # drift that would otherwise ship a broken repository.yaml or a mismatched image.
 on:
   push:
@@ -89,9 +89,9 @@ jobs:
       - name: run.sh passes shellcheck
         run: shellcheck --shell=bash aqualink-automate/run.sh
 
-      # Internal lock-step for BOTH channels: each config.yaml `version` == every
-      # build.yaml build_from tag. Same script the release pipeline uses as the single
-      # writer (set mode) — here in check mode, so CI and release never disagree.
+      # BOTH channels carry a readable config.yaml `version`. Same script the release
+      # pipeline uses as the single writer (set mode) — here in check mode. Note this
+      # does NOT pin the version to a release; release.yml does that with -Version.
       - name: Version lock-step (both channels)
         shell: pwsh
         run: ./scripts/sync-homeassistant-addon-version.ps1 -Check -Root $PWD

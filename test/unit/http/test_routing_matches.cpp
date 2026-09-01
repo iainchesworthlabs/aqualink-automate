@@ -82,6 +82,63 @@ BOOST_AUTO_TEST_CASE(TestSuite_HTTPServer_RoutingMatches_Tests)
 	}
 }
 
+//-----------------------------------------------------------------------------
+// The capture listing/download routes nest UNDER the recording route
+// ("/api/diagnostics/recording" + "/captures" + "/{filename}").  Pin that the
+// three coexist and that each target resolves to its OWN handler - a shadowing
+// bug here would be silent, with the download quietly answered by the recording
+// route's JSON status.
+//-----------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(TestSuite_HTTPServer_RoutingMatches_NestedCaptureRoutes)
+{
+	auto recording = std::make_shared<MyTestClass>();
+	auto captures = std::make_shared<MyTestClass>();
+	auto capture_item = std::make_shared<MyTestClass>();
+
+	Routing::impl<MyTestClass> test_routes;
+	test_routes.insert_impl("/api/diagnostics/recording", recording.get());
+	test_routes.insert_impl("/api/diagnostics/recording/captures", captures.get());
+	test_routes.insert_impl("/api/diagnostics/recording/captures/{filename}", capture_item.get());
+
+	const auto resolve = [&test_routes](std::string_view target, std::string& captured) -> const MyTestClass*
+		{
+			Routing::matches m;
+			std::string_view* matches_it = m.matches();
+			std::string_view* ids_it = m.ids();
+
+			auto path = boost::urls::parse_path(target);
+			BOOST_TEST_REQUIRE(!path.has_error());
+
+			const auto* p = test_routes.find_impl(*path, matches_it, ids_it);
+			if (nullptr != p)
+			{
+				boost::urls::pct_string_view(m[0]).decode({}, boost::urls::string_token::append_to(captured));
+			}
+			return p;
+		};
+
+	{
+		std::string captured;
+		BOOST_CHECK_EQUAL(recording.get(), resolve("/api/diagnostics/recording", captured));
+	}
+	{
+		std::string captured;
+		BOOST_CHECK_EQUAL(captures.get(), resolve("/api/diagnostics/recording/captures", captured));
+	}
+	{
+		// The item route matches AND hands the filename through as its parameter.
+		std::string captured;
+		BOOST_CHECK_EQUAL(capture_item.get(), resolve("/api/diagnostics/recording/captures/session.cap", captured));
+		BOOST_CHECK_EQUAL("session.cap", captured);
+	}
+	{
+		// A deeper path matches nothing: the item route is a single segment, so a
+		// traversal cannot be smuggled in as extra path segments.
+		std::string captured;
+		BOOST_CHECK_EQUAL(nullptr, resolve("/api/diagnostics/recording/captures/sub/session.cap", captured));
+	}
+}
+
 BOOST_AUTO_TEST_CASE(TestSuite_HTTPServer_RoutingMatches_CustomRouteMatches)
 {
 	std::vector<std::tuple<std::string, std::shared_ptr<MyTestClass>>> test_routes_vec

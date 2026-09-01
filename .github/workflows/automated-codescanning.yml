@@ -83,7 +83,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner_big) }}
     timeout-minutes: 360
     permissions:
       actions: read
@@ -100,30 +100,40 @@ jobs:
     # root-owned files the unprivileged runner cannot delete; reset ownership via a
     # throwaway ROOT container -- NOT host sudo -- then drop the stale build trees.
     - name: Clean workspace (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
           docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
         fi
         rm -rf build install
+        # Reclaim what VCPKG_INSTALL_OPTIONS can only prevent going forward.
+        # deps/vcpkg persists between jobs on a self-hosted runner (that is why
+        # this step exists at all), so buildtrees/ and packages/ accumulate from
+        # EVERY previous run until a build dies with 'No space left on device'.
+        # Both are pure intermediates -- the binary cache lives in
+        # $HOME/.cache/vcpkg/archives and is untouched, so ports still restore
+        # from cache rather than rebuilding. downloads/ is deliberately NOT
+        # pruned: on self-hosted it is redirected to the size-capped persistent
+        # cache, and clearing it would force re-downloads for no disk win.
+        rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted') }}
       with:
         compiler: gcc-15
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+      uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         languages: ${{ matrix.language }}
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted')
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
         DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
@@ -132,7 +142,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.linux_runner_big, 'self-hosted') }}
       with:
         cache-key-prefix: CodeQL
 
@@ -167,12 +177,23 @@ jobs:
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:
         buildPreset: build-linux-gcc
-        buildPresetAdditionalArgs: "['--parallel', '8']"
+        # Parallelism has to track the runner this job ACTUALLY landed on, because
+        # linux_runner_big falls back to ubuntu-latest whenever the (single) big
+        # Linux runner is unavailable — and on a PUBLIC repo that is 4 vCPU / 16 GB.
+        # CodeQL's extractor wraps every compile and roughly doubles per-TU RSS
+        # (~2.2 GiB), so:
+        #     big (32 GB): 8 x 2.2 = ~17.6 GiB   comfortable
+        #     hosted (16 GB): 8 x 2.2 = ~17.6 GiB   OOM
+        # A fixed 8 is also WORSE than leaving this unset on the fallback path:
+        # Ninja's own default there is nproc+2 = 6. That configuration has already
+        # killed this job twice on hosted (at 108 min, object 721/762, and at
+        # 2h33m). 4 on the fallback is ~8.8 GiB, which fits with room.
+        buildPresetAdditionalArgs: "['--parallel', '${{ contains(needs.check-runners.outputs.linux_runner_big, 'big') && '8' || '4' }}']"
       env:
         VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+      uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         upload: false
 
@@ -186,7 +207,7 @@ jobs:
         output: '../results/cpp.sarif'
 
     - name: Upload SARIF
-      uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+      uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         category: "/language:${{ matrix.language }}"
 
@@ -232,14 +253,14 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+      uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         languages: javascript-typescript
         build-mode: none
         config-file: ./.github/codeql/codeql-config-js.yml
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+      uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         category: "/language:javascript-typescript"
 
@@ -288,6 +309,16 @@ jobs:
           docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
         fi
         rm -rf build install
+        # Reclaim what VCPKG_INSTALL_OPTIONS can only prevent going forward.
+        # deps/vcpkg persists between jobs on a self-hosted runner (that is why
+        # this step exists at all), so buildtrees/ and packages/ accumulate from
+        # EVERY previous run until a build dies with 'No space left on device'.
+        # Both are pure intermediates -- the binary cache lives in
+        # $HOME/.cache/vcpkg/archives and is untouched, so ports still restore
+        # from cache rather than rebuilding. downloads/ is deliberately NOT
+        # pruned: on self-hosted it is redirected to the size-capped persistent
+        # cache, and clearing it would force re-downloads for no disk win.
+        rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -332,6 +363,12 @@ jobs:
           sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
         fi
 
+    # gcovr must be on PATH BEFORE this configure: the coverage preset makes
+    # test/CMakeLists.txt call setup_target_for_coverage_gcovr_*, which
+    # FATAL_ERRORs at configure time if gcovr is missing. Baked into the
+    # self-hosted image, absent on stock GitHub-hosted runners.
+    - uses: ./.github/actions/ensure-gcovr
+
     # The coverage preset turns ENABLE_COVERAGE on, which appends `--coverage
     # -fprofile-abs-path` to EVERY target (root CMakeLists). So the app target is
     # instrumented exactly like the unit build; -fprofile-abs-path bakes ABSOLUTE
@@ -351,10 +388,13 @@ jobs:
     # and its instrumented dependency libraries, nothing more. No reconfigure
     # happens (Configure just ran), so vcpkg is not re-invoked here.
     - name: Build instrumented app
+      id: build_app
       shell: bash
       run: |
+        # -j6, not 8: this is a gcov-instrumented build on a 12 GB SHARED guest.
+        # See _build.yml CMAKE_BUILD_PARALLEL_LEVEL for the arithmetic.
         cmake --build "${{ github.workspace }}/build/config-linux-gcc-coverage" \
-          --target aqualink-automate --parallel 8
+          --target aqualink-automate --parallel 6
       env:
         VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
 
@@ -508,26 +548,12 @@ jobs:
         AQUALINK_EXE: ${{ github.workspace }}/build/config-linux-gcc-coverage/src/aqualink-automate
         AQUALINK_PREFERENCES_FILE: ${{ runner.temp }}/e2e-preferences.json
 
-    # gcovr may already be baked into the self-hosted image (the unit-coverage
-    # CMake target needs it); install it as a fallback for a stock runner.
-    - name: Ensure gcovr is available
-      if: ${{ !cancelled() }}
-      shell: bash
-      run: |
-        if ! command -v gcovr >/dev/null 2>&1; then
-          python3 -m pip install --user --break-system-packages gcovr \
-            || python3 -m pip install --user gcovr
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/.local/bin:$PATH"
-        fi
-        gcovr --version
-
     # Reduce the .gcda counters to a SonarQube generic coverage report, mirroring
     # the unit target's gcovr invocation (test/CMakeLists.txt) so file paths
     # resolve to `src/...` against the same root and Sonar can merge the two. Run
     # even if a spec failed above, so partial e2e coverage is still captured.
     - name: Generate e2e coverage report (gcovr)
-      if: ${{ !cancelled() }}
+      if: ${{ !cancelled() && steps.build_app.outcome == 'success' }}
       shell: bash
       run: |
         gcovr --sonarqube "${{ github.workspace }}/coverage-e2e.xml" \
@@ -542,7 +568,7 @@ jobs:
         echo "Generated coverage-e2e.xml ($(wc -c < "${{ github.workspace }}/coverage-e2e.xml") bytes)."
 
     - name: Upload e2e coverage report
-      if: ${{ !cancelled() }}
+      if: ${{ !cancelled() && steps.build_app.outcome == 'success' }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: e2e-coverage-xml
@@ -559,7 +585,7 @@ jobs:
     # artifact. !cancelled() (rather than the implicit success()) keeps the scan
     # running even if the e2e job FAILED — the assemble step below then falls back
     # to unit-only coverage, so a flaky e2e never drops the whole quality gate.
-    needs: [check-runners, CodeScanning_E2ECoverage]
+    needs: [CodeScanning_E2ECoverage]
     # Skip a develop->main promotion PR (already scanned on develop entry).
     # AND gate out fork PRs from the persistent self-hosted runners (untrusted code
     # on a long-lived host; SonarCloud also needs SONAR_TOKEN, withheld from forks).
@@ -570,48 +596,42 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(needs.check-runners.outputs.linux_runner) }}
+    # Pinned to GitHub-hosted, NOT routed via check-runners.
+    #
+    # SonarCloud's CFamily analyzer footprint scales with the size of the changeset
+    # it has to analyse, and it does not fit the 12 GB shared guests on a large one:
+    #
+    #     ~7 files   tf-gh-linux-runner-01  12 GB  OK   36 min
+    #     ~8 files   tf-gh-linux-runner-01  12 GB  OK   39 min
+    #     41 files   ubuntu-latest          16 GB  OK   77 min
+    #     71 files   tf-gh-linux-runner-05  12 GB  DIED 48 min (shutdown mid-scan)
+    #
+    # 16 GB is demonstrably enough and 12 GB is not, so hosted is the smallest shape
+    # that works. Deliberately NOT routed to linux_runner_big: this job has never
+    # needed 32 GB, and `big` is one machine per OS that CodeQL already occupies for
+    # ~100 min per run -- serialising the scan behind it would push Code Scanning's
+    # Linux path from ~96 min to ~140+ to buy headroom hosted already provides.
+    #
+    # Costs nothing from the fleet, and leaves `big` for the one leg that genuinely
+    # cannot complete anywhere else. See docs/ci-cd.md.
+    runs-on: ubuntu-latest
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
 
     steps:
-    # BEFORE checkout so a dirty tree cannot fail actions/checkout's git-clean. A
-    # prior RELEASE built inside a root gcc container (_build.yml) can leave
-    # root-owned files the unprivileged runner cannot delete; reset ownership via a
-    # throwaway ROOT container -- NOT host sudo -- then drop the stale build trees.
-    - name: Clean workspace (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
-      shell: bash
-      run: |
-        if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
-          docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
-        fi
-        rm -rf build install
-
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         compiler: gcc-15
 
     - name: Install build-wrapper
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8
 
-    - name: Setup vcpkg cache (self-hosted)
-      if: contains(needs.check-runners.outputs.linux_runner, 'self-hosted')
-      run: |
-        BINARY_DIR="$HOME/.cache/vcpkg/archives"
-        DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
-        mkdir -p "$BINARY_DIR" "$DOWNLOADS_DIR"
-        echo "VCPKG_DEFAULT_BINARY_CACHE=$BINARY_DIR" >> "$GITHUB_ENV"
-        echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
-
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(needs.check-runners.outputs.linux_runner, 'self-hosted') }}
       with:
         cache-key-prefix: SonarCloud
 
@@ -635,6 +655,12 @@ jobs:
           sudo apt-get -o DPkg::Lock::Timeout=600 install -y -qq autoconf autoconf-archive automake libtool
         fi
 
+    # gcovr must be on PATH BEFORE this configure: the coverage preset makes
+    # test/CMakeLists.txt call setup_target_for_coverage_gcovr_*, which
+    # FATAL_ERRORs at configure time if gcovr is missing. Baked into the
+    # self-hosted image, absent on stock GitHub-hosted runners.
+    - uses: ./.github/actions/ensure-gcovr
+
     - name: Configure
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:
@@ -643,7 +669,12 @@ jobs:
       env:
         VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
 
+    # build-wrapper wraps every compilation, so per-TU RSS is higher than a plain
+    # build - and this leg was the only uncapped one, running at Ninja's -j10 on a
+    # 12 GB shared guest. It died at object 305/725 with a shutdown signal.
     - name: Build with build-wrapper
+      env:
+        CMAKE_BUILD_PARALLEL_LEVEL: 6
       run: |
         build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build --preset=build-linux-gcc-coverage
 
@@ -666,9 +697,18 @@ jobs:
       run: |
         UNIT="${{ github.workspace }}/build/config-linux-gcc-coverage/coverage-testaqualink-automate.xml"
         E2E="${{ github.workspace }}/e2e-coverage/coverage-e2e.xml"
-        if [ -f "$E2E" ]; then
+        # Test for CONTENT, not existence. gcovr over an empty build tree still
+        # writes a well-formed but empty report (`<coverage version="1"/>`, 62
+        # bytes), and an existence check takes the merge branch on it — silently
+        # halving coverage with no warning, which reads as "the new code is
+        # undertested" rather than "the e2e half never ran". A real report has at
+        # least one <file> element.
+        if [ -f "$E2E" ] && grep -q "<file " "$E2E"; then
           echo "COVERAGE_REPORTS=${UNIT},${E2E}" >> "$GITHUB_ENV"
           echo "Merging unit + e2e coverage reports into the scan."
+        elif [ -f "$E2E" ]; then
+          echo "COVERAGE_REPORTS=${UNIT}" >> "$GITHUB_ENV"
+          echo "::warning::e2e coverage report is present but EMPTY (no <file> entries); scanning with unit coverage only."
         else
           echo "COVERAGE_REPORTS=${UNIT}" >> "$GITHUB_ENV"
           echo "::warning::e2e coverage report not found; scanning with unit coverage only."
@@ -700,7 +740,7 @@ jobs:
       (github.event_name != 'pull_request' ||
        github.head_ref != 'develop' ||
        github.base_ref != 'main')
-    runs-on: ${{ fromJSON(needs.check-runners.outputs.windows_runner) }}
+    runs-on: ${{ fromJSON(needs.check-runners.outputs.windows_runner_big) }}
     permissions:
       actions: read
       contents: read
@@ -710,31 +750,41 @@ jobs:
     # root-owned-file recovery only applies to Linux self-hosted runners; on Windows
     # the plain rm suffices, so the guarded branch is a no-op here.)
     - name: Clean workspace (self-hosted)
-      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted')
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Linux" ] && [ -n "$(find . ! -uid "$(id -u)" -print -quit 2>/dev/null)" ]; then
           docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
         fi
         rm -rf build install
+        # Reclaim what VCPKG_INSTALL_OPTIONS can only prevent going forward.
+        # deps/vcpkg persists between jobs on a self-hosted runner (that is why
+        # this step exists at all), so buildtrees/ and packages/ accumulate from
+        # EVERY previous run until a build dies with 'No space left on device'.
+        # Both are pure intermediates -- the binary cache lives in
+        # $HOME/.cache/vcpkg/archives and is untouched, so ports still restore
+        # from cache rather than rebuilding. downloads/ is deliberately NOT
+        # pruned: on self-hosted it is redirected to the size-capped persistent
+        # cache, and clearing it would force re-downloads for no disk win.
+        rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         submodules: recursive
 
     - uses: ./.github/actions/setup-cpp-toolchain
-      if: ${{ !contains(needs.check-runners.outputs.windows_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted') }}
       with:
         compiler: msvc
 
     # Pure-PowerShell local composite (no Node) — replaces ilammy/msvc-dev-cmd,
     # which only ships a deprecated Node 20 runtime.
     - name: Setup MSVC environment (self-hosted)
-      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted')
       uses: ./.github/actions/setup-msvc-env
 
     - name: Setup vcpkg cache (self-hosted)
-      if: contains(needs.check-runners.outputs.windows_runner, 'self-hosted')
+      if: contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted')
       shell: bash
       run: |
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
@@ -749,7 +799,7 @@ jobs:
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/setup-vcpkg-cache
-      if: ${{ !contains(needs.check-runners.outputs.windows_runner, 'self-hosted') }}
+      if: ${{ !contains(needs.check-runners.outputs.windows_runner_big, 'self-hosted') }}
       with:
         cache-key-prefix: MSVCAnalysis
 
@@ -787,7 +837,7 @@ jobs:
         ignoredPaths: ${{ github.workspace }}/deps;${{ github.workspace }}/src/version;${{ github.workspace }}/test
 
     - name: Upload SARIF to GitHub
-      uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+      uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         sarif_file: ${{ steps.run-analysis.outputs.sarif }}
 

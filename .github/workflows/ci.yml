@@ -139,6 +139,21 @@ jobs:
         shell: pwsh
         run: ./scripts/check-os-macros.ps1 -Root $PWD
 
+  # vcpkg keeps buildtrees/ and packages/ after every port build and nothing prunes
+  # them, so on a persistent runner they grow until a build dies with "No space left
+  # on device". The remedy is VCPKG_INSTALL_OPTIONS, which MUST be delivered as a
+  # preset cacheVariable — passing it as `-D` puts a ';'-separated CMake list through
+  # the shell run-cmake uses, which splits it and fails Configure at exit 127. That is
+  # how a previous attempt was reverted; this guard stops it being reintroduced.
+  vcpkg-cleanup:
+    name: vcpkg Disk Hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check vcpkg cleanup options reach every preset
+        shell: pwsh
+        run: ./scripts/check-vcpkg-cleanup.ps1 -Root $PWD
+
   # Live self-hosted-availability check, shared by every job below that can build on
   # the org-level fleet — see docs/ci-self-hosted-runners.md.
   check-runners:
@@ -376,7 +391,7 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
       # Authenticate to Docker Hub when credentials are configured so base-image
       # pulls (ubuntu:26.04, node:24-bookworm-slim) use the higher authenticated
@@ -404,7 +419,15 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           retry_on: error
-          command: docker buildx build --target ci .
+          # Cap Ninja inside the container on the 12 GB self-hosted guests: the
+          # Dockerfile's own `cmake --build` never saw the workflow-level
+          # CMAKE_BUILD_PARALLEL_LEVEL, so it ran at nproc+2 = 10 and OOM-killed the
+          # runner at object 721/762 on two separate hosts. Empty on GitHub-hosted,
+          # where Ninja's default is already 6.
+          command: >-
+            docker buildx build --target ci
+            --build-arg CMAKE_BUILD_PARALLEL_LEVEL=${{ contains(needs.check-runners.outputs.linux_runner, 'self-hosted') && '6' || '' }}
+            .
 
       - name: Build runtime target
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
@@ -414,7 +437,13 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           retry_on: error
-          command: docker buildx build --target runtime --load --tag aqualink-automate:verify .
+          # Same --build-arg as the ci target above, and it MUST match: `runtime`
+          # does COPY --from=ci, so a differing build arg would both miss the layer
+          # cache just populated and rebuild the ci stage uncapped.
+          command: >-
+            docker buildx build --target runtime --load --tag aqualink-automate:verify
+            --build-arg CMAKE_BUILD_PARALLEL_LEVEL=${{ contains(needs.check-runners.outputs.linux_runner, 'self-hosted') && '6' || '' }}
+            .
 
       # The runtime image now bundles the Matter sidecar (built by the matter-builder
       # stage). The --version smoke test exercises the app via the supervising
@@ -461,7 +490,7 @@ jobs:
   ci-status:
     name: CI Status
     if: always()
-    needs: [changes, build-and-test, e2e-ui, matter-bridge, docker-verify, i18n-catalogs, platform-macros]
+    needs: [changes, build-and-test, e2e-ui, matter-bridge, docker-verify, i18n-catalogs, platform-macros, vcpkg-cleanup]
     runs-on: ubuntu-latest
     steps:
       - name: Gate on required job results
@@ -474,10 +503,11 @@ jobs:
           R_DOCKER: ${{ needs.docker-verify.result }}
           R_I18N: ${{ needs.i18n-catalogs.result }}
           R_OSMACROS: ${{ needs.platform-macros.result }}
+          R_VCPKG: ${{ needs.vcpkg-cleanup.result }}
         run: |
           set -euo pipefail
           fail=0
-          for pair in "changes:$R_CHANGES" "build-and-test:$R_BUILD" "e2e-ui:$R_E2E" "matter-bridge:$R_MATTER" "docker-verify:$R_DOCKER" "i18n-catalogs:$R_I18N" "platform-macros:$R_OSMACROS"; do
+          for pair in "changes:$R_CHANGES" "build-and-test:$R_BUILD" "e2e-ui:$R_E2E" "matter-bridge:$R_MATTER" "docker-verify:$R_DOCKER" "i18n-catalogs:$R_I18N" "platform-macros:$R_OSMACROS" "vcpkg-cleanup:$R_VCPKG"; do
             job="${pair%%:*}"; result="${pair#*:}"
             echo "  $job: $result"
             if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then

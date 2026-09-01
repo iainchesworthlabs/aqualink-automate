@@ -1,0 +1,40 @@
+# gcovr must exist BEFORE cmake configure, not before the report step.
+#
+# The coverage preset (ENABLE_COVERAGE=ON) makes test/CMakeLists.txt call
+# setup_target_for_coverage_gcovr_xml / _gcovr_html, and CodeCoverage.cmake does
+#   find_program(GCOVR_PATH gcovr ...)
+#   if(NOT GCOVR_PATH) message(FATAL_ERROR "gcovr not found! Aborting...")
+# at CONFIGURE time. So a missing gcovr is not a late report-generation failure —
+# it aborts the configure step outright.
+#
+# This was latent for as long as every Linux leg ran on the self-hosted image,
+# which bakes gcovr in. It surfaced the moment the repo was pinned to
+# GitHub-hosted runners, which do not. Keeping the install in one composite
+# action (rather than copy-pasted per job) is deliberate: the original bug was a
+# duplicated-and-drifted step, and a rebuilt image that happens to bake gcovr
+# would push the bug back into hiding rather than fix it.
+name: Ensure gcovr is available
+description: >-
+  Guarantee `gcovr` is on PATH for subsequent steps, installing it only when the
+  runner image does not already provide it. Must run BEFORE any coverage-preset
+  cmake configure.
+
+runs:
+  using: composite
+  steps:
+    - name: Install gcovr if absent
+      shell: bash
+      run: |
+        set -euo pipefail
+        if command -v gcovr >/dev/null 2>&1; then
+          echo "gcovr already present: $(command -v gcovr)"
+        else
+          # PEP 668 marks the distro Python externally-managed (Ubuntu 24.04+),
+          # so --break-system-packages is required there; the fallback covers
+          # older images whose pip does not know that flag.
+          python3 -m pip install --user --break-system-packages gcovr \
+            || python3 -m pip install --user gcovr
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+        fi
+        gcovr --version

@@ -120,7 +120,7 @@ namespace AqualinkAutomate::Devices
 		// Boost Pool page. The % drives the POOL chlorination row to match the IAQ's single-%
 		// behaviour; targets are rounded to a multiple of 5 (the OneTouch's step). Ranks Low,
 		// so the IAQ's direct value-submit chlorinator (Medium) is preferred on a combined rig.
-		Capabilities::ActuationResult SetChlorinatorPercentage(uint8_t percentage) override;
+		Capabilities::ActuationResult SetChlorinatorPercentage(uint8_t percentage, Kernel::BodyOfWaterIds body) override;
 		Capabilities::ActuationResult SetChlorinatorBoost(bool enable) override;
 
 		// SpaSwitchConfigurator: program a spa-side switch button's function by driving the

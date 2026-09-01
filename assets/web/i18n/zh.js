@@ -67,6 +67,17 @@
         'swg_health.check_pcb': '请检查 PCB',
         'swg_health.general_fault': '一般故障',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': '正在产氯',
+        'swg_reason.off': '已关闭',
+        'swg_reason.pump_off': '已开启，未产氯 — 过滤泵已停止',
+        'swg_reason.no_flow': '已开启，未产氯 — 无水流',
+        'swg_reason.fault': '未产氯 — 请检查电解槽',
+        'swg_reason.idle': '已开启，未产氯',
+        'swg_reason.unknown': '尚未报告目标值',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': '已应用',
         'cmd.rejected': '已拒绝',
@@ -142,6 +153,7 @@
         'dash.swg_aria': '盐氯机输出与目标值控制',
         'dash.target': '目标',
         'dash.target_aria': '目标输出百分比',
+        'dash.target_body_aria': '{body} 的氯发生器目标输出',
         'dash.set': '设置',
         'dash.boost': '强化',
         'dash.heater': '加热器',
@@ -294,6 +306,11 @@
         'diag.capture_file_aria': '抓包文件名',
         'diag.bytes_written': '已写入字节数',
         'diag.rec_hint_html': '录制文件采用可回放的记录器格式，可直接放入 <code>test/fixtures/</code>。',
+        'diag.saved_captures': '已保存的录制',
+        'diag.no_captures': '尚无录制文件。',
+        'diag.refresh': '刷新',
+        'diag.download': '下载',
+        'diag.download_capture_aria': '下载 {name}',
         'diag.stats_ws': '统计 WebSocket:',
         'diag.observed_button_mapping': '观测到的按键映射',
         'diag.indicators': '指示灯',
@@ -608,6 +625,7 @@
         'toast.recording_start_failed': '开始录制失败',
         'toast.recording_stopped': '串口录制已停止',
         'toast.recording_stop_failed': '停止录制失败',
+        'toast.capture_download_failed': '下载录制文件失败',
         'toast.profiling_resumed': '性能分析已恢复',
         'toast.profiling_resume_failed': '恢复性能分析失败',
         'toast.profiling_paused': '性能分析已暂停',
@@ -637,6 +655,10 @@
         'error.recording_start_failed': '无法开始录制：已在录制中，或文件无法打开。',
         'error.recording_not_recording': '当前未在录制。',
         'error.recording_invalid_action': "'action' 必须为 'start' 或 'stop'。",
+        'error.capture_filename_invalid': '录制文件名必须是不含路径分隔符的 *.cap 文件名。',
+        'error.capture_not_found': '该录制文件在服务器上已不存在。',
+        'error.capture_too_large': '录制文件过大，无法下载；请改从录制目录中复制。',
+        'error.capture_read_failed': '无法读取该录制文件。',
         'error.spaside_unavailable': '当前模式下无法控制水疗池侧遥控器。',
         'error.spaside_action_required': "请求必须包含 'action'，取值为 'press' 或 'assign'。",
         'error.spaside_press_requires_address': "'press' 需要 'address'。",

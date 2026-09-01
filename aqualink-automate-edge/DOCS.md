@@ -130,6 +130,27 @@ add-on's own settings:
 |---|---|
 | `install_companion_package` | Off by default. When on, the add-on copies its bundled blueprints straight into Home Assistant's `blueprints/` folder on every start, so they show up under **Settings → Automations & Scenes → Blueprints** with no import step. **This requests a read-write view of Home Assistant's own configuration directory** — broader than anything else this add-on asks for — so it stays opt-in. It only ever adds or updates files under `blueprints/`; it never touches `configuration.yaml` or anything else in your config, and re-running it (a restart, an update) just re-syncs the current files. |
 
+## Recording the RS-485 bus
+
+The web UI's **Diagnostics** page can record the raw serial traffic to a `.cap` file —
+useful when reporting a problem with equipment the app does not yet decode correctly.
+
+Captures are written to this add-on's own configuration folder, which you can browse
+from Home Assistant:
+
+```
+/app_configs/aqualink_automate/captures/
+```
+
+(`/addon_configs/aqualink_automate/captures/` on Home Assistant releases before
+Supervisor 2026.07.) It is reachable with the **Samba** or **File editor** add-ons,
+survives restarts and add-on updates, and needs no Terminal/SSH access.
+
+You do not have to go looking for the file, though: the **Serial Recording** card
+lists the captures already saved and gives each one a **Download** button, so you can
+save a capture straight to the device you are browsing from. Very large captures
+(over 64 MiB) cannot be downloaded that way — copy those from the folder above.
+
 ## Notes
 
 - The Matter bridge that the container image can run is **disabled** in this add-on —

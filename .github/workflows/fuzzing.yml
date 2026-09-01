@@ -99,6 +99,16 @@ jobs:
             docker run --rm -v "${{ github.workspace }}":/w -w /w alpine:3 chown -R "$(id -u):$(id -g)" /w
           fi
           rm -rf build install
+          # Reclaim what VCPKG_INSTALL_OPTIONS can only prevent going forward.
+          # deps/vcpkg persists between jobs on a self-hosted runner (that is why
+          # this step exists at all), so buildtrees/ and packages/ accumulate from
+          # EVERY previous run until a build dies with 'No space left on device'.
+          # Both are pure intermediates -- the binary cache lives in
+          # $HOME/.cache/vcpkg/archives and is untouched, so ports still restore
+          # from cache rather than rebuilding. downloads/ is deliberately NOT
+          # pruned: on self-hosted it is redirected to the size-capped persistent
+          # cache, and clearing it would force re-downloads for no disk win.
+          rm -rf deps/vcpkg/buildtrees deps/vcpkg/packages
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -185,6 +195,10 @@ jobs:
           buildPreset: build-linux-llvm-fuzzing
         env:
           VCPKG_ROOT: ${{ github.workspace }}/deps/vcpkg
+          # Same Ninja nproc+2 cap as _build.yml: 11 harnesses all land on the
+          # 12 GB shared Linux guests, and a sanitiser+fuzzer build is not cheaper
+          # per TU than a plain one.
+          CMAKE_BUILD_PARALLEL_LEVEL: 6
 
       - name: Seed corpus from capture fixtures
         shell: bash

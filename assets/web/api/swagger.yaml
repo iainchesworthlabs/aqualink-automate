@@ -1636,11 +1636,22 @@ paths:
         - Equipment
       summary: Set the chlorinator (SWG) output
       description: >
-        Commands the salt-water generator. Both body fields are optional and may be
-        sent together. `percentage` (0..100) sets the output level via
+        Commands the salt-water generator. `percentage` and `boost` are both optional and
+        may be sent together. `percentage` (0..100) sets the output level via
         ICommandDispatcher::SetChlorinatorPercentage; `boost` toggles boost mode via
-        SetChlorinatorBoost. 400 on a bad value; 503 when no commandable chlorinator
-        is present (e.g. no iAQ device); 200 with a per-field status body otherwise.
+        SetChlorinatorBoost.
+
+
+        The panel keeps an INDEPENDENT output setpoint per body of water -- you can run the
+        spa at 70% while the pool sits at 40% -- so `body` selects which one `percentage`
+        applies to. It is optional and defaults to `Pool`, which is what the single-value
+        form has always driven, so existing callers are unaffected. Only `Pool` and `Spa`
+        are accepted (matched case-insensitively); any other body is a 400, because there
+        is no row on the panel to write.
+
+
+        400 on a bad value; 503 when no commandable chlorinator is present (e.g. no iAQ
+        device); 200 with a per-field status body otherwise.
       operationId: setChlorinator
       requestBody:
         required: true
@@ -1648,6 +1659,7 @@ paths:
           application/json:
             example:
               percentage: 60
+              body: Spa
               boost: false
       responses:
         '200':
@@ -1655,8 +1667,8 @@ paths:
           content:
             application/json:
               example:
-                percentage: { status: "success", value: 60 }
-        '400': { description: Invalid value (percentage out of 0..100, or wrong type) }
+                percentage: { status: "success", value: 60, body: "Spa" }
+        '400': { description: Invalid value (percentage out of 0..100, body not Pool/Spa, or wrong type) }
         '503': { description: No commandable chlorinator / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -2464,7 +2476,8 @@ paths:
         recorder format (replayable with `--dev-mode --replay-filename`).
 
         Only the file's basename is returned; the absolute server-side path is
-        never disclosed.
+        never disclosed. Finished captures can be listed and downloaded through
+        `/api/diagnostics/recording/captures`.
       operationId: getRecording
       responses:
         '200':
@@ -2488,10 +2501,12 @@ paths:
         hardware. Provide `{"action":"start","filename":"..."}` to begin a capture
         or `{"action":"stop"}` to end it. Returns the resulting recording status.
 
-        The `filename` must be a bare `*.cap` basename. It is jailed to a fixed
-        server-side capture directory: path separators, drive letters, leading
-        separators, and `..` are rejected with `400`. The capture is always
-        written inside that directory, never to a client-chosen path.
+        The `filename` must be a bare `*.cap` basename. It is jailed to the
+        server's capture directory (`--capture-directory`, default
+        `<cwd>/captures`): path separators, drive letters, leading separators,
+        `..`, control characters, quotes, and any extension other than `.cap` are
+        rejected with `400`. The capture is always written inside that directory,
+        never to a client-chosen path.
       operationId: setRecording
       requestBody:
         required: true
@@ -2526,9 +2541,10 @@ paths:
           description: |
             Invalid request: bad JSON; missing/invalid action; a missing, empty,
             or rejected filename. The filename must be a bare `*.cap` basename
-            (no path separators, drive letter, leading separator, or `..`): it is
-            jailed to a fixed server-side capture directory, so any path-traversal
-            attempt is rejected here rather than written to disk.
+            (no path separators, drive letter, leading separator, `..`, control
+            characters, or quotes): it is jailed to the server's capture
+            directory, so any path-traversal attempt is rejected here rather than
+            written to disk.
           content:
             application/json:
               schema:
@@ -2594,6 +2610,150 @@ paths:
                   error:
                     type: string
                     example: "Method not allowed. Use GET or POST."
+
+  /api/diagnostics/recording/captures:
+    get:
+      tags:
+        - Diagnostics
+      summary: List the captures on the server
+      description: |
+        Lists the capture files sitting in the server's capture directory
+        (`--capture-directory`, default `<cwd>/captures`), newest first. Only
+        basenames are reported - the server-side directory is never disclosed.
+
+        Only files the download endpoint would actually serve are listed: regular
+        files (never symlinks) whose names pass the same jail as the recording
+        filename.
+      operationId: listCaptures
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureList'
+              example:
+                captures:
+                  - name: "capture.cap"
+                    bytes: 20480
+                    modified: 1756425600
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '405':
+          description: HTTP method not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Method not allowed. Use GET."
+
+  /api/diagnostics/recording/captures/{filename}:
+    get:
+      tags:
+        - Diagnostics
+      summary: Download one capture
+      description: |
+        Returns one capture file as a download, so a capture can be retrieved
+        without shell access to the host (the Home Assistant add-on has none).
+        The response carries `Content-Disposition: attachment` with the capture's
+        name.
+
+        `filename` is jailed exactly like the recording filename, so this endpoint
+        cannot be used to read arbitrary files from the host.
+
+        The response body is buffered, so a capture larger than 64 MiB is refused
+        with `413`; copy those out of the capture directory directly.
+      operationId: getCapture
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: |
+            Bare basename of the capture (must end in `.cap`). Path separators,
+            drive letters, leading separators, `..`, control characters, and
+            quotes are rejected with `400`.
+          schema:
+            type: string
+            pattern: '^[^/\\:]+\.cap$'
+          example: "capture.cap"
+      responses:
+        '200':
+          description: The capture file
+          headers:
+            Content-Disposition:
+              description: Attachment disposition carrying the capture's filename
+              schema:
+                type: string
+                example: 'attachment; filename="capture.cap"'
+            X-Content-Type-Options:
+              description: Always `nosniff`
+              schema:
+                type: string
+                example: "nosniff"
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # Serial recording started at: Sat Aug 29 12:00:00 2026
+                # Format: [timestamp_ms] direction byte|byte|byte|...
+                [       142] R 0x10|0x02|0x50|0x14|0x76|0x10|0x03
+        '400':
+          description: |
+            The filename is not a bare `*.cap` basename (path separator, drive
+            letter, leading separator, `..`, control character, quote, or wrong
+            extension).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "'filename' must be a bare *.cap name with no path separators or '..'"
+                code: "capture_filename_invalid"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No capture of that name exists in the capture directory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "No such capture"
+                code: "capture_not_found"
+        '405':
+          description: HTTP method not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Method not allowed. Use GET."
+        '413':
+          description: The capture is larger than the 64 MiB download limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "The capture is too large to download; copy it from the capture directory instead"
+                code: "capture_too_large"
+                params:
+                  limit_bytes: 67108864
+        '500':
+          description: The capture exists but could not be read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: "Could not read the capture"
+                code: "capture_read_failed"
 
 components:
   schemas:
@@ -3070,8 +3230,26 @@ components:
                   nullable: true
                   minimum: 0
                   maximum: 100
-                  description: Chlorinator generating output percentage (0-100)
+                  description: >-
+                    Instantaneous chlorinator output percentage (0-100). This is 0 whenever the cell
+                    is idle, which on its own cannot distinguish a chlorinator that is switched off
+                    from one that is configured and healthy but has no flow - see generating_reason.
                   example: 50
+                generating_reason:
+                  type: string
+                  description: >-
+                    Why the cell is at its current output. Derived server-side from the instantaneous
+                    output, the configured setpoint, the cell health and whether a filter pump is
+                    running, so the web UI, MQTT and Home Assistant all report the same state.
+                  enum:
+                    - Generating       # producing chlorine
+                    - 'Off'            # configured output is 0% - deliberately turned off
+                    - PumpOff          # configured to produce, but no filter pump is running
+                    - NoFlow           # configured to produce and a pump is running, but the cell reports no flow
+                    - Fault            # configured to produce but the cell is in a warning/error state
+                    - Idle             # configured to produce and not generating, with no reason we can name
+                    - Unknown          # not enough information yet (no output and no setpoint reported)
+                  example: PumpOff
                 duty_cycle:
                   type: integer
                   nullable: true
@@ -3506,6 +3684,38 @@ components:
           type: string
           enum: [stop]
           description: Stop the active capture
+
+    CaptureList:
+      type: object
+      required:
+        - captures
+      properties:
+        captures:
+          type: array
+          description: The captures in the server's capture directory, newest first
+          items:
+            $ref: '#/components/schemas/CaptureFile'
+
+    CaptureFile:
+      type: object
+      required:
+        - name
+        - bytes
+        - modified
+      properties:
+        name:
+          type: string
+          description: Bare basename of the capture. The server-side directory is never disclosed.
+          example: "capture.cap"
+        bytes:
+          type: integer
+          description: Size of the capture file in bytes
+          example: 20480
+        modified:
+          type: integer
+          format: int64
+          description: Last-write time, in seconds since the Unix epoch
+          example: 1756425600
 
     EmulatedDeviceDiagnostics:
       type: object

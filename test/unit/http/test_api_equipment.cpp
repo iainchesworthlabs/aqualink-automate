@@ -272,6 +272,62 @@ BOOST_AUTO_TEST_CASE(Test_HttpRoutes_ApiEquipment_ChemistryNestedShape_WithChlor
 	BOOST_CHECK_EQUAL(50, chlorinator["spa_setpoint_percent"]);
 	BOOST_REQUIRE(chlorinator.contains("setpoint_percent"));
 	BOOST_CHECK_EQUAL(45, chlorinator["setpoint_percent"]);
+
+	// The cell is producing, so the reason says so rather than leaving the reader to infer
+	// it from the percentage.
+	BOOST_REQUIRE(chlorinator.contains("generating_reason"));
+	BOOST_CHECK_EQUAL("Generating", chlorinator["generating_reason"]);
+}
+
+//-----------------------------------------------------------------------------
+// REGRESSION: a chlorinator reporting 0% output must say WHY.
+//
+// The instantaneous output is 0 whenever the cell is idle, so on its own it reads
+// as "the chlorinator is off or broken" even when it is configured, healthy, and
+// simply waiting for the filter pump -- which is the normal state for most of the
+// day. generating_reason is what separates those cases, and it is derived
+// server-side so the web UI, MQTT and Home Assistant cannot disagree.
+//-----------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(Test_HttpRoutes_ApiEquipment_ChlorinatorIdle_ReportsPumpOffReason)
+{
+	using namespace Kernel::AuxillaryTraitsTypes;
+
+	HTTP::Routing::Clear();
+
+	{
+		auto chlorinator = std::make_shared<Kernel::AuxillaryDevice>();
+		chlorinator->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Chlorinator);
+		chlorinator->AuxillaryTraits.Set(LabelTrait{}, std::string{ "AquaPure" });
+		chlorinator->AuxillaryTraits.Set(GeneratingPercentageTrait{}, static_cast<uint8_t>(0));
+		chlorinator->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(45));
+		chlorinator->AuxillaryTraits.Set(ChlorinatorStatusTrait{}, Kernel::ChlorinatorStatuses::On);
+		chlorinator->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Ok);
+		DataHub().Devices.Add(std::move(chlorinator));
+
+		// A filter pump that is NOT running -- the reason the cell is idle.
+		auto pump = std::make_shared<Kernel::AuxillaryDevice>();
+		pump->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Pump);
+		pump->AuxillaryTraits.Set(PumpTypeTrait{}, Kernel::PumpTypes::FilterCirculation);
+		pump->AuxillaryTraits.Set(LabelTrait{}, std::string{ "Filter Pump" });
+		pump->AuxillaryTraits.Set(PumpStatusTrait{}, Kernel::PumpStatuses::Off);
+		DataHub().Devices.Add(std::move(pump));
+	}
+
+	auto route = std::make_unique<HTTP::WebRoute_Equipment>(*this);
+	const auto route_url = route->Route();
+	HTTP::Routing::Add(std::move(route));
+
+	const auto json_response = nlohmann::json::parse(Test::PerformHttpRequestResponse(route_url).body());
+	const auto& chlorinator = json_response["chemistry"]["chlorinator"];
+	BOOST_REQUIRE(!chlorinator.is_null());
+
+	// Output is 0 (correct) -- and the payload now explains it rather than leaving "0%" to
+	// be read as a fault. The configured target is still reported, so the UI can show what
+	// the cell WILL produce once there is flow.
+	BOOST_CHECK_EQUAL(0, chlorinator["generating_percent"]);
+	BOOST_REQUIRE(chlorinator.contains("generating_reason"));
+	BOOST_CHECK_EQUAL("PumpOff", chlorinator["generating_reason"]);
+	BOOST_CHECK_EQUAL(45, chlorinator["setpoint_percent"]);
 }
 
 // When no menu scrape has populated a Pool/Spa setpoint, the headline setpoint_percent falls

@@ -32,6 +32,24 @@ args=("--address" "0.0.0.0" "--http-port" "8099" "--disable-https")
 args+=("--preferences-file" "${DATA}/preferences.json")
 args+=("--equipment-cache-file" "${DATA}/equipment-cache.json")
 
+# ── Serial captures (always under app_config; not surfaced in the form) ────────
+# On-demand RS-485 captures (started from the web UI's Diagnostics page) default to
+# <cwd>/captures INSIDE the container — persisted nowhere and reachable only with a
+# Docker shell, which is exactly the workflow that most needs the file afterwards.
+# Point them at the add-on's own app_config map instead: it is read-write, survives
+# restarts and add-on updates, AND is user-browsable on the host at
+# /app_configs/aqualink_automate/captures (/addon_configs/... before Supervisor
+# 2026.07) via the Samba or File editor add-ons. Deliberately NOT /share: that is a
+# cross-add-on area and would mean asking for a broader mapping than this needs.
+# The Diagnostics page can also download a capture directly, so neither path needs
+# a shell.
+readonly CAPTURES=/config/captures
+# Pre-create it purely so the folder is visible in the share before the first
+# recording; the app creates it on demand anyway. Non-fatal on purpose -- `set -e`
+# would otherwise turn an unwritable /config into a total start-up failure.
+mkdir -p "${CAPTURES}" || bashio::log.warning "Could not pre-create ${CAPTURES}; it will be created when you start a recording."
+args+=("--capture-directory" "${CAPTURES}")
+
 # ── Serial protocol (one explicit choice: usb / rfc2217 / rawtcp) ───────────────
 # serial_protocol picks local (--serial-port) vs a network serial-to-ethernet adapter
 # (--remote-serial-port + the transport flag); serial_port is the device path or

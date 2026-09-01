@@ -5,6 +5,7 @@
 #include "logging/logging.h"
 #include "auxillaries/jandy_auxillary_id.h"
 #include "auxillaries/jandy_auxillary_reconciliation.h"
+#include "auxillaries/jandy_auxillary_span.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "devices/serial_adapter_device.h"
 #include "factories/jandy_auxillary_factory.h"
@@ -93,6 +94,24 @@ namespace AqualinkAutomate::Devices
 	void SerialAdapterDevice::Command_SerialAdapter_AuxillaryStatus(const Auxillaries::JandyAuxillaryIds& aux_id, const Auxillaries::JandyAuxillaryStatuses& status)
 	{
 		std::shared_ptr<Kernel::AuxillaryDevice> aux_ptr(nullptr);
+
+		//
+		// A reply about an aux the detected panel model cannot have is not evidence that the
+		// relay exists -- it is the answer to a question we should not have asked. Creating a
+		// device from one is what produced generically-labelled phantoms ("Aux B1", "Extra
+		// Aux") on panels with a single power centre. Drop it: neither create nor update.
+		//
+
+		if (nullptr == JandyController::m_DataHub)
+		{
+			return;
+		}
+
+		if (const auto span = Auxillaries::AuxillaryModelSpan::FromDataHub(*JandyController::m_DataHub); !span.Contains(aux_id))
+		{
+			LogDebug(Channel::Devices, std::format("Ignoring auxillary status for {}; the detected panel model has no such relay", magic_enum::enum_name(aux_id)));
+			return;
+		}
 
 		//
 		// Find (or create) a device that matches this auxillary, reconciling by the stable id

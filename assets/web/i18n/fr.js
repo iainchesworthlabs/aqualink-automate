@@ -69,6 +69,17 @@
         'swg_health.check_pcb': 'Vérifier le PCB',
         'swg_health.general_fault': 'Défaut général',
 
+        // Chlorinator output state (ChlorinatorGeneratingReason): WHY the cell is at its
+        // current output. Shown under the SWG reading, where a bare "0%" cannot say whether
+        // the chlorinator is switched off or simply waiting for the filter pump.
+        'swg_reason.generating': 'En production',
+        'swg_reason.off': 'Éteint',
+        'swg_reason.pump_off': 'Allumé, sans production — pompe de filtration arrêtée',
+        'swg_reason.no_flow': 'Allumé, sans production — aucun débit d\'eau',
+        'swg_reason.fault': 'Pas de production — vérifiez la cellule',
+        'swg_reason.idle': 'Allumé, sans production',
+        'swg_reason.unknown': 'Consigne pas encore signalée',
+
         // ---- Command feedback badges -----------------------------------------
         'cmd.applied': 'Appliqué',
         'cmd.rejected': 'Rejeté',
@@ -144,6 +155,7 @@
         'dash.swg_aria': 'Production du chlorateur et réglage de la cible',
         'dash.target': 'Cible',
         'dash.target_aria': 'Pourcentage de production cible',
+        'dash.target_body_aria': 'Consigne de production du chlorateur pour {body}',
         'dash.set': 'Régler',
         'dash.boost': 'Boost',
         'dash.heater': 'Réchauffeur',
@@ -296,6 +308,11 @@
         'diag.capture_file_aria': 'Nom du fichier de capture',
         'diag.bytes_written': 'Octets écrits',
         'diag.rec_hint_html': 'L’enregistrement est au format rejouable de l’enregistreur et peut être déposé directement dans <code>test/fixtures/</code>.',
+        'diag.saved_captures': 'Enregistrements sauvegardés',
+        'diag.no_captures': 'Aucun enregistrement pour le moment.',
+        'diag.refresh': 'Actualiser',
+        'diag.download': 'Télécharger',
+        'diag.download_capture_aria': 'Télécharger {name}',
         'diag.stats_ws': 'WebSocket de statistiques :',
         'diag.observed_button_mapping': 'Affectation des touches observée',
         'diag.indicators': 'Indicateurs',
@@ -610,6 +627,7 @@
         'toast.recording_start_failed': 'Échec du démarrage de l’enregistrement',
         'toast.recording_stopped': 'Enregistrement série arrêté',
         'toast.recording_stop_failed': 'Échec de l’arrêt de l’enregistrement',
+        'toast.capture_download_failed': 'Échec du téléchargement de l’enregistrement',
         'toast.profiling_resumed': 'Profilage repris',
         'toast.profiling_resume_failed': 'Échec de la reprise du profilage',
         'toast.profiling_paused': 'Profilage suspendu',
@@ -639,6 +657,10 @@
         'error.recording_start_failed': 'Impossible de démarrer l’enregistrement : déjà en cours ou fichier impossible à ouvrir.',
         'error.recording_not_recording': 'Aucun enregistrement en cours.',
         'error.recording_invalid_action': "'action' doit être 'start' ou 'stop'.",
+        'error.capture_filename_invalid': 'Le nom de l’enregistrement doit être un simple nom *.cap sans séparateur de chemin.',
+        'error.capture_not_found': 'Cet enregistrement n’existe plus sur le serveur.',
+        'error.capture_too_large': 'L’enregistrement est trop volumineux pour être téléchargé ; copiez-le depuis le répertoire des enregistrements.',
+        'error.capture_read_failed': 'L’enregistrement n’a pas pu être lu.',
         'error.spaside_unavailable': 'La commande de la télécommande côté spa n’est pas disponible dans ce mode.',
         'error.spaside_action_required': "La requête doit contenir une 'action' parmi 'press' ou 'assign'.",
         'error.spaside_press_requires_address': "'press' nécessite une 'address'.",

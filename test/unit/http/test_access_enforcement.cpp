@@ -8,7 +8,9 @@
 
 #include "http/webroute_auth_check.h"
 #include "http/webroute_auth_me.h"
+#include "http/capture_directory.h"
 #include "http/webroute_diagnostics_actualdevices.h"
+#include "http/webroute_diagnostics_captures.h"
 #include "http/webroute_diagnostics_devices.h"
 #include "http/webroute_diagnostics_logging.h"
 #include "http/webroute_diagnostics_matter.h"
@@ -87,7 +89,9 @@ BOOST_AUTO_TEST_CASE(Test_Enforcement_EveryGatedRouteDeclaresAccess)
 	CheckDeclared(HTTP::WebRoute_Diagnostics_Mqtt{ hub_locator });
 	CheckDeclared(HTTP::WebRoute_Diagnostics_Options{});
 	CheckDeclared(HTTP::WebRoute_Diagnostics_Profiling{ hub_locator });
-	CheckDeclared(HTTP::WebRoute_Diagnostics_Recording{ hub_locator });
+	CheckDeclared(HTTP::WebRoute_Diagnostics_Recording{ hub_locator, HTTP::CaptureDirectory{ "captures" } });
+	CheckDeclared(HTTP::WebRoute_Diagnostics_Captures{ HTTP::CaptureDirectory{ "captures" } });
+	CheckDeclared(HTTP::WebRoute_Diagnostics_Capture{ HTTP::CaptureDirectory{ "captures" } });
 	CheckDeclared(HTTP::WebRoute_Equipment{ hub_locator });
 	CheckDeclared(HTTP::WebRoute_Equipment_Button{ hub_locator });
 	CheckDeclared(HTTP::WebRoute_Equipment_Buttons{ hub_locator });
