@@ -383,7 +383,7 @@ jobs:
               apt-get update -qq
               apt-get install -y -qq --no-install-recommends \
                 ninja-build git ca-certificates curl zip unzip tar make \
-                autoconf autoconf-archive automake libtool pkg-config python3 \
+                autoconf autoconf-archive automake libtool libtool-bin pkg-config python3 \
                 binutils file rpm fakeroot >/dev/null
               ARCH=$(uname -m)
               curl -fsSL "https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-linux-${ARCH}.tar.gz" | tar xz -C /opt
