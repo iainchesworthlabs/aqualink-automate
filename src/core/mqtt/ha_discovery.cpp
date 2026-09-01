@@ -722,12 +722,16 @@ namespace AqualinkAutomate::Mqtt
 		// chlorinator that has been switched off from one that is configured and healthy but
 		// waiting on the filter pump. `setpoint_percent` is the configured target it is
 		// waiting to produce, which "Generating %" (instantaneous) never shows while idle.
-		static constexpr std::array<ChlorinatorSensor, 5> sensors = {{
-			{ "generating", "Generating %",  "{{ value_json.generating_percentage }}", "%", true },
-			{ "setpoint",   "Target %",      "{{ value_json.setpoint_percent }}",      "%", true },
-			{ "reason",     "Output State",  "{{ value_json.generating_reason }}",     nullptr, false },
-			{ "boost",      "Boost Mode",    "{{ value_json.boost_mode }}",            nullptr, false },
-			{ "health",     "Health",        "{{ value_json.chlorinator_health }}",    nullptr, false },
+		// "health_flags" shows every simultaneously-active health flag (the wire status
+		// byte is a true bitfield), comma-joined since HA sensor states are scalar text;
+		// "health" above stays the single worst-of-the-set value.
+		static constexpr std::array<ChlorinatorSensor, 6> sensors = {{
+			{ "generating",   "Generating %",     "{{ value_json.generating_percentage }}", "%", true },
+			{ "setpoint",     "Target %",         "{{ value_json.setpoint_percent }}",      "%", true },
+			{ "reason",       "Output State",     "{{ value_json.generating_reason }}",     nullptr, false },
+			{ "boost",        "Boost Mode",       "{{ value_json.boost_mode }}",            nullptr, false },
+			{ "health",       "Health",           "{{ value_json.chlorinator_health }}",    nullptr, false },
+			{ "health_flags", "Active Warnings",  "{{ value_json.chlorinator_health_flags | join(', ') }}", nullptr, false },
 		}};
 
 		for (const auto& sensor : sensors)

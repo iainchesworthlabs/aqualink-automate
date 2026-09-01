@@ -94,6 +94,17 @@ function chlorinatorControl() {
             return Alpine.store('pool').chlorinatorHealthLabel;
         },
 
+        // Every OTHER active health flag, translated, for a secondary "also:" list under
+        // the primary badge above. Empty unless the cell is reporting more than one flag
+        // at once (the wire status byte is a true bitfield).
+        get secondaryHealthLabels() {
+            const pool = Alpine.store('pool');
+            const all = pool.chlorinatorHealthFlags;
+            if (!Array.isArray(all) || all.length <= 1) { return []; }
+            const primary = pool.chlorinatorHealth;
+            return pool.chlorinatorHealthFlagsLabels.filter((_, i) => all[i] !== primary);
+        },
+
         init() {
             // Track the live CONFIGURED setpoint into the target slider until the user grabs
             // it. The setpoint usually arrives on a poll AFTER this mounts, and can update

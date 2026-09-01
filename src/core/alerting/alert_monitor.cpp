@@ -4,8 +4,10 @@
 #include <exception>
 #include <format>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -72,6 +74,22 @@ namespace AqualinkAutomate::Alerting
 			case Warning_LowTemperature: return "Low temperature";
 			default:                     return std::nullopt;
 			}
+		}
+
+		// Joins matched-condition labels for the alert detail text, e.g. "Low salt, High
+		// current" when the wire status byte reports more than one warning at once.
+		std::string JoinWithComma(const std::vector<std::string_view>& parts)
+		{
+			std::string joined;
+			for (std::size_t i = 0; i < parts.size(); ++i)
+			{
+				if (i > 0)
+				{
+					joined += ", ";
+				}
+				joined += parts[i];
+			}
+			return joined;
 		}
 
 		std::uint64_t TotalMessageCount(const Kernel::StatisticsHub& stats)
@@ -268,20 +286,44 @@ namespace AqualinkAutomate::Alerting
 			return;
 		}
 
-		auto health = chlorinators.front()->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthTrait{});
-		std::optional<std::string_view> warning;
-		if (health.has_value())
+		// The wire status byte is a true bitfield, so more than one warning can be active
+		// simultaneously (e.g. low salt and high current together). Collect every
+		// currently-active flag that is a warning, rather than checking a single value.
+		auto flags = chlorinators.front()->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthFlagsTrait{});
+		std::vector<std::string_view> labels;
+		nlohmann::json matched_flags = nlohmann::json::array();
+		if (flags.has_value())
 		{
-			warning = ChlorinatorWarningLabel(health.value());
+			for (const auto flag : flags.value())
+			{
+				if (auto label = ChlorinatorWarningLabel(flag); label.has_value())
+				{
+					labels.push_back(label.value());
+					matched_flags.push_back(std::string(magic_enum::enum_name(flag)));
+				}
+			}
 		}
 
-		// Raise while the cell is reporting any warning, naming the specific one
-		// in the detail so the log line / UI toast is actionable.  The health trait
-		// is dwell-smoothed at the device layer, so this does not flap when the
+		const bool warning = !labels.empty();
+
+		nlohmann::json params = nlohmann::json::object();
+		if (warning)
+		{
+			// "health" names the first matched warning (std::set iteration is a stable
+			// enum-declaration order), so it always agrees with the detail text below -
+			// even when a fault is ALSO active simultaneously and would otherwise be a
+			// more "severe" but unrelated value here. "health_flags" carries every one.
+			params["health"] = matched_flags.front();
+			params["health_flags"] = matched_flags;
+		}
+
+		// Raise while the cell is reporting any warning, naming every active one in the
+		// detail so the log line / UI toast is actionable.  The health traits are
+		// dwell-smoothed together at the device layer, so this does not flap when the
 		// cell sits on a boundary.
-		SetCondition(ConditionKeys::ChlorinatorWarning, warning.has_value(),
-			warning.has_value() ? std::format("Chlorinator warning: {}", warning.value()) : "Chlorinator health OK",
-			warning.has_value() ? nlohmann::json{ { "health", magic_enum::enum_name(health.value()) } } : nlohmann::json::object());
+		SetCondition(ConditionKeys::ChlorinatorWarning, warning,
+			warning ? std::format("Chlorinator warning: {}", JoinWithComma(labels)) : "Chlorinator health OK",
+			params);
 	}
 
 	void AlertMonitor::EvaluateChlorinatorFault()
@@ -299,12 +341,36 @@ namespace AqualinkAutomate::Alerting
 			return;
 		}
 
-		auto health = chlorinators.front()->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthTrait{});
-		const bool fault = health.has_value() && IsChlorinatorFault(health.value());
+		// As above: the wire status byte is a true bitfield, so a hard fault can be active
+		// alongside one or more warnings (e.g. a check-PCB fault and a low-salt warning at
+		// once) - collect every currently-active flag that is a hard fault.
+		auto flags = chlorinators.front()->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthFlagsTrait{});
+		std::vector<std::string_view> labels;
+		nlohmann::json matched_flags = nlohmann::json::array();
+		if (flags.has_value())
+		{
+			for (const auto flag : flags.value())
+			{
+				if (IsChlorinatorFault(flag))
+				{
+					labels.push_back(ChlorinatorFaultLabel(flag));
+					matched_flags.push_back(std::string(magic_enum::enum_name(flag)));
+				}
+			}
+		}
+
+		const bool fault = !labels.empty();
+
+		nlohmann::json params = nlohmann::json::object();
+		if (fault)
+		{
+			params["health"] = matched_flags.front();
+			params["health_flags"] = matched_flags;
+		}
 
 		SetCondition(ConditionKeys::ChlorinatorFault, fault,
-			fault ? std::format("Chlorinator fault: {}", ChlorinatorFaultLabel(health.value())) : "Chlorinator health OK",
-			fault ? nlohmann::json{ { "health", magic_enum::enum_name(health.value()) } } : nlohmann::json::object());
+			fault ? std::format("Chlorinator fault: {}", JoinWithComma(labels)) : "Chlorinator health OK",
+			params);
 	}
 
 	void AlertMonitor::EvaluateServiceMode()

@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -47,6 +49,18 @@ namespace
 		}
 	};
 
+	// The evaluators read ChlorinatorHealthFlagsTrait (the wire status byte is a true
+	// bitfield, so more than one flag can be active at once); ChlorinatorHealthTrait
+	// remains the single worst-of-the-set value. Tests that only care about a single
+	// flag being active set both traits to the same one-element state via this helper,
+	// so the two can never (accidentally) disagree.
+	void SetHealth(const std::shared_ptr<Kernel::AuxillaryDevice>& chlor, Kernel::ChlorinatorHealth health)
+	{
+		using namespace Kernel::AuxillaryTraitsTypes;
+		chlor->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, health);
+		chlor->AuxillaryTraits.Set(ChlorinatorHealthFlagsTrait{}, std::set<Kernel::ChlorinatorHealth>{ health });
+	}
+
 	std::shared_ptr<Kernel::AuxillaryDevice> MakeChlorinator(Kernel::ChlorinatorHealth health)
 	{
 		using namespace Kernel::AuxillaryTraitsTypes;
@@ -54,7 +68,7 @@ namespace
 		chlor->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Chlorinator);
 		chlor->AuxillaryTraits.Set(LabelTrait{}, std::string{ "AquaPure" });
 		chlor->AuxillaryTraits.Set(ChlorinatorStatusTrait{}, Kernel::ChlorinatorStatuses::On);
-		chlor->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, health);
+		SetHealth(chlor, health);
 		return chlor;
 	}
 }
@@ -138,12 +152,12 @@ BOOST_AUTO_TEST_CASE(ChlorinatorFault_RaisesOnGeneralFault_ClearsOnOk)
 	monitor.EvaluateChlorinatorFault();
 	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorFault));
 
-	chlor->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::GeneralFault);
+	SetHealth(chlor, Kernel::ChlorinatorHealth::GeneralFault);
 	monitor.EvaluateChlorinatorFault();
 	BOOST_CHECK(monitor.IsRaised(ConditionKeys::ChlorinatorFault));
 	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorFault), 1u);
 
-	chlor->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Ok);
+	SetHealth(chlor, Kernel::ChlorinatorHealth::Ok);
 	monitor.EvaluateChlorinatorFault();
 	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorFault));
 	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorFault), 2u);
@@ -169,7 +183,7 @@ BOOST_AUTO_TEST_CASE(ChlorinatorWarning_RaisesOnWarning_NamesIt_ClearsOnOk)
 	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
 
 	// A No-Flow warning (NOT low salt) must still be surfaced and named.
-	chlor->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Warning_NoFlow);
+	SetHealth(chlor, Kernel::ChlorinatorHealth::Warning_NoFlow);
 	monitor.EvaluateChlorinatorWarning();
 	monitor.EvaluateChlorinatorFault();
 	BOOST_CHECK(monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
@@ -181,7 +195,7 @@ BOOST_AUTO_TEST_CASE(ChlorinatorWarning_RaisesOnWarning_NamesIt_ClearsOnOk)
 	BOOST_CHECK_EQUAL("Warning_NoFlow", rec.transitions.back().params.at("health").get<std::string>());
 
 	// Recovery clears it.
-	chlor->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Ok);
+	SetHealth(chlor, Kernel::ChlorinatorHealth::Ok);
 	monitor.EvaluateChlorinatorWarning();
 	BOOST_CHECK(!monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
 	BOOST_CHECK_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorWarning), 2u);
@@ -247,6 +261,52 @@ BOOST_AUTO_TEST_CASE(ChlorinatorWarning_NamesEveryCatalogWarning)
 		// next case evaluates ITS chlorinator alone rather than the first-added one.
 		data_hub->Devices.Remove(chlor);
 	}
+}
+
+// The wire status byte is a true bitfield, so a hard fault and a warning can be
+// active simultaneously (e.g. a check-PCB fault reported alongside a low-salt
+// warning). Both conditions must raise at once - previously impossible, since both
+// evaluators read the same single ChlorinatorHealthTrait value and could therefore
+// only ever match one predicate per poll.
+BOOST_AUTO_TEST_CASE(ChlorinatorWarningAndFault_BothRaiseSimultaneously)
+{
+	boost::asio::io_context io;
+	Options::Alerting::AlertingSettings settings;
+
+	AlertMonitor monitor(io, *this, settings);
+	SinkRecorder rec;
+	monitor.AddSink(rec.AsSink());
+
+	auto data_hub = Find<Kernel::DataHub>();
+	auto chlor = MakeChlorinator(Kernel::ChlorinatorHealth::Ok);
+	data_hub->Devices.Add(chlor);
+
+	// Wire byte 0x82 = Warning_LowSalt | Error_CheckPCB.
+	using namespace Kernel::AuxillaryTraitsTypes;
+	chlor->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Error_CheckPCB);
+	chlor->AuxillaryTraits.Set(ChlorinatorHealthFlagsTrait{}, std::set<Kernel::ChlorinatorHealth>{
+		Kernel::ChlorinatorHealth::Warning_LowSalt, Kernel::ChlorinatorHealth::Error_CheckPCB });
+
+	monitor.EvaluateChlorinatorWarning();
+	monitor.EvaluateChlorinatorFault();
+
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::ChlorinatorWarning));
+	BOOST_CHECK(monitor.IsRaised(ConditionKeys::ChlorinatorFault));
+
+	BOOST_REQUIRE_EQUAL(rec.CountFor(ConditionKeys::ChlorinatorWarning), 1u);
+	BOOST_CHECK(rec.transitions.back().detail.find("Check PCB") != std::string::npos);
+
+	// Each condition's params.health names the flag relevant to THAT condition (not
+	// the other one), so a warning's params never point at an unrelated fault name.
+	auto warning_transition = std::find_if(rec.transitions.begin(), rec.transitions.end(),
+		[](const AlertTransition& t) { return t.condition == ConditionKeys::ChlorinatorWarning; });
+	BOOST_REQUIRE(warning_transition != rec.transitions.end());
+	BOOST_CHECK_EQUAL("Warning_LowSalt", warning_transition->params.at("health").get<std::string>());
+
+	auto fault_transition = std::find_if(rec.transitions.begin(), rec.transitions.end(),
+		[](const AlertTransition& t) { return t.condition == ConditionKeys::ChlorinatorFault; });
+	BOOST_REQUIRE(fault_transition != rec.transitions.end());
+	BOOST_CHECK_EQUAL("Error_CheckPCB", fault_transition->params.at("health").get<std::string>());
 }
 
 // Start() is idempotent: a second call while already running is a no-op (does not

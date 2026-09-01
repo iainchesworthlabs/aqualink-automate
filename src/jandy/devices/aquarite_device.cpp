@@ -4,7 +4,9 @@
 #include <format>
 #include <functional>
 #include <optional>
+#include <set>
 #include <source_location>
+#include <span>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -50,6 +52,47 @@ namespace AqualinkAutomate::Devices
 		constexpr bool IsConcerningHealth(Kernel::ChlorinatorHealth health)
 		{
 			return !(health == Kernel::ChlorinatorHealth::Ok || health == Kernel::ChlorinatorHealth::TurningOff);
+		}
+
+		// Severity ranking used to pick a single "worst" flag out of a status byte that
+		// decomposed into more than one simultaneous AquariteStatuses flag (see
+		// AquariteMessage_PPM::StatusFlags). Electrical/hardware-safety flags outrank
+		// chemistry flags, which outrank routine-maintenance flags. The sentinels
+		// (On/Off/TurningOff/Unknown) never co-occur with anything else, so their
+		// relative rank is irrelevant; they are ranked last for completeness.
+		constexpr int SeverityRank(Messages::AquariteStatuses status)
+		{
+			switch (status)
+			{
+			case Messages::AquariteStatuses::Error_CheckPCB:         return 0;
+			case Messages::AquariteStatuses::GeneralFault:           return 1;
+			case Messages::AquariteStatuses::Warning_HighCurrent:    return 2;
+			case Messages::AquariteStatuses::Warning_LowVoltage:     return 3;
+			case Messages::AquariteStatuses::Warning_NoFlow:         return 4;
+			case Messages::AquariteStatuses::Warning_HighSalt:       return 5;
+			case Messages::AquariteStatuses::Warning_LowSalt:        return 6;
+			case Messages::AquariteStatuses::Warning_CleanCell:      return 7;
+			case Messages::AquariteStatuses::Warning_LowTemperature: return 8;
+			case Messages::AquariteStatuses::TurningOff:             return 9;
+			case Messages::AquariteStatuses::On:                     return 10;
+			case Messages::AquariteStatuses::Off:                    return 10;
+			case Messages::AquariteStatuses::Unknown:                [[fallthrough]];
+			default:                                                 return 11;
+			}
+		}
+
+		// Picks the single worst-of-the-set flag, for consumers that only display one
+		// value (the primary health badge, the MQTT sensor, alert params.health). Never
+		// empty in practice - AquariteMessage_PPM::StatusFlags() always yields at least
+		// one element - but defends an empty span rather than dereferencing end().
+		constexpr Messages::AquariteStatuses WorstOf(std::span<const Messages::AquariteStatuses> flags)
+		{
+			if (flags.empty())
+			{
+				return Messages::AquariteStatuses::Unknown;
+			}
+
+			return *std::ranges::min_element(flags, {}, SeverityRank);
 		}
 	}
 	// namespace
@@ -110,6 +153,7 @@ namespace AqualinkAutomate::Devices
 			const auto& device = chlorinators.front();
 			device->AuxillaryTraits.Set(ChlorinatorStatusTrait{}, Kernel::ChlorinatorStatuses::Off);
 			device->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, Kernel::ChlorinatorHealth::Unknown);
+			device->AuxillaryTraits.Set(ChlorinatorHealthFlagsTrait{}, std::set<Kernel::ChlorinatorHealth>{ Kernel::ChlorinatorHealth::Unknown });
 		}
 	}
 
@@ -340,12 +384,29 @@ namespace AqualinkAutomate::Devices
 
 		auto& device = chlorinators.front();
 
-		// Apply the asymmetric dwell and only write the health trait on a real
+		// The wire status byte is a true bitfield: StatusFlags() decomposes it into every
+		// simultaneously-active flag (usually just one). WorstOf picks the single worst
+		// flag for the dwell/primary-health pipeline, so a combined byte (e.g.
+		// Warning_LowSalt|Warning_HighSalt) now resolves to a real health instead of
+		// falling back to Unknown.
+		const auto status_flags = msg.StatusFlags();
+
+		// Apply the asymmetric dwell and only write the health traits on a real
 		// (dwelled) transition, so the indicator stops flapping between OK and a
-		// momentary warning when the cell sits on its low-salt boundary.
-		if (auto displayed = DwellChlorinatorHealth(ConvertToChlorinatorHealthStatus(msg.Status())); displayed.has_value())
+		// momentary warning when the cell sits on its low-salt boundary. Both the
+		// primary (worst) health and the full flag set are written together, from the
+		// SAME dwell-confirmed frame, so a consumer reading both can never observe them
+		// disagreeing mid-flap.
+		if (auto displayed = DwellChlorinatorHealth(ConvertToChlorinatorHealthStatus(WorstOf(status_flags))); displayed.has_value())
 		{
 			device->AuxillaryTraits.Set(ChlorinatorHealthTrait{}, displayed.value());
+
+			std::set<Kernel::ChlorinatorHealth> flags;
+			for (const auto flag : status_flags)
+			{
+				flags.insert(ConvertToChlorinatorHealthStatus(flag));
+			}
+			device->AuxillaryTraits.Set(ChlorinatorHealthFlagsTrait{}, std::move(flags));
 		}
 
 		// Operating status (On/Off) follows the raw wire status directly: it is a

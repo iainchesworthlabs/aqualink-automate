@@ -7,8 +7,10 @@
 #include <boost/test/unit_test.hpp>
 
 #include "jandy/generator/jandy_message_generator.h"
+#include "jandy/generator/jandy_message_generator_packetvalidation.h"
 #include "jandy/messages/jandy_message_ack.h"
 #include "jandy/messages/jandy_message_constants.h"
+#include "jandy/messages/jandy_message_message_long.h"
 #include "jandy/messages/jandy_message_status.h"
 #include "jandy/types/jandy_types.h"
 #include "jandy/utility/jandy_null_handler.h"
@@ -246,6 +248,110 @@ BOOST_AUTO_TEST_CASE(MessageGenerator_DleValuedDestination_TypedByRealCommandNot
 	auto* status = dynamic_cast<JandyMessage_Status*>(base_msg.get());
 	BOOST_REQUIRE_MESSAGE(nullptr != status, "frame to DLE-valued destination 0x10 was mis-typed (expected Status)");
 	BOOST_CHECK_EQUAL(static_cast<unsigned>(status->Destination().Id()()), 0x10u);
+}
+
+// ---------------------------------------------------------------------------
+// 5. Regression: the CHECKSUM byte itself can equal 0x10 (DLE). Real Jandy
+//    hardware DLE-stuffs it exactly like any other content byte -- {0x10, 0x00}
+//    takes the place of the single checksum byte, one position earlier than the
+//    usual 3-byte footer. PacketValidation_ChecksumIsValid() runs on the raw,
+//    still-stuffed wire bytes (de-stuffing happens later); previously it always
+//    assumed the checksum sat exactly 3 bytes from the end, so a stuffed checksum
+//    byte was misread as the stuffing pad (0x00) and the true checksum byte got
+//    folded into the summed region a second time -- always doubling the
+//    calculated value and rejecting an otherwise perfectly valid frame. This is
+//    the exact bug that silently dropped real OneTouch clock/display updates
+//    (MessageLong / 0x04, LineId 3) captured from the user's own panel in
+//    test/fixtures/iaq_onetouch_startup.cap and test/fixtures/onetouch_chlorinator.cap.
+// ---------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(PacketValidation_ChecksumByteEqualsDle_IsStuffedAndValidates)
+{
+	// dest=0x00, type=Ack(0x01), AckType=0x00, Command=0xFD:
+	// checksum = (0x10+0x02+0x00+0x01+0x00+0xFD) & 0xFF = 0x110 & 0xFF = 0x10.
+	// The checksum byte, being 0x10, is DLE-stuffed on the wire: {0x10, 0x00}
+	// stands in for the single checksum byte, immediately followed by the
+	// unescaped DLE/ETX footer.
+	auto buffer = Test::MakeCircularBuffer<uint8_t>({ 0x10, 0x02, 0x00, 0x01, 0x00, 0xFD, 0x10, 0x00, 0x10, 0x03 });
+
+	BOOST_TEST(Generators::PacketValidation_ChecksumIsValid(buffer.begin(), buffer.end()));
+}
+
+BOOST_AUTO_TEST_CASE(PacketValidation_NonStuffedChecksum_StillValidates)
+{
+	// Same shape, but Command chosen so the checksum is NOT 0x10 -- the ordinary,
+	// non-stuffed 3-byte footer must still validate exactly as before.
+	// checksum = (0x10+0x02+0x00+0x01+0x00+0x02) & 0xFF = 0x15.
+	auto buffer = Test::MakeCircularBuffer<uint8_t>({ 0x10, 0x02, 0x00, 0x01, 0x00, 0x02, 0x15, 0x10, 0x03 });
+
+	BOOST_TEST(Generators::PacketValidation_ChecksumIsValid(buffer.begin(), buffer.end()));
+}
+
+BOOST_AUTO_TEST_CASE(PacketValidation_GenuinelyCorruptedChecksum_StillFails)
+{
+	// A deliberately wrong checksum (0x00 instead of the correct 0x15) that does
+	// NOT take the DLE-stuffed shape must still be rejected.
+	auto buffer = Test::MakeCircularBuffer<uint8_t>({ 0x10, 0x02, 0x00, 0x01, 0x00, 0x02, 0x00, 0x10, 0x03 });
+
+	BOOST_TEST(!Generators::PacketValidation_ChecksumIsValid(buffer.begin(), buffer.end()));
+}
+
+BOOST_AUTO_TEST_CASE(MessageGenerator_DleValuedChecksum_SerializeThenParse_RoundTrips)
+{
+	// Same Ack shape as above (checksum lands on 0x10), but built and parsed through
+	// the real production Serialize()/GenerateMessageFromRawData() stack -- proving
+	// the encoder now escapes ITS OWN checksum byte (previously excluded from the
+	// scan) and that the generator's fixed checksum gatekeeper accepts the result.
+	constexpr uint8_t ack_type_value = 0x00;
+	constexpr uint8_t command_value = 0xFD;
+
+	JandyMessage_Ack tx(static_cast<AckTypes>(ack_type_value), command_value);
+
+	std::vector<uint8_t> wire;
+	BOOST_REQUIRE(tx.Serialize(wire));
+
+	// Neither AckType (0x00) nor Command (0xFD) is 0x10, so the only possible source
+	// of an escape pair on the wire is the checksum byte itself.
+	BOOST_TEST(CountDleNullPairs(wire) >= 1u);
+
+	boost::circular_buffer<uint8_t> buffer(wire.size());
+	buffer.assign(wire.begin(), wire.end());
+
+	auto result = Generators::GenerateMessageFromRawData(buffer);
+	BOOST_REQUIRE(result.has_value());
+
+	auto base_msg = result.value();
+	BOOST_REQUIRE(nullptr != base_msg);
+
+	auto* ack = dynamic_cast<JandyMessage_Ack*>(base_msg.get());
+	BOOST_REQUIRE(nullptr != ack);
+	BOOST_CHECK_EQUAL(static_cast<uint8_t>(ack->AckType()), ack_type_value);
+	BOOST_CHECK_EQUAL(ack->Command(), command_value);
+}
+
+BOOST_AUTO_TEST_CASE(MessageGenerator_RealCapture_OneTouchClockLine_ChecksumByteStuffed)
+{
+	// Captured verbatim from the user's real AquaLink panel
+	// (test/fixtures/iaq_onetouch_startup.cap, lines 1131-1132): a MessageLong (0x04)
+	// "set display line" addressed to the OneTouch (dest 0x41), LineId 3, text
+	// "    11:39 AM    ". Its checksum computes to 0x10 and is DLE-stuffed on the
+	// wire; before this fix the frame was rejected as a checksum failure and
+	// silently dropped, so the OneTouch clock display never updated.
+	auto buffer = Test::MakeCircularBuffer<uint8_t>({
+		0x10, 0x02, 0x41, 0x04, 0x03,
+		0x20, 0x20, 0x20, 0x20, 0x31, 0x31, 0x3a, 0x33, 0x39, 0x20, 0x41, 0x4d, 0x20, 0x20, 0x20, 0x20,
+		0x10, 0x00, 0x10, 0x03
+	});
+
+	auto result = Generators::GenerateMessageFromRawData(buffer);
+	BOOST_REQUIRE(result.has_value());
+
+	auto base_msg = result.value();
+	BOOST_REQUIRE(nullptr != base_msg);
+
+	auto* line = dynamic_cast<JandyMessage_MessageLong*>(base_msg.get());
+	BOOST_REQUIRE_MESSAGE(nullptr != line, "OneTouch clock-line frame with a DLE-stuffed checksum byte was rejected (expected MessageLong)");
+	BOOST_CHECK_EQUAL(static_cast<unsigned>(line->LineId()), 3u);
+	BOOST_CHECK_EQUAL(line->Line(), "    11:39 AM    ");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
