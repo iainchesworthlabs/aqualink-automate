@@ -417,6 +417,9 @@ jobs:
               # 12 GB box.
               export CMAKE_BUILD_PARALLEL_LEVEL=6
               ./deps/vcpkg/bootstrap-vcpkg.sh -disableMetrics >/dev/null
+              echo "::group::full environment before cmake --preset (TEMPORARY DIAGNOSTIC)"
+              env | sort || true
+              echo "::endgroup::"
               if ! cmake --preset "$CONFIGURE_PRESET" -DDERIVED_VERSION_OVERRIDE="$VERSION_OVERRIDE"; then
                 echo "::group::vcpkg aclocal error log (TEMPORARY DIAGNOSTIC)"
                 find deps/vcpkg/buildtrees -iname "aclocal-*-err.log" -o -iname "aclocal-*-out.log" | while read -r f; do
