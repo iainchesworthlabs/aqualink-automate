@@ -133,6 +133,18 @@ elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
     # System installation packages for unix systems
     set(CPACK_GENERATOR "TGZ;DEB;RPM" CACHE STRING "Package targets")
 
+    # Required because install() below writes to an ABSOLUTE destination outside
+    # the package prefix (/etc/aqualink-automate, see below). Without this, CPack's
+    # archive generator (TGZ) installs straight to that literal path on the BUILD
+    # MACHINE while packaging -- DEB/RPM stage through their own tooling regardless,
+    # but TGZ does not unless told to. Observed failing on a build container:
+    # "CMake Error ... file cannot create directory: /etc/aqualink-automate" during
+    # `cpack`, even though the same install() succeeds seconds earlier via
+    # `cmake --install --prefix / ` with an explicit DESTDIR (a fresh, non-system
+    # path). This is CMake's own documented fix for archive generators combined
+    # with absolute-path install() rules.
+    set(CPACK_SET_DESTDIR "ON")
+
     # The dependency libraries — including the C++ runtime above — are bundled
     # privately, so dpkg-shlibdeps must NOT try to resolve them against system
     # packages. The ONLY genuine system runtime dependency is glibc. The version
