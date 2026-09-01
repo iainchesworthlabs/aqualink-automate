@@ -2074,6 +2074,9 @@
 </tbody>
 </table>
 <p>Within an in-progress prerelease line, advancing the counter (<code>-beta.N</code> → <code>-beta.N+1</code>) carries the accumulated changes toward the same target; starting a <strong>new</strong> minor line is the human "the release line advances" decision the suggester surfaces but never makes for you. (<code>1.0.0</code> is reserved for the first stable, so breaking changes bump the minor until then.)</p>
+<ol>
+<li>Bump the being-released channel's <a href="../homeassistant-addon/">Home Assistant add-on</a> version to match the tag you just decided on, <strong>before tagging</strong>: <code>./scripts/sync-homeassistant-addon-version.ps1 -Channel &lt;edge|stable&gt; -Version &lt;version&gt;</code> — <code>edge</code> for a prerelease tag (<code>-alpha</code>/<code>-beta</code>/<code>-rc</code> suffix), <code>stable</code> for a plain <code>M.M.P</code> tag. Commit this to <code>main</code> first: the <code>resolve-version</code> job fails fast (before any build) if the being-released channel's <code>config.yaml</code> version doesn't already match the tag, so bumping it after tagging just means deleting the tag and re-cutting it once the bump commit is on <code>main</code>.</li>
+</ol>
 <h3 id="run-the-test-suites-by-label">Run the test suites by label<a class="headerlink" href="#run-the-test-suites-by-label" title="Permanent link">&para;</a></h3>
 <p>CTest tags each suite with a label (<code>unit</code>, <code>integration</code>, <code>perf</code>), so you can gate which tests run before tagging:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ctest<span class="w"> </span>--preset<span class="w"> </span>test-windows-msvc-debug<span class="w"> </span>-L<span class="w"> </span>unit<span class="w">          </span><span class="c1"># fast suite — local / PR gate</span>
