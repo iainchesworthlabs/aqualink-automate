@@ -1,3 +1,4 @@
+#include <bit>
 #include <format>
 
 #include <magic_enum/magic_enum.hpp>
@@ -10,6 +11,41 @@ using namespace AqualinkAutomate::Logging;
 
 namespace AqualinkAutomate::Messages
 {
+
+	namespace
+	{
+		// Decompose a status byte that matched no named AquariteStatuses value into the
+		// individual single-bit flags it is made of. Selecting candidates by popcount==1
+		// (rather than a hardcoded flag list) is self-maintaining if a flag is ever added,
+		// and - critically - can never select one of the 5 whole-byte sentinels (On,
+		// TurningOff, Off, GeneralFault, Unknown), whose popcounts are 0, 2, 7, 7 and 8
+		// respectively. Callers must only reach this once an exact enum_cast has already
+		// failed, so a sentinel byte is never decomposed into a misleading flag list.
+		std::vector<AquariteStatuses> DecomposeStatusFlags(uint8_t raw_status)
+		{
+			std::vector<AquariteStatuses> flags;
+
+			for (const auto candidate : magic_enum::enum_values<AquariteStatuses>())
+			{
+				const auto bit = magic_enum::enum_integer(candidate);
+				if ((std::popcount(static_cast<unsigned int>(bit)) == 1) && ((raw_status & bit) != 0))
+				{
+					flags.emplace_back(candidate);
+				}
+			}
+
+			// Every byte reaching here is non-zero (0x00 is the exact-matched On sentinel)
+			// and the 8 single-bit flags together tile every bit of a byte, so this is
+			// unreachable in practice; kept as a defensive fallback rather than an assert.
+			if (flags.empty())
+			{
+				flags.emplace_back(AquariteStatuses::Unknown);
+			}
+
+			return flags;
+		}
+	}
+	// namespace
 
 	AquariteMessage_PPM::AquariteMessage_PPM() noexcept :
 		AquariteMessage(JandyMessageIds::AQUARITE_PPM),
@@ -26,6 +62,11 @@ namespace AqualinkAutomate::Messages
 	AquariteStatuses AquariteMessage_PPM::Status() const
 	{
 		return m_Status;
+	}
+
+	std::vector<AquariteStatuses> AquariteMessage_PPM::StatusFlags() const
+	{
+		return m_StatusFlags;
 	}
 
 	std::string AquariteMessage_PPM::ToString() const
@@ -59,12 +100,22 @@ namespace AqualinkAutomate::Messages
 
 		// NOTE: AquariteStatuses is partly a bit-flag set (Warning_NoFlow=0x01,
 		// Warning_LowSalt=0x02, Warning_HighSalt=0x04, ...), so a received byte can
-		// carry several flags ORed together (e.g. 0x06 = LowSalt|HighSalt).  A single
-		// enum_cast cannot represent such a combination and falls back to Unknown.
-		// The bit-by-bit warning interpretation belongs to the consuming device
-		// (AquariteDevice), which has the kernel health model to express it; here we
-		// keep the single best-effort enumerator for the existing status API.
-		m_Status = magic_enum::enum_cast<AquariteStatuses>(Text::ReadU8(message_bytes, Index_Status)).value_or(AquariteStatuses::Unknown);
+		// carry several flags ORed together (e.g. 0x06 = LowSalt|HighSalt). A single
+		// enum_cast cannot represent such a combination and falls back to Unknown for
+		// m_Status (the existing single best-effort-value API, kept for compatibility);
+		// StatusFlags() below additionally exposes the full decomposition so a combined
+		// byte is not silently lost.
+		const uint8_t raw_status = Text::ReadU8(message_bytes, Index_Status);
+		if (const auto exact = magic_enum::enum_cast<AquariteStatuses>(raw_status); exact.has_value())
+		{
+			m_Status = *exact;
+			m_StatusFlags = { m_Status };
+		}
+		else
+		{
+			m_Status = AquariteStatuses::Unknown;
+			m_StatusFlags = DecomposeStatusFlags(raw_status);
+		}
 
 		return true;
 	}

@@ -52,6 +52,18 @@ namespace AqualinkAutomate::Kernel
 			json_payload["chlorinator_health"] = std::string(magic_enum::enum_name(*(device.AuxillaryTraits[AuxillaryTraitsTypes::ChlorinatorHealthTrait{}])));
 		}
 
+		// Every health flag currently active simultaneously (the wire status byte is a true
+		// bitfield); "chlorinator_health" above remains the single worst-of-the-set value.
+		if (device.AuxillaryTraits.Has(AuxillaryTraitsTypes::ChlorinatorHealthFlagsTrait{}))
+		{
+			nlohmann::json health_flags = nlohmann::json::array();
+			for (const auto flag : *(device.AuxillaryTraits[AuxillaryTraitsTypes::ChlorinatorHealthFlagsTrait{}]))
+			{
+				health_flags.push_back(std::string(magic_enum::enum_name(flag)));
+			}
+			json_payload["chlorinator_health_flags"] = std::move(health_flags);
+		}
+
 		if (device.AuxillaryTraits.Has(AuxillaryTraitsTypes::DutyCycleTrait{}))
 		{
 			json_payload["duty_cycle"] = *(device.AuxillaryTraits[AuxillaryTraitsTypes::DutyCycleTrait{}]);

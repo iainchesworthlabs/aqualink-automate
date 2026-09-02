@@ -64,12 +64,17 @@ info:
     `serial_comms_loss`, `temperature_stale`. `detail` is the human-readable
     ENGLISH description (stable contract); `params` carries the structured values
     behind it — e.g. `{"salt_ppm": 2400, "threshold_ppm": 2700}` for `salt_low` or
-    `{"health": "Warning_LowSalt"}` for the chlorinator conditions — so
-    consumers (the web UI's translated alerts, automations) can act on the data
-    without parsing prose. The same shape is POSTed by the alert webhook.
-    `chlorinator_warning` covers the cell warnings (no flow, low/high salt, clean
-    cell, low/high voltage/current, low temperature); the specific warning is
-    named in `detail` and carried as the raw enum name in `params.health`.
+    `{"health": "Warning_LowSalt", "health_flags": ["Warning_LowSalt"]}` for the
+    chlorinator conditions — so consumers (the web UI's translated alerts,
+    automations) can act on the data without parsing prose. The same shape is
+    POSTed by the alert webhook. `chlorinator_warning` covers the cell warnings
+    (no flow, low/high salt, clean cell, low/high voltage/current, low
+    temperature); `chlorinator_fault`/`chlorinator_warning` can both be raised
+    at once, since the cell's status byte is a bitfield and can report a hard
+    fault and a warning simultaneously. `params.health` is the single
+    worst-of-the-set flag relevant to THIS condition (raw enum name);
+    `params.health_flags` is every flag relevant to this condition, in case more
+    than one warning (or, rarely, more than one fault) is active at once.
     `temperature_stale` raises when the filter pump is running but the active
     body's water temperature has not refreshed within the staleness threshold
     (`--temperature-staleness-threshold`); pump-off staleness is expected and
@@ -3163,6 +3168,29 @@ components:
             - "Error_CheckPCB"
             - "GeneralFault"
             - "Unknown"
+        chlorinator_health_flags:
+          type: array
+          description: >-
+            Every chlorinator health flag currently active simultaneously (the wire status
+            byte is a true bitfield, so e.g. a low-salt warning and a high-current warning
+            can both be active at once). chlorinator_health above remains the single
+            worst-of-the-set value for backward compatibility; this carries the full set.
+            Present only for chlorinators.
+          items:
+            type: string
+            enum:
+              - "Ok"
+              - "TurningOff"
+              - "Warning_NoFlow"
+              - "Warning_LowSalt"
+              - "Warning_HighSalt"
+              - "Warning_HighCurrent"
+              - "Warning_CleanCell"
+              - "Warning_LowVoltage"
+              - "Warning_LowTemperature"
+              - "Error_CheckPCB"
+              - "GeneralFault"
+              - "Unknown"
         duty_cycle:
           type: number
           description: Device duty cycle (present only when applicable)
@@ -3350,6 +3378,30 @@ components:
                     - GeneralFault
                     - Unknown
                   example: Ok
+                health_flags:
+                  type: array
+                  description: >-
+                    Every health flag currently active simultaneously (the wire status byte
+                    is a true bitfield, so e.g. a low-salt warning and a high-current warning
+                    can both be active at once). health above remains the single
+                    worst-of-the-set value for backward compatibility; this carries the full
+                    set.
+                  items:
+                    type: string
+                    enum:
+                      - Ok
+                      - TurningOff
+                      - Warning_NoFlow
+                      - Warning_LowSalt
+                      - Warning_HighSalt
+                      - Warning_HighCurrent
+                      - Warning_CleanCell
+                      - Warning_LowVoltage
+                      - Warning_LowTemperature
+                      - Error_CheckPCB
+                      - GeneralFault
+                      - Unknown
+                  example: ["Ok"]
         configuration:
           type: object
           description: Pool configuration and body-of-water information

@@ -153,6 +153,7 @@
         'dash.water_chemistry': 'Química del agua',
         'dash.swg_output': 'Salida del SWG',
         'dash.swg_aria': 'Salida del clorador y control del objetivo',
+        'dash.swg_also': 'También: {list}',
         'dash.target': 'Objetivo',
         'dash.target_aria': 'Porcentaje de salida objetivo',
         'dash.target_body_aria': 'Objetivo de salida del clorador para {body}',

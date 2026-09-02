@@ -119,6 +119,10 @@ document.addEventListener('alpine:init', () => {
         swgSpaSetpoint: '--',
         chlorinatorStatus: '--',
         chlorinatorHealth: '--',
+        // Every health flag active simultaneously (the wire status byte is a true
+        // bitfield, so e.g. low salt and high current can both be active at once).
+        // chlorinatorHealth above remains the single worst-of-the-set value.
+        chlorinatorHealthFlags: [],
         // WHY the cell is at its current output (backend ChlorinatorGeneratingReason).
         // generating_percent alone is ambiguous: 0% reads as "off or broken" even when the
         // chlorinator is configured, healthy, and simply waiting for the filter pump.
@@ -131,6 +135,15 @@ document.addEventListener('alpine:init', () => {
             if (!h || h === '--') return '';
             const key = window.AquaUI.swgHealthKey(h);
             return key ? window.AquaI18n.t(key) : String(h).replace(/_/g, ' ');
+        },
+
+        // Translated display text for every active health flag, e.g. for a secondary
+        // "also: Low salt, High current" list under the primary health badge.
+        get chlorinatorHealthFlagsLabels() {
+            return this.chlorinatorHealthFlags.map((h) => {
+                const key = window.AquaUI.swgHealthKey(h);
+                return key ? window.AquaI18n.t(key) : String(h).replace(/_/g, ' ');
+            });
         },
 
         // Translated one-line explanation of the current output, shown under the SWG
@@ -382,6 +395,7 @@ document.addEventListener('alpine:init', () => {
                         this.swgSpaSetpoint = (swg.spa_setpoint_percent != null) ? swg.spa_setpoint_percent : '--';
                         this.chlorinatorStatus = swg.status || '--';
                         this.chlorinatorHealth = swg.health || '--';
+                        this.chlorinatorHealthFlags = Array.isArray(swg.health_flags) ? swg.health_flags : [];
                         this.swgGeneratingReason = swg.generating_reason || '--';
                     } else {
                         this.chlorinatorPresent = false;

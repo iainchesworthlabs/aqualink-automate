@@ -19,7 +19,9 @@
 #
 #   -Version alone            : rewrite that channel's config.yaml `version`.
 #   -Check                    : read the version(s); with no -Channel, both channels.
-#   -Check -Channel -Version  : require that channel's version == <expected> (release guard).
+#   -Check -Channel -Version  : require that channel's version == <expected> AND that
+#                               its CHANGELOG.md has a matching '## <expected>' entry
+#                               (release guard).
 #
 # Exit: 0 = ok / written, 1 = drift or bad input.
 
@@ -48,6 +50,10 @@ if ($Version -and ($Version -notmatch $semverPattern)) {
 
 # Durable anchor: the config `version:` value.
 $configVersionRe = '(?m)^(?<pre>version:\s*")(?<ver>[^"]*)(?<post>")\s*$'
+
+# Durable anchor: a CHANGELOG.md `## <version>` heading (no brackets/date -- that is
+# the repo-root CHANGELOG.md's format, not this per-add-on one).
+$changelogHeadingRe = '(?m)^##\s+(?<ver>\S+)\s*$'
 
 # Write with UNIX (LF) line endings and no BOM, so output is byte-identical on Windows
 # and Linux (the edge no-drift check runs on Linux CI).
@@ -80,6 +86,24 @@ function Test-ChannelVersion([string]$name, [string]$dir, [string]$expected) {
     return $true
 }
 
+# The config.yaml version bump and the CHANGELOG.md entry are two separate manual
+# edits to the same channel -- config.yaml alone tells the Supervisor an update
+# exists, but the Changelog tab in its update dialog reads CHANGELOG.md, so a
+# missed entry there ships a real update with a stale/absent changelog. Returns
+# $true when the channel's CHANGELOG.md has a heading matching $expected.
+function Test-ChannelChangelog([string]$name, [string]$dir, [string]$expected) {
+    $changelogPath = Join-Path $dir 'CHANGELOG.md'
+    if (-not (Test-Path $changelogPath)) { Write-Error "No CHANGELOG.md in $dir"; exit 1 }
+    $headings = [regex]::Matches((Get-Content -Raw -LiteralPath $changelogPath), $changelogHeadingRe) |
+        ForEach-Object { $_.Groups['ver'].Value }
+    if ($expected -notin $headings) {
+        Write-Host "::error::[$name] CHANGELOG.md has no '## $expected' entry"
+        Write-Host "         Add one to $changelogPath before releasing (edge is regenerated from stable -- see scripts/gen-homeassistant-edge-addon.ps1)."
+        return $false
+    }
+    return $true
+}
+
 # ── Set mode ────────────────────────────────────────────────────────────────────
 if ($Version -and -not $Check) {
     $ch = if ($Channel) { $Channel } else { 'stable' }
@@ -103,6 +127,7 @@ foreach ($name in $channelsToCheck) {
     }
     $expected = if ($Channel -and $Version) { $Version } else { $null }
     if (-not (Test-ChannelVersion $name $dir $expected)) { $ok = $false }
+    if ($expected -and -not (Test-ChannelChangelog $name $dir $expected)) { $ok = $false }
 }
 
 if (-not $ok) { exit 1 }

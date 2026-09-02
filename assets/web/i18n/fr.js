@@ -153,6 +153,7 @@
         'dash.water_chemistry': 'Chimie de l’eau',
         'dash.swg_output': 'Production SWG',
         'dash.swg_aria': 'Production du chlorateur et réglage de la cible',
+        'dash.swg_also': 'Également : {list}',
         'dash.target': 'Cible',
         'dash.target_aria': 'Pourcentage de production cible',
         'dash.target_body_aria': 'Consigne de production du chlorateur pour {body}',

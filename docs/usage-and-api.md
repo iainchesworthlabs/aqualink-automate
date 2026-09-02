@@ -337,7 +337,8 @@ Returns the full equipment state. The top-level keys are `temperatures`, `chemis
       "spa_setpoint_percent": 50,
       "setpoint_percent": 45,
       "status": "Generating",
-      "health": "Ok"
+      "health": "Ok",
+      "health_flags": ["Ok"]
     }
   },
   "configuration": {
@@ -370,8 +371,9 @@ Field notes (these are deliberate, not bugs):
 - `salt_ppm` is a raw `uint16`. A value of `0` is emitted as-is, **not** nulled.
 - `orp_mv` is `null` when the reported value is exactly `0` (no sensor on the wire).
 - `ph` is `null` when the reported value is exactly `0.0`.
-- `chlorinator` is `null` when no chlorinator (SWG) has been discovered; otherwise it carries `generating_percent`, `generating_reason`, `duty_cycle`, the configured setpoints, `status`, and `health`.
+- `chlorinator` is `null` when no chlorinator (SWG) has been discovered; otherwise it carries `generating_percent`, `generating_reason`, `duty_cycle`, the configured setpoints, `status`, `health`, and `health_flags`.
 - `generating_percent` is the **instantaneous** output and is `0` whenever the cell is idle — which alone cannot distinguish a chlorinator that is switched off from one that is configured and healthy but has no flow. `generating_reason` says which it is: `Generating`, `Off` (setpoint is 0%), `PumpOff` (configured, but no filter pump is running), `NoFlow` (a pump is running but the cell reports no flow), `Fault` (the cell is in a warning/error state), `Idle` (configured and not generating, no nameable reason), or `Unknown` (nothing reported yet). It is derived server-side so the web UI, MQTT and Home Assistant agree.
+- The cell's wire status byte is a true bitfield, so more than one health condition can be active at once (e.g. a low-salt warning together with a high-current warning). `health` is the single worst-of-the-set flag (electrical/hardware flags outrank chemistry flags, which outrank routine-maintenance flags) — kept for backward compatibility with consumers that only expect one value. `health_flags` is the full array of every currently-active flag; it always contains at least `health` itself.
 - `setpoint_percent` is the **configured target** for the currently active body (resolving to `pool_setpoint_percent` or `spa_setpoint_percent`, falling back to the last-known generating %); it is what the dashboard's Target slider seeds from.
 - `validation` is an object once the startup scrape completes, or `null` before then. The spelling `expected_auxillary_count` (and the nested `expected_auxillaries` / `discovered_auxillaries`) is the exact field name in the payload.
 - A temperature is either a `{ "celsius": ..., "fahrenheit": ... }` object or `null`.

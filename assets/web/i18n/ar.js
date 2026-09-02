@@ -152,6 +152,7 @@
         'dash.water_chemistry': 'كيمياء الماء',
         'dash.swg_output': 'خرج SWG',
         'dash.swg_aria': 'التحكم في خرج جهاز الكلورة وهدفه',
+        'dash.swg_also': 'أيضًا: {list}',
         'dash.target': 'الهدف',
         'dash.target_aria': 'نسبة الخرج المستهدفة',
         'dash.target_body_aria': 'هدف إنتاج المكلور لـ {body}',

@@ -153,6 +153,7 @@
         'dash.water_chemistry': 'Wasserchemie',
         'dash.swg_output': 'SWG-Leistung',
         'dash.swg_aria': 'Chlorinator-Leistung und Sollwert-Steuerung',
+        'dash.swg_also': 'Außerdem: {list}',
         'dash.target': 'Soll',
         'dash.target_aria': 'Soll-Leistung in Prozent',
         'dash.target_body_aria': 'Chlorinator-Sollwert für {body}',

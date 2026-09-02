@@ -152,6 +152,7 @@
         'dash.water_chemistry': '水質',
         'dash.swg_output': 'SWG出力',
         'dash.swg_aria': '塩素発生器の出力と目標値の制御',
+        'dash.swg_also': '他に: {list}',
         'dash.target': '目標',
         'dash.target_aria': '目標出力パーセント',
         'dash.target_body_aria': '{body} の塩素発生器の目標出力',

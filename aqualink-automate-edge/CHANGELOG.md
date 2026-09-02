@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.0-beta.1
+
+- **Chlorinator control on iAQ (AqualinkTouch) panels works again — and fast.** Commands were accepted unconditionally and fired a fixed sequence of button presses that could land on the wrong screen, so a percentage change could report success while the panel never received it. The app now walks to the chlorinator page verifying each step instead of guessing.
+- **Pool and spa chlorinator outputs are now set independently.** Home Assistant gains a **Spa Output** number beside the existing setpoint (renamed **Pool Output**), and that control's value template no longer snaps back to 0 whenever the cell is idle.
+- **Phantom auxiliaries no longer appear.** Auxiliary discovery is now bounded by the model the panel itself reports, so a single-power-centre panel no longer grows a full set of auxiliaries that don't exist. Existing phantom entries are cleaned up automatically.
+- **Captures now land somewhere you can reach.** On-demand captures are written to the add-on's `app_config` map — browsable with the Samba or File editor add-ons — instead of inside the container, where they were lost on restart or update.
+- **The SWG tile explains a 0% reading**, with a new **Output State** sensor (and **Target %**) so automations can tell "idle" from "off" or "broken" instead of guessing from the percentage.
+- **Captures can be downloaded from the web UI's Diagnostics page** — no shell on the host needed.
+
 ## 0.13.0-beta.1
 
 - **Repository moved.** The add-on now lives at `https://github.com/iainchesworthlabs/aqualink-automate` (was `iainchesworth/aqualink-automate`). If you added it as a custom repository, remove the old entry and add the new URL, then reinstall/update to keep receiving updates — the old repository will not publish further releases.

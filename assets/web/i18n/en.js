@@ -157,6 +157,7 @@
         'dash.water_chemistry': 'Water Chemistry',
         'dash.swg_output': 'SWG Output',
         'dash.swg_aria': 'Chlorinator output and target control',
+        'dash.swg_also': 'Also: {list}',
         'dash.target': 'Target',
         'dash.target_aria': 'Target output percentage',
         'dash.target_body_aria': 'Chlorinator output target for the {body}',

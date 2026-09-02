@@ -70,6 +70,8 @@ Before creating a release:
 
    Within an in-progress prerelease line, advancing the counter (`-beta.N` → `-beta.N+1`) carries the accumulated changes toward the same target; starting a **new** minor line is the human "the release line advances" decision the suggester surfaces but never makes for you. (`1.0.0` is reserved for the first stable, so breaking changes bump the minor until then.)
 
+7. Bump the being-released channel's [Home Assistant add-on](homeassistant-addon.md) version to match the tag you just decided on, **before tagging**: `./scripts/sync-homeassistant-addon-version.ps1 -Channel <edge|stable> -Version <version>` — `edge` for a prerelease tag (`-alpha`/`-beta`/`-rc` suffix), `stable` for a plain `M.M.P` tag. Commit this to `main` first: the `resolve-version` job fails fast (before any build) if the being-released channel's `config.yaml` version doesn't already match the tag, so bumping it after tagging just means deleting the tag and re-cutting it once the bump commit is on `main`.
+
 ### Run the test suites by label
 
 CTest tags each suite with a label (`unit`, `integration`, `perf`), so you can gate which tests run before tagging:
