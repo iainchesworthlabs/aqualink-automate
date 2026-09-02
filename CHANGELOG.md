@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [Unreleased]
+
+### Fixed
+
+- **A repeated equipment command no longer fails with a false "Service Unavailable".** Setting the chlorinator output (or toggling a device, changing circulation/heater mode, driving the iAQ page UI, or writing a controller schedule) walks the panel's menu over several RS-485 poll cycles, so it takes real wall-clock time to land. A second request for the same command arriving while an earlier one was still mid-walk found every controller reporting it could not act *right now* and, unable to tell "busy" from "no controller exists at all", answered `503` — indistinguishable from the equipment link being down, even though the first request's write was still in flight and would go on to succeed. These paths now report a distinct, transient outcome (`409 Conflict`, with a plain-language reason on `/api/equipment/chlorinator`) so a caller knows to retry shortly rather than read it as a hard failure; the web UI's chlorinator tile surfaces that reason in a toast instead of a bare unexplained rejection.
+
 ## [0.14.0-beta.1] - 2026-09-01
 
 ### Fixed

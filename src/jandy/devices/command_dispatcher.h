@@ -103,6 +103,7 @@ namespace AqualinkAutomate::Devices
 				[](const auto& lhs, const auto& rhs) { return static_cast<int>(lhs.first) < static_cast<int>(rhs.first); });
 
 			bool any_mapping_failed{ false };
+			bool any_busy{ false };
 
 			for (auto& [priority, candidate] : candidates)
 			{
@@ -120,12 +121,26 @@ namespace AqualinkAutomate::Devices
 					any_mapping_failed = true;
 					break;
 
+				case Capabilities::ActuationResult::Busy:
+					any_busy = true;
+					break;
+
 				case Capabilities::ActuationResult::NotSupported:
 					break;
 
 				default:
 					break;
 				}
+			}
+
+			// Busy outranks MappingFailed: a controller that is merely busy right now is expected
+			// to succeed on retry (once its in-flight goal finishes), which is a more useful and
+			// more accurate signal to the caller than "no capable controller" -- even when another
+			// candidate concurrently reported it could never map this particular request.
+			if (any_busy)
+			{
+				LogInfo(Logging::Channel::Devices, std::format("CommandDispatcher: deferring '{}' -- a capable controller is still applying an earlier command (tried {})", what, candidates.size()));
+				return CommandResult::Busy;
 			}
 
 			LogWarning(Logging::Channel::Devices, std::format("CommandDispatcher: No capable controller could {} (tried {})", what, candidates.size()));

@@ -113,8 +113,9 @@ BOOST_AUTO_TEST_CASE(Create_Valid_IsAccepted_ThenBusy)
 	IAQDevice device(id, harness.HubLocatorRef(), /*is_emulated=*/true);
 
 	BOOST_CHECK(device.CreateControllerProgram(ValidProgram()) == Capabilities::ActuationResult::Accepted);
-	// A second request while the first is in flight is rejected (busy panel -> NotSupported).
-	BOOST_CHECK(device.CreateControllerProgram(ValidProgram()) == Capabilities::ActuationResult::NotSupported);
+	// A second request while the first is in flight is rejected as Busy (transient -- the
+	// dispatcher tells the caller to retry shortly rather than "no capable controller").
+	BOOST_CHECK(device.CreateControllerProgram(ValidProgram()) == Capabilities::ActuationResult::Busy);
 }
 
 //--- closed-loop: full create (navigate -> add -> pick device -> set day) ----

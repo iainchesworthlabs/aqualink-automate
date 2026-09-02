@@ -139,14 +139,42 @@ function chlorinatorControl() {
                 const ok = resp.ok;
                 this.feedback = ok ? 'applied' : 'rejected';
                 setTimeout(() => { this.feedback = ''; }, 2500);
+                if (!ok) {
+                    // A rejected command is an expected operational outcome (e.g. a previous
+                    // chlorinator command is still being applied — HTTP 409), not a UI fault —
+                    // warn, don't error, and tell the user why so a same-value retry a moment
+                    // later doesn't read as a mysterious failure.
+                    const reason = await this._readErrorReason(resp);
+                    console.warn(`Chlorinator command rejected (HTTP ${resp.status}):`, reason);
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.chlorinator_failed_reason', { reason }), 'error');
+                }
                 return ok;
             } catch (e) {
                 this.feedback = 'rejected';
                 setTimeout(() => { this.feedback = ''; }, 2500);
+                Alpine.store('toast').show(window.AquaI18n.t('toast.chlorinator_failed_conn'), 'error');
                 return false;
             } finally {
                 this.busy = false;
             }
+        },
+
+        // Mirrors pool-store's _readErrorReason: the server's structured {error, code} body
+        // translated via the catalog when a matching 'error.<code>' key exists, else its raw
+        // English message, else the HTTP status text.
+        async _readErrorReason(resp) {
+            try {
+                const text = await resp.text();
+                if (text) {
+                    try {
+                        const j = JSON.parse(text);
+                        const translated = window.AquaI18n.apiError(j, null);
+                        if (translated) { return String(translated); }
+                    } catch (_) { /* not JSON — use raw text */ }
+                    return text;
+                }
+            } catch (_) { /* body unreadable */ }
+            return resp.statusText || `HTTP ${resp.status}`;
         },
     };
 }

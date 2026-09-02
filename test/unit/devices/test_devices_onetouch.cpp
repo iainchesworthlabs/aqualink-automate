@@ -336,13 +336,15 @@ BOOST_AUTO_TEST_CASE(TestFaultRecovery_FlappingPage_DoesNotRecover)
 BOOST_AUTO_TEST_CASE(TestSetpoint_RejectsSecondGoalWhileBusy)
 {
 	// One goal at a time: a second request while the first is still pending is rejected
-	// so two cursor walks never interleave on the single shared Navigator.
+	// so two cursor walks never interleave on the single shared Navigator. This is Busy,
+	// not NotSupported -- transient, unlike the non-emulated/faulted cases above, which
+	// can never resolve on their own (see command_dispatcher.h's DispatchToCapable).
 	OneTouchDevice device(device_type, *this, true);
 
 	BOOST_CHECK_EQUAL(static_cast<int>(device.SetPoolSetpoint(82)),
 		static_cast<int>(Devices::Capabilities::ActuationResult::Accepted));
 	BOOST_CHECK_EQUAL(static_cast<int>(device.SetSpaSetpoint(100)),
-		static_cast<int>(Devices::Capabilities::ActuationResult::NotSupported));
+		static_cast<int>(Devices::Capabilities::ActuationResult::Busy));
 }
 
 BOOST_AUTO_TEST_CASE(TestSetpoint_ControllerPriority_IsLow)
@@ -389,13 +391,16 @@ BOOST_AUTO_TEST_CASE(TestChlorinator_NonEmulated_NotSupported)
 
 BOOST_AUTO_TEST_CASE(TestChlorinator_RejectsWhileAnotherGoalBusy)
 {
-	// One shared Navigator -> a chlorinator edit is rejected while a setpoint goal is pending.
+	// One shared Navigator -> a chlorinator edit is rejected while a setpoint goal is
+	// pending. Regression for the chlorinator-target 503: this must be Busy so the
+	// dispatcher/HTTP layer tell the caller to retry shortly rather than reporting "no
+	// capable controller" (which read as the equipment link being down).
 	OneTouchDevice device(device_type, *this, true);
 
 	BOOST_CHECK_EQUAL(static_cast<int>(device.SetPoolSetpoint(82)),
 		static_cast<int>(Devices::Capabilities::ActuationResult::Accepted));
 	BOOST_CHECK_EQUAL(static_cast<int>(device.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool)),
-		static_cast<int>(Devices::Capabilities::ActuationResult::NotSupported));
+		static_cast<int>(Devices::Capabilities::ActuationResult::Busy));
 }
 
 // =============================================================================

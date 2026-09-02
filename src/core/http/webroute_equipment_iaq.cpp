@@ -31,6 +31,9 @@ namespace AqualinkAutomate::HTTP
 			case DeviceNotFound:
 			case NoSerialAdapter:      return service_unavailable;
 			case UnknownEquipmentType: return unprocessable_entity;
+			// A capable controller exists but is still applying an earlier command: transient,
+			// so the caller should retry shortly rather than read this as the equipment being down.
+			case Busy:                 return conflict;
 			default:                   return internal_server_error;
 			}
 		}
