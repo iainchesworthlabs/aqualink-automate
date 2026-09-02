@@ -147,6 +147,7 @@ if [ "${mqtt_mode}" != "disabled" ] && bashio::config.true 'home_assistant_disco
     ha_device_id_file="${DATA}/ha-device-id"
     if [ ! -s "${ha_device_id_file}" ]; then
         printf 'aqualink_%s\n' "$(tr -d '-' < /proc/sys/kernel/random/uuid | cut -c1-12)" > "${ha_device_id_file}"
+        bashio::log.warning "Generating a new Home Assistant device identity (no ${ha_device_id_file} found). If this is a fresh install, ignore this. If you're re-adding this add-on after a reinstall, host migration, or switching between the stable and edge channels, your previous Aqualink entities are now orphaned in Home Assistant — remove the old 'aqualink-automate' device(s) under Settings -> Devices & Services -> Devices to stop stale 'offline' entities."
     fi
     args+=("--home-assistant" "--ha-device-id" "$(cat "${ha_device_id_file}")")
 fi
