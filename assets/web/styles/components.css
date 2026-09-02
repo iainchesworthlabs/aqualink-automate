@@ -2497,6 +2497,22 @@ main input[type="range"] { accent-color: var(--accent); }
 @media (max-width: 720px) { .settings-name-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 460px) { .settings-name-grid { grid-template-columns: 1fr; } }
 
+/* --- Settings: Device Names — aux presence override (two-tab) ----------- */
+.aux-slot-status { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.aux-slot-forced-row { display: flex; align-items: center; gap: 8px; }
+.badge-forced { background: oklch(0.83 0.11 82 / .18); color: var(--warn); font: 700 11px/1 var(--font-ui); padding: 4px 9px; border-radius: 99px; }
+.aux-slot-group { border: 1px solid var(--border); border-radius: 13px; margin-bottom: 10px; overflow: hidden; }
+.aux-slot-group-header { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--surface-2); border: none; color: var(--text); font: 600 13px/1 var(--font-ui); cursor: pointer; }
+.aux-slot-chevron { width: 8px; height: 8px; border-inline-end: 2px solid var(--text-faint); border-block-end: 2px solid var(--text-faint); transform: rotate(45deg); transition: transform .16s; }
+.aux-slot-chevron.open { transform: rotate(-135deg); }
+.aux-slot-group-body { padding: 4px 16px 10px; }
+.aux-slot-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border); }
+.aux-slot-row:first-child { border-top: none; }
+.aux-slot-showall-row { margin-top: 10px; }
+
+/* --- Diagnostics: Auxiliary Discovery (clear & rediscover) --------------- */
+.aux-rediscovery-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
 /* --- Settings: Chemistry target ranges — 3-up row + zone bar ------------- */
 .settings-chem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 @media (max-width: 820px) { .settings-chem-grid { grid-template-columns: 1fr; } }

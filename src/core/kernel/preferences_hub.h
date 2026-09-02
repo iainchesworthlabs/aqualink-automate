@@ -71,6 +71,14 @@ namespace AqualinkAutomate::Kernel
 		// gives read-only systems an annotation. Same opaque-blob discipline as LabelOverrides
 		// (copy-init with '=', see the note above).
 		nlohmann::json SpaSwitchButtons = nlohmann::json::object();
+
+		// Operator override of live aux presence detection, keyed by the aux's hardware/canonical
+		// label ("Aux5"). Value is "present" or "absent"; a slot with no entry here is "auto" (live
+		// detection decides, the default). This is NOT a relay on/off control -- it only overrides
+		// whether the slot is treated as existing at all, for a real aux that detection keeps
+		// missing, or a phantom that keeps coming back. Same opaque-blob discipline as
+		// LabelOverrides (copy-init with '=', see the note above).
+		nlohmann::json AuxPresenceOverrides = nlohmann::json::object();
 	};
 
 }

@@ -33,6 +33,7 @@ target_sources(
 	unit/utility/test_offload_pool.cpp
 	unit/auxillaries/test_jandy_auxillary_id.cpp
 	unit/auxillaries/test_jandy_auxillary_span.cpp
+	unit/auxillaries/test_jandy_auxillary_presence_override.cpp
 	unit/concepts/test_concept_is_c_array.cpp
 	unit/certificates/test_certificate_generation.cpp
 	unit/equipment_cache/test_equipment_cache_service.cpp

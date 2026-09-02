@@ -66,6 +66,15 @@ function settingsView() {
         // e.g. "Pool Light (Aux5)". Display-only; the canonical label is unchanged.
         showAuxIdInLabel: false,
 
+        // Full addressable aux-slot space (GET /api/equipment/aux-slots), one row per aux id --
+        // detected devices AND undetected slots, merged with the operator's presence overrides.
+        // Backs the Device Names card's two tabs (see myAuxSlots()/otherAuxSlotGroupList()).
+        auxSlots: [],
+        auxTab: 'mine',
+        showAllAuxSlots: false,
+        expandedAuxGroups: { A: true },
+        auxPresenceBusy: {},
+
         // Matter bridge status (sidecar status + commissioning QR) and Profiling
         // backend control. These are /api/diagnostics/* surfaces the design places
         // under Settings (not Diagnostics). Fetched once on init; profiling state
@@ -99,6 +108,9 @@ function settingsView() {
                 this.fetchMatter();
                 this.fetchProfiling();
             }
+            // Aux slots are EQUIPMENT_VIEW-gated (same tier as the dashboard buttons), not tied
+            // to the per-user preferences session below, so a guest can still see them.
+            this.fetchAuxSlots();
             // Per-user server preferences require a session (prefs.self). A guest
             // has none, so keep the localStorage first-paint values (D7) and skip
             // the server round-trip entirely.
@@ -186,6 +198,116 @@ function settingsView() {
         // The canonical-labelled controllable devices come straight from the store.
         deviceButtons() {
             return (this.$store.pool && this.$store.pool.buttons) ? this.$store.pool.buttons : [];
+        },
+
+        // Non-aux devices (pump/heater/chlorinator) keep coming from the live buttons list
+        // unchanged; aux rows are replaced by the richer auxSlots source below so an
+        // undetected slot can have a row too.
+        nonAuxDeviceButtons() {
+            return this.deviceButtons().filter((b) => b.device_type !== 'Auxillary');
+        },
+
+        // Status badge text/class for a non-aux device row, mirroring the aux rows'
+        // "Detected" badge so both halves of the Device Names list read consistently
+        // instead of the aux rows having a status chip and these having none.
+        deviceStatusLabel(button) {
+            const ui = window.AquaUI || {};
+            return ui.buttonStatusLabel ? ui.buttonStatusLabel(button.status) : String(button.status || '--');
+        },
+        deviceStatusBadgeClass(button) {
+            const ui = window.AquaUI || {};
+            const active = ui.isActiveStatus ? ui.isActiveStatus(button.status) : false;
+            return active ? 'badge-good' : 'badge-muted';
+        },
+
+        // Method wrapper around the auxPresenceBusy lookup -- Alpine's reactivity for a raw
+        // `auxPresenceBusy[slot.aux_id]` bracket-access expression bound directly in a nested
+        // x-for template does not reliably re-sync (observed: buttons render permanently
+        // disabled from first paint even though the underlying value is falsy). Every other
+        // derived value in this file is read through a method for template binding; this is
+        // the one place that used a raw expression, and it's the one that was broken.
+        isAuxBusy(auxId) {
+            return !!this.auxPresenceBusy[auxId];
+        },
+
+        async fetchAuxSlots() {
+            try {
+                const resp = await fetch('/api/equipment/aux-slots');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                this.auxSlots = Array.isArray(data.slots) ? data.slots : [];
+            } catch (_) { /* offline / disabled: keep empty */ }
+        },
+
+        // "Your devices" tab: detected auxes, plus anything forced Present (even if the bus
+        // still hasn't confirmed it).
+        myAuxSlots() {
+            return this.auxSlots.filter((s) => s.detected || s.presence_override === 'present');
+        },
+
+        // "Other aux slots" tab: everything not already on the first tab, bounded to the
+        // detected panel model's slots unless the operator opted into seeing all 32.
+        otherAuxSlots() {
+            return this.auxSlots.filter((s) => !s.detected && s.presence_override !== 'present' && (this.showAllAuxSlots || s.in_model_span));
+        },
+
+        otherAuxSlotCount() {
+            return this.otherAuxSlots().length;
+        },
+
+        // True once the model is known and at least one out-of-span slot exists, which is what
+        // the "show all 32 slots" escape hatch is for; hidden otherwise (nothing to show for it).
+        hasOutOfSpanAuxSlots() {
+            return this.auxSlots.some((s) => !s.detected && s.presence_override !== 'present' && !s.in_model_span);
+        },
+
+        // Group the "other" tab by power centre, in a stable A/B/C/D/Extra order.
+        otherAuxSlotGroupList() {
+            const order = ['A', 'B', 'C', 'D', 'extra'];
+            const labels = { A: 'A', B: 'B', C: 'C', D: 'D', extra: window.AquaI18n.t('settings.aux_extra') };
+            const groups = {};
+            for (const slot of this.otherAuxSlots()) {
+                const key = slot.power_centre || 'extra';
+                (groups[key] = groups[key] || []).push(slot);
+            }
+            return order.filter((key) => groups[key] && groups[key].length > 0).map((key) => ({ key, label: labels[key], slots: groups[key] }));
+        },
+
+        toggleAuxGroup(key) {
+            this.expandedAuxGroups = { ...this.expandedAuxGroups, [key]: !this.expandedAuxGroups[key] };
+        },
+
+        // Set (or clear, via 'auto') one aux slot's presence override. Its own immediate-effect
+        // action with a real side effect (creates/removes a device) -- deliberately NOT batched
+        // into the name fields' Save button.
+        async setAuxPresence(auxId, override) {
+            if (this.auxPresenceBusy[auxId]) return;
+            this.auxPresenceBusy = { ...this.auxPresenceBusy, [auxId]: true };
+            try {
+                const resp = await fetch(`/api/equipment/aux-slots/${encodeURIComponent(auxId)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ presence_override: override }),
+                });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok) {
+                    const idx = this.auxSlots.findIndex((s) => s.aux_id === auxId);
+                    if (idx >= 0) { this.auxSlots.splice(idx, 1, data); } else { this.auxSlots.push(data); }
+                    const key = override === 'present' ? 'toast.aux_forced_present' : (override === 'absent' ? 'toast.aux_forced_absent' : 'toast.aux_presence_reset');
+                    Alpine.store('toast').show(window.AquaI18n.t(key, { aux_id: auxId }), 'info');
+                    if (this.$store.pool && typeof this.$store.pool._fetchButtons === 'function') {
+                        this.$store.pool._fetchButtons();
+                    }
+                } else {
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.aux_presence_failed')), 'error');
+                }
+            } catch (e) {
+                Alpine.store('toast').show(window.AquaI18n.t('toast.aux_presence_failed'), 'error');
+            } finally {
+                const rest = { ...this.auxPresenceBusy };
+                delete rest[auxId];
+                this.auxPresenceBusy = rest;
+            }
         },
 
         async saveLabels() {

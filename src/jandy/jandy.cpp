@@ -11,6 +11,7 @@
 #include "devices/pda_device.h"
 #include "devices/serial_adapter_device.h"
 #include "devices/spaside_remote_device.h"
+#include "interfaces/iequipmentdiscoverycontroller.h"
 #include "options/options_developer_options.h"
 #include "options/options_jandy.h"
 #include "equipment/jandy_equipment.h"
@@ -111,6 +112,15 @@ namespace AqualinkAutomate::Jandy
 					{
 						auto onetouch = std::make_unique<Devices::OneTouchDevice>(device_id, hub_locator, true);
 						onetouch->EnableChlorinatorSetpointRefresh(std::chrono::seconds{ jandy_settings.chlorinator_setpoint_refresh_interval });
+
+						// Registered here (post-construction), not from inside OneTouchDevice's own
+						// constructor -- see the matching comment in jandy_emulated_device_factory.cpp
+						// (MakeEmulatedDevice's OneTouch case) for why.
+						std::shared_ptr<Interfaces::IEquipmentDiscoveryController> discovery_handle(
+							static_cast<Interfaces::IEquipmentDiscoveryController*>(onetouch.get()),
+							[](Interfaces::IEquipmentDiscoveryController*) { /* non-owning */ });
+						hub_locator.Register<Interfaces::IEquipmentDiscoveryController>(discovery_handle);
+
 						equipment_hub->AddDevice(std::move(onetouch));
 					}
 					break;

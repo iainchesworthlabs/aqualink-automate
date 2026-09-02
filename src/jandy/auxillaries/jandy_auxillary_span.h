@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <nlohmann/json.hpp>
+
 #include "auxillaries/jandy_auxillary_id.h"
 
 namespace AqualinkAutomate::Kernel
@@ -63,6 +65,16 @@ namespace AqualinkAutomate::Auxillaries
 	// This also cleans a persisted equipment cache: phantoms restored from an earlier run are
 	// pruned at the first version-page scrape rather than surviving forever.
 	std::size_t PruneAuxillariesOutsideSpan(Kernel::DevicesGraph& devices, const AuxillaryModelSpan& span);
+
+	// Remove every auto-detected auxillary device, unconditionally (not bounded by a span) --
+	// the diagnostics "clear & rediscover" action, for when a phantom or stale device needs
+	// clearing out entirely rather than left for the next REV scrape to maybe re-prune. A device
+	// currently held PRESENT by an operator override (`presence_overrides`, see
+	// jandy_auxillary_presence_override.h) is spared: it is a deliberate declaration, not
+	// something auto-detection produced, and clearing it out would just recreate it on the next
+	// override reconciliation while discarding its live status in the meantime. Returns how many
+	// devices were removed.
+	std::size_t ClearAutoDetectedAuxillaries(Kernel::DevicesGraph& devices, const nlohmann::json& presence_overrides);
 
 }
 // namespace AqualinkAutomate::Auxillaries

@@ -19,6 +19,7 @@
 #include "exceptions/exception_optionparsingfailed.h"
 #include "exceptions/exception_optionshelporversion.h"
 #include "interfaces/icommanddispatcher.h"
+#include "interfaces/iequipmentdiscoverycontroller.h"
 #include "interfaces/irecordingcontroller.h"
 #include "interfaces/iserialportimpl.h"
 #include "logging/logging.h"
@@ -81,9 +82,12 @@
 #include "http/webroute_diagnostics_logging.h"
 #include "http/webroute_diagnostics_options.h"
 #include "http/webroute_diagnostics_profiling.h"
+#include "http/webroute_diagnostics_auxrediscovery.h"
 #include "http/webroute_diagnostics_recording.h"
 #include "http/webroute_equipment.h"
 #include "http/webroute_equipment_spaside_remotes.h"
+#include "http/webroute_equipment_auxslot.h"
+#include "http/webroute_equipment_auxslots.h"
 #include "http/webroute_equipment_button.h"
 #include "http/webroute_equipment_buttons.h"
 #include "http/webroute_equipment_chlorinator.h"
@@ -1065,9 +1069,12 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Captures>(captures));
 				HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_Capture>(captures));
 			}
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Diagnostics_AuxRediscovery>(hub_locator, equipment_cache_service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_Button>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_Buttons>(hub_locator));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_AuxSlots>(hub_locator));
+			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_AuxSlot>(hub_locator, preferences_service));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_Chlorinator>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_IAQ>(hub_locator));
 			HTTP::Routing::Add(std::make_unique<HTTP::WebRoute_Equipment_Heater>(hub_locator));
@@ -1442,6 +1449,7 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 		//    would briefly hold a dangling alias during scope-exit destruction.
 		hub_locator.Unregister<Interfaces::IRecordingController>();
 		hub_locator.Unregister<Interfaces::IProfilingController>();
+		hub_locator.Unregister<Interfaces::IEquipmentDiscoveryController>();
 		serial_port.reset();
 
 		// 7. Clear message generator registry

@@ -10,6 +10,7 @@
 
 #include "logging/logging.h"
 #include "auxillaries/jandy_auxillary_id.h"
+#include "auxillaries/jandy_auxillary_presence_override.h"
 #include "auxillaries/jandy_auxillary_reconciliation.h"
 #include "auxillaries/jandy_auxillary_span.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
@@ -196,6 +197,20 @@ namespace AqualinkAutomate::Devices
 			{
 				auto new_device = aux_ptr.value();
 
+				// An operator-forced Absent override must survive the next wire event too,
+				// otherwise it flip-flops back the moment this page next reports the aux. Remove
+				// any existing device for it (it may have been created by a different path, e.g.
+				// the RSSA sweep) and skip creating a replacement.
+				if (auto aux_id_opt = new_device->AuxillaryTraits.TryGet(Auxillaries::JandyAuxillaryId{});
+					aux_id_opt.has_value() && (nullptr != m_PreferencesHub) && Auxillaries::IsForcedAbsent(aux_id_opt.value(), m_PreferencesHub->AuxPresenceOverrides))
+				{
+					if (auto existing = m_DataHub->Devices.FindById(new_device->Id()); nullptr != existing)
+					{
+						m_DataHub->Devices.Remove(existing);
+					}
+					continue;
+				}
+
 				// Aux devices carry a DETERMINISTIC stable id derived from the aux id, so a
 				// device that already carries that id - a steady-state cache placeholder or one
 				// discovered earlier this run - is found by id (independent of any custom label)
@@ -240,6 +255,9 @@ namespace AqualinkAutomate::Devices
 		{
 			existing->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{}, status_opt.value());
 		}
+		// This is real wire evidence -- clear any "synthesized by a forced-present operator
+		// override, not yet independently confirmed" marker so the slot now reads as detected.
+		existing->AuxillaryTraits.Set(Auxillaries::SynthesizedTrait{}, false);
 		Auxillaries::RemoveOrphanAuxPlaceholders(m_DataHub->Devices, aux_id, existing);
 		return true;
 	}
@@ -756,6 +774,17 @@ namespace AqualinkAutomate::Devices
 			// existence. Never let a label page mint a device the model cannot have.
 			LogDebug(Channel::Devices, [this, &aux_id]() { return std::format("OneTouch ({}): Ignoring label page for {}; the detected panel model has no such relay", DeviceId(), magic_enum::enum_name(aux_id.value())); });
 		}
+		else if ((nullptr != m_PreferencesHub) && Auxillaries::IsForcedAbsent(aux_id.value(), m_PreferencesHub->AuxPresenceOverrides))
+		{
+			// An operator-forced Absent override must survive the next wire event too, otherwise
+			// it flip-flops back the moment this label page is next visited.
+			LogDebug(Channel::Devices, [this, &aux_id]() { return std::format("OneTouch ({}): Ignoring label page for {}; forced absent by operator override", DeviceId(), magic_enum::enum_name(aux_id.value())); });
+
+			if (auto existing = m_DataHub->Devices.FindById(Auxillaries::AuxStableId(aux_id.value())); nullptr != existing)
+			{
+				m_DataHub->Devices.Remove(existing);
+			}
+		}
 		else
 		{
 			std::shared_ptr<Kernel::AuxillaryDevice> aux_ptr(nullptr);
@@ -787,6 +816,11 @@ namespace AqualinkAutomate::Devices
 				// apply the custom label.
 				Auxillaries::EnsureAuxIdentity(aux_ptr, aux_id.value());
 				aux_ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::LabelTrait{}, aux_custom_label);
+
+				// A real custom label on this menu is wire/configuration evidence the aux exists --
+				// clear any "synthesized by a forced-present operator override, not yet
+				// independently confirmed" marker so the slot now reads as detected.
+				aux_ptr->AuxillaryTraits.Set(Auxillaries::SynthesizedTrait{}, false);
 
 				// If this device was newly created (not found in graph), add it now
 				if (newly_created)

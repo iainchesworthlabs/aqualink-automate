@@ -144,6 +144,31 @@ namespace AqualinkAutomate::Preferences
 			return true;
 		}
 
+		bool ValidateAuxPresenceOverrides(const nlohmann::json& json, nlohmann::json& aux_presence_overrides, std::string& error, std::string& error_code)
+		{
+			if (!json.contains("aux_presence_overrides"))
+			{
+				return true;
+			}
+			if (!json["aux_presence_overrides"].is_object())
+			{
+				error = "aux_presence_overrides must be an object of aux-id->\"present\"/\"absent\" strings";
+				error_code = "invalid_aux_presence_overrides";
+				return false;
+			}
+			for (const auto& [aux_id, value] : json["aux_presence_overrides"].items())
+			{
+				if (!value.is_string() || (("present" != value.get_ref<const std::string&>()) && ("absent" != value.get_ref<const std::string&>())))
+				{
+					error = "aux_presence_overrides values must be \"present\" or \"absent\"";
+					error_code = "invalid_aux_presence_overrides";
+					return false;
+				}
+			}
+			aux_presence_overrides = json["aux_presence_overrides"];
+			return true;
+		}
+
 		bool ValidateShowAuxId(const nlohmann::json& json, bool& show_aux_id, std::string& error, std::string& error_code)
 		{
 			if (!json.contains("show_aux_id_in_label"))
@@ -257,6 +282,7 @@ namespace AqualinkAutomate::Preferences
 		};
 		json["history"] = { { "retention_days", m_Hub->HistoryRetentionDays } };
 		json["label_overrides"] = m_Hub->LabelOverrides;
+		json["aux_presence_overrides"] = m_Hub->AuxPresenceOverrides;
 		json["show_aux_id_in_label"] = m_Hub->ShowAuxIdInLabel;
 		json["ui"] = m_Hub->UiPreferences;
 		json["spa_switch_buttons"] = m_Hub->SpaSwitchButtons;
@@ -291,6 +317,7 @@ namespace AqualinkAutomate::Preferences
 		auto webhook = m_Hub->AlertWebhookUrl;
 		auto retention = m_Hub->HistoryRetentionDays;
 		auto label_overrides = m_Hub->LabelOverrides;
+		auto aux_presence_overrides = m_Hub->AuxPresenceOverrides;
 		auto show_aux_id = m_Hub->ShowAuxIdInLabel;
 		auto ui = m_Hub->UiPreferences;
 		auto spa_switch_buttons = m_Hub->SpaSwitchButtons;
@@ -299,6 +326,7 @@ namespace AqualinkAutomate::Preferences
 		if (!ValidateAlert(json, salt, comms, webhook, error, error_code)) { return false; }
 		if (!ValidateHistory(json, retention, error, error_code)) { return false; }
 		if (!ValidateLabelOverrides(json, label_overrides, error, error_code)) { return false; }
+		if (!ValidateAuxPresenceOverrides(json, aux_presence_overrides, error, error_code)) { return false; }
 		if (!ValidateShowAuxId(json, show_aux_id, error, error_code)) { return false; }
 		if (!ValidateUi(json, ui, error, error_code)) { return false; }
 		if (!ValidateSpaSwitchButtons(json, spa_switch_buttons, error, error_code)) { return false; }
@@ -311,6 +339,7 @@ namespace AqualinkAutomate::Preferences
 		m_Hub->AlertWebhookUrl = std::move(webhook);
 		m_Hub->HistoryRetentionDays = retention;
 		m_Hub->LabelOverrides = std::move(label_overrides);
+		m_Hub->AuxPresenceOverrides = std::move(aux_presence_overrides);
 		m_Hub->ShowAuxIdInLabel = show_aux_id;
 		m_Hub->UiPreferences = std::move(ui);
 		m_Hub->SpaSwitchButtons = std::move(spa_switch_buttons);
@@ -322,6 +351,15 @@ namespace AqualinkAutomate::Preferences
 		{
 			m_Hub->DisplayUnitsChangedSignal();
 		}
+
+		// NOTE: this only persists aux_presence_overrides -- it does NOT reconcile the live
+		// device graph (that's a protocol-specific concern PreferencesService, being part of
+		// libaqualink-automate, must not reach into; libaqualink-jandy depends on this library,
+		// never the reverse). Reconciliation happens in JandyController's constructor (covers
+		// boot-time restore) and explicitly in WebRoute_Equipment_AuxSlot (the dedicated,
+		// UI-facing route) right after a successful apply. A direct PUT to /api/preferences that
+		// bypasses that route persists the override but only takes visible effect at the next
+		// panel-model (re)detection or process restart.
 
 		return true;
 	}

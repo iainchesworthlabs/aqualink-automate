@@ -12,6 +12,7 @@
 #include "devices/jandy_device_types.h"
 #include "formatters/jandy_device_formatters.h"  // std::formatter<JandyDeviceType> for the "OneTouch ({})", DeviceId() logs
 #include "kernel/data_hub.h"
+#include "kernel/preferences_hub.h"
 #include "profiling/factories/profiling_unit_factory.h"
 #include "scheduling/controller_schedule.h"
 #include "utility/screen_data_page.h"
@@ -43,7 +44,8 @@ namespace AqualinkAutomate::Devices
 		OneTouchScraper(
 			std::shared_ptr<Devices::JandyDeviceType> device_id,
 			std::shared_ptr<Kernel::DataHub> data_hub,
-			std::shared_ptr<Scheduling::ControllerScheduleStore> schedule_store);
+			std::shared_ptr<Scheduling::ControllerScheduleStore> schedule_store,
+			std::shared_ptr<Kernel::PreferencesHub> preferences_hub = nullptr);
 
 		// The full set of page processors bound to this scraper, ready to hand to
 		// Screen::PageProcessors() from the OneTouchDevice constructor.
@@ -126,6 +128,10 @@ namespace AqualinkAutomate::Devices
 	private:
 		std::shared_ptr<Devices::JandyDeviceType> m_DeviceId;
 		std::shared_ptr<Kernel::DataHub> m_DataHub;
+
+		// TryFind'd by the owning OneTouchDevice; optional (nullptr on a minimal test rig),
+		// null-checked wherever consulted. Carries the operator's aux presence overrides.
+		std::shared_ptr<Kernel::PreferencesHub> m_PreferencesHub;
 
 		// Read-only sink for the controller's internal schedules parsed off the per-equipment
 		// Program detail pages (the /api/controller/schedules source). Null on a passive/test rig.

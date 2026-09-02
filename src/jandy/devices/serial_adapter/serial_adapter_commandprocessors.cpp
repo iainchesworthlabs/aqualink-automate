@@ -4,6 +4,7 @@
 
 #include "logging/logging.h"
 #include "auxillaries/jandy_auxillary_id.h"
+#include "auxillaries/jandy_auxillary_presence_override.h"
 #include "auxillaries/jandy_auxillary_reconciliation.h"
 #include "auxillaries/jandy_auxillary_span.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
@@ -113,6 +114,14 @@ namespace AqualinkAutomate::Devices
 			return;
 		}
 
+		// An operator-forced Absent override must survive the next wire reply, not just the
+		// moment it was applied, otherwise it flip-flops back the next time the panel answers.
+		if (nullptr != JandyController::m_PreferencesHub && Auxillaries::IsForcedAbsent(aux_id, JandyController::m_PreferencesHub->AuxPresenceOverrides))
+		{
+			LogDebug(Channel::Devices, std::format("Ignoring auxillary status for {}; forced absent by operator override", magic_enum::enum_name(aux_id)));
+			return;
+		}
+
 		//
 		// Find (or create) a device that matches this auxillary, reconciling by the stable id
 		// derived from the aux id (matches a cache-restored placeholder regardless of label).
@@ -156,6 +165,10 @@ namespace AqualinkAutomate::Devices
 				aux_ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{}, Kernel::AuxillaryStatuses::Unknown);
 				break;
 			}
+
+			// This is real wire evidence -- clear any "synthesized by a forced-present operator
+			// override, not yet independently confirmed" marker so the slot now reads as detected.
+			aux_ptr->AuxillaryTraits.Set(Auxillaries::SynthesizedTrait{}, false);
 
 			// Collapse any legacy random-id cache placeholder for this aux onto the live device at
 			// the first touch, so it never reaches the MQTT/HA publishers as a duplicate.

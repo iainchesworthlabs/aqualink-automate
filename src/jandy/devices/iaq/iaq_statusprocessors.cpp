@@ -13,7 +13,9 @@
 #include "devices/capabilities/screen.h"
 #include "devices/iaq_device.h"
 #include "auxillaries/jandy_auxillary_id.h"
+#include "auxillaries/jandy_auxillary_presence_override.h"
 #include "auxillaries/jandy_auxillary_reconciliation.h"
+#include "auxillaries/jandy_auxillary_span.h"
 #include "auxillaries/jandy_auxillary_status.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "factories/jandy_auxillary_factory.h"
@@ -346,6 +348,28 @@ namespace AqualinkAutomate::Devices
 
 			const auto status = info.is_on ? Auxillaries::JandyAuxillaryStatuses::On : Auxillaries::JandyAuxillaryStatuses::Off;
 
+			// A reply about an aux the detected panel model cannot have is not evidence that the
+			// relay exists (see Auxillaries::AuxillaryModelSpan) - mirrors the same gate the RSSA
+			// and OneTouch Label-Aux paths apply, which this path was previously missing.
+			if (const auto span = Auxillaries::AuxillaryModelSpan::FromDataHub(*m_DataHub); !span.Contains(aux_id.value()))
+			{
+				LogDebug(Channel::Devices, [this, &aux_id]() { return std::format("IAQ ({}): Ignoring auxillary status for {}; the detected panel model has no such relay", DeviceId(), magic_enum::enum_name(aux_id.value())); });
+				continue;
+			}
+
+			// An operator-forced Absent override must survive the next wire event too, otherwise
+			// it flip-flops back the next time the panel reports this aux.
+			if ((nullptr != m_PreferencesHub) && Auxillaries::IsForcedAbsent(aux_id.value(), m_PreferencesHub->AuxPresenceOverrides))
+			{
+				LogDebug(Channel::Devices, [this, &aux_id]() { return std::format("IAQ ({}): Ignoring auxillary status for {}; forced absent by operator override", DeviceId(), magic_enum::enum_name(aux_id.value())); });
+
+				if (auto existing = m_DataHub->Devices.FindById(Auxillaries::AuxStableId(aux_id.value())); nullptr != existing)
+				{
+					m_DataHub->Devices.Remove(existing);
+				}
+				continue;
+			}
+
 			// Find or create the auxillary device, reconciling by the stable id derived from the
 			// aux id - this matches a cache-restored placeholder regardless of its label.
 			std::shared_ptr<Kernel::AuxillaryDevice> aux_ptr(nullptr);
@@ -370,6 +394,10 @@ namespace AqualinkAutomate::Devices
 			// Update the device status.
 			aux_ptr->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{},
 				info.is_on ? Kernel::AuxillaryStatuses::On : Kernel::AuxillaryStatuses::Off);
+
+			// This is real wire evidence -- clear any "synthesized by a forced-present operator
+			// override, not yet independently confirmed" marker so the slot now reads as detected.
+			aux_ptr->AuxillaryTraits.Set(Auxillaries::SynthesizedTrait{}, false);
 
 			// Collapse any legacy random-id cache placeholder for this aux onto the live device at
 			// the first touch - before the custom label is known - so it never publishes as a

@@ -4,6 +4,7 @@
 #include "devices/jandy_device_types.h"
 #include "kernel/data_hub.h"
 #include "kernel/hub_locator.h"
+#include "kernel/preferences_hub.h"
 
 namespace AqualinkAutomate::Devices
 {
@@ -19,6 +20,11 @@ namespace AqualinkAutomate::Devices
 
 	protected:
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };
+
+		// TryFind (not Find): a minimal test HubLocator may not register PreferencesHub, and the
+		// aux presence-override it carries is an optional operator setting, not a hard dependency
+		// -- callers must null-check before use.
+		std::shared_ptr<Kernel::PreferencesHub> m_PreferencesHub{ nullptr };
 	};
 
 }
