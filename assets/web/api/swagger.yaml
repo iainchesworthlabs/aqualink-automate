@@ -1721,7 +1721,7 @@ paths:
               example:
                 select_button: { status: "success", value: 2 }
         '400': { description: Invalid value (select_button out of 0..255, or wrong type) }
-        '409': { description: A capable controller is still applying an earlier command; retry shortly }
+        '409': { description: 'A capable controller is still applying an earlier command; retry shortly. Body additionally carries `error`/`code: "iaq_busy"`.' }
         '503': { description: No commandable IAQ/AqualinkTouch device / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1766,7 +1766,7 @@ paths:
                 enable: true
                 status: "success"
         '400': { description: Invalid value (bad/missing body or enable) }
-        '409': { description: A capable controller is still applying an earlier command; retry shortly }
+        '409': { description: 'A capable controller is still applying an earlier command; retry shortly. Body additionally carries `error`/`code: "heater_busy"`.' }
         '503': { description: No commandable controller / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1804,7 +1804,7 @@ paths:
                 mode: spa
                 status: "success"
         '400': { description: Invalid value (bad/missing mode) }
-        '409': { description: A capable controller is still applying an earlier command; retry shortly }
+        '409': { description: 'A capable controller is still applying an earlier command; retry shortly. Body additionally carries `error`/`code: "circulation_busy"`.' }
         '503': { description: No commandable controller / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -2018,11 +2018,28 @@ paths:
                   value: "Invalid setpoint payload"
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: >
+            A capable controller exists but is still applying an earlier setpoint command
+            (e.g. an overlapping request landed mid menu-walk); retry shortly. The body
+            additionally carries a top-level `error`/`code: "setpoint_busy"` alongside the
+            usual per-field envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetpointsPostResponse'
+              example:
+                pool:
+                  status: "error"
+                  celsius: 26.5
+                error: "A previous setpoint command is still being applied; try again shortly"
+                code: setpoint_busy
         '500':
           description: |
             At least one accepted setpoint could not be dispatched to the
-            equipment. The per-field response body still reports each field's
-            individual `status` ("success" or "error").
+            equipment for a reason other than a busy controller (409, above) or no
+            commandable controller (503, below). The per-field response body still
+            reports each field's individual `status` ("success" or "error").
           content:
             application/json:
               schema:
@@ -2032,7 +2049,7 @@ paths:
                   status: "error"
                   celsius: 26.5
         '503':
-          description: Command dispatcher not available
+          description: Command dispatcher not available, or no commandable controller can act
           content:
             text/plain:
               schema:

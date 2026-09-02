@@ -128,6 +128,12 @@ function chlorinatorControl() {
         },
 
         async _post(payload) {
+            // Belt-and-suspenders alongside the button's :disabled="busy" binding: a second
+            // click landing before Alpine re-renders that attribute (or any other reentrant
+            // call) is a no-op rather than firing a duplicate request the panel is still
+            // mid-way through the first one -- the exact overlap that used to surface as a
+            // misleading "rejected" once the server had no way to say "busy, try again".
+            if (this.busy) { return false; }
             this.busy = true;
             this.feedback = '';
             try {

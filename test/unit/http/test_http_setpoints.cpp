@@ -172,6 +172,38 @@ BOOST_AUTO_TEST_CASE(Test_Setpoints_Post_DispatchFailure_ReturnsNon2xx)
 	BOOST_REQUIRE_EQUAL(1u, dispatcher->pool_values.size());
 }
 
+// Regression: this route used to collapse EVERY dispatch failure into a flat 500, which is
+// what the chlorinator-target-503 investigation's sweep flagged here too -- a controller that
+// is merely busy applying an earlier setpoint (transient, worth retrying) read exactly like an
+// unexpected server error. It must get its own status (409) and a reason, same as the other
+// equipment-control routes.
+BOOST_AUTO_TEST_CASE(Test_Setpoints_Post_DispatchBusy_Returns409WithReason)
+{
+	dispatcher->result_to_return = Interfaces::ICommandDispatcher::CommandResult::Busy;
+
+	auto resp = Post(R"({"pool": 28.0})");
+
+	BOOST_CHECK_EQUAL(boost::beast::http::status::conflict, resp.result());
+	BOOST_REQUIRE_EQUAL(1u, dispatcher->pool_values.size());
+
+	auto body = nlohmann::json::parse(resp.body());
+	BOOST_CHECK_EQUAL(body["pool"]["status"].get<std::string>(), "error");
+	BOOST_CHECK_EQUAL(body["code"].get<std::string>(), "setpoint_busy");
+	BOOST_CHECK(!body["error"].get<std::string>().empty());
+}
+
+// A genuinely unexpected/unmapped failure (anything other than Busy or no-controller) still
+// falls back to 500, preserving the route's historical behaviour for that case.
+BOOST_AUTO_TEST_CASE(Test_Setpoints_Post_DispatchDeviceNotFound_Returns503)
+{
+	dispatcher->result_to_return = Interfaces::ICommandDispatcher::CommandResult::DeviceNotFound;
+
+	auto resp = Post(R"({"spa": 38.0})");
+
+	BOOST_CHECK_EQUAL(boost::beast::http::status::service_unavailable, resp.result());
+	BOOST_REQUIRE_EQUAL(1u, dispatcher->spa_values.size());
+}
+
 BOOST_AUTO_TEST_CASE(Test_Setpoints_Post_MissingFields_ReturnsOk)
 {
 	// A payload with neither pool nor spa is a no-op success.

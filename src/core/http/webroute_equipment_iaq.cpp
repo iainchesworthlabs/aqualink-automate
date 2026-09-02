@@ -8,6 +8,7 @@
 #include "http/server/responses/response_405.h"
 #include "http/server/server_fields.h"
 #include "http/server/server_types.h"
+#include "http/webroute_command_helpers.h"
 #include "http/webroute_equipment_iaq.h"
 #include "logging/logging.h"
 #include "profiling/factories/profiling_unit_factory.h"
@@ -92,6 +93,7 @@ namespace AqualinkAutomate::HTTP
 					overall = StatusFor(r);
 				}
 				result["select_button"] = { { "status", r == CommandResult::Success ? "success" : "error" }, { "value", index } };
+				NoteBusyReason(result, r, "iaq_busy", "A previous command is still being applied; try again shortly");
 			}
 		}
 		catch (const nlohmann::json::exception& ex)

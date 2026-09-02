@@ -183,7 +183,7 @@ All routes below are registered in a single block when the web server is enabled
 | Method | Path | Success | Other codes |
 |---|---|---|---|
 | GET | `/api/equipment/setpoints` | `200` JSON | `pool_setpoint`, `spa_setpoint`. |
-| POST | `/api/equipment/setpoints` | `200` JSON | `400` (bad value), `503` (no dispatcher), `500` (dispatch failed, including a controller that is busy applying an earlier command -- retry shortly). |
+| POST | `/api/equipment/setpoints` | `200` JSON | `400` (bad value), `409` (a capable controller is still applying an earlier command -- retry shortly), `503` (no dispatcher / no commandable controller), `500` (dispatch failed for any other reason). |
 | POST | `/api/equipment/chlorinator` | `200` JSON | `400` (bad body), `409` (a capable controller is still applying an earlier chlorinator command -- retry shortly), `503` (no dispatcher / no commandable chlorinator). |
 
 ### Diagnostics
@@ -437,7 +437,7 @@ curl -X POST http://127.0.0.1:8080/api/equipment/setpoints \
 }
 ```
 
-With no command dispatcher available the whole request returns `503` (`text/plain` "Command dispatcher not available"). If any accepted field's dispatch fails, the overall status is `500` while the per-field JSON still reports each field's individual `status`.
+With no command dispatcher available the whole request returns `503` (`text/plain` "Command dispatcher not available"). If any accepted field's dispatch fails, the overall status follows the WORST per-field result -- `409` when a capable controller is still applying an earlier setpoint command (the body additionally carries a top-level `error`/`code: "setpoint_busy"`), `503` when no commandable controller exists, `500` otherwise -- while the per-field JSON still reports each field's individual `status`.
 
 ### POST /api/equipment/chlorinator
 

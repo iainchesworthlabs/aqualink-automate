@@ -672,6 +672,11 @@ document.addEventListener('alpine:init', () => {
         },
 
         async toggleButton(id) {
+            // A second click landing while the first is still in flight (before the panel's
+            // menu-walk lands and the authoritative ButtonStateChange arrives) would previously
+            // race the OneTouch/IAQ "one goal at a time" gate and surface a confusing rejection.
+            // No-op it here instead — mirrors the equivalent guard on the chlorinator tile.
+            if (this.commandStates[id]?.state === 'sending') { return; }
             if (!Alpine.store('system').commandsEnabled) {
                 this._setCommandState(id, 'blocked');
                 return;
@@ -718,6 +723,9 @@ document.addEventListener('alpine:init', () => {
         // to confirm the change — no optimistic apply.
         async toggleSpaMode(enable) {
             const key = 'circulation';
+            // See toggleButton: a second request landing while the first is still applying
+            // would previously race the controller's "one goal at a time" gate.
+            if (this.commandStates[key]?.state === 'sending') { return; }
             if (!Alpine.store('system').commandsEnabled) {
                 this._setCommandState(key, 'blocked');
                 return;
@@ -791,6 +799,9 @@ document.addEventListener('alpine:init', () => {
         // generic button toggle for an unrecognised heater body.
         async setHeaterMode(button, enable) {
             const id = button.id;
+            // See toggleButton: a second request landing while the first is still applying
+            // would previously race the controller's "one goal at a time" gate.
+            if (this.commandStates[id]?.state === 'sending') { return; }
             if (!Alpine.store('system').commandsEnabled) {
                 this._setCommandState(id, 'blocked');
                 return;
