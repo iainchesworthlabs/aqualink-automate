@@ -168,6 +168,8 @@ All routes below are registered in a single block when the web server is enabled
 | POST | `/api/equipment/buttons` | `200` empty `text/html` | Placeholder (no-op). |
 | GET | `/api/equipment/buttons/{button_id}` | `200` JSON | `503` (system not ready), `404` (bad/unknown id). |
 | POST | `/api/equipment/buttons/{button_id}` | `200` JSON (toggled) | `503`, `404`, `422`, `400` (see below). |
+| GET | `/api/equipment/aux-slots` | `200` JSON | `slots[]` — one row per addressable aux id (up to 32, bounded to the detected model once known), merging live device state with the presence/label overrides. Backs the Settings "Device Names" table's "Other aux slots" tab. |
+| PUT | `/api/equipment/aux-slots/{aux_id}` | `200` JSON (updated slot) | Set/clear an aux's presence override (`"auto"`\|`"present"`\|`"absent"`) — an operator override of live *detection*, not a relay on/off control. `400` (bad body/value), `404` (unknown aux id), `503` (preferences unavailable). Requires `system.admin`. Reconciles the live device graph before responding, so REST/WS/MQTT/HA all reflect it immediately. |
 
 ### Devices
 
@@ -196,6 +198,7 @@ All routes below are registered in a single block when the web server is enabled
 | GET | `/api/diagnostics/options` | `200` JSON | `options[]` of `{name, short_name, description}`. |
 | GET | `/api/diagnostics/mqtt` | `200` JSON | `enabled` + MQTT connection diagnostics. |
 | GET | `/api/diagnostics/matter` | `200` JSON | `enabled` + Matter sidecar status (cached). |
+| GET / POST | `/api/diagnostics/aux-rediscovery` | `200` JSON | GET returns `{in_progress, last_cleared_count}`; POST clears every auto-detected auxiliary (sparing any forced Present) and starts a fresh discovery crawl. `409` a crawl is already in progress or the controller isn't active; `503` no OneTouch controller registered. POST requires `system.admin`. |
 | GET / POST | `/api/diagnostics/recording` | `200` JSON | GET returns `{recording, file, bytes}`; POST starts/stops. `400` bad body / rejected filename; `409` already/not recording; `503` no recorder (dev-mode/replay). |
 | GET | `/api/diagnostics/recording/captures` | `200` JSON | `captures[]` of `{name, bytes, modified}` — the finished captures on the server, newest first. |
 | GET | `/api/diagnostics/recording/captures/{filename}` | `200` file | Downloads one capture (`Content-Disposition: attachment`). `400` rejected filename; `404` unknown capture; `413` larger than the 64 MiB download limit. |
@@ -246,7 +249,7 @@ web UI merges both sources into one timeline. See
 | Method | Path | Success | Other codes |
 |---|---|---|---|
 | GET | `/api/preferences` | `200` JSON | `503` when the service is unavailable. |
-| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. The opaque `ui` object merges shallowly at its top level (a `ui.*` value of null deletes that key) so independent UI features never clobber each other's keys. |
+| PUT | `/api/preferences` | `200` JSON | `400` (invalid JSON or apply failure), `503`. The opaque `ui` object merges shallowly at its top level (a `ui.*` value of null deletes that key) so independent UI features never clobber each other's keys. `aux_presence_overrides` (aux-id -> `"present"`\|`"absent"`) reconciles the live device graph immediately on apply, same as `PUT /api/equipment/aux-slots/{aux_id}` (the friendlier single-slot entry point). |
 
 ### Metrics
 

@@ -2109,6 +2109,24 @@
                     </template>
                 </div>
             </div>
+
+            <!-- Auxiliary Discovery -->
+            <div class="section-title" x-text="$t('diag.aux_rediscovery_title')"></div>
+            <div class="card mb-2">
+                <div class="card-body">
+                    <p class="settings-card-desc" x-text="$t('diag.aux_rediscovery_desc')"></p>
+                    <div class="aux-rediscovery-row">
+                        <span class="badge" :class="auxRediscovery.in_progress ? 'badge-freq' : 'badge-status-off'"
+                              x-text="auxRediscovery.in_progress ? $t('diag.aux_rediscovery_running') : $t('diag.aux_rediscovery_idle')"></span>
+                        <span class="text-muted text-xs" x-show="auxRediscovery.last_cleared_count > 0"
+                              x-text="$t('diag.aux_rediscovery_last_cleared', { count: auxRediscovery.last_cleared_count })"></span>
+                        <button type="button" class="btn btn-secondary btn-sm"
+                                :disabled="auxRediscoveryBusy || auxRediscovery.in_progress"
+                                @click="requestAuxRediscovery()"
+                                x-text="$t('diag.aux_rediscovery_action')"></button>
+                    </div>
+                </div>
+            </div>
             </div><!-- /.diag-adv-tail -->
 
             <!-- Matter Status -->
@@ -2783,7 +2801,7 @@
             <div class="card mb-2 settings-card">
                 <div class="card-header card-header-split">
                     <span x-text="$t('settings.device_names')"></span>
-                    <div class="settings-card-actions" x-show="deviceButtons().length > 0">
+                    <div class="settings-card-actions" x-show="(nonAuxDeviceButtons().length + myAuxSlots().length) > 0">
                         <span class="badge badge-good" x-show="savedFlash" x-cloak x-text="$t('settings.saved')"></span>
                         <button class="sched-new-btn" @click="saveLabels()" x-text="$t('common.save')"></button>
                     </div>
@@ -2797,18 +2815,79 @@
                         </div>
                         <input type="checkbox" class="settings-switch" x-model="showAuxIdInLabel" @change="saveShowAuxId()" :aria-label="$t('settings.show_aux_id')">
                     </label>
-                    <template x-if="deviceButtons().length > 0">
-                        <div class="settings-name-grid">
-                            <template x-for="button in deviceButtons()" :key="button.id">
-                                <div class="settings-name-field" x-show="button.label">
-                                    <label :for="'name-' + button.id" x-text="button.label"></label>
-                                    <input :id="'name-' + button.id" type="text" class="settings-input"
-                                           :placeholder="button.label" x-model="labelOverrides[button.label]">
+
+                    <div class="seg-toggle mb-2" role="group" :aria-label="$t('settings.aux_tabs_aria')">
+                        <button type="button" class="seg-option" :class="{ active: auxTab === 'mine' }" @click="auxTab = 'mine'" x-text="$t('settings.aux_tab_mine')"></button>
+                        <button type="button" class="seg-option" :class="{ active: auxTab === 'other' }" @click="auxTab = 'other'">
+                            <span x-text="$t('settings.aux_tab_other')"></span>
+                            <span x-show="otherAuxSlotCount() > 0" x-text="'(' + otherAuxSlotCount() + ')'"></span>
+                        </button>
+                    </div>
+
+                    <template x-if="auxTab === 'mine'">
+                        <div>
+                            <template x-if="(nonAuxDeviceButtons().length + myAuxSlots().length) > 0">
+                                <div class="settings-name-grid">
+                                    <template x-for="button in nonAuxDeviceButtons()" :key="button.id">
+                                        <div class="settings-name-field" x-show="button.label">
+                                            <label :for="'name-' + button.id" x-text="button.label"></label>
+                                            <input :id="'name-' + button.id" type="text" class="settings-input"
+                                                   :placeholder="button.label" x-model="labelOverrides[button.label]">
+                                            <div class="aux-slot-status">
+                                                <span class="badge" :class="deviceStatusBadgeClass(button)" x-text="deviceStatusLabel(button)"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template x-for="slot in myAuxSlots()" :key="slot.aux_id">
+                                        <div class="settings-name-field" x-show="slot.label">
+                                            <label :for="'name-aux-' + slot.aux_id" x-text="slot.label"></label>
+                                            <input :id="'name-aux-' + slot.aux_id" type="text" class="settings-input"
+                                                   :placeholder="slot.label" x-model="labelOverrides[slot.label]">
+                                            <div class="aux-slot-status">
+                                                <span class="badge badge-good" x-show="slot.detected" x-text="$t('settings.aux_detected')"></span>
+                                                <template x-if="!slot.detected && slot.presence_override === 'present'">
+                                                    <span class="aux-slot-forced-row">
+                                                        <span class="badge-forced" x-text="$t('settings.aux_forced_not_seen')"></span>
+                                                        <button type="button" class="btn btn-ghost btn-sm" :disabled="isAuxBusy(slot.aux_id)" @click="setAuxPresence(slot.aux_id, 'auto')" x-text="$t('settings.aux_undo')"></button>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
+                            <p class="settings-hint" x-show="(nonAuxDeviceButtons().length + myAuxSlots().length) === 0" x-text="$t('settings.no_devices')"></p>
                         </div>
                     </template>
-                    <p class="settings-hint" x-show="deviceButtons().length === 0" x-text="$t('settings.no_devices')"></p>
+
+                    <template x-if="auxTab === 'other'">
+                        <div>
+                            <p class="settings-card-desc" x-text="$t('settings.aux_other_desc')"></p>
+                            <template x-for="group in otherAuxSlotGroupList()" :key="group.key">
+                                <div class="aux-slot-group">
+                                    <button type="button" class="aux-slot-group-header" @click="toggleAuxGroup(group.key)">
+                                        <span x-text="$t('settings.aux_power_centre', { centre: group.label }) + ' · ' + group.slots.length"></span>
+                                        <i class="aux-slot-chevron" :class="{ open: expandedAuxGroups[group.key] }" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="aux-slot-group-body" x-show="expandedAuxGroups[group.key]" x-cloak>
+                                        <template x-for="slot in group.slots" :key="slot.aux_id">
+                                            <div class="aux-slot-row">
+                                                <span x-text="slot.aux_id"></span>
+                                                <button type="button" class="btn btn-secondary btn-sm" :disabled="isAuxBusy(slot.aux_id)" @click="setAuxPresence(slot.aux_id, 'present')" x-text="$t('settings.aux_force_present')"></button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                            <p class="settings-hint" x-show="otherAuxSlotCount() === 0" x-text="$t('settings.aux_other_none')"></p>
+                            <label class="settings-toggle-row aux-slot-showall-row" x-show="hasOutOfSpanAuxSlots()">
+                                <div class="settings-toggle-text">
+                                    <div class="settings-toggle-title" x-text="$t('settings.aux_show_all')"></div>
+                                </div>
+                                <input type="checkbox" class="settings-switch" x-model="showAllAuxSlots" :aria-label="$t('settings.aux_show_all')">
+                            </label>
+                        </div>
+                    </template>
                 </div>
             </div>
 
