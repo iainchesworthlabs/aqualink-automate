@@ -434,6 +434,16 @@ jobs:
                 DESTDIR="$PWD/install/$CONFIGURE_PRESET" cmake --install "build/$CONFIGURE_PRESET" --prefix /
                 tar czf "${INSTALLTREE_NAME}.tar.gz" -C "install/$CONFIGURE_PRESET" .
               fi
+              # The preset caches CMAKE_INSTALL_PREFIX to a build-tree-local path
+              # (a sandbox so a bare `cmake --install` never touches a real /usr
+              # during local dev). CPack packages against that SAME cached prefix
+              # -- CPACK_PACKAGING_INSTALL_PREFIX does not override it, verified
+              # directly: with the cached prefix left as-is, the .deb/.rpm/.tgz
+              # all put the binary under that build-tree path instead of /usr,
+              # so the installed package could not find it on PATH. Reconfiguring
+              # (no rebuild -- only the cache entry changes) is what CPack docs
+              # for DEB/RPM assume was already the case.
+              cmake --preset "$CONFIGURE_PRESET" -DCMAKE_INSTALL_PREFIX=/usr
               cpack --preset "$PACKAGE_PRESET"
             '
 
