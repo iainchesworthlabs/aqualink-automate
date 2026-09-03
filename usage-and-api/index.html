@@ -2670,13 +2670,13 @@
 <td>POST</td>
 <td><code>/api/equipment/circulation</code></td>
 <td><code>200</code> JSON</td>
-<td>Set circulation mode (<code>pool</code>/<code>spa</code>/<code>spillover</code>). <code>400</code> (bad value), <code>503</code> (no dispatcher). POST-only; non-<code>POST</code> returns a bare <code>405</code>.</td>
+<td>Set circulation mode (<code>pool</code>/<code>spa</code>/<code>spillover</code>). <code>400</code> (bad value), <code>409</code> (a capable controller is still applying an earlier command -- retry shortly), <code>503</code> (no dispatcher / no commandable controller). POST-only; non-<code>POST</code> returns a bare <code>405</code>.</td>
 </tr>
 <tr>
 <td>POST</td>
 <td><code>/api/equipment/heater</code></td>
 <td><code>200</code> JSON</td>
-<td>Enable/disable a heater by body of water (<code>pool</code>/<code>spa</code>/<code>solar</code>). <code>400</code> (bad value), <code>503</code> (no dispatcher). POST-only; non-<code>POST</code> returns a bare <code>405</code>.</td>
+<td>Enable/disable a heater by body of water (<code>pool</code>/<code>spa</code>/<code>solar</code>). <code>400</code> (bad value), <code>409</code> (controller busy -- retry shortly), <code>503</code> (no dispatcher / no commandable controller). POST-only; non-<code>POST</code> returns a bare <code>405</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -2713,7 +2713,7 @@
 <td>POST</td>
 <td><code>/api/equipment/buttons/{button_id}</code></td>
 <td><code>200</code> JSON (toggled)</td>
-<td><code>503</code>, <code>404</code>, <code>422</code>, <code>400</code> (see below).</td>
+<td><code>503</code>, <code>409</code> (controller busy -- retry shortly), <code>404</code>, <code>422</code>, <code>400</code> (see below).</td>
 </tr>
 </tbody>
 </table>
@@ -2738,7 +2738,7 @@
 <td>POST</td>
 <td><code>/api/equipment/iaq</code></td>
 <td><code>200</code> JSON</td>
-<td><code>select_button</code> (0..255). <code>503</code> no dispatcher, <code>400</code> bad value.</td>
+<td><code>select_button</code> (0..255). <code>503</code> no dispatcher / no commandable device, <code>409</code> controller busy (retry shortly), <code>400</code> bad value.</td>
 </tr>
 <tr>
 <td>GET</td>
@@ -2775,13 +2775,13 @@
 <td>POST</td>
 <td><code>/api/equipment/setpoints</code></td>
 <td><code>200</code> JSON</td>
-<td><code>400</code> (bad value), <code>503</code> (no dispatcher), <code>500</code> (dispatch failed).</td>
+<td><code>400</code> (bad value), <code>409</code> (a capable controller is still applying an earlier command -- retry shortly), <code>503</code> (no dispatcher / no commandable controller), <code>500</code> (dispatch failed for any other reason).</td>
 </tr>
 <tr>
 <td>POST</td>
 <td><code>/api/equipment/chlorinator</code></td>
 <td><code>200</code> JSON</td>
-<td><code>400</code> (bad body), <code>503</code> (no dispatcher).</td>
+<td><code>400</code> (bad body), <code>409</code> (a capable controller is still applying an earlier chlorinator command -- retry shortly), <code>503</code> (no dispatcher / no commandable chlorinator).</td>
 </tr>
 </tbody>
 </table>
@@ -2924,7 +2924,7 @@
 <td>POST</td>
 <td><code>/api/schedules/{uuid}/promote</code></td>
 <td><code>200</code> <code>{status:"queued", schedule}</code></td>
-<td><code>404</code> unknown; <code>422</code> no on/off complement or non-button action; <code>400</code> not representable (<code>blockers[]</code>); <code>503</code>.</td>
+<td><code>404</code> unknown; <code>409</code> a capable writer is busy applying an earlier program change (retry shortly); <code>422</code> no on/off complement or non-button action; <code>400</code> not representable (<code>blockers[]</code>); <code>503</code>.</td>
 </tr>
 <tr>
 <td>GET</td>
@@ -2936,19 +2936,19 @@
 <td>POST</td>
 <td><code>/api/controller/schedules</code></td>
 <td><code>200</code> <code>{status:"queued", schedule}</code></td>
-<td><code>400</code> bad body / not representable (with <code>blockers[]</code>); <code>503</code> no writer.</td>
+<td><code>400</code> bad body / not representable (with <code>blockers[]</code>); <code>409</code> writer busy (retry shortly); <code>503</code> no writer.</td>
 </tr>
 <tr>
 <td>PUT</td>
 <td><code>/api/controller/schedules/{id}</code></td>
 <td><code>200</code> <code>{status:"queued", schedule}</code></td>
-<td><code>404</code> unknown id; <code>400</code> bad body / not representable (with <code>blockers[]</code>); <code>503</code> no writer.</td>
+<td><code>404</code> unknown id; <code>400</code> bad body / not representable (with <code>blockers[]</code>); <code>409</code> writer busy (retry shortly); <code>503</code> no writer.</td>
 </tr>
 <tr>
 <td>DELETE</td>
 <td><code>/api/controller/schedules/{id}</code></td>
 <td><code>200</code> <code>{status:"queued"}</code></td>
-<td><code>404</code> unknown id; <code>503</code> no writer.</td>
+<td><code>404</code> unknown id; <code>409</code> writer busy (retry shortly); <code>503</code> no writer.</td>
 </tr>
 </tbody>
 </table>
@@ -3320,6 +3320,10 @@ web UI merges both sources into one timeline. See
 <td><code>503</code> (with <code>Retry-After</code>)</td>
 </tr>
 <tr>
+<td>A capable controller is still applying an earlier command (retry shortly)</td>
+<td><code>409</code> (with <code>Retry-After</code>)</td>
+</tr>
+<tr>
 <td>Device id not found</td>
 <td><code>404</code></td>
 </tr>
@@ -3345,7 +3349,7 @@ web UI merges both sources into one timeline. See
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">"spa"</span><span class="p">:</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"success"</span><span class="p">,</span><span class="w"> </span><span class="nt">"celsius"</span><span class="p">:</span><span class="w"> </span><span class="mf">38.0</span><span class="w"> </span><span class="p">}</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">}</span>
 </code></pre></div>
-<p>With no command dispatcher available the whole request returns <code>503</code> (<code>text/plain</code> "Command dispatcher not available"). If any accepted field's dispatch fails, the overall status is <code>500</code> while the per-field JSON still reports each field's individual <code>status</code>.</p>
+<p>With no command dispatcher available the whole request returns <code>503</code> (<code>text/plain</code> "Command dispatcher not available"). If any accepted field's dispatch fails, the overall status follows the WORST per-field result -- <code>409</code> when a capable controller is still applying an earlier setpoint command (the body additionally carries a top-level <code>error</code>/<code>code: "setpoint_busy"</code>), <code>503</code> when no commandable controller exists, <code>500</code> otherwise -- while the per-field JSON still reports each field's individual <code>status</code>.</p>
 <h3 id="post-apiequipmentchlorinator">POST /api/equipment/chlorinator<a class="headerlink" href="#post-apiequipmentchlorinator" title="Permanent link">&para;</a></h3>
 <p>Set the chlorinator generating percentage and/or its boost mode.</p>
 <p>The panel keeps an <strong>independent output setpoint per body of water</strong> — you can run the spa at 70% while the pool sits at 40% — so <code>body</code> selects which one <code>percentage</code> applies to. It is optional and defaults to <code>Pool</code>, which is what the single-value form has always driven, so existing callers are unaffected. Only <code>Pool</code> and <code>Spa</code> are accepted (case-insensitive); anything else is a <code>400</code>, because the panel has no row to write.</p>
@@ -3363,7 +3367,7 @@ web UI merges both sources into one timeline. See
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">"boost"</span><span class="p">:</span><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"success"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">}</span>
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="p">}</span>
 </code></pre></div>
-<p><strong>Note:</strong> There are two distinct <code>503</code> shapes here. A missing dispatcher returns <code>text/plain</code> "Command dispatcher not available". A command that ran but failed returns the per-field JSON body with the mapped status code.</p>
+<p><strong>Note:</strong> There are two distinct <code>503</code> shapes here. A missing dispatcher returns <code>text/plain</code> "Command dispatcher not available". A command that ran but failed returns the per-field JSON body with the mapped status code. A <code>409</code> means a capable controller exists but is still applying an earlier chlorinator command (e.g. an overlapping "Set" click landed mid-actuation) -- the body additionally carries a top-level <code>error</code>/<code>code: "chlorinator_busy"</code> and the client should retry shortly rather than treat it as a hard failure.</p>
 <h3 id="post-apiequipmentcirculation">POST /api/equipment/circulation<a class="headerlink" href="#post-apiequipmentcirculation" title="Permanent link">&para;</a></h3>
 <p>Set the circulation mode (which body of water the system circulates).</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8080/api/equipment/circulation<span class="w"> </span><span class="se">\</span>
@@ -3373,7 +3377,7 @@ web UI merges both sources into one timeline. See
 <p><code>mode</code> is a string and must be one of <code>pool</code>, <code>spa</code>, or <code>spillover</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"spa"</span><span class="p">,</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"success"</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<p>POST-only: any non-<code>POST</code> method returns a bare <code>405</code>. A missing/non-string <code>mode</code>, or a value outside the allowed set, returns <code>400</code> (<code>text/plain</code>). With no command dispatcher available the request returns <code>503</code> (<code>text/plain</code> "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (<code>400</code> invalid value, <code>503</code> no serial adapter / device not found, <code>422</code> unknown equipment type, <code>500</code> otherwise).</p>
+<p>POST-only: any non-<code>POST</code> method returns a bare <code>405</code>. A missing/non-string <code>mode</code>, or a value outside the allowed set, returns <code>400</code> (<code>text/plain</code>). With no command dispatcher available the request returns <code>503</code> (<code>text/plain</code> "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (<code>400</code> invalid value, <code>409</code> a capable controller is still applying an earlier command -- retry shortly, <code>503</code> no serial adapter / device not found, <code>422</code> unknown equipment type, <code>500</code> otherwise).</p>
 <h3 id="post-apiequipmentheater">POST /api/equipment/heater<a class="headerlink" href="#post-apiequipmentheater" title="Permanent link">&para;</a></h3>
 <p>Enable or disable a heater, identified by its body of water. <code>solar</code> is modelled as the shared heater.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8080/api/equipment/heater<span class="w"> </span><span class="se">\</span>
@@ -3386,13 +3390,13 @@ web UI merges both sources into one timeline. See
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"body"</span><span class="p">:</span><span class="w"> </span><span class="s2">"spa"</span><span class="p">,</span><span class="w"> </span><span class="nt">"enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"success"</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<p>POST-only: any non-<code>POST</code> method returns a bare <code>405</code>. A missing/non-string <code>body</code> (or a value outside the allowed set) or a missing/non-boolean <code>enable</code> returns <code>400</code> (<code>text/plain</code>). With no command dispatcher available the request returns <code>503</code> (<code>text/plain</code> "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (as for circulation, above).</p>
+<p>POST-only: any non-<code>POST</code> method returns a bare <code>405</code>. A missing/non-string <code>body</code> (or a value outside the allowed set) or a missing/non-boolean <code>enable</code> returns <code>400</code> (<code>text/plain</code>). With no command dispatcher available the request returns <code>503</code> (<code>text/plain</code> "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (as for circulation, above), including <code>409</code> when a capable controller is still applying an earlier command.</p>
 <h3 id="post-apiequipmentiaq">POST /api/equipment/iaq<a class="headerlink" href="#post-apiequipmentiaq" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8080/api/equipment/iaq<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{ "select_button": 3 }'</span>
 </code></pre></div>
-<p><code>select_button</code> is an integer in <code>0 .. 255</code>. Response: <code>200 {"select_button":{"status":"success","value":3}}</code>. A missing dispatcher returns <code>503</code>; a bad value returns <code>400</code>.</p>
+<p><code>select_button</code> is an integer in <code>0 .. 255</code>. Response: <code>200 {"select_button":{"status":"success","value":3}}</code>. A missing dispatcher (or no commandable device) returns <code>503</code>; a capable controller still applying an earlier command returns <code>409</code> (retry shortly); a bad value returns <code>400</code>.</p>
 <h3 id="post-apiequipmentspaside-remotes">POST /api/equipment/spaside-remotes<a class="headerlink" href="#post-apiequipmentspaside-remotes" title="Permanent link">&para;</a></h3>
 <p>Two actions are supported. <strong><code>press</code></strong> actuates an emulated remote:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8080/api/equipment/spaside-remotes<span class="w"> </span><span class="se">\</span>
