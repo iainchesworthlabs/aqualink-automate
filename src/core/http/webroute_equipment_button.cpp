@@ -204,6 +204,12 @@ namespace AqualinkAutomate::HTTP
 			LogWarning(Channel::Web, std::format("Cannot toggle device '{}': invalid value", button_id));
 			return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "Invalid value for device command");
 		}
+
+		// A capable controller exists but is still applying an earlier command on the same
+		// shared channel (e.g. a OneTouch menu walk from an overlapping toggle): transient,
+		// so report it distinctly from "system inactive" -- the caller should retry shortly.
+		case Interfaces::ICommandDispatcher::CommandResult::Busy:
+			return Report_ControllerBusy(req, button_id);
 		}
 
 		// Fallback (should not be reached).
@@ -225,6 +231,16 @@ namespace AqualinkAutomate::HTTP
 		LogInfo(Channel::Web, "Aqualink Automate has not yet initialised (PoolConfiguration == Unknown); rejecting button action request");
 
 		auto resp = MakeResponse(req, HTTP::Status::service_unavailable, ContentTypes::TEXT_PLAIN, "Service is not initialised; cannot action button");
+		resp.set(boost::beast::http::field::retry_after, ServerFields::RetryAfter());
+
+		return resp;
+	}
+
+	HTTP::Response WebRoute_Equipment_Button::Report_ControllerBusy(const HTTP::Request& req, const std::string& button_id)
+	{
+		LogInfo(Channel::Web, std::format("Controller busy applying an earlier command; deferring toggle of '{}'", button_id));
+
+		auto resp = MakeResponse(req, HTTP::Status::conflict, ContentTypes::TEXT_PLAIN, "A previous command is still being applied; try again shortly");
 		resp.set(boost::beast::http::field::retry_after, ServerFields::RetryAfter());
 
 		return resp;

@@ -113,7 +113,7 @@ namespace AqualinkAutomate::Devices::IAQ
 		if (m_Pending.has_value() || channel_busy)
 		{
 			LogWarning(Channel::Devices, [&device_id]() { return std::format("IAQ ({}): busy - rejecting controller-schedule write", device_id); });
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		// The controller can only represent a constrained subset -- reject anything it can't.
@@ -144,7 +144,7 @@ namespace AqualinkAutomate::Devices::IAQ
 		if (m_Pending.has_value() || channel_busy)
 		{
 			LogWarning(Channel::Devices, [&device_id]() { return std::format("IAQ ({}): busy - rejecting controller-schedule delete", device_id); });
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 		if (program.target.empty())
 		{
@@ -173,7 +173,7 @@ namespace AqualinkAutomate::Devices::IAQ
 		if (m_Pending.has_value() || channel_busy)
 		{
 			LogWarning(Channel::Devices, [&device_id]() { return std::format("IAQ ({}): busy - rejecting controller-schedule edit", device_id); });
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 		if (existing.target.empty())
 		{

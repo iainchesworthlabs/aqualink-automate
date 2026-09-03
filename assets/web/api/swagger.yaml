@@ -1230,6 +1230,7 @@ paths:
             application/json:
               example: { error: "the paired span is not representable on the controller", blockers: ["day_selection_not_expressible"] }
         '404': { description: Unknown schedule }
+        '409': { description: A capable writer is still applying an earlier program change; retry shortly }
         '422': { description: Non-button action, or no complementary on/off schedule to form a span }
         '503': { description: Scheduler disabled / no capable writer }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -1313,6 +1314,7 @@ paths:
               example:
                 error: "program is not representable on the controller"
                 blockers: ["day_selection_not_expressible"]
+        '409': { description: A capable writer is still applying an earlier program change; retry shortly }
         '503': { description: No controller schedule store / no capable writer present }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1365,6 +1367,7 @@ paths:
                 error: "program is not representable on the controller"
                 blockers: ["day_selection_not_expressible"]
         '404': { description: Unknown program id }
+        '409': { description: A capable writer is still applying an earlier program change; retry shortly }
         '503': { description: No controller schedule store / no capable writer present }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1390,6 +1393,7 @@ paths:
             application/json:
               example: { status: "queued" }
         '404': { description: Unknown program id }
+        '409': { description: A capable writer is still applying an earlier program change; retry shortly }
         '503': { description: No controller schedule store / no capable writer present }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1585,12 +1589,15 @@ paths:
                 type: string
               example: "'550e8400-e29b-41d4-a716-446655440000' is an invalid button id"
         '409':
-          description: Button is currently inactive
+          description: >
+            A capable controller exists but is still applying an earlier command on the same
+            shared channel (e.g. an overlapping toggle landed mid-actuation): transient, so
+            retry shortly rather than reading this as the button/equipment being unavailable.
           content:
             text/plain:
               schema:
                 type: string
-              example: "Button '550e8400-e29b-41d4-a716-446655440000' is currently inactive"
+              example: "A previous command is still being applied; try again shortly"
         '422':
           description: Device type cannot be mapped to a control command
           content:
@@ -1655,8 +1662,11 @@ paths:
         is no row on the panel to write.
 
 
-        400 on a bad value; 503 when no commandable chlorinator is present (e.g. no iAQ
-        device); 200 with a per-field status body otherwise.
+        400 on a bad value; 409 when a capable controller exists but is still applying an
+        earlier chlorinator command (e.g. an overlapping/duplicate "Set" click landed while
+        the panel menu-walk from a prior request was still in flight) -- retry shortly; 503
+        when no commandable chlorinator is present at all (e.g. no iAQ device); 200 with a
+        per-field status body otherwise.
       operationId: setChlorinator
       requestBody:
         required: true
@@ -1674,6 +1684,17 @@ paths:
               example:
                 percentage: { status: "success", value: 60, body: "Spa" }
         '400': { description: Invalid value (percentage out of 0..100, body not Pool/Spa, or wrong type) }
+        '409':
+          description: >
+            A capable controller is still applying an earlier chlorinator command; retry
+            shortly. The body carries `error` (human-readable) and `code: "chlorinator_busy"`
+            alongside the usual per-field envelope.
+          content:
+            application/json:
+              example:
+                percentage: { status: "error", value: 60, body: "Spa" }
+                error: "A previous chlorinator command is still being applied; try again shortly"
+                code: chlorinator_busy
         '503': { description: No commandable chlorinator / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1688,7 +1709,8 @@ paths:
         the on-screen PageButton at that index (the index carried in the master's
         IAQMessage_PageButton frames) via ICommandDispatcher::SelectIAQPageButton, so the
         master navigates pages / toggles equipment exactly as a physical touch would.
-        400 on a bad value; 503 when no commandable IAQ/AqualinkTouch device is present.
+        400 on a bad value; 409 when a capable controller is still applying an earlier
+        command (retry shortly); 503 when no commandable IAQ/AqualinkTouch device is present.
       operationId: driveIAQ
       requestBody:
         required: true
@@ -1704,6 +1726,7 @@ paths:
               example:
                 select_button: { status: "success", value: 2 }
         '400': { description: Invalid value (select_button out of 0..255, or wrong type) }
+        '409': { description: 'A capable controller is still applying an earlier command; retry shortly. Body additionally carries `error`/`code: "iaq_busy"`.' }
         '503': { description: No commandable IAQ/AqualinkTouch device / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1718,7 +1741,8 @@ paths:
         ICommandDispatcher::SetHeaterMode. `body` is one of "pool", "spa" (the pool/spa
         heater) or "solar" (the solar heater, modelled on the Shared body); `enable` turns
         the heater's thermostat on or off (the controller decides when to actually fire based
-        on body temperature vs setpoint). 400 on a bad value; 503 when no commandable
+        on body temperature vs setpoint). 400 on a bad value; 409 when a capable controller is
+        still applying an earlier command (retry shortly); 503 when no commandable
         controller is present.
       operationId: setHeaterMode
       requestBody:
@@ -1747,6 +1771,7 @@ paths:
                 enable: true
                 status: "success"
         '400': { description: Invalid value (bad/missing body or enable) }
+        '409': { description: 'A capable controller is still applying an earlier command; retry shortly. Body additionally carries `error`/`code: "heater_busy"`.' }
         '503': { description: No commandable controller / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1759,7 +1784,8 @@ paths:
       description: >
         Sets the circulation mode via ICommandDispatcher::SetCirculationMode. `mode` is one of
         "pool", "spa" or "spillover" (only available on combo/dual-body systems with the right
-        equipment). 400 on a bad value; 503 when no commandable controller is present.
+        equipment). 400 on a bad value; 409 when a capable controller is still applying an
+        earlier command (retry shortly); 503 when no commandable controller is present.
       operationId: setCirculationMode
       requestBody:
         required: true
@@ -1783,6 +1809,7 @@ paths:
                 mode: spa
                 status: "success"
         '400': { description: Invalid value (bad/missing mode) }
+        '409': { description: 'A capable controller is still applying an earlier command; retry shortly. Body additionally carries `error`/`code: "circulation_busy"`.' }
         '503': { description: No commandable controller / dispatcher available }
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1996,11 +2023,28 @@ paths:
                   value: "Invalid setpoint payload"
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: >
+            A capable controller exists but is still applying an earlier setpoint command
+            (e.g. an overlapping request landed mid menu-walk); retry shortly. The body
+            additionally carries a top-level `error`/`code: "setpoint_busy"` alongside the
+            usual per-field envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetpointsPostResponse'
+              example:
+                pool:
+                  status: "error"
+                  celsius: 26.5
+                error: "A previous setpoint command is still being applied; try again shortly"
+                code: setpoint_busy
         '500':
           description: |
             At least one accepted setpoint could not be dispatched to the
-            equipment. The per-field response body still reports each field's
-            individual `status` ("success" or "error").
+            equipment for a reason other than a busy controller (409, above) or no
+            commandable controller (503, below). The per-field response body still
+            reports each field's individual `status` ("success" or "error").
           content:
             application/json:
               schema:
@@ -2010,7 +2054,7 @@ paths:
                   status: "error"
                   celsius: 26.5
         '503':
-          description: Command dispatcher not available
+          description: Command dispatcher not available, or no commandable controller can act
           content:
             text/plain:
               schema:

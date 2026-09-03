@@ -14,6 +14,8 @@
 #include <boost/beast/http/write.hpp>
 #include <boost/beast/version.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include "http/server/server_types.h"
 #include "http/webroute_equipment_circulation.h"
 #include "interfaces/icommanddispatcher.h"
@@ -153,6 +155,22 @@ BOOST_AUTO_TEST_CASE(Post_DispatchNoSerialAdapter_Returns503)
 	auto resp = Post(R"({"mode": "spa"})");
 	BOOST_CHECK_EQUAL(boost::beast::http::status::service_unavailable, resp.result());
 	BOOST_REQUIRE_EQUAL(1u, dispatcher->modes.size());
+}
+
+// Regression from the chlorinator-target-503 sweep: a controller that is merely busy applying
+// an earlier command must NOT read the same as "no capable controller" (503) -- it gets its
+// own status (409) and a reason, matching the other equipment-control routes.
+BOOST_AUTO_TEST_CASE(Post_DispatchBusy_Returns409WithReason)
+{
+	dispatcher->result_to_return = Interfaces::ICommandDispatcher::CommandResult::Busy;
+	auto resp = Post(R"({"mode": "spa"})");
+	BOOST_CHECK_EQUAL(boost::beast::http::status::conflict, resp.result());
+	BOOST_REQUIRE_EQUAL(1u, dispatcher->modes.size());
+
+	auto body = nlohmann::json::parse(resp.body());
+	BOOST_CHECK_EQUAL(body["status"].get<std::string>(), "error");
+	BOOST_CHECK_EQUAL(body["code"].get<std::string>(), "circulation_busy");
+	BOOST_CHECK(!body["error"].get<std::string>().empty());
 }
 
 BOOST_AUTO_TEST_CASE(Get_Returns405)

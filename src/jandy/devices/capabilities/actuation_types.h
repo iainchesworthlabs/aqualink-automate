@@ -21,12 +21,21 @@ namespace AqualinkAutomate::Devices::Capabilities
 	//   InvalidValue  - the request was well-formed but the value was out of range.
 	//   MappingFailed - the controller is capable in general but could not map THIS
 	//                   particular device/request onto a wire command.
+	//   Busy          - the controller CAN perform this action but is currently mid-way
+	//                   through an earlier goal on the same shared command channel (e.g. a
+	//                   OneTouch menu walk or an IAQ page write already in flight). This is
+	//                   transient -- retrying once that goal finishes is expected to succeed,
+	//                   unlike NotSupported/MappingFailed which will not resolve on their own
+	//                   -- so the dispatcher can report a "still applying, try again shortly"
+	//                   result instead of the "no capable controller" failure it uses when
+	//                   nothing could ever have served the request.
 	enum class ActuationResult
 	{
 		Accepted,
 		NotSupported,
 		InvalidValue,
-		MappingFailed
+		MappingFailed,
+		Busy
 	};
 
 	// When more than one connected controller advertises the same actuation

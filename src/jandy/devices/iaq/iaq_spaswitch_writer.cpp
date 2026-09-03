@@ -83,7 +83,7 @@ namespace AqualinkAutomate::Devices::IAQ
 		if (m_Pending.has_value() || channel_busy)
 		{
 			LogWarning(Channel::Devices, [&device_id]() { return std::format("IAQ ({}): Busy - rejecting spa-switch assignment", device_id); });
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		Goal goal;

@@ -33,6 +33,10 @@ namespace AqualinkAutomate::HTTP
 			case DeviceNotFound:
 			case NoSerialAdapter:     return service_unavailable;
 			case UnknownEquipmentType:return unprocessable_entity;
+			// A capable controller exists but is still applying an earlier chlorinator command
+			// (e.g. a duplicate/overlapping "Set" click landed mid-actuation): transient, so the
+			// caller should retry shortly rather than read this as the equipment being down.
+			case Busy:                return conflict;
 			default:                  return internal_server_error;
 			}
 		}
@@ -70,11 +74,13 @@ namespace AqualinkAutomate::HTTP
 
 		nlohmann::json result;
 		HTTP::Status overall = HTTP::Status::ok;
-		const auto note_failure = [&overall](CommandResult r)
+		auto overall_failure = CommandResult::Success;
+		const auto note_failure = [&overall, &overall_failure](CommandResult r)
 		{
 			if (r != CommandResult::Success && overall == HTTP::Status::ok)
 			{
 				overall = StatusFor(r);
+				overall_failure = r;
 			}
 		};
 
@@ -141,6 +147,16 @@ namespace AqualinkAutomate::HTTP
 		{
 			LogWarning(Channel::Web, std::format("Chlorinator POST: JSON access error: {}", ex.what()));
 			return MakeResponse(req, HTTP::Status::bad_request, ContentTypes::TEXT_PLAIN, "invalid chlorinator payload");
+		}
+
+		// Surface a reason a duplicate/overlapping request can act on: a Busy chlorinator
+		// command is expected to succeed if retried once the in-flight one finishes, which
+		// is worth telling the caller explicitly rather than leaving the bare per-field
+		// "error" status to speak for itself.
+		if (CommandResult::Busy == overall_failure)
+		{
+			result["error"] = "A previous chlorinator command is still being applied; try again shortly";
+			result["code"] = "chlorinator_busy";
 		}
 
 		return MakeJsonResponse(req, overall, result.dump());

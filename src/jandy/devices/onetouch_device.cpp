@@ -356,7 +356,7 @@ namespace AqualinkAutomate::Devices
 		if (GoalInProgress())
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting request for '{}'", DeviceId(), target_label));
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		m_Runner.TryStart(std::make_unique<OneTouch::ToggleGoal>(target_label));
@@ -559,7 +559,7 @@ namespace AqualinkAutomate::Devices
 		if (GoalInProgress())
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting {} request", DeviceId(), desc));
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued {} -> {}", DeviceId(), desc, target));
@@ -577,7 +577,7 @@ namespace AqualinkAutomate::Devices
 		if (GoalInProgress())
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting boost {} request", DeviceId(), enable ? "start" : "stop"));
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		m_Runner.TryStart(std::make_unique<OneTouch::BoostGoal>(enable));
@@ -607,7 +607,7 @@ namespace AqualinkAutomate::Devices
 		if (GoalInProgress())
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting spa-switch assignment {}:{}", DeviceId(), switch_number, button_number));
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued spa-switch {}:{} -> '{}'", DeviceId(), switch_number, button_number, function));
@@ -642,7 +642,7 @@ namespace AqualinkAutomate::Devices
 		if (GoalInProgress())
 		{
 			LogWarning(Channel::Devices, std::format("OneTouch ({}): Busy actuating; rejecting {}", DeviceId(), desc));
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		LogInfo(Channel::Devices, std::format("OneTouch ({}): Queued {}", DeviceId(), desc));

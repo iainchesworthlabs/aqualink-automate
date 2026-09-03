@@ -16,13 +16,18 @@ namespace AqualinkAutomate::Interfaces
 	class ICommandDispatcher
 	{
 	public:
+		// Busy: at least one capable controller could perform this action but is currently
+		// mid-way through an earlier goal on the same shared command channel. Distinct from
+		// DeviceNotFound/NoSerialAdapter (nothing could EVER serve this) -- a caller should
+		// retry shortly rather than treat it as a hard failure.
 		enum class CommandResult
 		{
 			Success,
 			DeviceNotFound,
 			NoSerialAdapter,
 			UnknownEquipmentType,
-			InvalidValue
+			InvalidValue,
+			Busy
 		};
 
 		enum class DeviceAction

@@ -43,14 +43,18 @@ namespace AqualinkAutomate::HTTP
 
 		// Converts a single Celsius setpoint field to a wire value and dispatches it.
 		// Returns std::nullopt on success (or when the field is absent); otherwise the
-		// bad-request response to send immediately.
+		// bad-request response to send immediately. `overall_failure` is updated to the
+		// FIRST non-Success CommandResult seen across the fields processed so far (pool,
+		// then spa), which HandlePost maps to the response status via StatusForCommandResult
+		// -- so a controller that is merely busy (transient, worth retrying) is distinguished
+		// from one that genuinely cannot act, rather than every failure reading as a flat 500.
 		std::optional<HTTP::Response> ConvertAndDispatchSetpoint(
 			const HTTP::Request& req,
 			const nlohmann::json& payload,
 			const std::string& key,
 			const std::function<Interfaces::ICommandDispatcher::CommandResult(uint8_t)>& dispatch_fn,
 			nlohmann::json& result,
-			bool& any_dispatch_failed);
+			Interfaces::ICommandDispatcher::CommandResult& overall_failure);
 
 	private:
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };
