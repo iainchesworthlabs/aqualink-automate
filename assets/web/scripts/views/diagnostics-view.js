@@ -14,6 +14,7 @@ const _diag = {
     emuDeviceTimer: null,
     actualDeviceTimer: null,
     recordingTimer: null,
+    auxRediscoveryTimer: null,
     profilingTimer: null,
     // One-shot guards so a persistently-degraded backend warns once per
     // poller instead of flooding the console on every 2s tick.
@@ -117,6 +118,10 @@ function diagnosticsView() {
         recordingFilename: 'capture.cap',
         recordingBusy: false,
 
+        // Auxiliary "clear & rediscover" control state
+        auxRediscovery: { in_progress: false, last_cleared_count: 0 },
+        auxRediscoveryBusy: false,
+
         // Finished captures sitting in the server's capture directory, so a
         // capture can be downloaded without shell access to the host. Fetched on
         // demand (entering the view, after a stop, and on Refresh) rather than
@@ -203,6 +208,7 @@ function diagnosticsView() {
             this.fetchEmulatedDevices();
             this.fetchActualDevices();
             this.fetchRecordingStatus();
+            this.fetchAuxRediscoveryStatus();
             this.fetchCaptures();
             this.fetchMqtt();
             this.fetchHealth();
@@ -218,6 +224,9 @@ function diagnosticsView() {
             }
             if (!_diag.recordingTimer) {
                 _diag.recordingTimer = setInterval(() => this.fetchRecordingStatus(), 2000);
+            }
+            if (!_diag.auxRediscoveryTimer) {
+                _diag.auxRediscoveryTimer = setInterval(() => this.fetchAuxRediscoveryStatus(), 2000);
             }
             this.fetchSpasideRemotes();
             if (!_diag.spasideTimer) {
@@ -351,6 +360,11 @@ function diagnosticsView() {
                 _diag.recordingTimer = null;
             }
 
+            if (_diag.auxRediscoveryTimer) {
+                clearInterval(_diag.auxRediscoveryTimer);
+                _diag.auxRediscoveryTimer = null;
+            }
+
             if (_diag.profilingTimer) {
                 clearInterval(_diag.profilingTimer);
                 _diag.profilingTimer = null;
@@ -426,6 +440,17 @@ function diagnosticsView() {
                 _diag.warnedOnce['recording'] = false;
             } catch (e) {
                 _handlePollFailure('recording', null, e);
+            }
+        },
+
+        async fetchAuxRediscoveryStatus() {
+            try {
+                const resp = await fetch('/api/diagnostics/aux-rediscovery');
+                if (!resp.ok) { _handlePollFailure('aux-rediscovery', resp, null); return; }
+                this.auxRediscovery = await resp.json();
+                _diag.warnedOnce['aux-rediscovery'] = false;
+            } catch (e) {
+                _handlePollFailure('aux-rediscovery', null, e);
             }
         },
 
@@ -711,6 +736,30 @@ function diagnosticsView() {
                 Alpine.store('toast').show(window.AquaI18n.t('toast.recording_stop_failed'), 'error');
             } finally {
                 this.recordingBusy = false;
+            }
+        },
+
+        // Destructive (wipes every auto-detected auxillary and starts a fresh discovery crawl),
+        // so it's confirm()-gated unlike the non-destructive log-level resets elsewhere on this
+        // page.
+        async requestAuxRediscovery() {
+            if (this.auxRediscoveryBusy || this.auxRediscovery.in_progress) return;
+            if (!window.confirm(window.AquaI18n.t('diag.aux_rediscovery_confirm'))) return;
+
+            this.auxRediscoveryBusy = true;
+            try {
+                const resp = await fetch('/api/diagnostics/aux-rediscovery', { method: 'POST' });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok) {
+                    this.auxRediscovery = data;
+                    Alpine.store('toast').show(window.AquaI18n.t('toast.aux_rediscovery_started'), 'info');
+                } else {
+                    Alpine.store('toast').show(window.AquaI18n.apiError(data, window.AquaI18n.t('toast.aux_rediscovery_failed')), 'error');
+                }
+            } catch (e) {
+                Alpine.store('toast').show(window.AquaI18n.t('toast.aux_rediscovery_failed'), 'error');
+            } finally {
+                this.auxRediscoveryBusy = false;
             }
         },
 

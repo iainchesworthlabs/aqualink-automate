@@ -95,6 +95,7 @@ target_sources(
 	http/webroute_diagnostics_mqtt.cpp
 	http/webroute_diagnostics_options.cpp
 	http/webroute_diagnostics_profiling.cpp
+	http/webroute_diagnostics_auxrediscovery.cpp
 	http/webroute_diagnostics_recording.cpp
 	http/webroute_equipment.cpp
 	http/webroute_equipment_spaside_remotes.cpp

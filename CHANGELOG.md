@@ -8,7 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
-## [Unreleased]
+## [0.15.0-beta.1] - 2026-09-03
+
+### Added
+
+- **Force an auxiliary to be treated as present or absent, overriding live detection.** Detection is evidence-driven and normally self-corrects, but it has no manual override: a relay that never replies on the wire never gets a device, and a misdetected phantom has no "undo" short of hand-editing the equipment cache. The Settings page's Device Names card now has two tabs — **Your devices** (unchanged, plus a "Forced · not seen" badge and Undo for anything you've forced that the bus hasn't independently confirmed yet) and **Other aux slots**, grouped by power centre and bounded to the detected panel's own slots by default (up to 32 addressable slots exist across four power centres, so an 8-relay panel isn't buried under 24 that will never apply). Forcing an aux **present** synthesizes a real device with no wire evidence and reconciles it into REST, WebSocket, MQTT, and Home Assistant discovery like any other; forcing **absent** removes it and suppresses recreation on the next reply. The override survives a restart. New routes: `GET`/`PUT /api/equipment/aux-slots[/{aux_id}]`; persisted under the existing `PUT /api/preferences` as `aux_presence_overrides`. See [docs/usage-and-api.md](docs/usage-and-api.md).
+- **Clear every auto-detected auxiliary and re-run discovery from Diagnostics.** A new **Auxiliary Discovery** card offers a confirm-gated **Clear & rediscover**: it drops every auto-detected aux (anything you've forced present is left alone), resets the detected panel model to unknown, and starts a fresh discovery crawl — a way to recover from a bad detection state without restarting the app or touching the equipment cache by hand. New routes: `GET`/`POST /api/diagnostics/aux-rediscovery`. See [docs/usage-and-api.md](docs/usage-and-api.md).
 
 ### Fixed
 

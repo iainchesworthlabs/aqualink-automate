@@ -1419,6 +1419,7 @@ paths:
                 alert: { salt_low_ppm: 2600, comms_timeout_seconds: 60, webhook_url: "" }
                 history: { retention_days: 90 }
                 label_overrides: { "Aux1": "Pool Light", "Aux2": "Waterfall" }
+                aux_presence_overrides: { "Aux5": "present" }
                 show_aux_id_in_label: false
                 ui: { chemistryBands: {}, locale: "en" }
         '401':
@@ -1433,6 +1434,11 @@ paths:
         (0 disables), comms_timeout_seconds > 0, retention_days > 0, webhook_url
         empty or absolute http/https, temperature_units Celsius|Fahrenheit,
         label_overrides an object of canonical-label -> friendly-name strings,
+        aux_presence_overrides an object of aux-id -> "present"/"absent" (an
+        operator override of live aux-presence detection; applying it also
+        reconciles the live device graph immediately, same as the dedicated
+        `PUT /api/equipment/aux-slots/{aux_id}` route, which is the friendlier
+        single-slot entry point for the Settings UI),
         show_aux_id_in_label a boolean (when true the display name is suffixed with
         the protocol aux id, e.g. "Pool Light (Aux5)"; affects display only, not the
         canonical label used for dispatch/MQTT/Home Assistant). The opaque `ui`
@@ -1605,6 +1611,107 @@ paths:
               schema:
                 type: string
               example: "Device type cannot be mapped to a control command"
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/equipment/aux-slots:
+    get:
+      tags:
+        - Equipment
+      summary: Get the full addressable auxiliary-slot space
+      description: >
+        Returns one row per addressable auxiliary id (up to 32: power centre A's
+        Aux1..Aux7, B/C/D's AuxB1..B8/AuxC1..C8/AuxD1..D8, plus ExtraAux), bounded
+        to the detected panel model's slots once known (unknown model -> every
+        id). Merges live device state with the operator's presence-override and
+        label-override preferences, so a slot the bus has never confirmed still
+        gets a row (`detected: false`). Backs the Settings "Device Names" table's
+        "Other aux slots" tab.
+      operationId: getEquipmentAuxSlots
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              example:
+                slots:
+                  - aux_id: "Aux1"
+                    power_centre: "A"
+                    in_model_span: true
+                    detected: true
+                    device_id: "550e8400-e29b-41d4-a716-446655440000"
+                    label: "Aux1"
+                    display_label: "Pool Light"
+                    status: "Off"
+                    presence_override: "auto"
+                  - aux_id: "Aux5"
+                    power_centre: "A"
+                    in_model_span: true
+                    detected: false
+                    presence_override: "auto"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/equipment/aux-slots/{aux_id}:
+    put:
+      tags:
+        - Equipment
+      summary: Set (or clear) one aux slot's presence override
+      description: >
+        Overrides whether an auxiliary slot is treated as existing at all,
+        independent of what live detection concludes -- NOT a relay on/off
+        control. `"present"` synthesizes a device for a slot the bus has never
+        confirmed (it then also becomes controllable normally); `"absent"`
+        removes any device for the slot and keeps it from being recreated by a
+        later wire reply; `"auto"` clears the override back to live detection.
+        Persists via the same pipeline as every other preference
+        (`label_overrides` included) and reconciles the live device graph
+        before responding, so the change is immediately visible over REST,
+        WebSocket, MQTT and Home Assistant discovery. Requires `system.admin`.
+      operationId: setEquipmentAuxSlotPresence
+      parameters:
+        - name: aux_id
+          in: path
+          required: true
+          description: >
+            The auxiliary's protocol id, e.g. "Aux5" or "Aux B1" (URL-encode the
+            space as %20); tolerant of the no-space/single-space bank spelling
+            variants and "Extra Aux"/"ExtraAux".
+          schema:
+            type: string
+          example: "Aux5"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [presence_override]
+              properties:
+                presence_override:
+                  type: string
+                  enum: [auto, present, absent]
+            example:
+              presence_override: "present"
+      responses:
+        '200':
+          description: Updated slot
+          content:
+            application/json:
+              example:
+                aux_id: "Aux5"
+                power_centre: "A"
+                in_model_span: true
+                detected: false
+                presence_override: "present"
+        '400':
+          description: Invalid JSON, missing/invalid presence_override
+        '404':
+          description: "'{aux_id}' is not a valid auxiliary id"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Caller lacks system.admin
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
@@ -2511,6 +2618,56 @@ paths:
                   error:
                     type: string
                     example: "Method not allowed. Use GET or POST."
+
+  /api/diagnostics/aux-rediscovery:
+    get:
+      tags:
+        - Diagnostics
+      summary: Get the auxiliary "clear & rediscover" status
+      description: >
+        Reports whether a rediscovery crawl is currently running and how many
+        auxiliaries the most recent one cleared. `in_progress: false` /
+        `last_cleared_count: 0` when no OneTouch controller is attached (e.g.
+        an IAQ-only/RSSA-only rig, or dev-mode/replay).
+      operationId: getAuxRediscovery
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              example:
+                in_progress: false
+                last_cleared_count: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Diagnostics
+      summary: Clear every auto-detected auxiliary and rediscover from scratch
+      description: >
+        Removes every auto-detected auxiliary device (sparing any the operator
+        has forced Present), resets the decoded panel-model facts to Unknown,
+        and starts a fresh full-discovery crawl -- the same one that runs at
+        startup. Destructive by nature; requires `system.admin`. Refuses with
+        `409` if a crawl is already in progress or the controller is not
+        actively emulating.
+      operationId: postAuxRediscovery
+      responses:
+        '200':
+          description: Rediscovery started; returns the new status
+          content:
+            application/json:
+              example:
+                in_progress: true
+                last_cleared_count: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Caller lacks system.admin
+        '409':
+          description: A rediscovery crawl is already in progress, or the controller is not currently active
+        '503':
+          description: No OneTouch controller is registered (e.g. dev-mode/replay)
 
   /api/diagnostics/recording:
     get:

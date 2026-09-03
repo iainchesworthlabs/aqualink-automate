@@ -2,8 +2,10 @@
 #include <string>
 
 #include <boost/test/unit_test.hpp>
+#include <nlohmann/json.hpp>
 
 #include "jandy/auxillaries/jandy_auxillary_id.h"
+#include "jandy/auxillaries/jandy_auxillary_presence_override.h"
 #include "jandy/auxillaries/jandy_auxillary_reconciliation.h"
 #include "jandy/auxillaries/jandy_auxillary_span.h"
 #include "jandy/auxillaries/jandy_auxillary_traits_types.h"
@@ -260,6 +262,68 @@ BOOST_AUTO_TEST_CASE(LeavesNonAuxillaryEquipmentAlone)
 	BOOST_CHECK_EQUAL(Auxillaries::PruneAuxillariesOutsideSpan(devices, span), 0u);
 	BOOST_CHECK(nullptr != devices.FindById(pump->Id()));
 	BOOST_CHECK(nullptr != devices.FindById(unnamed_aux->Id()));
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// ClearAutoDetectedAuxillaries - the diagnostics "clear & rediscover" action.
+// Unlike PruneAuxillariesOutsideSpan (bounded by the panel model), this wipes
+// every auto-detected aux unconditionally, sparing only ones the operator has
+// forced Present.
+//=============================================================================
+
+BOOST_AUTO_TEST_SUITE(ClearAutoDetectedAuxillaries_TestSuite)
+
+BOOST_AUTO_TEST_CASE(RemovesEveryAuxillaryRegardlessOfSpan)
+{
+	// No span concept here: an in-span AND an out-of-span device are both cleared -- the whole
+	// point of this action is an unconditional wipe, not another prune pass.
+	Kernel::DevicesGraph devices;
+
+	AddAux(devices, Aux_1, "Spa Jets");
+	AddAux(devices, Aux_B1, "Aux B1");
+
+	const auto removed = Auxillaries::ClearAutoDetectedAuxillaries(devices, nlohmann::json::object());
+
+	BOOST_CHECK_EQUAL(removed, 2u);
+	BOOST_CHECK(nullptr == devices.FindById(Auxillaries::AuxStableId(Aux_1)));
+	BOOST_CHECK(nullptr == devices.FindById(Auxillaries::AuxStableId(Aux_B1)));
+}
+
+BOOST_AUTO_TEST_CASE(SparesADeviceForcedPresentByAnOperatorOverride)
+{
+	// A Present-overridden device is a deliberate operator declaration, not a phantom the sweep
+	// invented -- clearing it here would just have it recreated by the next override
+	// reconciliation, discarding its live status in the meantime.
+	Kernel::DevicesGraph devices;
+
+	AddAux(devices, Aux_1, "Spa Jets");
+	AddAux(devices, Aux_5, "Aux5");
+
+	const nlohmann::json overrides = { { "Aux5", "present" } };
+	const auto removed = Auxillaries::ClearAutoDetectedAuxillaries(devices, overrides);
+
+	BOOST_CHECK_EQUAL(removed, 1u);
+	BOOST_CHECK(nullptr == devices.FindById(Auxillaries::AuxStableId(Aux_1)));
+	BOOST_CHECK(nullptr != devices.FindById(Auxillaries::AuxStableId(Aux_5)));
+}
+
+BOOST_AUTO_TEST_CASE(LeavesNonAuxillaryEquipmentAlone)
+{
+	Kernel::DevicesGraph devices;
+
+	auto pump = std::make_shared<Kernel::AuxillaryDevice>();
+	pump->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Pump);
+	pump->AuxillaryTraits.Set(Traits::LabelTrait{}, std::string{ "Filter Pump" });
+	devices.Add(pump);
+
+	AddAux(devices, Aux_1, "Spa Jets");
+
+	const auto removed = Auxillaries::ClearAutoDetectedAuxillaries(devices, nlohmann::json::object());
+
+	BOOST_CHECK_EQUAL(removed, 1u);
+	BOOST_CHECK(nullptr != devices.FindById(pump->Id()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

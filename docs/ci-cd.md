@@ -159,7 +159,7 @@ Every job after `build-packages` is skipped on a dry run (`is_dry_run == 'true'`
 
 | Job | What it does |
 |-----|--------------|
-| `resolve-version` | Resolves the version from the trigger, validates the tag, and enforces the release guards (below). Also re-runs the Home Assistant add-on version lock-step check (`scripts/sync-homeassistant-addon-version.ps1 -Check`), so a release cannot ship a drifted add-on version. |
+| `resolve-version` | Resolves the version from the trigger, validates the tag, and enforces the release guards (below). Also re-runs the Home Assistant add-on version lock-step check (`scripts/sync-homeassistant-addon-version.ps1 -Check -Channel <c> -Version <v>`), which requires both that channel's `config.yaml` version AND its `CHANGELOG.md` to match the release tag — so a release cannot ship a drifted add-on version or a missing changelog entry. |
 | `build-packages` | Calls `_build.yml` with `do_package: true`, `upload_installtree: true`, `fetch_depth: 0`, and the resolved `version_tag`. |
 | `docker-publish` | Assembles and pushes the multi-arch `runtime` image from the prebuilt install trees, then smoke-tests the published image on both architectures. |
 | `homeassistant-addon-publish` | Builds and pushes the per-arch Home Assistant add-on wrapper images (`homeassistant-amd64` / `homeassistant-aarch64`) on top of the just-published app image, attests them, and smoke-tests the pulled wrapper (bashio + `run.sh` present). |

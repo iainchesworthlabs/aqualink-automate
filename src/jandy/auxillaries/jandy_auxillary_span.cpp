@@ -8,6 +8,7 @@
 
 #include <magic_enum/magic_enum.hpp>
 
+#include "auxillaries/jandy_auxillary_presence_override.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "auxillaries/jandy_powercenter_mapping.h"
 #include "kernel/auxillary_devices/auxillary_device.h"
@@ -168,6 +169,37 @@ namespace AqualinkAutomate::Auxillaries
 			}
 
 			LogInfo(Channel::Equipment, std::format("Removing auxillary '{}': the detected panel model has no such relay", magic_enum::enum_name(aux_id.value())));
+
+			devices.Remove(device);
+			++removed;
+		}
+
+		return removed;
+	}
+
+	std::size_t ClearAutoDetectedAuxillaries(Kernel::DevicesGraph& devices, const nlohmann::json& presence_overrides)
+	{
+		using Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait;
+		using Kernel::AuxillaryTraitsTypes::AuxillaryTypes;
+
+		std::size_t removed = 0;
+
+		// FindByTrait returns a snapshot vector, so removing from the graph mid-iteration is safe.
+		for (const auto& device : devices.FindByTrait(AuxillaryTypeTrait{}, AuxillaryTypes::Auxillary))
+		{
+			if (nullptr == device)
+			{
+				continue;
+			}
+
+			const auto aux_id = ResolveAuxId(device);
+			if (aux_id.has_value() && IsForcedPresent(aux_id.value(), presence_overrides))
+			{
+				// An operator-forced device is a deliberate declaration, not something
+				// auto-detection produced -- clearing it here would just have it recreated by
+				// the next override reconciliation, discarding its live status meanwhile.
+				continue;
+			}
 
 			devices.Remove(device);
 			++removed;

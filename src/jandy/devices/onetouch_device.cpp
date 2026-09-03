@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include "logging/logging.h"
+#include "auxillaries/jandy_auxillary_span.h"
 #include "auxillaries/jandy_auxillary_traits_types.h"
 #include "devices/device_status.h"
 #include "devices/onetouch_device.h"
@@ -16,6 +17,7 @@
 #include "formatters/jandy_device_formatters.h"
 #include "kernel/body_of_water.h"
 #include "kernel/body_of_water_ids.h"
+#include "kernel/system_boards.h"
 #include "navigation/onetouch_menu_model.h"
 #include "navigation/visit_policies.h"
 #include "scheduling/promotion_constraints.h"
@@ -52,7 +54,7 @@ namespace AqualinkAutomate::Devices
 		// accumulation) lives in the OneTouchScraper collaborator. Build it with the shared DataHub
 		// and the (optional) controller-schedule store, then register its processors into the Screen
 		// capability - each processor closure is bound to the scraper.
-		m_Scraper = std::make_unique<OneTouchScraper>(device_id, m_DataHub, hub_locator.TryFind<Scheduling::ControllerScheduleStore>());
+		m_Scraper = std::make_unique<OneTouchScraper>(device_id, m_DataHub, hub_locator.TryFind<Scheduling::ControllerScheduleStore>(), m_PreferencesHub);
 		PageProcessors(m_Scraper->MakeProcessors());
 		LogTrace(Channel::Devices, std::format("OneTouch ({}): Registered {} page processors for OneTouchDevice", DeviceId(), PageProcessors().size()));
 
@@ -73,6 +75,15 @@ namespace AqualinkAutomate::Devices
 			m_SlotManager.RegisterSlot_FilterByDeviceId<JandyMessage_Ack>(std::bind(&OneTouchMessageRouter::Slot_OneTouch_Ack, &m_Router, std::placeholders::_1), (*device_id)());
 		}
 
+		// NOTE: this device does NOT self-register as an IEquipmentDiscoveryController -- the
+		// caller that constructs it (MakeEmulatedDevice / the primary emulation start-up path)
+		// does that externally, once the object is fully built, mirroring how IRecordingController
+		// is registered in aqualink-automate.cpp. Registering from inside this constructor (the
+		// original design) reproducibly crashed unit tests that construct this class -- a
+		// static_cast<IEquipmentDiscoveryController*>(this) shared_ptr alias, taken this early in
+		// a 12-base multiply-inherited object, corrupted the heap in a way that only surfaced
+		// later in the same test process. Registering post-construction from outside sidesteps it.
+
 		LogInfo(Channel::Devices, std::format("OneTouch ({}): OneTouchDevice construction complete - device ready", DeviceId()));
 	}
 
@@ -85,6 +96,53 @@ namespace AqualinkAutomate::Devices
 		m_ProfilingDomain->End();
 
 		LogTrace(Channel::Devices, std::format("OneTouch ({}): OneTouchDevice destruction complete", DeviceId()));
+	}
+
+	bool OneTouchDevice::RequestFullRediscovery()
+	{
+		if (!m_SpiderEngine || (Navigation::SpiderEngine::State::Idle != m_SpiderEngine->GetState()) || !IsEmulationActive())
+		{
+			LogDebug(Channel::Devices, std::format("OneTouch ({}): Rediscovery requested but refused; a crawl is already in progress or the device is not actively emulating", DeviceId()));
+			return false;
+		}
+
+		m_LastRediscoveryClearedCount = Auxillaries::ClearAutoDetectedAuxillaries(
+			m_DataHub->Devices,
+			m_PreferencesHub ? m_PreferencesHub->AuxPresenceOverrides : nlohmann::json::object());
+
+		// Put the decoded panel-model facts back to Unknown so AuxillaryModelSpan returns to its
+		// documented "unknown -> permissive" state until the fresh crawl's REV-page visit
+		// re-establishes them (DecodePanelConfiguration), rather than pruning/creating against
+		// stale model facts mid-rediscovery.
+		m_DataHub->ExpectedAuxillaryCount = 0;
+		m_DataHub->ExpectedPowerCenterCount = 0;
+		m_DataHub->SystemBoard = Kernel::SystemBoards::Unknown;
+		m_DataHub->EquipmentValidationResult.reset();
+
+		LogInfo(Channel::Devices, std::format("OneTouch ({}): Rediscovery requested via diagnostics; cleared {} auxillary device(s), starting a fresh full-discovery crawl",
+			DeviceId(), m_LastRediscoveryClearedCount));
+
+		// Identical policy/callback shape to the startup crawl (Scraping_ProcessStep_StartUp).
+		auto policy = std::make_unique<Navigation::FullDiscoveryVisitPolicy>(
+			[this](Navigation::PageId page, [[maybe_unused]] const Utility::ScreenDataPage& content)
+			{
+				LogDebug(Channel::Scraping, std::format("OneTouch ({}): SpiderEngine visited page {}", DeviceId(), static_cast<uint32_t>(page)));
+			},
+			[this]()
+			{
+				LogInfo(Channel::Scraping, std::format("OneTouch ({}): SpiderEngine rediscovery crawl complete", DeviceId()));
+			});
+		m_SpiderEngine->StartCrawl(std::move(policy));
+
+		return true;
+	}
+
+	Interfaces::IEquipmentDiscoveryController::DiscoveryStatusSnapshot OneTouchDevice::DiscoveryStatus() const
+	{
+		Interfaces::IEquipmentDiscoveryController::DiscoveryStatusSnapshot status;
+		status.in_progress = m_SpiderEngine && (Navigation::SpiderEngine::State::Idle != m_SpiderEngine->GetState());
+		status.last_cleared_count = m_LastRediscoveryClearedCount;
+		return status;
 	}
 
 	void OneTouchDevice::ProcessControllerUpdates()

@@ -11,6 +11,7 @@ target_sources(
 	libaqualink-jandy
 	PRIVATE
 	auxillaries/jandy_auxillary_id.cpp
+	auxillaries/jandy_auxillary_presence_override.cpp
 	auxillaries/jandy_auxillary_reconciliation.cpp
 	auxillaries/jandy_auxillary_span.cpp
 	concepts/jandy_message_type.cpp
@@ -79,6 +80,9 @@ target_sources(
 	formatters/jandy_message_formatters.cpp 
 	formatters/screen_data_page_formatter.cpp
 	formatters/stats_counter_formatter.cpp	 
+	http/json/json_equipment_auxslots.cpp
+	http/webroute_equipment_auxslot.cpp
+	http/webroute_equipment_auxslots.cpp
 	generator/jandy_message_generator.cpp
 	generator/jandy_message_generator_buffercleanup.cpp
 	generator/jandy_message_generator_packetprocessing.cpp

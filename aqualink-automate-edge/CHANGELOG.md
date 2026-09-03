@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0-beta.1
+
+- **Force an auxiliary present or absent, overriding live detection.** The Settings page's Device Names card gains an "Other aux slots" tab, grouped by power centre, so you can manually correct a relay that never replies on the wire or undo a misdetected phantom — no equipment-cache editing required.
+- **Clear every auto-detected auxiliary and re-run discovery** from a new Diagnostics "Auxiliary Discovery" card, for recovering from a bad detection state without a restart.
+- **A repeated equipment command no longer fails with a false "Service Unavailable".** Setting the chlorinator output (or toggling a device, changing circulation/heater/setpoint mode) while an earlier command was still landing on the panel could report a hard failure even though the first command was still in flight and would go on to succeed. These now report a clear, transient "busy, retry shortly" instead.
+- **A clearer warning when Home Assistant gets a new device identity.** If the add-on generates a fresh device ID (fresh install, host migration, or switching between the stable and edge channels), the log now explains that previous Aqualink entities are orphaned and how to remove them, instead of leaving you to work it out from stale "offline" entities.
+
 ## 0.14.0-beta.1
 
 - **Chlorinator control on iAQ (AqualinkTouch) panels works again — and fast.** Commands were accepted unconditionally and fired a fixed sequence of button presses that could land on the wrong screen, so a percentage change could report success while the panel never received it. The app now walks to the chlorinator page verifying each step instead of guessing.

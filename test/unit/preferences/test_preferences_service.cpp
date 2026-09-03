@@ -169,6 +169,34 @@ BOOST_AUTO_TEST_CASE(ApplyJson_LabelOverridesRoundTripAndValidate)
 	BOOST_CHECK_EQUAL(Find<Kernel::PreferencesHub>()->LabelOverrides["Aux1"], "Pool Light");
 }
 
+BOOST_AUTO_TEST_CASE(ApplyJson_AuxPresenceOverridesRoundTripAndValidate)
+{
+	Options::Preferences::PreferencesSettings settings;
+	Preferences::PreferencesService service(*this, settings);
+	std::string error, error_code;
+
+	// A valid aux-id->"present"/"absent" map applies and round-trips. PreferencesService only
+	// persists the override here -- it does NOT reconcile the live device graph (that's a
+	// Jandy-protocol-specific concern; this service lives in libaqualink-automate, which must
+	// never depend on libaqualink-jandy). Reconciliation is covered separately by
+	// Auxillaries::ApplyPresenceOverrides (test_jandy_auxillary_presence_override.cpp) and by
+	// WebRoute_Equipment_AuxSlot, which calls it explicitly after a successful ApplyJson.
+	BOOST_REQUIRE(service.ApplyJson(nlohmann::json{ { "aux_presence_overrides", { { "Aux5", "present" } } } }, error, error_code));
+	BOOST_CHECK_EQUAL(Find<Kernel::PreferencesHub>()->AuxPresenceOverrides["Aux5"], "present");
+	BOOST_CHECK_EQUAL(service.ToJson()["aux_presence_overrides"]["Aux5"], "present");
+
+	// A value other than "present"/"absent" is rejected with a stable error_code, leaving the
+	// prior map intact.
+	BOOST_CHECK(!service.ApplyJson(nlohmann::json{ { "aux_presence_overrides", { { "Aux5", "on" } } } }, error, error_code));
+	BOOST_CHECK_EQUAL(error_code, "invalid_aux_presence_overrides");
+	BOOST_CHECK(!service.ApplyJson(nlohmann::json{ { "aux_presence_overrides", "not-an-object" } }, error, error_code));
+	BOOST_CHECK_EQUAL(Find<Kernel::PreferencesHub>()->AuxPresenceOverrides["Aux5"], "present");
+
+	// Clearing back to "auto" round-trips too.
+	BOOST_REQUIRE(service.ApplyJson(nlohmann::json{ { "aux_presence_overrides", nlohmann::json::object() } }, error, error_code));
+	BOOST_CHECK(Find<Kernel::PreferencesHub>()->AuxPresenceOverrides.empty());
+}
+
 BOOST_AUTO_TEST_CASE(SpaSwitchButtons_RoundTripAndValidate)
 {
 	Options::Preferences::PreferencesSettings settings;

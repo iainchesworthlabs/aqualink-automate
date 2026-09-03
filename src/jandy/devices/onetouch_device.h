@@ -29,6 +29,7 @@
 #include "devices/capabilities/screen.h"
 #include "devices/capabilities/setpoint_controller.h"
 #include "devices/capabilities/spa_switch_configurator.h"
+#include "interfaces/iequipmentdiscoverycontroller.h"
 #include "messages/jandy_message_ack.h"
 #include "messages/jandy_message_ids.h"
 #include "messages/jandy_message_probe.h"
@@ -52,7 +53,7 @@ namespace AqualinkAutomate::Devices
 
 	class OneTouchScraper;  // devices/onetouch/onetouch_scraper.h — owns the read path (page/status processors)
 
-	class OneTouchDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::ChlorinatorController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter
+	class OneTouchDevice : public JandyController, public Capabilities::Restartable, public Capabilities::Screen, public Capabilities::Emulated, public Capabilities::Describable, public Capabilities::DeviceActuator, public Capabilities::SetpointController, public Capabilities::ChlorinatorController, public Capabilities::SpaSwitchConfigurator, public Capabilities::CommandHistory, public Capabilities::ControllerScheduleWriter, public Interfaces::IEquipmentDiscoveryController
 	{
 		inline static constexpr uint8_t ONETOUCH_PAGE_LINES = 12;
 		inline static constexpr std::chrono::seconds ONETOUCH_TIMEOUT_DURATION{ std::chrono::seconds(30) };
@@ -147,6 +148,14 @@ namespace AqualinkAutomate::Devices
 		Capabilities::ActuationResult CreateControllerProgram(const Scheduling::ControllerSchedule& program) override;
 		Capabilities::ActuationResult DeleteControllerProgram(const Scheduling::ControllerSchedule& program) override;
 		Capabilities::ActuationResult EditControllerProgram(const Scheduling::ControllerSchedule& existing, const Scheduling::ControllerSchedule& desired) override;
+
+		// IEquipmentDiscoveryController: the diagnostics "clear & rediscover" action. Clears every
+		// auto-detected auxillary (sparing any forced Present by an operator override), resets the
+		// decoded panel-model facts back to Unknown, and starts a fresh FullDiscoveryVisitPolicy
+		// crawl -- the same one Scraping_ProcessStep_StartUp runs at boot. Refuses (returns false)
+		// while a crawl is already in progress or the device is not actively emulating.
+		bool RequestFullRediscovery() override;
+		Interfaces::IEquipmentDiscoveryController::DiscoveryStatusSnapshot DiscoveryStatus() const override;
 
 	protected:
 		// The controller-update tick. ProcessControllerUpdates(bool) is protected (not private) so
@@ -246,6 +255,10 @@ namespace AqualinkAutomate::Devices
 		// serialise through one GoalRunner: at most one is in flight, serviced each Status cycle by
 		// ServiceActiveGoal. Replaces the per-goal m_PendingX / m_XInProgress / m_XStepCount fields.
 		OneTouch::OneTouchGoalRunner m_Runner;
+
+		// Cleared-device count from the most recent RequestFullRediscovery(), reported by
+		// DiscoveryStatus() for the diagnostics UI.
+		std::size_t m_LastRediscoveryClearedCount{ 0 };
 
 		// Value rows (see PageProcessor_SetTemperature / the Set AquaPure page): on Set
 		// Temperature, Pool Heat is line 2 / Spa Heat line 3; on Set AquaPure, "Set Pool to:"

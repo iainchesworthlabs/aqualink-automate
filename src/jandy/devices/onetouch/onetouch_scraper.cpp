@@ -14,10 +14,12 @@ namespace AqualinkAutomate::Devices
 	OneTouchScraper::OneTouchScraper(
 		std::shared_ptr<Devices::JandyDeviceType> device_id,
 		std::shared_ptr<Kernel::DataHub> data_hub,
-		std::shared_ptr<Scheduling::ControllerScheduleStore> schedule_store) :
+		std::shared_ptr<Scheduling::ControllerScheduleStore> schedule_store,
+		std::shared_ptr<Kernel::PreferencesHub> preferences_hub) :
 		m_DeviceId(std::move(device_id)),
 		m_DataHub(std::move(data_hub)),
-		m_ControllerScheduleStore(std::move(schedule_store))
+		m_ControllerScheduleStore(std::move(schedule_store)),
+		m_PreferencesHub(std::move(preferences_hub))
 	{
 	}
 
