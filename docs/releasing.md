@@ -72,6 +72,8 @@ Before creating a release:
 
 7. Bump the being-released channel's [Home Assistant add-on](homeassistant-addon.md) version to match the tag you just decided on, **before tagging**: `./scripts/sync-homeassistant-addon-version.ps1 -Channel <edge|stable> -Version <version>` — `edge` for a prerelease tag (`-alpha`/`-beta`/`-rc` suffix), `stable` for a plain `M.M.P` tag. Commit this to `main` first: the `resolve-version` job fails fast (before any build) if the being-released channel's `config.yaml` version doesn't already match the tag, so bumping it after tagging just means deleting the tag and re-cutting it once the bump commit is on `main`.
 
+   `resolve-version` also requires that channel's own `CHANGELOG.md` to carry a `## <version>` heading matching the tag (same script, `-Check` mode) — the version bump and the changelog entry are two separate manual edits to the same channel, and a release with one but not the other fails fast rather than shipping a Supervisor update dialog with stale notes. Since [`aqualink-automate-edge/` is generated verbatim from `aqualink-automate/`](homeassistant-addon.md), add the entry to the **stable** add-on's `CHANGELOG.md` and re-run `scripts/gen-homeassistant-edge-addon.ps1` so it propagates to edge; the generator preserves each channel's own `version` across regeneration, so bumping edge's version (above) either before or after regenerating is fine.
+
 ### Run the test suites by label
 
 CTest tags each suite with a label (`unit`, `integration`, `perf`), so you can gate which tests run before tagging:

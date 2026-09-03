@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
-## [Unreleased]
+## [0.15.0-beta.1] - 2026-09-03
 
 ### Added
 
