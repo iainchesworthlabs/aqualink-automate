@@ -2715,6 +2715,18 @@
 <td><code>200</code> JSON (toggled)</td>
 <td><code>503</code>, <code>409</code> (controller busy -- retry shortly), <code>404</code>, <code>422</code>, <code>400</code> (see below).</td>
 </tr>
+<tr>
+<td>GET</td>
+<td><code>/api/equipment/aux-slots</code></td>
+<td><code>200</code> JSON</td>
+<td><code>slots[]</code> — one row per addressable aux id (up to 32, bounded to the detected model once known), merging live device state with the presence/label overrides. Backs the Settings "Device Names" table's "Other aux slots" tab.</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/equipment/aux-slots/{aux_id}</code></td>
+<td><code>200</code> JSON (updated slot)</td>
+<td>Set/clear an aux's presence override (<code>"auto"</code>|<code>"present"</code>|<code>"absent"</code>) — an operator override of live <em>detection</em>, not a relay on/off control. <code>400</code> (bad body/value), <code>404</code> (unknown aux id), <code>503</code> (preferences unavailable). Requires <code>system.admin</code>. Reconciles the live device graph before responding, so REST/WS/MQTT/HA all reflect it immediately.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="devices">Devices<a class="headerlink" href="#devices" title="Permanent link">&para;</a></h3>
@@ -2831,6 +2843,12 @@
 <td><code>/api/diagnostics/matter</code></td>
 <td><code>200</code> JSON</td>
 <td><code>enabled</code> + Matter sidecar status (cached).</td>
+</tr>
+<tr>
+<td>GET / POST</td>
+<td><code>/api/diagnostics/aux-rediscovery</code></td>
+<td><code>200</code> JSON</td>
+<td>GET returns <code>{in_progress, last_cleared_count}</code>; POST clears every auto-detected auxiliary (sparing any forced Present) and starts a fresh discovery crawl. <code>409</code> a crawl is already in progress or the controller isn't active; <code>503</code> no OneTouch controller registered. POST requires <code>system.admin</code>.</td>
 </tr>
 <tr>
 <td>GET / POST</td>
@@ -2987,7 +3005,7 @@ web UI merges both sources into one timeline. See
 <td>PUT</td>
 <td><code>/api/preferences</code></td>
 <td><code>200</code> JSON</td>
-<td><code>400</code> (invalid JSON or apply failure), <code>503</code>. The opaque <code>ui</code> object merges shallowly at its top level (a <code>ui.*</code> value of null deletes that key) so independent UI features never clobber each other's keys.</td>
+<td><code>400</code> (invalid JSON or apply failure), <code>503</code>. The opaque <code>ui</code> object merges shallowly at its top level (a <code>ui.*</code> value of null deletes that key) so independent UI features never clobber each other's keys. <code>aux_presence_overrides</code> (aux-id -&gt; <code>"present"</code>|<code>"absent"</code>) reconciles the live device graph immediately on apply, same as <code>PUT /api/equipment/aux-slots/{aux_id}</code> (the friendlier single-slot entry point).</td>
 </tr>
 </tbody>
 </table>

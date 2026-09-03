@@ -2829,7 +2829,7 @@
 <tbody>
 <tr>
 <td><code>resolve-version</code></td>
-<td>Resolves the version from the trigger, validates the tag, and enforces the release guards (below). Also re-runs the Home Assistant add-on version lock-step check (<code>scripts/sync-homeassistant-addon-version.ps1 -Check</code>), so a release cannot ship a drifted add-on version.</td>
+<td>Resolves the version from the trigger, validates the tag, and enforces the release guards (below). Also re-runs the Home Assistant add-on version lock-step check (<code>scripts/sync-homeassistant-addon-version.ps1 -Check -Channel &lt;c&gt; -Version &lt;v&gt;</code>), which requires both that channel's <code>config.yaml</code> version AND its <code>CHANGELOG.md</code> to match the release tag — so a release cannot ship a drifted add-on version or a missing changelog entry.</td>
 </tr>
 <tr>
 <td><code>build-packages</code></td>
