@@ -157,8 +157,8 @@ All routes below are registered in a single block when the web server is enabled
 | GET | `/api/equipment` | `200` JSON | Full state block (temperatures, chemistry, configuration, devices, stats, version). |
 | GET | `/api/equipment/devices` | `200` JSON | Devices grouped as `auxillaries`, `heaters`, `pumps`. |
 | GET | `/api/equipment/version` | `200` JSON | `fields[]`, `model_number`, `fw_revision`. |
-| POST | `/api/equipment/circulation` | `200` JSON | Set circulation mode (`pool`/`spa`/`spillover`). `400` (bad value), `503` (no dispatcher). POST-only; non-`POST` returns a bare `405`. |
-| POST | `/api/equipment/heater` | `200` JSON | Enable/disable a heater by body of water (`pool`/`spa`/`solar`). `400` (bad value), `503` (no dispatcher). POST-only; non-`POST` returns a bare `405`. |
+| POST | `/api/equipment/circulation` | `200` JSON | Set circulation mode (`pool`/`spa`/`spillover`). `400` (bad value), `409` (a capable controller is still applying an earlier command -- retry shortly), `503` (no dispatcher / no commandable controller). POST-only; non-`POST` returns a bare `405`. |
+| POST | `/api/equipment/heater` | `200` JSON | Enable/disable a heater by body of water (`pool`/`spa`/`solar`). `400` (bad value), `409` (controller busy -- retry shortly), `503` (no dispatcher / no commandable controller). POST-only; non-`POST` returns a bare `405`. |
 
 ### Buttons
 
@@ -167,7 +167,7 @@ All routes below are registered in a single block when the web server is enabled
 | GET | `/api/equipment/buttons` | `200` JSON | List of buttons with `controllable` flag. |
 | POST | `/api/equipment/buttons` | `200` empty `text/html` | Placeholder (no-op). |
 | GET | `/api/equipment/buttons/{button_id}` | `200` JSON | `503` (system not ready), `404` (bad/unknown id). |
-| POST | `/api/equipment/buttons/{button_id}` | `200` JSON (toggled) | `503`, `404`, `422`, `400` (see below). |
+| POST | `/api/equipment/buttons/{button_id}` | `200` JSON (toggled) | `503`, `409` (controller busy -- retry shortly), `404`, `422`, `400` (see below). |
 | GET | `/api/equipment/aux-slots` | `200` JSON | `slots[]` — one row per addressable aux id (up to 32, bounded to the detected model once known), merging live device state with the presence/label overrides. Backs the Settings "Device Names" table's "Other aux slots" tab. |
 | PUT | `/api/equipment/aux-slots/{aux_id}` | `200` JSON (updated slot) | Set/clear an aux's presence override (`"auto"`\|`"present"`\|`"absent"`) — an operator override of live *detection*, not a relay on/off control. `400` (bad body/value), `404` (unknown aux id), `503` (preferences unavailable). Requires `system.admin`. Reconciles the live device graph before responding, so REST/WS/MQTT/HA all reflect it immediately. |
 
@@ -176,7 +176,7 @@ All routes below are registered in a single block when the web server is enabled
 | Method | Path | Success | Notes |
 |---|---|---|---|
 | GET | `/api/equipment/iaq` | — | POST only (see Setpoints/commands). |
-| POST | `/api/equipment/iaq` | `200` JSON | `select_button` (0..255). `503` no dispatcher, `400` bad value. |
+| POST | `/api/equipment/iaq` | `200` JSON | `select_button` (0..255). `503` no dispatcher / no commandable device, `409` controller busy (retry shortly), `400` bad value. |
 | GET | `/api/equipment/spaside-remotes` | `200` JSON | `remotes`, `assignments`, `requested`. |
 | POST | `/api/equipment/spaside-remotes` | `200` JSON | `press` / `assign` actions (see below). |
 
@@ -185,8 +185,8 @@ All routes below are registered in a single block when the web server is enabled
 | Method | Path | Success | Other codes |
 |---|---|---|---|
 | GET | `/api/equipment/setpoints` | `200` JSON | `pool_setpoint`, `spa_setpoint`. |
-| POST | `/api/equipment/setpoints` | `200` JSON | `400` (bad value), `503` (no dispatcher), `500` (dispatch failed). |
-| POST | `/api/equipment/chlorinator` | `200` JSON | `400` (bad body), `503` (no dispatcher). |
+| POST | `/api/equipment/setpoints` | `200` JSON | `400` (bad value), `409` (a capable controller is still applying an earlier command -- retry shortly), `503` (no dispatcher / no commandable controller), `500` (dispatch failed for any other reason). |
+| POST | `/api/equipment/chlorinator` | `200` JSON | `400` (bad body), `409` (a capable controller is still applying an earlier chlorinator command -- retry shortly), `503` (no dispatcher / no commandable chlorinator). |
 
 ### Diagnostics
 
@@ -223,11 +223,11 @@ Non-`GET` requests to the read-only diagnostics routes return `405` with a JSON 
 | GET | `/api/schedules/{uuid}` | `200` JSON | `404` unknown; `503`; `400` missing uuid. |
 | PUT | `/api/schedules/{uuid}` | `200` JSON | `400`, `404`, `503`. |
 | DELETE | `/api/schedules/{uuid}` | `204` | `404`, `503`. |
-| POST | `/api/schedules/{uuid}/promote` | `200` `{status:"queued", schedule}` | `404` unknown; `422` no on/off complement or non-button action; `400` not representable (`blockers[]`); `503`. |
+| POST | `/api/schedules/{uuid}/promote` | `200` `{status:"queued", schedule}` | `404` unknown; `409` a capable writer is busy applying an earlier program change (retry shortly); `422` no on/off complement or non-button action; `400` not representable (`blockers[]`); `503`. |
 | GET | `/api/controller/schedules` | `200` `{status, active_group, schedules[]}` | `503` when the store is unavailable. |
-| POST | `/api/controller/schedules` | `200` `{status:"queued", schedule}` | `400` bad body / not representable (with `blockers[]`); `503` no writer. |
-| PUT | `/api/controller/schedules/{id}` | `200` `{status:"queued", schedule}` | `404` unknown id; `400` bad body / not representable (with `blockers[]`); `503` no writer. |
-| DELETE | `/api/controller/schedules/{id}` | `200` `{status:"queued"}` | `404` unknown id; `503` no writer. |
+| POST | `/api/controller/schedules` | `200` `{status:"queued", schedule}` | `400` bad body / not representable (with `blockers[]`); `409` writer busy (retry shortly); `503` no writer. |
+| PUT | `/api/controller/schedules/{id}` | `200` `{status:"queued", schedule}` | `404` unknown id; `400` bad body / not representable (with `blockers[]`); `409` writer busy (retry shortly); `503` no writer. |
+| DELETE | `/api/controller/schedules/{id}` | `200` `{status:"queued"}` | `404` unknown id; `409` writer busy (retry shortly); `503` no writer. |
 
 App-side schedules (`/api/schedules`) are point actions the app fires; controller
 schedules (`/api/controller/schedules`) are the controller's own built-in
@@ -418,6 +418,7 @@ Status mapping (from the command dispatcher result):
 |---|---|
 | Toggled successfully | `200` (body above) |
 | No serial adapter / not ready / null dispatcher | `503` (with `Retry-After`) |
+| A capable controller is still applying an earlier command (retry shortly) | `409` (with `Retry-After`) |
 | Device id not found | `404` |
 | Device type cannot be mapped to a command | `422` |
 | Invalid value for the command | `400` |
@@ -441,7 +442,7 @@ curl -X POST http://127.0.0.1:8080/api/equipment/setpoints \
 }
 ```
 
-With no command dispatcher available the whole request returns `503` (`text/plain` "Command dispatcher not available"). If any accepted field's dispatch fails, the overall status is `500` while the per-field JSON still reports each field's individual `status`.
+With no command dispatcher available the whole request returns `503` (`text/plain` "Command dispatcher not available"). If any accepted field's dispatch fails, the overall status follows the WORST per-field result -- `409` when a capable controller is still applying an earlier setpoint command (the body additionally carries a top-level `error`/`code: "setpoint_busy"`), `503` when no commandable controller exists, `500` otherwise -- while the per-field JSON still reports each field's individual `status`.
 
 ### POST /api/equipment/chlorinator
 
@@ -466,7 +467,7 @@ curl -X POST http://127.0.0.1:8080/api/equipment/chlorinator \
 }
 ```
 
-**Note:** There are two distinct `503` shapes here. A missing dispatcher returns `text/plain` "Command dispatcher not available". A command that ran but failed returns the per-field JSON body with the mapped status code.
+**Note:** There are two distinct `503` shapes here. A missing dispatcher returns `text/plain` "Command dispatcher not available". A command that ran but failed returns the per-field JSON body with the mapped status code. A `409` means a capable controller exists but is still applying an earlier chlorinator command (e.g. an overlapping "Set" click landed mid-actuation) -- the body additionally carries a top-level `error`/`code: "chlorinator_busy"` and the client should retry shortly rather than treat it as a hard failure.
 
 ### POST /api/equipment/circulation
 
@@ -484,7 +485,7 @@ curl -X POST http://127.0.0.1:8080/api/equipment/circulation \
 { "mode": "spa", "status": "success" }
 ```
 
-POST-only: any non-`POST` method returns a bare `405`. A missing/non-string `mode`, or a value outside the allowed set, returns `400` (`text/plain`). With no command dispatcher available the request returns `503` (`text/plain` "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (`400` invalid value, `503` no serial adapter / device not found, `422` unknown equipment type, `500` otherwise).
+POST-only: any non-`POST` method returns a bare `405`. A missing/non-string `mode`, or a value outside the allowed set, returns `400` (`text/plain`). With no command dispatcher available the request returns `503` (`text/plain` "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (`400` invalid value, `409` a capable controller is still applying an earlier command -- retry shortly, `503` no serial adapter / device not found, `422` unknown equipment type, `500` otherwise).
 
 ### POST /api/equipment/heater
 
@@ -503,7 +504,7 @@ curl -X POST http://127.0.0.1:8080/api/equipment/heater \
 { "body": "spa", "enable": true, "status": "success" }
 ```
 
-POST-only: any non-`POST` method returns a bare `405`. A missing/non-string `body` (or a value outside the allowed set) or a missing/non-boolean `enable` returns `400` (`text/plain`). With no command dispatcher available the request returns `503` (`text/plain` "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (as for circulation, above).
+POST-only: any non-`POST` method returns a bare `405`. A missing/non-string `body` (or a value outside the allowed set) or a missing/non-boolean `enable` returns `400` (`text/plain`). With no command dispatcher available the request returns `503` (`text/plain` "Command dispatcher not available"). The HTTP status otherwise follows the command-dispatch result (as for circulation, above), including `409` when a capable controller is still applying an earlier command.
 
 ### POST /api/equipment/iaq
 
@@ -513,7 +514,7 @@ curl -X POST http://127.0.0.1:8080/api/equipment/iaq \
   -d '{ "select_button": 3 }'
 ```
 
-`select_button` is an integer in `0 .. 255`. Response: `200 {"select_button":{"status":"success","value":3}}`. A missing dispatcher returns `503`; a bad value returns `400`.
+`select_button` is an integer in `0 .. 255`. Response: `200 {"select_button":{"status":"success","value":3}}`. A missing dispatcher (or no commandable device) returns `503`; a capable controller still applying an earlier command returns `409` (retry shortly); a bad value returns `400`.
 
 ### POST /api/equipment/spaside-remotes
 

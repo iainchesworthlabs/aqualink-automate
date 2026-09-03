@@ -803,15 +803,17 @@ BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhenNotEmulating_NotSupported)
 	BOOST_CHECK(device.SetChlorinatorBoost(true) == Capabilities::ActuationResult::NotSupported);
 }
 
-BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhileAnotherGoalInFlight_NotSupported)
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhileAnotherGoalInFlight_Busy)
 {
 	// One goal at a time on the shared panel UI: two walks would fight for the single command
-	// channel and could submit a value on the wrong screen.
+	// channel and could submit a value on the wrong screen. Busy (not NotSupported): this is
+	// transient, unlike the not-emulated case above -- the dispatcher tells the caller to
+	// retry shortly rather than "no capable controller".
 	IAQDevice device(device_type, *this, /*is_emulated=*/true);
 
 	BOOST_REQUIRE(device.SetChlorinatorPercentage(60, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::Accepted);
-	BOOST_CHECK(device.SetChlorinatorPercentage(30, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::NotSupported);
-	BOOST_CHECK(device.SetChlorinatorBoost(true) == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(device.SetChlorinatorPercentage(30, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::Busy);
+	BOOST_CHECK(device.SetChlorinatorBoost(true) == Capabilities::ActuationResult::Busy);
 }
 
 BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_OutOfRange_InvalidValue)
@@ -990,15 +992,15 @@ BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_WhenBusy_Rejected)
 	IAQDevice device(device_type, *this, /*is_emulated=*/true);
 
 	BOOST_REQUIRE(device.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::Accepted);
-	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Busy);
 }
 
-BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhileSpaSwitchGoalInFlight_Rejected)
+BOOST_AUTO_TEST_CASE(SetChlorinatorPercentage_WhileSpaSwitchGoalInFlight_Busy)
 {
 	IAQDevice device(device_type, *this, /*is_emulated=*/true);
 
 	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Accepted);
-	BOOST_CHECK(device.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(device.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool) == Capabilities::ActuationResult::Busy);
 }
 
 BOOST_AUTO_TEST_CASE(SpaSwitchWrite_HappyPath_CommitsAndCompletes)
@@ -1037,8 +1039,8 @@ BOOST_AUTO_TEST_CASE(SpaSwitchWrite_HappyPath_CommitsAndCompletes)
 
 	// Queue the write goal.
 	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Accepted);
-	// While the goal is in flight a second request is rejected (one goal at a time).
-	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::NotSupported);
+	// While the goal is in flight a second request is rejected as Busy (one goal at a time).
+	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Spa Mode") == Capabilities::ActuationResult::Busy);
 
 	// Poll the state machine until the goal drains: a completed goal frees the panel,
 	// so a fresh request becomes Accepted again.  Bound well under the writer's own
@@ -1071,8 +1073,8 @@ BOOST_AUTO_TEST_CASE(SpaSwitchWrite_PollBackstop_AbandonsGoal)
 	harness.Replay(MakePageStartFrame(0x01));
 
 	BOOST_REQUIRE(device.SetSpaSwitchAssignment(1, 2, "Solar Heat") == Capabilities::ActuationResult::Accepted);
-	// A fresh request while the goal is still in flight is rejected (busy).
-	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Solar Heat") == Capabilities::ActuationResult::NotSupported);
+	// A fresh request while the goal is still in flight is rejected as Busy.
+	BOOST_CHECK(device.SetSpaSwitchAssignment(1, 2, "Solar Heat") == Capabilities::ActuationResult::Busy);
 
 	// Poll past the backstop (limit is 400; drive comfortably beyond it).
 	bool freed = false;

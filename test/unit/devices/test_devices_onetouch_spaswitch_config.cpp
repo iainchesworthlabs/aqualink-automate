@@ -161,8 +161,9 @@ BOOST_AUTO_TEST_CASE(SetSpaSwitchAssignment_OneAtATime_SecondRequestRejectedWhil
 	auto dev = MakeDevice(/*emulated*/ true);
 	// First request queues a goal on the single shared keypad...
 	BOOST_REQUIRE(dev->SetSpaSwitchAssignment(1, 1, "Spa Jets") == Devices::Capabilities::ActuationResult::Accepted);
-	// ...so a second must not interleave until the first completes.
-	BOOST_CHECK(dev->SetSpaSwitchAssignment(2, 3, "Pool Light") == Devices::Capabilities::ActuationResult::NotSupported);
+	// ...so a second must not interleave until the first completes -- Busy (transient),
+	// not NotSupported, so the dispatcher tells the caller to retry shortly.
+	BOOST_CHECK(dev->SetSpaSwitchAssignment(2, 3, "Pool Light") == Devices::Capabilities::ActuationResult::Busy);
 }
 
 BOOST_AUTO_TEST_CASE(ControllerPriority_IsLow_MenuNavigationChannel)

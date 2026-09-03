@@ -72,6 +72,7 @@ namespace AqualinkAutomate::HTTP
 				{ "mode", mode_str },
 				{ "status", r == CommandResult::Success ? "success" : "error" }
 			};
+			NoteBusyReason(result, r, "circulation_busy", "A previous circulation command is still being applied; try again shortly");
 
 			return MakeJsonResponse(req, StatusForCommandResult(r), result.dump());
 		}

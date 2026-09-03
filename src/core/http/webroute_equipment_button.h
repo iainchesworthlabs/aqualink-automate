@@ -39,6 +39,7 @@ namespace AqualinkAutomate::HTTP
 
 		HTTP::Response Report_ButtonDoesntExist(const HTTP::Request& req, const std::string& button_id);
 		HTTP::Response Report_SystemIsInactive(const HTTP::Request& req);
+		HTTP::Response Report_ControllerBusy(const HTTP::Request& req, const std::string& button_id);
 
 	private:
 		std::shared_ptr<Kernel::DataHub> m_DataHub{ nullptr };

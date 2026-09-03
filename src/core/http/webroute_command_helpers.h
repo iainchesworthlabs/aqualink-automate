@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <utility>
 
 #include <nlohmann/json.hpp>
@@ -29,7 +30,27 @@ namespace AqualinkAutomate::HTTP
 		case DeviceNotFound:
 		case NoSerialAdapter:      return service_unavailable;
 		case UnknownEquipmentType: return unprocessable_entity;
+		// A capable controller exists but is still applying an earlier command on the same
+		// shared channel -- transient, unlike the 503 cases above, so a caller should retry
+		// shortly rather than treat this as the equipment/link being unavailable.
+		case Busy:                 return conflict;
 		default:                   return internal_server_error;
+		}
+	}
+
+	// When `result` is Busy, adds a top-level `error`/`code` pair to `body` explaining that a
+	// capable controller is still applying an earlier command -- so a caller reading a 409 gets
+	// an actionable reason instead of just the bare per-field "error" status. `code` should name
+	// a matching `error.<code>` i18n catalog key (docs/i18n.md) so the web UI can translate it;
+	// `message` is the English fallback the server sends verbatim when no such key exists (or for
+	// non-web callers). No-op for every other result.
+	inline void NoteBusyReason(nlohmann::json& body, Interfaces::ICommandDispatcher::CommandResult result,
+		std::string_view code, std::string_view message)
+	{
+		if (Interfaces::ICommandDispatcher::CommandResult::Busy == result)
+		{
+			body["error"] = message;
+			body["code"] = code;
 		}
 	}
 

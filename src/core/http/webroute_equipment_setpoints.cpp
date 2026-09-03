@@ -8,6 +8,7 @@
 #include "http/webroute_equipment_setpoints.h"
 #include "http/server/make_response.h"
 #include "http/server/server_fields.h"
+#include "http/webroute_command_helpers.h"
 #include "utility/json_serialization_helpers.h"
 #include "http/server/responses/response_405.h"
 #include "logging/logging.h"
@@ -100,16 +101,16 @@ namespace AqualinkAutomate::HTTP
 		}
 
 		nlohmann::json result;
-		bool any_dispatch_failed = false;
+		auto overall_failure = Interfaces::ICommandDispatcher::CommandResult::Success;
 
 		try
 		{
-			if (auto err = ConvertAndDispatchSetpoint(req, payload, "pool", [this](uint8_t temp) { return m_CommandDispatcher->SetPoolSetpoint(temp); }, result, any_dispatch_failed); err.has_value())
+			if (auto err = ConvertAndDispatchSetpoint(req, payload, "pool", [this](uint8_t temp) { return m_CommandDispatcher->SetPoolSetpoint(temp); }, result, overall_failure); err.has_value())
 			{
 				return std::move(*err);
 			}
 
-			if (auto err = ConvertAndDispatchSetpoint(req, payload, "spa", [this](uint8_t temp) { return m_CommandDispatcher->SetSpaSetpoint(temp); }, result, any_dispatch_failed); err.has_value())
+			if (auto err = ConvertAndDispatchSetpoint(req, payload, "spa", [this](uint8_t temp) { return m_CommandDispatcher->SetSpaSetpoint(temp); }, result, overall_failure); err.has_value())
 			{
 				return std::move(*err);
 			}
@@ -121,9 +122,20 @@ namespace AqualinkAutomate::HTTP
 			return MakeErrorResponse(req, HTTP::Status::bad_request, "invalid_setpoint_payload", "Invalid setpoint payload");
 		}
 
-		// Surface a non-2xx status when any per-key dispatch failed so the UI's resp.ok is
-		// authoritative; the per-key JSON body still carries the individual statuses.
-		HTTP::Response resp{ any_dispatch_failed ? HTTP::Status::internal_server_error : HTTP::Status::ok, req.version() };
+		// A capable controller exists but is still applying an earlier setpoint command (e.g. an
+		// overlapping request landed mid menu-walk): transient, so say so explicitly rather than
+		// leaving the per-field "error" status to speak for itself.
+		if (Interfaces::ICommandDispatcher::CommandResult::Busy == overall_failure)
+		{
+			result["error"] = "A previous setpoint command is still being applied; try again shortly";
+			result["code"] = "setpoint_busy";
+		}
+
+		// Surface a status reflecting the WORST per-key dispatch result so the UI's resp.ok is
+		// authoritative and a transiently-busy controller (409) reads differently from one that
+		// genuinely cannot act (503) or an unexpected failure (500); the per-key JSON body still
+		// carries the individual statuses.
+		HTTP::Response resp{ StatusForCommandResult(overall_failure), req.version() };
 		resp.set(boost::beast::http::field::server, ServerFields::Server());
 		resp.set(boost::beast::http::field::content_type, ContentTypes::APPLICATION_JSON);
 		resp.keep_alive(req.keep_alive());
@@ -140,7 +152,7 @@ namespace AqualinkAutomate::HTTP
 		const std::string& key,
 		const std::function<Interfaces::ICommandDispatcher::CommandResult(uint8_t)>& dispatch_fn,
 		nlohmann::json& result,
-		bool& any_dispatch_failed)
+		Interfaces::ICommandDispatcher::CommandResult& overall_failure)
 	{
 		if (!payload.contains(key))
 		{
@@ -174,7 +186,10 @@ namespace AqualinkAutomate::HTTP
 
 		auto cmd_result = dispatch_fn(temp_value);
 		bool succeeded = (cmd_result == Interfaces::ICommandDispatcher::CommandResult::Success);
-		any_dispatch_failed = any_dispatch_failed || !succeeded;
+		if (!succeeded && (overall_failure == Interfaces::ICommandDispatcher::CommandResult::Success))
+		{
+			overall_failure = cmd_result;
+		}
 
 		result[key] = {
 			{"status", succeeded ? "success" : "error"},

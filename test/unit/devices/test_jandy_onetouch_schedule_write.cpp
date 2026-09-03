@@ -171,8 +171,9 @@ BOOST_AUTO_TEST_CASE(Create_Valid_IsAccepted_ThenBusy)
 {
 	auto dev = MakeDevice(/*emulated*/ true);
 	BOOST_CHECK(dev->CreateControllerProgram(ProgramSpec("Pool Light", 11, 0, 14, 0, 0x7f)) == Capabilities::ActuationResult::Accepted);
-	// A second request while the first is queued is rejected (one goal on the shared keypad).
-	BOOST_CHECK(dev->CreateControllerProgram(ProgramSpec("Pool Light", 11, 0, 14, 0, 0x7f)) == Capabilities::ActuationResult::NotSupported);
+	// A second request while the first is queued is rejected (one goal on the shared keypad)
+	// as Busy -- transient, so the dispatcher tells the caller to retry shortly.
+	BOOST_CHECK(dev->CreateControllerProgram(ProgramSpec("Pool Light", 11, 0, 14, 0, 0x7f)) == Capabilities::ActuationResult::Busy);
 }
 
 BOOST_AUTO_TEST_CASE(Delete_NotEmulated_IsNotSupported_EmptyTarget_IsInvalid)

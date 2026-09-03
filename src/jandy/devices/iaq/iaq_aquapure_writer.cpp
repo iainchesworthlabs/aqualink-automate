@@ -118,11 +118,14 @@ namespace AqualinkAutomate::Devices::IAQ
 		}
 
 		// One goal at a time on the shared panel UI: a second walk would fight the first for the
-		// single command channel and could submit a value on the wrong screen.
+		// single command channel and could submit a value on the wrong screen. This is transient
+		// (the in-flight goal WILL finish), so it is reported as Busy rather than NotSupported --
+		// the dispatcher surfaces that distinctly so a caller retrying moments later is told to
+		// try again shortly instead of being given a hard "no capable controller" failure.
 		if (m_Pending.has_value() || channel_busy)
 		{
 			LogWarning(Channel::Devices, [&device_id]() { return std::format("IAQ ({}): Busy - rejecting AquaPure write", device_id); });
-			return Capabilities::ActuationResult::NotSupported;
+			return Capabilities::ActuationResult::Busy;
 		}
 
 		// Already positively established that this panel's menu has no AquaPure entry: refuse so the

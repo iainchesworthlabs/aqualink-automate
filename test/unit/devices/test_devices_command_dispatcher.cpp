@@ -341,6 +341,25 @@ BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_PassiveOneTouch_FallsThrough)
 	BOOST_CHECK_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::DeviceNotFound));
 }
 
+// Regression for the chlorinator-target 503: an overlapping/duplicate request (e.g. the user
+// clicking "Set" again before seeing feedback from the first click) that lands while an
+// earlier percentage-set goal is still mid-walk on the panel must NOT be reported the same
+// way as "no capable controller exists" (DeviceNotFound -> 503, which a caller reasonably
+// reads as the equipment link being down). The first request's write is still in flight and
+// expected to succeed, so the second must be told Busy (-> 409, retry shortly) instead.
+BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_OverlappingRequest_ReturnsBusyNotDeviceNotFound)
+{
+	equipment_hub->AddDevice(MakeOneTouch(*this, 0x41, true));
+
+	auto first = dispatcher.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool);
+	BOOST_REQUIRE_EQUAL(static_cast<int>(first), static_cast<int>(ICommandDispatcher::CommandResult::Success));
+
+	// Nothing has serviced the first goal yet, so the OneTouch is still mid-walk when the
+	// second (duplicate/overlapping) request arrives.
+	auto second = dispatcher.SetChlorinatorPercentage(50, Kernel::BodyOfWaterIds::Pool);
+	BOOST_CHECK_EQUAL(static_cast<int>(second), static_cast<int>(ICommandDispatcher::CommandResult::Busy));
+}
+
 // On a SUCCESSFUL set, the value is written through to the same configured Pool-setpoint trait
 // the menu scrape populates, so the dashboard reflects the new target without waiting for a
 // re-scrape.

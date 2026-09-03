@@ -112,15 +112,22 @@ BOOST_AUTO_TEST_CASE(NotEmulating_IsRefused)
 
 BOOST_AUTO_TEST_CASE(BusyChannel_IsRefused)
 {
+	// Busy (not NotSupported): the channel is transiently occupied by another in-flight
+	// write, unlike NotEmulating_IsRefused above which can never resolve on its own. The
+	// dispatcher maps this to a distinct "retry shortly" result rather than "no capable
+	// controller" -- see command_dispatcher.h's DispatchToCapable.
 	BOOST_CHECK(writer.QueuePercentage(60, POOL, true, /*channel_busy=*/true, device_id)
-		== Capabilities::ActuationResult::NotSupported);
+		== Capabilities::ActuationResult::Busy);
 	BOOST_CHECK(!writer.HasPendingGoal());
 }
 
 BOOST_AUTO_TEST_CASE(SecondGoalWhileOneIsInFlight_IsRefused)
 {
+	// Regression for the chlorinator-target 503: an overlapping request (e.g. a duplicate
+	// "Set" click) landing while THIS writer's own goal is still in flight must be told to
+	// retry shortly (Busy), not treated the same as a controller that can never serve it.
 	BOOST_REQUIRE(writer.QueuePercentage(60, POOL, true, false, device_id) == Capabilities::ActuationResult::Accepted);
-	BOOST_CHECK(writer.QueuePercentage(30, POOL, true, false, device_id) == Capabilities::ActuationResult::NotSupported);
+	BOOST_CHECK(writer.QueuePercentage(30, POOL, true, false, device_id) == Capabilities::ActuationResult::Busy);
 }
 
 BOOST_AUTO_TEST_CASE(OutOfRangePercentage_IsInvalid)

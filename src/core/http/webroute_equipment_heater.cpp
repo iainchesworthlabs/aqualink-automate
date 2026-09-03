@@ -81,6 +81,7 @@ namespace AqualinkAutomate::HTTP
 				{ "enable", enable },
 				{ "status", r == CommandResult::Success ? "success" : "error" }
 			};
+			NoteBusyReason(result, r, "heater_busy", "A previous heater command is still being applied; try again shortly");
 
 			return MakeJsonResponse(req, StatusForCommandResult(r), result.dump());
 		}
