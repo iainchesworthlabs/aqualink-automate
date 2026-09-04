@@ -292,6 +292,56 @@ namespace AqualinkAutomate::Messages
 						return battery_condition;
 					};
 
+					auto make_options = [](uint8_t options_byte) -> SerialAdapter_SCS_Options
+					{
+						// The OPTIONS value is a BIT-MASK of the Power Center's S1 option DIP-switch
+						// bank -- one bit per switch, LSB first (bit 0 == S1 DIP #1). The switch
+						// functions are from the AquaLink RS installation manual (P/N 6840, "Section
+						// 4.1 DIP Switch Functions" and the S1 tables in 4.2 / 4.3):
+						//
+						//   bit 0 (#1) AUX 1 controls the pool cleaner       -> HasCleaner
+						//   bit 1 (#2) AUX 2 controls filter-pump low speed  -> TwoSpeedPump
+						//   bit 2 (#3) AUX 3 controls spa spillover          -> HasSpillover
+						//   bit 3 (#4) heater cool-down disabled             -> HeaterCoolDownDisabled
+						//   bit 4 (#5) factory calibration ("factory use")   -> ServiceCalibrationMode
+						//   bit 5 (#6) spare AUX with filter pump + spa      -> SpareAuxOnWithFilterPumpAndSpa
+						//   bit 6 (#7) see caveat below                      -> CommonHeaterForSpaAndPool
+						//   bit 7 (#8) heat pump instead of gas heater       -> ExtraDelayForHeatPump
+						//
+						// Bits 0-4 and 7 are a direct, confirmed match for the manual's switch list,
+						// and bits 0 and 2 are the only ones any consumer currently reads (the AUX1 ->
+						// CLEANR and AUX3 -> SPILLOVER poll rewrites in Slot_SerialAdapter_DevStatus).
+						//
+						// CAPTURE-GATED caveat on bits 5/6: manual 6840 documents S1 #6 as carrying
+						// BOTH meanings depending on system type (combo: spare AUX activates with the
+						// filter pump in spa mode; dual equipment: pool and spa share one heater) and
+						// lists S1 #7 as "not used" / air-sensor-becomes-solar-sensor. So the struct's
+						// CommonHeaterForSpaAndPool name at bit 6 is not pinned by that manual. Left
+						// as a straight positional bit image rather than folding #6's second meaning
+						// into bit 5, so the struct stays a faithful picture of the wire byte.
+						//
+						// CAPTURE-GATED alternative hypothesis: docs/alwin32/ctrlpnl-simio.md recovers
+						// the Alwin32 simulator's INTERNAL S1 byte with a different bit assignment
+						// (0x01=No Cool, 0x02=Calibrate, 0x04=CL JVA Asn, 0x08=Heat Delay, 0x10=Cleaner,
+						// 0x20=Heat Pump, 0x80=Spillover). That byte is PowerCenter-internal shared
+						// memory that the same doc states does not appear on the RS-485 wire, and its
+						// own notes warn the simulator's layout does not mirror the physical switch
+						// order -- so the manual's DIP numbering is used here. Confirm against a live
+						// capture from a panel with a known S1 configuration.
+						SerialAdapter_SCS_Options options{};
+
+						options.HasCleaner                     = (0U != (options_byte & 0x01U));
+						options.TwoSpeedPump                   = (0U != (options_byte & 0x02U));
+						options.HasSpillover                   = (0U != (options_byte & 0x04U));
+						options.HeaterCoolDownDisabled         = (0U != (options_byte & 0x08U));
+						options.ServiceCalibrationMode         = (0U != (options_byte & 0x10U));
+						options.SpareAuxOnWithFilterPumpAndSpa = (0U != (options_byte & 0x20U));
+						options.CommonHeaterForSpaAndPool      = (0U != (options_byte & 0x40U));
+						options.ExtraDelayForHeatPump          = (0U != (options_byte & 0x80U));
+
+						return options;
+					};
+
 					switch (sa_scs)
 					{
 					case SerialAdapter_SystemConfigurationStatuses::MODEL:
@@ -305,7 +355,7 @@ namespace AqualinkAutomate::Messages
 						break;
 
 					case SerialAdapter_SystemConfigurationStatuses::OPTIONS:
-						m_Options = static_cast<SerialAdapter_SCS_Options>(message_bytes[Index_Options]);
+						m_Options = make_options(message_bytes[Index_Options]);
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: Options -> {:08B}", message_bytes[Index_Options]));
 						break;
 
