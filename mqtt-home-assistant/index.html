@@ -2100,7 +2100,7 @@
 <ul>
 <li>System status, version, and equipment summary.</li>
 <li>Pool temperatures, chemistry, circulation, and configuration.</li>
-<li>Per-body temperatures and a per-device state for every pump, heater, chlorinator, and auxiliary.</li>
+<li>Per-body temperatures and a per-device state for every pump, heater, chlorinator, auxiliary, and light.</li>
 <li>Statistics (message counts, bandwidth, latency, serial health).</li>
 <li>A consolidated alert document.</li>
 </ul>
@@ -2377,8 +2377,8 @@
 <h3 id="per-device-json-blob-and-short-string-state">Per-device JSON blob and short-string state<a class="headerlink" href="#per-device-json-blob-and-short-string-state" title="Permanent link">&para;</a></h3>
 <p>Each discovered device produces two retained topics. The <code>{slug}</code> is the device label lowercased with spaces, hyphens, and dots collapsed to underscores — so the label <code>Filter Pump</code> becomes the slug <code>filter_pump</code>.</p>
 <ul>
-<li><code>aqualink/device/{slug}</code> — the <strong>full JSON status blob</strong> for the device, plus a <code>type</code> field (<code>aux</code>, <code>heater</code>, <code>pump</code>, or <code>chlorinator</code>) and an optional <code>body_of_water</code>. Template-based Home Assistant entities (for example the chlorinator's generating-% and boost entities) read this topic.</li>
-<li><code>aqualink/ha/{category}_{slug}</code> — a <strong>short single-string state</strong> namespaced by category, so two devices sharing a label in different categories do not collide. Simple Home Assistant switch and sensor entities read this topic. <code>{category}</code> is one of <code>aux</code>, <code>heater</code>, <code>pump</code>, <code>chlorinator</code>.</li>
+<li><code>aqualink/device/{slug}</code> — the <strong>full JSON status blob</strong> for the device, plus a <code>type</code> field (<code>aux</code>, <code>heater</code>, <code>pump</code>, <code>chlorinator</code>, or <code>light</code>) and an optional <code>body_of_water</code>. Template-based Home Assistant entities (for example the chlorinator's generating-% and boost entities) read this topic.</li>
+<li><code>aqualink/ha/{category}_{slug}</code> — a <strong>short single-string state</strong> namespaced by category, so two devices sharing a label in different categories do not collide. Simple Home Assistant switch and sensor entities read this topic. <code>{category}</code> is one of <code>aux</code>, <code>heater</code>, <code>pump</code>, <code>chlorinator</code>, <code>light</code>.</li>
 </ul>
 <h3 id="worked-example-prefix-aqualink-device-filter-pump">Worked example: prefix <code>aqualink</code>, device <code>Filter Pump</code><a class="headerlink" href="#worked-example-prefix-aqualink-device-filter-pump" title="Permanent link">&para;</a></h3>
 <p>With the default prefix and a pump labelled <code>Filter Pump</code> (category <code>pump</code>, slug <code>filter_pump</code>):</p>
@@ -2689,9 +2689,26 @@
 <td><code>switch</code> + extras</td>
 <td><code>state_on: On</code>, <code>state_off: Off</code>, plus the entities below.</td>
 </tr>
+<tr>
+<td>Light</td>
+<td><code>sensor</code> + <code>binary_sensor</code></td>
+<td><strong>Read-only.</strong> Sensor: the raw state (<code>On</code> / <code>Off</code> / <code>Enabled</code> / <code>Pending</code> / <code>Unknown</code>). Binary sensor "{label} On": <code>ON</code> when the raw state is <code>On</code> or <code>Enabled</code>, else <code>OFF</code>. Plus a <code>sensor</code> "{label} Colour Mode" reading <code>light_mode</code> from the device's JSON blob.</td>
+</tr>
 </tbody>
 </table>
 <p>Switch entities use <code>payload_on: ON</code> / <code>payload_off: OFF</code> on their command topic.</p>
+<blockquote>
+<p><strong>Why lights are read-only.</strong> A light here is a separate RS-485 colour-light controller
+(bus ids <code>0xF0</code>–<code>0xF4</code>) discovered by snooping its status messages — <em>not</em> the aux relay
+that switches it. That relay is published in its own right as a controllable <code>Auxiliary</code>
+switch, and is the entity to automate against. A light device carries no aux id and only a
+synthetic label, so every actuation path (the serial adapter, which needs an aux id; the IAQ
+and OneTouch, which match an on-screen button by label) fails to map it — a switch entity
+here would be a permanently-broken duplicate of the working aux switch. What the light
+device <em>does</em> contribute is the colour/mode byte, which the relay cannot report.</p>
+<p>Making lights writable needs a light-controller → aux-relay correlation, which is not
+derivable from the wire and so would need a configuration surface.</p>
+</blockquote>
 <p>The chlorinator's extra entities read its JSON blob at <code>aqualink/device/{slug}</code>:</p>
 <ul>
 <li><code>sensor</code> "Generating %" from <code>generating_percentage</code> (unit <code>%</code>) — the <strong>instantaneous</strong> output, <code>0</code> whenever the cell is idle.</li>
