@@ -8,13 +8,13 @@
 #include <boost/beast/core/string.hpp>
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	auto operator<<(std::ostream& os, const boost::beast::string_view& obj) -> std::ostream&;
 
 }
-// namespace std
+// namespace AqualinkAutomate
 
 template<>
 struct std::formatter<boost::beast::string_view>

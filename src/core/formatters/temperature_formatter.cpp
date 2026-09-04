@@ -3,7 +3,7 @@
 #include "formatters/formatter_helpers.h"
 
 
-namespace std
+namespace AqualinkAutomate::Kernel
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Kernel::Temperature& obj)
@@ -12,4 +12,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate::Kernel

@@ -9,13 +9,13 @@
 #include "formatters/ph_formatter.h"
 #include "utility/string_conversion/chemistry_string_converter.h"
 
-namespace std
+namespace AqualinkAutomate::Utility
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Utility::ChemistryStringConverter& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate::Utility
 
 template<>
 struct std::formatter<AqualinkAutomate::Utility::ChemistryStringConverter>

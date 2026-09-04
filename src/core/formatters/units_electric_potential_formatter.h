@@ -7,14 +7,14 @@
 #include "types/units_electric_potential.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Units::millivolt_quantity& obj);
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Units::volt_quantity& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate
 
 template<>
 struct std::formatter<AqualinkAutomate::Units::millivolt_quantity>

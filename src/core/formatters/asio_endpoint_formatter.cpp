@@ -1,7 +1,7 @@
 #include "formatters/asio_endpoint_formatter.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const boost::asio::ip::tcp::endpoint& obj)
@@ -11,4 +11,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate
