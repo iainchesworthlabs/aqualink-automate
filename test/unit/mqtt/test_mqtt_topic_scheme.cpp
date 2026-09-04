@@ -65,6 +65,7 @@ BOOST_AUTO_TEST_CASE(Test_CategoryName_CanonicalSpellings)
 	BOOST_CHECK_EQUAL(std::string(CategoryName(DeviceCategory::Heater)), "heater");
 	BOOST_CHECK_EQUAL(std::string(CategoryName(DeviceCategory::Pump)), "pump");
 	BOOST_CHECK_EQUAL(std::string(CategoryName(DeviceCategory::Chlorinator)), "chlorinator");
+	BOOST_CHECK_EQUAL(std::string(CategoryName(DeviceCategory::Light)), "light");
 }
 
 BOOST_AUTO_TEST_CASE(Test_DeviceJsonSubtopic_Format)
@@ -79,6 +80,7 @@ BOOST_AUTO_TEST_CASE(Test_DeviceStateSubtopic_Format)
 
 	BOOST_CHECK_EQUAL(DeviceStateSubtopic(DeviceCategory::Pump, "filter_pump"), "ha/pump_filter_pump");
 	BOOST_CHECK_EQUAL(DeviceStateSubtopic(DeviceCategory::Auxillary, "spa_light"), "ha/aux_spa_light");
+	BOOST_CHECK_EQUAL(DeviceStateSubtopic(DeviceCategory::Light, "light_0xf0"), "ha/light_light_0xf0");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -181,6 +183,68 @@ BOOST_AUTO_TEST_CASE(Test_AuxiliaryCategory_ReconciledToAux)
 
 	BOOST_REQUIRE(cmps.contains("aux_pool_light"));
 	BOOST_CHECK_EQUAL(cmps["aux_pool_light"]["state_topic"].get<std::string>(), "aqualink/ha/aux_pool_light");
+}
+
+//-----------------------------------------------------------------------------
+// Lights are published READ-ONLY.
+//
+// A light is a separate RS-485 colour-light controller (bus ids 0xF0-0xF4), not the
+// aux relay that switches it. It carries no JandyAuxillaryId and only a synthetic
+// label, so no controller can map an actuation to it -- every path returns
+// MappingFailed -> UnknownEquipmentType. A switch entity would therefore be a
+// permanently-broken duplicate of the aux switch that actually drives the light.
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(Test_Light_PublishesReadOnlyEntitiesAndNoCommandTopic)
+{
+	boost::asio::io_context ioc;
+	auto settings = MakeSchemeTestSettings();
+	auto client = std::make_shared<Mqtt::MqttClient>(ioc, settings);
+	Mqtt::HomeAssistantDiscovery ha(client, settings);
+
+	auto data_hub = std::make_shared<Kernel::DataHub>();
+	ha.ConnectDataHub(data_hub);
+
+	auto light = MakeDevice(Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Light, "Light 0xf0");
+	light->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::AuxillaryStatusTrait{}, Kernel::AuxillaryStatuses::On);
+	light->AuxillaryTraits.Set(Kernel::AuxillaryTraitsTypes::ColourTrait{}, static_cast<uint8_t>(4));
+	data_hub->Devices.Add(light);
+
+	ha.PublishDiscoveryConfigs();
+
+	auto& queue = Test::MqttClientPacketTest::GetPublishQueue(*client);
+	BOOST_REQUIRE_EQUAL(queue.size(), 1);
+
+	auto payload = nlohmann::json::parse(queue[0].payload);
+	auto& cmps = payload["cmps"];
+
+	// The raw multi-state sensor, on the short-string state topic the publisher writes.
+	BOOST_REQUIRE(cmps.contains("light_light_0xf0"));
+	BOOST_CHECK_EQUAL(cmps["light_light_0xf0"]["p"].get<std::string>(), "sensor");
+	BOOST_CHECK_EQUAL(cmps["light_light_0xf0"]["state_topic"].get<std::string>(), "aqualink/ha/light_light_0xf0");
+
+	// The derived on/off binary sensor.
+	BOOST_REQUIRE(cmps.contains("light_light_0xf0_on"));
+	BOOST_CHECK_EQUAL(cmps["light_light_0xf0_on"]["p"].get<std::string>(), "binary_sensor");
+	BOOST_CHECK_EQUAL(cmps["light_light_0xf0_on"]["state_topic"].get<std::string>(), "aqualink/ha/light_light_0xf0");
+
+	// The colour/mode sensor, reading the JSON blob topic.
+	BOOST_REQUIRE(cmps.contains("light_light_0xf0_mode"));
+	BOOST_CHECK_EQUAL(cmps["light_light_0xf0_mode"]["p"].get<std::string>(), "sensor");
+	BOOST_CHECK_EQUAL(cmps["light_light_0xf0_mode"]["state_topic"].get<std::string>(), "aqualink/device/light_0xf0");
+
+	// The contract that matters: NOTHING published for a light may be writable.
+	for (const auto& [key, component] : cmps.items())
+	{
+		if (key.starts_with("light_"))
+		{
+			BOOST_CHECK_MESSAGE(!component.contains("command_topic"),
+				"Light component '" << key << "' must not be writable - a light cannot be actuated");
+			const auto platform = component.value("p", std::string{});
+			BOOST_CHECK_MESSAGE(platform == "sensor" || platform == "binary_sensor",
+				"Light component '" << key << "' has writable platform '" << platform << "'");
+		}
+	}
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -14,7 +14,7 @@ MQTT is **off by default**. It is opt-in via the `--mqtt` flag; with MQTT disabl
 
 - System status, version, and equipment summary.
 - Pool temperatures, chemistry, circulation, and configuration.
-- Per-body temperatures and a per-device state for every pump, heater, chlorinator, and auxiliary.
+- Per-body temperatures and a per-device state for every pump, heater, chlorinator, auxiliary, and light.
 - Statistics (message counts, bandwidth, latency, serial health).
 - A consolidated alert document.
 
@@ -133,8 +133,8 @@ When `--home-assistant` is enabled, `aqualink/status/availability` is retained a
 
 Each discovered device produces two retained topics. The `{slug}` is the device label lowercased with spaces, hyphens, and dots collapsed to underscores — so the label `Filter Pump` becomes the slug `filter_pump`.
 
-- `aqualink/device/{slug}` — the **full JSON status blob** for the device, plus a `type` field (`aux`, `heater`, `pump`, or `chlorinator`) and an optional `body_of_water`. Template-based Home Assistant entities (for example the chlorinator's generating-% and boost entities) read this topic.
-- `aqualink/ha/{category}_{slug}` — a **short single-string state** namespaced by category, so two devices sharing a label in different categories do not collide. Simple Home Assistant switch and sensor entities read this topic. `{category}` is one of `aux`, `heater`, `pump`, `chlorinator`.
+- `aqualink/device/{slug}` — the **full JSON status blob** for the device, plus a `type` field (`aux`, `heater`, `pump`, `chlorinator`, or `light`) and an optional `body_of_water`. Template-based Home Assistant entities (for example the chlorinator's generating-% and boost entities) read this topic.
+- `aqualink/ha/{category}_{slug}` — a **short single-string state** namespaced by category, so two devices sharing a label in different categories do not collide. Simple Home Assistant switch and sensor entities read this topic. `{category}` is one of `aux`, `heater`, `pump`, `chlorinator`, `light`.
 
 ### Worked example: prefix `aqualink`, device `Filter Pump`
 
@@ -268,8 +268,21 @@ One entity (or a small set) is published per discovered pool device:
 | Auxiliary | `switch` | `state_on: On`, `state_off: Off`. |
 | Heater | `sensor` + `switch` | Sensor: `Off` / `Heating` / `Enabled`. Switch "{label} Enable": on when the heater is `Heating` or `Enabled`, command on `command/heater/{slug}` — it enables/disables the heater's thermostat; the controller decides when to actually fire and enforces its own preconditions (e.g. spa heat requires spa mode + pump). |
 | Chlorinator | `switch` + extras | `state_on: On`, `state_off: Off`, plus the entities below. |
+| Light | `sensor` + `binary_sensor` | **Read-only.** Sensor: the raw state (`On` / `Off` / `Enabled` / `Pending` / `Unknown`). Binary sensor "{label} On": `ON` when the raw state is `On` or `Enabled`, else `OFF`. Plus a `sensor` "{label} Colour Mode" reading `light_mode` from the device's JSON blob. |
 
 Switch entities use `payload_on: ON` / `payload_off: OFF` on their command topic.
+
+> **Why lights are read-only.** A light here is a separate RS-485 colour-light controller
+> (bus ids `0xF0`–`0xF4`) discovered by snooping its status messages — *not* the aux relay
+> that switches it. That relay is published in its own right as a controllable `Auxiliary`
+> switch, and is the entity to automate against. A light device carries no aux id and only a
+> synthetic label, so every actuation path (the serial adapter, which needs an aux id; the IAQ
+> and OneTouch, which match an on-screen button by label) fails to map it — a switch entity
+> here would be a permanently-broken duplicate of the working aux switch. What the light
+> device *does* contribute is the colour/mode byte, which the relay cannot report.
+>
+> Making lights writable needs a light-controller → aux-relay correlation, which is not
+> derivable from the wire and so would need a configuration surface.
 
 The chlorinator's extra entities read its JSON blob at `aqualink/device/{slug}`:
 

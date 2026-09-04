@@ -163,6 +163,11 @@ namespace AqualinkAutomate::Mqtt
 				publish_device_state(TopicScheme::DeviceCategory::Auxillary, device);
 			}
 
+			for (const auto& device : data_hub->Lights())
+			{
+				publish_device_state(TopicScheme::DeviceCategory::Light, device);
+			}
+
 			// Clear (empty retained payload) any state topic published last cycle that is gone now,
 			// so a removed or relabelled device leaves no stale retained state behind.
 			for (const auto& stale_topic : m_PublishedStateTopics)
@@ -655,6 +660,54 @@ namespace AqualinkAutomate::Mqtt
 		for (const auto& dev : data_hub->Auxillaries())
 		{
 			add_switch(TopicScheme::DeviceCategory::Auxillary, dev, "On", "Off");
+		}
+
+		// Lights -> READ-ONLY. A light is a separate RS-485 colour-light controller (bus ids
+		// 0xF0-0xF4), NOT the aux relay that switches it; that relay is already published above
+		// as its own controllable aux switch. A light device carries no JandyAuxillaryId and only
+		// a synthetic label ("Light 0xf0"), so every actuation path -- the serial adapter (needs
+		// an aux id), the IAQ and the OneTouch (both match an on-screen button BY LABEL) -- reports
+		// MappingFailed. Publishing a switch here would put a permanently-broken duplicate control
+		// next to the working aux switch, so it gets a sensor plus a binary_sensor instead.
+		//
+		// Two entities, mirroring the heater's sensor+derived pattern: the sensor carries the raw
+		// multi-state value (On/Off/Enabled/Pending/Unknown) at full fidelity, and the binary_sensor
+		// derives a plain on/off from it for dashboards and automations. Unknown reads as OFF on the
+		// binary_sensor -- the sensor is where "we do not know" stays visible.
+		for (const auto& dev : data_hub->Lights())
+		{
+			add_sensor(TopicScheme::DeviceCategory::Light, dev);
+
+			auto label = DeviceLabel(dev);
+			if (!label.has_value())
+			{
+				continue;
+			}
+
+			auto slug = Slugify(label.value());
+			auto state_topic = m_Client->BuildTopic(TopicScheme::DeviceStateSubtopic(TopicScheme::DeviceCategory::Light, slug));
+
+			auto on_key = std::format("light_{}_on", slug);
+			cmps[on_key] = {
+				{"p", "binary_sensor"},
+				{"name", std::format("{} On", label.value())},
+				{"unique_id", UniqueId(on_key)},
+				{"state_topic", state_topic},
+				{"value_template", "{{ 'ON' if value in ['On', 'Enabled'] else 'OFF' }}"},
+				{"payload_on", "ON"},
+				{"payload_off", "OFF"}
+			};
+
+			// The colour/mode byte, read from the device's JSON blob -- information the aux
+			// relay driving this light cannot report.
+			auto mode_key = std::format("light_{}_mode", slug);
+			cmps[mode_key] = {
+				{"p", "sensor"},
+				{"name", std::format("{} Colour Mode", label.value())},
+				{"unique_id", UniqueId(mode_key)},
+				{"state_topic", m_Client->BuildTopic(TopicScheme::DeviceJsonSubtopic(slug))},
+				{"value_template", "{{ value_json.light_mode }}"}
+			};
 		}
 
 		// Heaters -> a read-only sensor (multi-state: Off/Heating/Enabled) for the detailed status,
