@@ -150,11 +150,46 @@ BOOST_AUTO_TEST_CASE(GetCollection_LightReportsItsStatus)
 
 	BOOST_REQUIRE_MESSAGE(button.contains("status"), "A light must report its on/off state to the API");
 	BOOST_CHECK_EQUAL(button["status"].get<std::string>(), std::string("On"));
-
-	// The light was already advertised as a toggle; the status is what made that usable.
-	BOOST_REQUIRE(button.contains("controllable"));
-	BOOST_CHECK_EQUAL(button["controllable"].get<bool>(), true);
 	BOOST_CHECK_EQUAL(button["device_type"].get<std::string>(), std::string("Light"));
+}
+
+//-----------------------------------------------------------------------------
+// A light reports its state but is NOT controllable.
+//
+// A Light is a separate RS-485 colour-light controller, not the aux relay that
+// switches it (that relay is a distinct Auxillary device in this same list, and is
+// genuinely controllable). A light carries no hardware aux id and only a synthetic
+// label, so every actuation path reports MappingFailed and the dispatcher returns
+// UnknownEquipmentType -> HTTP 422. Advertising a toggle that can only ever 422 is
+// worse than advertising none, so `controllable` must be false.
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(GetCollection_LightIsNotControllable)
+{
+	const auto light = AddDevice(AuxillaryTypes::Light, "Light 0xf0", Kernel::AuxillaryStatuses::On);
+
+	const auto button = FindButton(GetCollection(), light);
+
+	BOOST_REQUIRE(button.contains("controllable"));
+	BOOST_CHECK_MESSAGE(!button["controllable"].get<bool>(),
+		"A light must not be advertised as a toggle - actuating one always returns 422");
+
+	// It is read-only, not invisible: the state it reports is the whole point.
+	BOOST_REQUIRE(button.contains("status"));
+	BOOST_CHECK_EQUAL(button["status"].get<std::string>(), std::string("On"));
+}
+
+BOOST_AUTO_TEST_CASE(GetCollection_AuxillaryFamilyRemainsControllable)
+{
+	// Excluding Light must not have made the rest of the aux family read-only -- an
+	// aux relay (including the one that actually drives a pool light) stays a toggle.
+	const auto aux = AddDevice(AuxillaryTypes::Auxillary, "Pool Light", Kernel::AuxillaryStatuses::On);
+	const auto cleaner = AddDevice(AuxillaryTypes::Cleaner, "Cleaner", Kernel::AuxillaryStatuses::Off);
+
+	const auto collection = GetCollection();
+
+	BOOST_CHECK_EQUAL(FindButton(collection, aux)["controllable"].get<bool>(), true);
+	BOOST_CHECK_EQUAL(FindButton(collection, cleaner)["controllable"].get<bool>(), true);
 }
 
 BOOST_AUTO_TEST_CASE(GetIndividual_LightReportsItsStatus)
