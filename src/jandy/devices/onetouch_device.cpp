@@ -91,11 +91,21 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("OneTouchDevice::~OneTouchDevice", std::source_location::current());
 
-		LogInfo(Channel::Devices, std::format("OneTouch ({}): Destroying OneTouchDevice: final state was {}", DeviceId(), magic_enum::enum_name(m_OpState)));
+		// The end-of-life logs format strings (std::format can throw) and the
+		// profiling domain teardown reaches into a backend; a destructor must not let
+		// any of that escape (cpp:S1048), so the whole sequence is guarded.
+		try
+		{
+			LogInfo(Channel::Devices, std::format("OneTouch ({}): Destroying OneTouchDevice: final state was {}", DeviceId(), magic_enum::enum_name(m_OpState)));
 
-		m_ProfilingDomain->End();
+			m_ProfilingDomain->End();
 
-		LogTrace(Channel::Devices, std::format("OneTouch ({}): OneTouchDevice destruction complete", DeviceId()));
+			LogTrace(Channel::Devices, std::format("OneTouch ({}): OneTouchDevice destruction complete", DeviceId()));
+		}
+		catch (...)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
+		{
+			// Swallow — nothing may escape a destructor.
+		}
 	}
 
 	bool OneTouchDevice::RequestFullRediscovery()

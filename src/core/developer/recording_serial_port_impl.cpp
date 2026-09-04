@@ -31,15 +31,25 @@ namespace AqualinkAutomate::Developer
 
 	RecordingSerialPortImpl::~RecordingSerialPortImpl()
 	{
-		std::lock_guard<std::mutex> lock(m_FileMutex);
-		CloseRecordingFile();
+		// Taking the mutex can raise std::system_error and CloseRecordingFile()
+		// writes to / closes the stream and logs (std::format). A destructor must
+		// not let any of that escape (cpp:S1048), so the teardown is guarded.
+		try
+		{
+			std::lock_guard<std::mutex> lock(m_FileMutex);
+			CloseRecordingFile();
+		}
+		catch (...)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
+		{
+			// Swallow — nothing may escape a destructor.
+		}
 	}
 
 	bool RecordingSerialPortImpl::StartRecording(const std::string& filename)
 	{
 		std::lock_guard<std::mutex> lock(m_FileMutex);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed))
+		if (m_RecordingEnabled.load())
 		{
 			LogWarning(Channel::Serial, std::format("Serial recording already in progress (file: {}); ignoring start request for {}", m_RecordingFilePath, filename));
 			return false;
@@ -52,7 +62,7 @@ namespace AqualinkAutomate::Developer
 	{
 		std::lock_guard<std::mutex> lock(m_FileMutex);
 
-		if (!m_RecordingEnabled.load(std::memory_order_relaxed))
+		if (!m_RecordingEnabled.load())
 		{
 			LogDebug(Channel::Serial, "Stop recording requested but no recording is in progress");
 			return false;
@@ -65,7 +75,7 @@ namespace AqualinkAutomate::Developer
 
 	bool RecordingSerialPortImpl::IsRecording() const
 	{
-		return m_RecordingEnabled.load(std::memory_order_relaxed);
+		return m_RecordingEnabled.load();
 	}
 
 	Interfaces::IRecordingController::Status RecordingSerialPortImpl::RecordingStatus() const
@@ -73,7 +83,7 @@ namespace AqualinkAutomate::Developer
 		std::lock_guard<std::mutex> lock(m_FileMutex);
 
 		Interfaces::IRecordingController::Status status;
-		status.recording = m_RecordingEnabled.load(std::memory_order_relaxed);
+		status.recording = m_RecordingEnabled.load();
 		status.file = m_RecordingFilePath;
 		status.bytes_written = m_BytesWritten;
 		return status;
@@ -142,7 +152,7 @@ namespace AqualinkAutomate::Developer
 
 		// Publish "on" only AFTER the file and header are ready, so the read/write
 		// fast path never sees recording-enabled with an unwritten header.
-		m_RecordingEnabled.store(true, std::memory_order_release);
+		m_RecordingEnabled.store(true);
 
 		LogDebug(Channel::Serial, "Serial recording file opened successfully");
 		return true;
@@ -154,7 +164,7 @@ namespace AqualinkAutomate::Developer
 
 		// Stop the fast path BEFORE touching the stream so an in-flight reader/
 		// writer that already passed the gate finishes under the lock we hold.
-		m_RecordingEnabled.store(false, std::memory_order_release);
+		m_RecordingEnabled.store(false);
 
 		if (m_RecordingFile.is_open())
 		{
@@ -170,7 +180,7 @@ namespace AqualinkAutomate::Developer
 	{
 		m_WrappedImpl->open(device_name);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed))
+		if (m_RecordingEnabled.load())
 		{
 			std::lock_guard<std::mutex> lock(m_FileMutex);
 			if (m_RecordingFile.is_open())
@@ -186,7 +196,7 @@ namespace AqualinkAutomate::Developer
 	{
 		m_WrappedImpl->open(device_name, ec);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && !ec)
+		if (m_RecordingEnabled.load() && !ec)
 		{
 			std::lock_guard<std::mutex> lock(m_FileMutex);
 			if (m_RecordingFile.is_open())
@@ -217,7 +227,7 @@ namespace AqualinkAutomate::Developer
 	{
 		m_WrappedImpl->close();
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed))
+		if (m_RecordingEnabled.load())
 		{
 			std::lock_guard<std::mutex> lock(m_FileMutex);
 			if (m_RecordingFile.is_open())
@@ -233,7 +243,7 @@ namespace AqualinkAutomate::Developer
 	{
 		m_WrappedImpl->close(ec);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && !ec)
+		if (m_RecordingEnabled.load() && !ec)
 		{
 			std::lock_guard<std::mutex> lock(m_FileMutex);
 			if (m_RecordingFile.is_open())
@@ -249,7 +259,7 @@ namespace AqualinkAutomate::Developer
 	{
 		m_WrappedImpl->set_baud_rate(rate, ec);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && !ec)
+		if (m_RecordingEnabled.load() && !ec)
 		{
 			std::lock_guard<std::mutex> lock(m_FileMutex);
 			if (m_RecordingFile.is_open())
@@ -265,7 +275,7 @@ namespace AqualinkAutomate::Developer
 	{
 		m_WrappedImpl->set_character_size(bits, ec);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && !ec)
+		if (m_RecordingEnabled.load() && !ec)
 		{
 			std::lock_guard<std::mutex> lock(m_FileMutex);
 			if (m_RecordingFile.is_open())
@@ -301,7 +311,7 @@ namespace AqualinkAutomate::Developer
 	{
 		auto bytes_read = m_WrappedImpl->read_some(buffer);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && bytes_read > 0)
+		if (m_RecordingEnabled.load() && bytes_read > 0)
 		{
 			RecordReadData(static_cast<const uint8_t*>(buffer.data()), bytes_read);
 		}
@@ -313,7 +323,7 @@ namespace AqualinkAutomate::Developer
 	{
 		auto bytes_read = m_WrappedImpl->read_some(buffer, ec);
 
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && bytes_read > 0 && !ec)
+		if (m_RecordingEnabled.load() && bytes_read > 0 && !ec)
 		{
 			RecordReadData(static_cast<const uint8_t*>(buffer.data()), bytes_read);
 		}
@@ -323,7 +333,7 @@ namespace AqualinkAutomate::Developer
 
 	std::size_t RecordingSerialPortImpl::write_some(const boost::asio::const_buffer& buffer)
 	{
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && buffer.size() > 0)
+		if (m_RecordingEnabled.load() && buffer.size() > 0)
 		{
 			RecordWriteData(static_cast<const uint8_t*>(buffer.data()), buffer.size());
 		}
@@ -333,7 +343,7 @@ namespace AqualinkAutomate::Developer
 
 	std::size_t RecordingSerialPortImpl::write_some(const boost::asio::const_buffer& buffer, boost::system::error_code& ec)
 	{
-		if (m_RecordingEnabled.load(std::memory_order_relaxed) && buffer.size() > 0)
+		if (m_RecordingEnabled.load() && buffer.size() > 0)
 		{
 			RecordWriteData(static_cast<const uint8_t*>(buffer.data()), buffer.size());
 		}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 
@@ -43,6 +44,16 @@ namespace AqualinkAutomate::Test
 
 		// Set the cursor line exactly as an incoming PDAMessage_Highlight would (0xFF = clear-all).
 		void SetHighlightedLineForTest(uint8_t line_number) { m_HighlightedLine = line_number; }
+
+		// Read back the tracked cursor line, so a test can assert what the message router made of
+		// an incoming PDAMessage_Highlight (a real line id, the 0xFF clear-all sentinel, or an
+		// out-of-range line id that must be rejected).
+		uint8_t HighlightedLineForTest() const { return m_HighlightedLine; }
+
+		// Fire the watchdog exactly as Restartable::PollAll() would once the timeout has elapsed
+		// with no bus activity (CheckWatchdog / Now / GetTimeout are the protected Restartable
+		// seams), so a test can drive the WatchdogTimeoutOccurred() op-state transitions.
+		void FireWatchdogTimeoutForTest() { CheckWatchdog(Now() + GetTimeout() + std::chrono::seconds(1)); }
 	};
 
 }
