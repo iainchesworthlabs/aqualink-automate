@@ -55,12 +55,23 @@ namespace
 		// controllable = the device is operated by an on/off toggle. The
 		// chlorinator (a % setpoint, surfaced in the chemistry view) and
 		// Unknown-type devices are configurable/informational, not toggles.
+		//
+		// A Light is reported NOT controllable even though it is an on/off device: it is a
+		// separate RS-485 colour-light controller (bus ids 0xF0-0xF4), not the aux relay that
+		// switches it -- that relay is a distinct Auxillary device, already listed here and
+		// genuinely controllable. A light carries no hardware aux id and only a synthetic label,
+		// so every actuation path (the serial adapter, which needs an aux id; the IAQ and the
+		// OneTouch, which match an on-screen button by label) reports MappingFailed and the
+		// dispatcher returns UnknownEquipmentType -> HTTP 422. Advertising a toggle that can only
+		// ever 422 is worse than advertising none. Correlating a light with its driving relay is
+		// tracked separately; when that lands this exclusion is what changes.
 		bool controllable = false;
 		if (device->AuxillaryTraits.Has(Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}))
 		{
 			const auto device_type = *(device->AuxillaryTraits[Kernel::AuxillaryTraitsTypes::AuxillaryTypeTrait{}]);
 			button["device_type"] = std::string(magic_enum::enum_name(device_type));
 			controllable = (device_type != Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Chlorinator
+				&& device_type != Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Light
 				&& device_type != Kernel::AuxillaryTraitsTypes::AuxillaryTypes::Unknown);
 		}
 		button["controllable"] = controllable;

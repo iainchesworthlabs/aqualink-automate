@@ -434,9 +434,10 @@ namespace AqualinkAutomate::Mqtt
 				auto heaters = data_hub->Heaters();
 				auto pumps = data_hub->Pumps();
 				auto chlorinators = data_hub->Chlorinators();
+				auto lights = data_hub->Lights();
 
-				LogDebug(Channel::Mqtt, [&auxillaries, &heaters, &pumps, &chlorinators] { return std::format("Publishing device status: {} auxillaries, {} heaters, {} pumps, {} chlorinators",
-					auxillaries.size(), heaters.size(), pumps.size(), chlorinators.size()); });
+				LogDebug(Channel::Mqtt, [&auxillaries, &heaters, &pumps, &chlorinators, &lights] { return std::format("Publishing device status: {} auxillaries, {} heaters, {} pumps, {} chlorinators, {} lights",
+					auxillaries.size(), heaters.size(), pumps.size(), chlorinators.size(), lights.size()); });
 
 				for (const auto& device : auxillaries)
 				{
@@ -456,6 +457,16 @@ namespace AqualinkAutomate::Mqtt
 				for (const auto& device : chlorinators)
 				{
 					PublishOneDevice(TopicScheme::DeviceCategory::Chlorinator, device, total_size, device_count, current_topics);
+				}
+
+				// Lights are a SEPARATE RS-485 colour-light controller (bus ids 0xF0-0xF4), not the
+				// aux relay that switches them -- that relay is published in its own right above.
+				// Published read-only: a light carries no JandyAuxillaryId and only a synthetic
+				// label, so no controller can map an actuation to it (see MqttIntegration, which
+				// deliberately registers no command topic for this category).
+				for (const auto& device : lights)
+				{
+					PublishOneDevice(TopicScheme::DeviceCategory::Light, device, total_size, device_count, current_topics);
 				}
 			}
 
@@ -515,6 +526,17 @@ namespace AqualinkAutomate::Mqtt
 		// an automation (or a Home Assistant card) can tell a chlorinator that is switched off
 		// from one that is simply waiting for the filter pump. Derived once, in the DataHub, so
 		// MQTT and the web UI cannot disagree about the same cell.
+		// The colour/mode byte the light controller reports. It lives only on the light
+		// device (the aux relay driving it knows nothing but on/off), so it is the one piece
+		// of genuinely new information this category contributes.
+		if (TopicScheme::DeviceCategory::Light == category)
+		{
+			if (auto mode = device->AuxillaryTraits.TryGet(Kernel::AuxillaryTraitsTypes::ColourTrait{}); mode.has_value())
+			{
+				j["light_mode"] = mode.value();
+			}
+		}
+
 		if (TopicScheme::DeviceCategory::Chlorinator == category)
 		{
 			if (auto data_hub = m_DataHub.lock(); data_hub)
@@ -566,6 +588,7 @@ namespace AqualinkAutomate::Mqtt
 		for (const auto& device : data_hub->Heaters())       { add(TopicScheme::DeviceCategory::Heater, device); }
 		for (const auto& device : data_hub->Pumps())         { add(TopicScheme::DeviceCategory::Pump, device); }
 		for (const auto& device : data_hub->Chlorinators())  { add(TopicScheme::DeviceCategory::Chlorinator, device); }
+		for (const auto& device : data_hub->Lights())        { add(TopicScheme::DeviceCategory::Light, device); }
 
 		return owned;
 	}

@@ -3228,9 +3228,15 @@ components:
           type: boolean
           description: >
             True when the device is operated by an on/off toggle (pumps, aux relays,
-            lights, cleaner, spillover, sprinkler, heater). False for configurable/
+            cleaner, spillover, sprinkler, heater). False for configurable/
             informational devices (chlorinator — a % setpoint surfaced in chemistry —
             and Unknown-type devices), which UIs show read-only.
+
+            Also false for `Light`. A light is a separate RS-485 colour-light
+            controller, not the aux relay that switches it; that relay appears in
+            this same list as a controllable `Auxillary`. A light carries no hardware
+            aux id and only a synthetic label, so no controller can map an actuation
+            to it and a toggle would always return 422.
           example: true
         status:
           type: string

@@ -398,7 +398,9 @@ Field notes (these are deliberate, not bugs):
 }
 ```
 
-`controllable` is `false` for `Chlorinator` and `Unknown` device types (they are configurable/informational, not on/off toggles).
+`controllable` is `false` for `Chlorinator` and `Unknown` device types (they are configurable/informational, not on/off toggles), and for `Light`.
+
+A light is reported read-only even though it is an on/off device. A `Light` here is a separate RS-485 colour-light controller (bus ids `0xF0`–`0xF4`), **not** the aux relay that switches it — that relay appears in this same list as a controllable `Auxillary`, and is what you toggle. A light device carries no hardware aux id and only a synthetic label, so no controller can map an actuation to it and `POST /api/equipment/buttons/{id}` would always return `422`. Its value is the state and colour/mode it reports, which the relay cannot.
 
 `status` is present whenever the device type has a status the panel reports, and omitted otherwise. `Auxillary`, `Cleaner`, `Light`, `Spillover` and `Sprinkler` all report the auxiliary vocabulary (`On`, `Off`, `Enabled`, `Pending`, `Unknown`); `Pump` reports `Off`/`Running`/`NotInstalled`/`Unknown`, `Heater` reports `Off`/`Heating`/`Enabled`/`NotInstalled`/`Unknown`, and `Chlorinator` reports `On`/`Off`/`Unknown`. Only `Unknown`-type devices carry no `status` member at all. A light whose watchdog has expired reports `Unknown` rather than staying stuck on its last known state.
 

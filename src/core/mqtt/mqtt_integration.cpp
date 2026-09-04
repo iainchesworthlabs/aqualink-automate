@@ -827,6 +827,16 @@ namespace AqualinkAutomate::Mqtt
 			register_device(dev);
 		}
 
+		// NOTE: data_hub->Lights() is deliberately NOT registered here. A light is a separate
+		// RS-485 colour-light controller (bus ids 0xF0-0xF4), not the aux relay that switches it;
+		// that relay is registered above and is the controllable entity. A light device carries no
+		// JandyAuxillaryId and only a synthetic label, so CommandByLabel would reach no controller
+		// that can map it (serial adapter: needs an aux id; IAQ/OneTouch: match an on-screen button
+		// by label) and every attempt would return UnknownEquipmentType. Lights are published
+		// read-only instead -- see HomeAssistantDiscovery::AddDynamicDeviceComponents. Making them
+		// writable needs a light-controller -> aux-relay correlation, which is not derivable from
+		// the wire and so needs a configuration surface.
+
 		// Heater enable/disable handlers. Heaters are not actuated through the generic
 		// device/{slug} -> CommandByLabel/DeviceActuator path (that drives aux relays / pumps);
 		// they get a dedicated heater/{slug} -> SetHeaterMode(body, on/off) route. The heater's

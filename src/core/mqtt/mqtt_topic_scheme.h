@@ -31,7 +31,8 @@ namespace AqualinkAutomate::Mqtt::TopicScheme
 		Auxillary,
 		Heater,
 		Pump,
-		Chlorinator
+		Chlorinator,
+		Light
 	};
 
 	/// Canonical wire spelling for a device category. Used both as the publisher's
@@ -45,6 +46,7 @@ namespace AqualinkAutomate::Mqtt::TopicScheme
 		case Heater:      return "heater";
 		case Pump:        return "pump";
 		case Chlorinator: return "chlorinator";
+		case Light:       return "light";
 		}
 
 		return "unknown";
