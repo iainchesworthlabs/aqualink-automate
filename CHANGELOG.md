@@ -12,6 +12,7 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
 
 ### Fixed
 
+- **Spillover and the other panel option flags are detected again on an RS-485 serial adapter.** The adapter reports the panel's installed options as a bit-mask, one flag per bit, but the whole byte was being folded into the first flag alone: "has a cleaner" read as true whenever *any* option was set, and every other flag - spillover, two-speed pump, common heater for spa and pool, the heat-pump and service-mode options - was stuck permanently off. Because spillover never registered, the handling that redirects the third auxiliary relay to the spillover circuit never ran at all. The options byte is now unpacked bit by bit.
 - **Shutting down can no longer abort the process on a failed diagnostic log.** The destructors of the network serial port, the serial recorder, the iAQ and OneTouch device drivers, and the per-device message slots wrote a formatted "tearing down" log line (and ran their own teardown) without any guard. C++ terminates the whole process if an exception leaves a destructor, so an out-of-memory or formatting failure during the final log message at shutdown — or during a device being dropped and recreated on the bus — would abort instead of exiting cleanly. Those teardowns now swallow such failures, matching the other guarded destructors in the app. The serial recorder also drops its relaxed-ordering atomics in favour of the sequentially-consistent defaults.
 
 ## [0.15.0-beta.1] - 2026-09-03
