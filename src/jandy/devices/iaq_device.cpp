@@ -94,9 +94,19 @@ namespace AqualinkAutomate::Devices
 	{
 		auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("IAQDevice::~IAQDevice", std::source_location::current());
 
-		LogInfo(Channel::Devices, std::format("IAQ ({}): Destroying IAQDevice: final state was {}", DeviceId(), magic_enum::enum_name(m_OpState)));
+		// The end-of-life log formats a string (std::format can throw) and the
+		// profiling domain teardown reaches into a backend; a destructor must not let
+		// either escape (cpp:S1048), so both are guarded.
+		try
+		{
+			LogInfo(Channel::Devices, std::format("IAQ ({}): Destroying IAQDevice: final state was {}", DeviceId(), magic_enum::enum_name(m_OpState)));
 
-		m_ProfilingDomain->End();
+			m_ProfilingDomain->End();
+		}
+		catch (...)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
+		{
+			// Swallow — nothing may escape a destructor.
+		}
 	}
 
 	void IAQDevice::QueueCommand(uint8_t command)
