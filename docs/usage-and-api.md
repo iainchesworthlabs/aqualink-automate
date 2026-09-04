@@ -400,6 +400,8 @@ Field notes (these are deliberate, not bugs):
 
 `controllable` is `false` for `Chlorinator` and `Unknown` device types (they are configurable/informational, not on/off toggles).
 
+`status` is present whenever the device type has a status the panel reports, and omitted otherwise. `Auxillary`, `Cleaner`, `Light`, `Spillover` and `Sprinkler` all report the auxiliary vocabulary (`On`, `Off`, `Enabled`, `Pending`, `Unknown`); `Pump` reports `Off`/`Running`/`NotInstalled`/`Unknown`, `Heater` reports `Off`/`Heating`/`Enabled`/`NotInstalled`/`Unknown`, and `Chlorinator` reports `On`/`Off`/`Unknown`. Only `Unknown`-type devices carry no `status` member at all. A light whose watchdog has expired reports `Unknown` rather than staying stuck on its last known state.
+
 ### POST /api/equipment/buttons/{button_id} (toggle)
 
 Toggle a single controllable device by its UUID.

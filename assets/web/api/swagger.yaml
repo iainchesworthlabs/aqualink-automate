@@ -1502,6 +1502,10 @@ paths:
                     label: "Spa Jets"
                     status: "On"
                     device_type: "Auxillary"
+                  - id: "550e8400-e29b-41d4-a716-446655440002"
+                    label: "Light 0x08"
+                    status: "On"
+                    device_type: "Light"
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -3232,7 +3236,7 @@ components:
           type: string
           description: |
             Current status of the button/device. The possible values depend on the device type:
-            - Auxillary/Cleaner/Spillover/Sprinkler: On, Off, Enabled, Pending, Unknown
+            - Auxillary/Cleaner/Light/Spillover/Sprinkler: On, Off, Enabled, Pending, Unknown
             - Heater: Off, Heating, Enabled, NotInstalled, Unknown
             - Chlorinator: Off, On, Unknown
             - Pump: Off, Running, NotInstalled, Unknown

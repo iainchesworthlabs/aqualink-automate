@@ -21,8 +21,12 @@ namespace AqualinkAutomate::Kernel::AuxillaryTraitsTypes
 			{
 			case Auxillary:
 			case Cleaner:
+			case Light:
 			case Spillover:
 			case Sprinkler:
+				// Lights are plain on/off relays on the wire (LightsDevice writes the same
+				// AuxillaryStatusTrait the aux family uses, and clears it to Unknown on a
+				// watchdog timeout), so they resolve through the very same arm.
 				if (auto status = device.AuxillaryTraits.TryGet(AuxillaryStatusTrait{}); status.has_value())
 				{
 					return magic_enum::enum_name(status.value());
@@ -50,7 +54,6 @@ namespace AqualinkAutomate::Kernel::AuxillaryTraitsTypes
 				}
 				break;
 
-			case Light:
 			case Unknown:
 			default:
 				// No status mapping for this device type.

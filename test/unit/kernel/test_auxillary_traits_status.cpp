@@ -48,6 +48,43 @@ BOOST_AUTO_TEST_CASE(Test_ConvertStatusToString_PerType)
 	BOOST_CHECK_EQUAL(std::string(ConvertStatusToString(aux)), std::string("On"));
 }
 
+//-----------------------------------------------------------------------------
+// Regression: a Light was previously lumped in with Unknown/default, so its
+// AuxillaryStatusTrait -- written by LightsDevice at construction, on every wire
+// status message, and again on a watchdog timeout -- never resolved. HasStatus()
+// returned false and the equipment-button routes silently dropped the "status"
+// member for every light. Lights share the aux family's status vocabulary and
+// must resolve exactly like the rest of it.
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(Test_ConvertStatusToString_LightResolvesAuxillaryStatus)
+{
+	auto light = MakeTypedDevice(AuxillaryTypes::Light);
+
+	light->AuxillaryTraits.Set(AuxillaryStatusTrait{}, AuxillaryStatuses::On);
+	BOOST_CHECK(HasStatus(light));
+	BOOST_CHECK_EQUAL(std::string(ConvertStatusToString(light)), std::string("On"));
+
+	light->AuxillaryTraits.Set(AuxillaryStatusTrait{}, AuxillaryStatuses::Off);
+	BOOST_CHECK(HasStatus(light));
+	BOOST_CHECK_EQUAL(std::string(ConvertStatusToString(light)), std::string("Off"));
+
+	// The watchdog-timeout write: still a real, reportable status ("Unknown" the
+	// value), not an absent one.
+	light->AuxillaryTraits.Set(AuxillaryStatusTrait{}, AuxillaryStatuses::Unknown);
+	BOOST_CHECK(HasStatus(light));
+	BOOST_CHECK_EQUAL(std::string(ConvertStatusToString(light)), std::string("Unknown"));
+}
+
+BOOST_AUTO_TEST_CASE(Test_HasStatus_LightWithoutStatusTraitHasNoStatus)
+{
+	// A Light that has never been given the trait still reports no status, so the
+	// fix widens the type arm without inventing a value out of nothing.
+	auto light = MakeTypedDevice(AuxillaryTypes::Light);
+	BOOST_CHECK(!HasStatus(light));
+	BOOST_CHECK_EQUAL(std::string(ConvertStatusToString(light)), std::string("Unknown"));
+}
+
 BOOST_AUTO_TEST_CASE(Test_HasStatus_FalseWhenNoCategoryStatus)
 {
 	// Device with a known type but no status trait set -> no displayable status.
