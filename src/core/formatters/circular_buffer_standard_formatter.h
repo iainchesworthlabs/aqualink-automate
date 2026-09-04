@@ -11,13 +11,13 @@
 #include "formatters/formatter_helpers.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const boost::circular_buffer<uint8_t>& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate
 
 template<>
 struct std::formatter<boost::circular_buffer<uint8_t>>

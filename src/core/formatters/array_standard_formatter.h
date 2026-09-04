@@ -39,7 +39,7 @@ namespace AqualinkAutomate::Formatters
 }
 // AqualinkAutomate::Formatters
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const std::array<uint8_t, 16>& obj);
@@ -47,7 +47,7 @@ namespace std
 	std::ostream& operator<<(std::ostream& os, const std::vector<uint8_t>& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate
 
 template<>
 struct std::formatter<std::array<uint8_t, 16>>

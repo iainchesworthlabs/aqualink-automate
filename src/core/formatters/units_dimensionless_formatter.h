@@ -7,13 +7,13 @@
 #include "types/units_dimensionless.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	auto operator<<(std::ostream& os, const AqualinkAutomate::Units::ppm_quantity& obj) -> std::ostream&;
 
 }
-// namespace std
+// namespace AqualinkAutomate
 
 template<>
 struct std::formatter<AqualinkAutomate::Units::ppm_quantity>

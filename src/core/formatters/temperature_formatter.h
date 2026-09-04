@@ -24,13 +24,13 @@ namespace AqualinkAutomate::Formatters
 }
 // AqualinkAutomate::Formatters
 
-namespace std
+namespace AqualinkAutomate::Kernel
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Kernel::Temperature& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate::Kernel
 
 template<>
 struct std::formatter<AqualinkAutomate::Kernel::Temperature>

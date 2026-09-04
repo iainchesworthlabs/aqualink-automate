@@ -21,7 +21,7 @@ namespace AqualinkAutomate::Pentair::Devices
 		explicit PentairDevice(const std::shared_ptr<PentairDeviceId>& device_id);
 		~PentairDevice() override = default;
 
-		const PentairDeviceId& DeviceId() const;
+		const PentairDeviceId& DeviceId() const override;
 
 	protected:
 		Utility::SlotConnectionManager m_SlotManager;

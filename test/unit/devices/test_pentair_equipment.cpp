@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(Watchdog_ClearsStaleReadingsAndFlow)
 
 	// Sanity: the live operating point is populated and the pump is running.
 	BOOST_CHECK_EQUAL(device.ReportedRPM().first, 2750u);
-	BOOST_CHECK(device.IsRunning());
+	BOOST_CHECK(device.IsPumpRunning());
 
 	auto pumps_before = harness.DataHub()->Pumps();
 	BOOST_REQUIRE_EQUAL(pumps_before.size(), 1u);
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(Watchdog_ClearsStaleReadingsAndFlow)
 	BOOST_CHECK_EQUAL(device.ReportedRPM().first, 0u);
 	BOOST_CHECK_EQUAL(device.ReportedWatts().first, 0u);
 	BOOST_CHECK_EQUAL(device.ReportedGPM().first, 0u);
-	BOOST_CHECK(!device.IsRunning());
+	BOOST_CHECK(!device.IsPumpRunning());
 
 	// DataHub pump reflects Off + zero flow (no NEW device was created).
 	auto pumps_after = harness.DataHub()->Pumps();

@@ -8,13 +8,13 @@
 #include "kernel/ph.h"
 
 
-namespace std
+namespace AqualinkAutomate::Kernel
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Kernel::pH& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate::Kernel
 
 template<>
 struct std::formatter<AqualinkAutomate::Kernel::pH>

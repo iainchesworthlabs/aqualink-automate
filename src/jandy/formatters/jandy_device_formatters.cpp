@@ -1,6 +1,6 @@
 #include "formatters/jandy_device_formatters.h"
 
-namespace std
+namespace AqualinkAutomate::Devices
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Devices::JandyDeviceId& obj)
@@ -16,4 +16,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate::Devices

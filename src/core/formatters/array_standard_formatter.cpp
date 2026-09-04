@@ -1,7 +1,7 @@
 #include "formatters/array_standard_formatter.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const std::array<uint8_t, 16>& obj)
@@ -23,4 +23,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate

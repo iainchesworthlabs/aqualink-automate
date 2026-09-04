@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(Replay_PumpStatus_DecodesAndSurfacesToDataHub)
 	BOOST_CHECK_EQUAL(device.ReportedRPM().first, 2750u);
 	BOOST_CHECK_EQUAL(device.ReportedWatts().first, 1456u);
 	BOOST_CHECK_EQUAL(device.ReportedGPM().first, 60u);
-	BOOST_CHECK(device.IsRunning());
+	BOOST_CHECK(device.IsPumpRunning());
 
 	// Hub-level surfaced pump.
 	auto pumps = harness.DataHub()->Pumps();
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(Replay_StatusFromOtherPump_IsIgnored)
 	harness.Replay(frame);
 
 	BOOST_CHECK_EQUAL(device.ReportedRPM().first, 0u);
-	BOOST_CHECK(!device.IsRunning());
+	BOOST_CHECK(!device.IsPumpRunning());
 	BOOST_CHECK(harness.DataHub()->Pumps().empty());
 }
 

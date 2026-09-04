@@ -1,4 +1,7 @@
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <ios>
 #include <string>
 #include <vector>
 
@@ -181,6 +184,113 @@ BOOST_AUTO_TEST_CASE(TestDeserialize_Options_AllZero)
 	BOOST_CHECK(!opts.HasCleaner);
 	BOOST_CHECK(!opts.TwoSpeedPump);
 	BOOST_CHECK(!opts.HasSpillover);
+}
+
+// REGRESSION: the OPTIONS byte is an S1 DIP-switch BIT-MASK, and it used to be decoded as
+//     m_Options = static_cast<SerialAdapter_SCS_Options>(message_bytes[Index_Options]);
+// -- a parenthesised aggregate initialisation of a struct of eight bool bit-fields, which
+// converts the WHOLE byte to bool, stores it in the first member (HasCleaner) and value-
+// initialises the other seven to false. HasCleaner therefore read as (byte != 0) and every
+// other flag was permanently false, which made the AUX3 -> SPILLOVER poll rewrite in
+// SerialAdapterDevice::Slot_SerialAdapter_DevStatus dead code. The single-bit 0x00/0x01
+// cases above cannot see that, so these two multi-bit cases pin the decode down.
+
+BOOST_AUTO_TEST_CASE(TestDeserialize_Options_MultipleBits_DecodePerBit)
+{
+	SerialAdapterMessage_DevStatus msg;
+	// 0x05 = bit 0 (S1 #1, cleaner) | bit 2 (S1 #3, spillover); bit 1 (two-speed) clear.
+	auto pkt = MakePacket(0x48, 0x41, { 0x01, 0x00, 0x05, 0x00 });
+	auto result = msg.DeserializeContents(std::span<const uint8_t>(pkt));
+
+	BOOST_CHECK(result);
+	BOOST_REQUIRE(msg.Options().has_value());
+	auto opts = msg.Options().value();
+
+	BOOST_CHECK(opts.HasCleaner);
+	BOOST_CHECK(!opts.TwoSpeedPump);
+	BOOST_CHECK(opts.HasSpillover);
+	BOOST_CHECK(!opts.HeaterCoolDownDisabled);
+	BOOST_CHECK(!opts.ServiceCalibrationMode);
+	BOOST_CHECK(!opts.SpareAuxOnWithFilterPumpAndSpa);
+	BOOST_CHECK(!opts.CommonHeaterForSpaAndPool);
+	BOOST_CHECK(!opts.ExtraDelayForHeatPump);
+}
+
+BOOST_AUTO_TEST_CASE(TestDeserialize_Options_SpilloverWithoutCleaner)
+{
+	SerialAdapterMessage_DevStatus msg;
+	// 0x04 = bit 2 only: a spillover panel whose AUX1 is NOT the cleaner. Under the old
+	// whole-byte cast this read back as HasCleaner=true / HasSpillover=false -- exactly
+	// inverted -- so it would rewrite the AUX1 poll and never the AUX3 one.
+	auto pkt = MakePacket(0x48, 0x41, { 0x01, 0x00, 0x04, 0x00 });
+	auto result = msg.DeserializeContents(std::span<const uint8_t>(pkt));
+
+	BOOST_CHECK(result);
+	BOOST_REQUIRE(msg.Options().has_value());
+	auto opts = msg.Options().value();
+
+	BOOST_CHECK(!opts.HasCleaner);
+	BOOST_CHECK(!opts.TwoSpeedPump);
+	BOOST_CHECK(opts.HasSpillover);
+}
+
+BOOST_AUTO_TEST_CASE(TestDeserialize_Options_EveryBitIsIndependentlyAddressable)
+{
+	// Walk the whole byte one bit at a time: each mask must set its own flag and nothing
+	// else. This is what makes the struct a faithful image of the wire byte. (The flags are
+	// bit-fields, so they cannot be addressed by pointer-to-member -- snapshot them in
+	// declaration order instead, which IS the documented bit order.)
+	auto flags_in_bit_order = [](const SerialAdapter_SCS_Options& o)
+	{
+		return std::array<bool, 8>{
+			o.HasCleaner,
+			o.TwoSpeedPump,
+			o.HasSpillover,
+			o.HeaterCoolDownDisabled,
+			o.ServiceCalibrationMode,
+			o.SpareAuxOnWithFilterPumpAndSpa,
+			o.CommonHeaterForSpaAndPool,
+			o.ExtraDelayForHeatPump
+		};
+	};
+
+	for (std::size_t bit = 0; bit < 8U; ++bit)
+	{
+		const auto mask = static_cast<uint8_t>(1U << bit);
+
+		SerialAdapterMessage_DevStatus msg;
+		auto pkt = MakePacket(0x48, 0x41, { 0x01, 0x00, mask, 0x00 });
+		BOOST_REQUIRE(msg.DeserializeContents(std::span<const uint8_t>(pkt)));
+		BOOST_REQUIRE(msg.Options().has_value());
+
+		const auto flags = flags_in_bit_order(msg.Options().value());
+
+		for (std::size_t probe = 0; probe < 8U; ++probe)
+		{
+			BOOST_TEST_CONTEXT("options byte 0x" << std::hex << static_cast<int>(mask) << " probing bit " << std::dec << probe)
+			{
+				BOOST_CHECK_EQUAL(flags[probe], (probe == bit));
+			}
+		}
+	}
+}
+
+BOOST_AUTO_TEST_CASE(TestDeserialize_Options_AllBitsSet)
+{
+	SerialAdapterMessage_DevStatus msg;
+	auto pkt = MakePacket(0x48, 0x41, { 0x01, 0x00, 0xFF, 0x00 });
+	BOOST_REQUIRE(msg.DeserializeContents(std::span<const uint8_t>(pkt)));
+	BOOST_REQUIRE(msg.Options().has_value());
+	auto opts = msg.Options().value();
+
+	BOOST_CHECK(opts.HasCleaner);
+	BOOST_CHECK(opts.TwoSpeedPump);
+	BOOST_CHECK(opts.HasSpillover);
+	BOOST_CHECK(opts.HeaterCoolDownDisabled);
+	BOOST_CHECK(opts.ServiceCalibrationMode);
+	BOOST_CHECK(opts.SpareAuxOnWithFilterPumpAndSpa);
+	BOOST_CHECK(opts.CommonHeaterForSpaAndPool);
+	BOOST_CHECK(opts.ExtraDelayForHeatPump);
 }
 
 // --- Deserialize: VBAT (SCS, StatusType=0x0E) ---

@@ -30,13 +30,17 @@ target_sources(
 	unit/auth/test_policy_engine.cpp
 	unit/auth/test_session.cpp
 	unit/auth/test_subject_resolver.cpp
+	unit/auth/test_auth_branches.cpp
 	unit/utility/test_offload_pool.cpp
 	unit/auxillaries/test_jandy_auxillary_id.cpp
 	unit/auxillaries/test_jandy_auxillary_span.cpp
 	unit/auxillaries/test_jandy_auxillary_presence_override.cpp
+	unit/auxillaries/test_jandy_auxillary_id_branches.cpp
 	unit/concepts/test_concept_is_c_array.cpp
 	unit/certificates/test_certificate_generation.cpp
+	unit/certificates/test_certificate_management_branches.cpp
 	unit/equipment_cache/test_equipment_cache_service.cpp
+	unit/equipment_cache/test_equipment_cache_branches.cpp
 	unit/errors/test_error_categories.cpp
 	unit/devices/test_devices_id.cpp
 	unit/devices/test_devices_onetouch_pageprocessors.cpp 
@@ -65,7 +69,6 @@ target_sources(
 	unit/http/test_http_diagnostics_profiling.cpp
 	unit/http/test_http_diagnostics_recording.cpp
 	unit/http/test_html_escape.cpp
-	unit/http/test_http_equipment_buttons.cpp
 	unit/http/test_http_error_responses.cpp
 	unit/http/test_http_health_detailed.cpp
 	unit/http/test_http_security.cpp
@@ -92,7 +95,10 @@ target_sources(
 	unit/logging/test_audit_separation.cpp
 	unit/alerting/test_alert_monitor.cpp
 	unit/alerting/test_webhook_tls.cpp
+	unit/alerting/test_webhook_sink.cpp
+	unit/alerting/test_alert_monitor_branches.cpp
 	unit/history/test_history_service.cpp
+	unit/history/test_history_service_branches.cpp
 	unit/options/test_option_metadata.cpp
 	unit/options/test_options_app.cpp
 	unit/options/test_options_alerting.cpp
@@ -110,11 +116,13 @@ target_sources(
 	unit/options/test_options_validators.cpp
 	unit/preferences/test_preferences_service.cpp
 	unit/preferences/test_user_preferences_store.cpp
+	unit/preferences/test_preferences_branches.cpp
 	unit/scheduling/test_controller_schedule.cpp
 	unit/scheduling/test_promotion_constraints.cpp
 	unit/scheduling/test_schedule_authorization.cpp
 	unit/scheduling/test_schedule.cpp
 	unit/scheduling/test_scheduler_service.cpp
+	unit/scheduling/test_scheduler_service_branches.cpp
 	unit/startup/test_jandy_revision_capabilities.cpp
 	unit/startup/test_jandy_startup_planner.cpp
 	unit/startup/test_jandy_startup_coordinator.cpp
@@ -151,6 +159,11 @@ target_sources(
 	unit/mqtt/test_mqtt_options.cpp
 	unit/mqtt/test_mqtt_payload_parsing.cpp
 	unit/mqtt/test_mqtt_topic_scheme.cpp
+	unit/mqtt/test_mqtt_client_branches.cpp
+	unit/mqtt/test_mqtt_ha_discovery_branches.cpp
+	unit/mqtt/test_mqtt_hub_branches.cpp
+	unit/mqtt/test_mqtt_integration_branches.cpp
+	unit/mqtt/test_mqtt_client_branches2.cpp
 	unit/protocol/test_protocol_handler.cpp
 	unit/protocol/test_mock_replay_validation.cpp
 	unit/protocol/test_replay_pacing.cpp
@@ -189,6 +202,7 @@ target_sources(
 	unit/navigation/test_navigation_visit_policies.cpp
 	unit/navigation/test_spider_engine.cpp
 	unit/navigation/test_navigation_aux_scrolling_discovery.cpp
+	unit/navigation/test_navigation_navigator_branches.cpp
 	unit/messages/test_chemlink_message_response.cpp
 	unit/messages/test_pentair_message_base.cpp
 	unit/devices/test_devices_aquarite.cpp
@@ -240,6 +254,18 @@ target_sources(
 	unit/devices/test_devices_serial_adapter.cpp
 	unit/devices/test_devices_spaside_remote.cpp
 	unit/devices/test_devices_spaside_controller.cpp
+	unit/devices/test_devices_onetouch_goals.cpp
+	unit/devices/test_devices_onetouch_lifecycle.cpp
+	unit/devices/test_devices_serial_adapter_branches.cpp
+	unit/devices/test_devices_iaq_branches.cpp
+	unit/devices/test_devices_iaq_branches2.cpp
+	unit/devices/test_devices_onetouch_pageprocessors_more.cpp
+	unit/devices/test_devices_onetouch_startup_survey.cpp
+	unit/devices/test_devices_onetouch_statusprocessors.cpp
+	unit/devices/test_devices_command_dispatcher_branches.cpp
+	unit/devices/test_devices_onetouch_message_router.cpp
+	unit/devices/test_devices_spaside_branches.cpp
+	unit/devices/test_devices_misc_branches.cpp
 	unit/equipment/test_jandy_equipment.cpp
 	unit/kernel/test_kernel_hub_locator.cpp
 	unit/kernel/test_kernel_device_graph.cpp
@@ -249,20 +275,37 @@ target_sources(
 	unit/kernel/test_kernel_data_hub_circulation.cpp
 	unit/kernel/test_kernel_data_hub_telemetry.cpp
 	unit/kernel/test_kernel_status_conversions.cpp
+	unit/kernel/test_kernel_system_boards.cpp
 	unit/utility/test_utility_string_manipulation.cpp
 	unit/utility/test_utility_pool_configuration_decoder.cpp
 	unit/utility/test_jandy_equipment_validator.cpp
 	unit/utility/test_utility_auxillary_state_converter.cpp
 	unit/http/test_http_server_fields.cpp
+	unit/http/test_http_apikeys_branches.cpp
+	unit/http/test_http_auth_branches.cpp
+	unit/http/test_http_auxslots.cpp
+	unit/http/test_http_chlorinator_branches.cpp
+	unit/http/test_http_controller_schedules_branches.cpp
+	unit/http/test_http_diagnostics_branches.cpp
+	unit/http/test_http_equipment_buttons.cpp
+	unit/http/test_http_equipment_iaq.cpp
+	unit/http/test_http_setpoints_branches.cpp
+	unit/http/test_http_spaside_remotes.cpp
+	unit/http/test_http_server_branches.cpp
+	unit/http/test_routing_branches.cpp
 	unit/profiling/test_profiling_noop.cpp
 	unit/profiling/test_profiling_factories.cpp
 	unit/profiling/test_profiling_controller.cpp
 	unit/options/test_options_settings.cpp
+	unit/options/test_options_registry_branches.cpp
 	unit/platform/test_aligned_alloc.cpp
 	unit/serial/test_mock_serial_port_impl.cpp
 	unit/serial/test_mock_serial_replay_format.cpp
 	unit/serial/test_rfc2217_inbound_filter.cpp
 	unit/serial/test_test_serial_port_impl.cpp
+	unit/serial/test_mock_serial_port_impl_branches.cpp
+	unit/serial/test_network_serial_port_impl.cpp
+	unit/serial/test_recording_serial_port_impl.cpp
 )
 
 target_compile_definitions(

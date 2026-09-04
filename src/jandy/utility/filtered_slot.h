@@ -50,7 +50,18 @@ namespace AqualinkAutomate::Utility
 
 		~FilteredSlot_ByDeviceId()
 		{
-			LogDebug(Channel::Signals, std::format("Disconnecting slot handler for message  (type: {}) for device id ({}) ", typeid(MESSAGE_TYPE*).name(), m_DeviceId));
+			// The diagnostic log formats a string (std::format can throw); a destructor
+			// must not let that escape (cpp:S1048). The disconnect itself is kept
+			// outside the guard so the slot is always torn down.
+			try
+			{
+				LogDebug(Channel::Signals, std::format("Disconnecting slot handler for message  (type: {}) for device id ({}) ", typeid(MESSAGE_TYPE*).name(), m_DeviceId));
+			}
+			catch (...)   // NOSONAR(cpp:S1181) — destructor boundary: nothing may escape a dtor (S1048)
+			{
+				// Swallow — the diagnostic log itself must not escape the destructor.
+			}
+
 			m_Connection.disconnect();
 		}
 

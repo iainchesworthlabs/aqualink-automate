@@ -3,7 +3,7 @@
 #include "formatters/formatter_helpers.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Units::millivolt_quantity& obj)
@@ -17,4 +17,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate

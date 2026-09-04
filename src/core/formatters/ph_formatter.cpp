@@ -1,7 +1,7 @@
 #include "formatters/ph_formatter.h"
 
 
-namespace std
+namespace AqualinkAutomate::Kernel
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Kernel::pH& obj)
@@ -11,4 +11,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate::Kernel

@@ -167,18 +167,23 @@ namespace AqualinkAutomate::Options
 				// Convert to synthetic argv
 				auto synthetic_argv = BuildSyntheticArgv(entries, zero_token_set);
 
-				// Build raw argv pointers
-				std::vector<const char*> raw_argv;
+				// Build raw argv pointers. command_line_parser takes char** (the C main()
+				// signature) even though it never writes through them, so the pointers are
+				// taken as std::string::data() on the mutable, locally-owned synthetic_argv
+				// rather than as c_str() cast back to non-const: casting away constness to
+				// satisfy the signature would be undefined behaviour the moment anything did
+				// write, whereas these buffers are genuinely writable.
+				std::vector<char*> raw_argv;
 				raw_argv.reserve(synthetic_argv.size());
-				for (const auto& arg : synthetic_argv)
+				for (auto& arg : synthetic_argv)
 				{
-					raw_argv.push_back(arg.c_str());
+					raw_argv.push_back(arg.data());
 				}
 
 				// Parse with allow_unregistered to catch unknown keys
 				auto parsed = boost::program_options::command_line_parser(
 					static_cast<int>(raw_argv.size()),
-					const_cast<char**>(raw_argv.data()))
+					raw_argv.data())
 					.options(*desc)
 					.allow_unregistered()
 					.run();

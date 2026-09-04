@@ -1,7 +1,7 @@
 #include "formatters/jandy_device_formatters.h"
 #include "formatters/jandy_message_formatters.h"
 
-namespace std
+namespace AqualinkAutomate::Messages
 {
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Messages::JandyMessageIds& obj)
 	{
@@ -10,4 +10,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate::Messages

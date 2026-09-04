@@ -1,6 +1,6 @@
 #include "formatters/chemistry_formatter.h"
 
-namespace std
+namespace AqualinkAutomate::Utility
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Utility::ChemistryStringConverter& obj)
@@ -10,4 +10,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate::Utility

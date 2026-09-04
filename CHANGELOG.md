@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.16.0-beta.1] - 2026-09-04
+
+### Added
+
+- **Lights are now published to MQTT and Home Assistant, read-only.** A light here is the separate RS-485 colour-light controller discovered by snooping its status messages (not the aux relay that switches it, which was already published and remains what you automate against). Each light publishes a status sensor, a derived on/off binary sensor, and a `light_mode` sensor; no command topic is registered, since a light carries no hardware aux id and every actuation path (serial adapter, IAQ, OneTouch) can only resolve `MappingFailed` for one. See [docs/mqtt-home-assistant.md](docs/mqtt-home-assistant.md).
+
+### Fixed
+
+- **A light's on/off state now reaches the HTTP API, and lights are correctly reported as not controllable.** `GET /api/equipment/buttons[/{id}]` tracked a light's status internally but never surfaced it, and separately advertised every light as `controllable:true` even though actuating one always fails (a light is a distinct colour-light controller, not the aux relay that switches it, and has no way to be driven). Lights now report their `status` alongside the rest of the auxiliary family and join the chlorinator and unknown-type devices as `controllable:false` — visible and read-only, not hidden and not a broken toggle. See [docs/usage-and-api.md](docs/usage-and-api.md).
+- **Two device accessors no longer answer differently depending on how you are holding the device.** `DeviceId()` on the Jandy and Pentair device classes, and `IsRunning()` on the Pentair variable-speed pump, each declared a name that already existed in a base class without overriding it. Which one ran was decided by the static type of the reference in hand, not by the object, so the same device could report a different identity through a base-class reference. `DeviceId()` is now a proper override, and the pump's accessor is renamed to `IsPumpRunning()` to separate "the motor is running" from the watchdog capability's unrelated "the watchdog is running" - the compiler found two test call sites that had been resolving to the wrong one of the two.
+- **A spa spillover on AUX 3 is recognised again (and AUX 1 is no longer mistaken for a cleaner).** The Serial Adapter asks the panel for its `OPTIONS` value, which is a bit-mask of the Power Center's S1 option DIP switches — S1 #1 puts the pool cleaner on AUX 1 and S1 #3 puts the spa spillover on AUX 3, and a panel so configured returns an error if either relay is polled by its raw device id. The whole byte was being collapsed into the single "has cleaner" flag, so *every* other option read as off: the spillover rewrite could never fire for any panel, while any non-zero options byte falsely rewrote the AUX 1 poll. On a spillover panel (options byte `0x04`) the two were exactly inverted. The byte is now decoded bit by bit, so AUX 1 is polled as `CLEANR` and AUX 3 as `SPILLOVER` only when the panel actually says so.
+- **Shutting down can no longer abort the process on a failed diagnostic log.** The destructors of the network serial port, the serial recorder, the iAQ and OneTouch device drivers, and the per-device message slots wrote a formatted "tearing down" log line (and ran their own teardown) without any guard. C++ terminates the whole process if an exception leaves a destructor, so an out-of-memory or formatting failure during the final log message at shutdown — or during a device being dropped and recreated on the bus — would abort instead of exiting cleanly. Those teardowns now swallow such failures, matching the other guarded destructors in the app. The serial recorder also drops its relaxed-ordering atomics in favour of the sequentially-consistent defaults.
+
 ## [0.15.0-beta.1] - 2026-09-03
 
 ### Added
