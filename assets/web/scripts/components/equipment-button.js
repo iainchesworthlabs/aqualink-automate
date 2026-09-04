@@ -3,6 +3,7 @@
  *
  * Button status values from the API (magic_enum string representations):
  *   Auxillary: On, Off, Enabled, Pending, Unknown
+ *              (Cleaner, Light, Spillover and Sprinkler share this vocabulary)
  *   Pump:      Off, Running, NotInstalled, Unknown
  *   Heater:    Off, Heating, Enabled, NotInstalled, Unknown
  *

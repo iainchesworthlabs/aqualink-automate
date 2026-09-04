@@ -1502,6 +1502,10 @@ paths:
                     label: "Spa Jets"
                     status: "On"
                     device_type: "Auxillary"
+                  - id: "550e8400-e29b-41d4-a716-446655440002"
+                    label: "Light 0x08"
+                    status: "On"
+                    device_type: "Light"
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -3224,15 +3228,21 @@ components:
           type: boolean
           description: >
             True when the device is operated by an on/off toggle (pumps, aux relays,
-            lights, cleaner, spillover, sprinkler, heater). False for configurable/
+            cleaner, spillover, sprinkler, heater). False for configurable/
             informational devices (chlorinator — a % setpoint surfaced in chemistry —
             and Unknown-type devices), which UIs show read-only.
+
+            Also false for `Light`. A light is a separate RS-485 colour-light
+            controller, not the aux relay that switches it; that relay appears in
+            this same list as a controllable `Auxillary`. A light carries no hardware
+            aux id and only a synthetic label, so no controller can map an actuation
+            to it and a toggle would always return 422.
           example: true
         status:
           type: string
           description: |
             Current status of the button/device. The possible values depend on the device type:
-            - Auxillary/Cleaner/Spillover/Sprinkler: On, Off, Enabled, Pending, Unknown
+            - Auxillary/Cleaner/Light/Spillover/Sprinkler: On, Off, Enabled, Pending, Unknown
             - Heater: Off, Heating, Enabled, NotInstalled, Unknown
             - Chlorinator: Off, On, Unknown
             - Pump: Off, Running, NotInstalled, Unknown
