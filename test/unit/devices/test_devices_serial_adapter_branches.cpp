@@ -338,53 +338,50 @@ BOOST_AUTO_TEST_CASE(DevStatus_WithPresenceGatingDisabled_NeverSuppresses)
 // DevStatus field decodes -> DataHub
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(DevStatus_Options_RewritesTheCleanerQuery_AndDropsOptions)
+BOOST_AUTO_TEST_CASE(DevStatus_Options_RewritesTheCleanerAndSpilloverQueries_AndDropsOptions)
 {
 	harness.DataHub()->PresenceGatingDisabled = true;
 	SerialAdapterDevice device(id, harness.HubLocatorRef(), /*is_emulated=*/true);
 
 	const auto before = device.DescribeDiagnostics()["status_collection_count"].get<uint32_t>();
 
-	// OPTIONS reporting a cleaner (HasCleaner, bit 0). AUX1 is then wired as the CLEANER, so
-	// asking about AUX1 by relay id errors -- the rotation entry must be rewritten to the
-	// CLEANR pump query.
-	harness.Replay(DevStatus(static_cast<uint8_t>(SerialAdapter_SystemConfigurationStatuses::OPTIONS), 0x00, 0x01));
+	// OPTIONS 0x05 = bit 0 (AUX1 drives the cleaner) + bit 2 (AUX3 drives the spa spillover).
+	// A multi-bit byte is used deliberately: 0x00 and 0x01 are the only two values that read
+	// the same whether the byte is decoded as a bit-mask or collapsed whole into the first
+	// flag, so a single-bit stimulus cannot pin down the bit layout. Both relays are then
+	// wired to a function, and asking about either by raw relay id errors on a real panel, so
+	// both rotation entries must be rewritten to their pump queries.
+	harness.Replay(DevStatus(static_cast<uint8_t>(SerialAdapter_SystemConfigurationStatuses::OPTIONS), 0x00, 0x05));
+
+	// Only the OPTIONS entry itself leaves the rotation; the two rewrites replace their
+	// entries in place, so the collection shrinks by exactly one.
 	BOOST_CHECK_EQUAL(device.DescribeDiagnostics()["status_collection_count"].get<uint32_t>(), before - 1);
 
 	// A second OPTIONS reply must NOT erase whatever now sits at the front of the rotation.
-	harness.Replay(DevStatus(static_cast<uint8_t>(SerialAdapter_SystemConfigurationStatuses::OPTIONS), 0x00, 0x01));
+	harness.Replay(DevStatus(static_cast<uint8_t>(SerialAdapter_SystemConfigurationStatuses::OPTIONS), 0x00, 0x05));
 	BOOST_CHECK_EQUAL(device.DescribeDiagnostics()["status_collection_count"].get<uint32_t>(), before - 1);
 
-	// Sweep the whole rotation: AUX1 is polled as CLEANR instead of as the raw aux id.
+	// Sweep the whole rotation: AUX1 is polled as CLEANR and AUX3 as SPILLOVER, and neither is
+	// ever asked for by its raw aux id.
 	for (int i = 0; i < 60; ++i)
 	{
 		harness.Replay(StatusPoll());
 	}
 
 	bool saw_cleaner = false;
+	bool saw_spillover = false;
 	for (const auto& [type, data] : recorder.acks)
 	{
 		if ((type == static_cast<uint8_t>(SerialAdapter_SystemPumpCommands::CLEANR)) && (data == CMD_TYPE_QUERY)) { saw_cleaner = true; }
+		if ((type == static_cast<uint8_t>(SerialAdapter_SystemPumpCommands::SPILLOVER)) && (data == CMD_TYPE_QUERY)) { saw_spillover = true; }
 		if (type == 0x00)
 		{
 			BOOST_CHECK(data != static_cast<uint8_t>(AUX_ID_OFFSET + 1));   // Aux1 never asked raw
+			BOOST_CHECK(data != static_cast<uint8_t>(AUX_ID_OFFSET + 3));   // Aux3 never asked raw
 		}
 	}
 	BOOST_CHECK(saw_cleaner);
-
-	// PENDING: the sibling AUX3 -> SPILLOVER rewrite is not asserted here yet. It is
-	// unreachable for every options byte until the OPTIONS decode is fixed to mask bit by
-	// bit (the decode currently casts the whole byte to the flags struct, which under C++20
-	// aggregate initialisation lands the byte in HasCleaner and forces HasSpillover false).
-	// That fix is landing separately; once it is on develop, add the SPILLOVER rewrite
-	// assertion and an AUX3-never-asked-raw check alongside the cleaner ones above, and
-	// switch the stimulus below from 0x01 to the multi-bit 0x05 -- 0x01 and 0x00 are the two
-	// bytes that behave identically under both decodes, so as written this case cannot catch
-	// a regression in the bit layout.
-	//
-	// This harness CAN observe that rewrite: AckRecorder connects directly to
-	// JandyMessage_Ack::GetPublisher(), so it captures transmitted acks regardless of whether
-	// MockReplayHarness wires up a write signal.
+	BOOST_CHECK(saw_spillover);
 }
 
 BOOST_AUTO_TEST_CASE(DevStatus_CelsiusTemperaturesAndSetpoints_PopulateDataHub)
