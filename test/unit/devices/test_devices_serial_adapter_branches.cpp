@@ -372,18 +372,19 @@ BOOST_AUTO_TEST_CASE(DevStatus_Options_RewritesTheCleanerQuery_AndDropsOptions)
 	}
 	BOOST_CHECK(saw_cleaner);
 
-	// NOTE: the sibling AUX3 -> SPILLOVER rewrite (Slot_SerialAdapter_DevStatus, guarded by
-	// msg.Options().value().HasSpillover) is NOT asserted here because it is currently
-	// unreachable for ANY options byte. SerialAdapterMessage_DevStatus::DeserializeContents
-	// builds the options struct with
-	//     m_Options = static_cast<SerialAdapter_SCS_Options>(message_bytes[Index_Options]);
-	// which is a C++20 parenthesised aggregate initialisation of a struct of eight bool
-	// bit-fields: the WHOLE byte is converted to bool and stored in the first member
-	// (HasCleaner), and the remaining seven -- HasSpillover included -- are value-initialised
-	// to false. The byte is a bitmask (the adjacent LogDebug prints it as {:08B}), so this is a
-	// production decode defect, not a test-expectation problem; asserting the current behaviour
-	// would bake the defect in. Once the decode masks bit-by-bit, add the SPILLOVER rewrite
-	// assertion (and an AUX3-never-asked-raw check) alongside the cleaner ones above.
+	// PENDING: the sibling AUX3 -> SPILLOVER rewrite is not asserted here yet. It is
+	// unreachable for every options byte until the OPTIONS decode is fixed to mask bit by
+	// bit (the decode currently casts the whole byte to the flags struct, which under C++20
+	// aggregate initialisation lands the byte in HasCleaner and forces HasSpillover false).
+	// That fix is landing separately; once it is on develop, add the SPILLOVER rewrite
+	// assertion and an AUX3-never-asked-raw check alongside the cleaner ones above, and
+	// switch the stimulus below from 0x01 to the multi-bit 0x05 -- 0x01 and 0x00 are the two
+	// bytes that behave identically under both decodes, so as written this case cannot catch
+	// a regression in the bit layout.
+	//
+	// This harness CAN observe that rewrite: AckRecorder connects directly to
+	// JandyMessage_Ack::GetPublisher(), so it captures transmitted acks regardless of whether
+	// MockReplayHarness wires up a write signal.
 }
 
 BOOST_AUTO_TEST_CASE(DevStatus_CelsiusTemperaturesAndSetpoints_PopulateDataHub)

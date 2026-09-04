@@ -305,24 +305,7 @@ namespace AqualinkAutomate::Messages
 						break;
 
 					case SerialAdapter_SystemConfigurationStatuses::OPTIONS:
-						// The OPTIONS payload is a bit-MASK, one flag per bit, LSB first in the
-						// declaration order of SerialAdapter_SCS_Options. It must be unpacked bit
-						// by bit: a static_cast of the byte to the struct is parenthesised
-						// aggregate initialisation, which converts the WHOLE byte to bool into the
-						// first member (making HasCleaner true for any non-zero byte) and
-						// value-initialises the other seven to false, so every flag but the first
-						// was permanently unset.
-						m_Options = SerialAdapter_SCS_Options
-						{
-							.HasCleaner = (0 != (message_bytes[Index_Options] & 0x01)),
-							.TwoSpeedPump = (0 != (message_bytes[Index_Options] & 0x02)),
-							.HasSpillover = (0 != (message_bytes[Index_Options] & 0x04)),
-							.HeaterCoolDownDisabled = (0 != (message_bytes[Index_Options] & 0x08)),
-							.ServiceCalibrationMode = (0 != (message_bytes[Index_Options] & 0x10)),
-							.SpareAuxOnWithFilterPumpAndSpa = (0 != (message_bytes[Index_Options] & 0x20)),
-							.CommonHeaterForSpaAndPool = (0 != (message_bytes[Index_Options] & 0x40)),
-							.ExtraDelayForHeatPump = (0 != (message_bytes[Index_Options] & 0x80))
-						};
+						m_Options = static_cast<SerialAdapter_SCS_Options>(message_bytes[Index_Options]);
 						LogDebug(Channel::Messages, std::format("SerialAdapterMessage_DevStatus: Options -> {:08B}", message_bytes[Index_Options]));
 						break;
 
