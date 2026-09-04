@@ -8,13 +8,13 @@
 #include "core/formatters/temperature_formatter.h"
 #include "utility/string_conversion/temperature_string_converter.h"
 
-namespace std
+namespace AqualinkAutomate::Utility
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Utility::TemperatureStringConverter& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate::Utility
 
 template<>
 struct std::formatter<AqualinkAutomate::Utility::TemperatureStringConverter> : std::formatter<AqualinkAutomate::Kernel::Temperature>

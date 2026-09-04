@@ -10,13 +10,13 @@
 #include <boost/asio/ip/tcp.hpp>
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const boost::asio::ip::tcp::endpoint& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate
 
 template<>
 struct std::formatter<boost::asio::ip::tcp::endpoint>

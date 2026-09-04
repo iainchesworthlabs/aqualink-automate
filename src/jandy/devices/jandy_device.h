@@ -16,7 +16,7 @@ namespace AqualinkAutomate::Devices
 		explicit JandyDevice(const std::shared_ptr<Devices::JandyDeviceType>& device_id);
 		~JandyDevice() override = default;
 
-		const Devices::JandyDeviceType& DeviceId() const;
+		const Devices::JandyDeviceType& DeviceId() const override;
 
 	protected:
 		Utility::JandySlotConnectionManager m_SlotManager;

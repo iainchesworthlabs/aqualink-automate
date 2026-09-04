@@ -9,13 +9,13 @@
 #include <boost/url/segments_encoded_view.hpp>
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const boost::urls::segments_encoded_view& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate
 
 template<>
 struct std::formatter<boost::urls::segments_encoded_view>

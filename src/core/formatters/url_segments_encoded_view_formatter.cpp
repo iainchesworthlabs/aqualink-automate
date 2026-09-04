@@ -1,7 +1,7 @@
 #include "formatters/url_segments_encoded_view_formatter.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	std::ostream& operator<<(std::ostream& os, const boost::urls::segments_encoded_view& obj)
@@ -11,4 +11,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate

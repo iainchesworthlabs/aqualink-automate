@@ -6,13 +6,13 @@
 
 #include "utility/signalling_stats_counter.h"
 
-namespace std
+namespace AqualinkAutomate::Utility
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Utility::StatsCounter& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate::Utility
 
 template<>
 struct std::formatter<AqualinkAutomate::Utility::StatsCounter>

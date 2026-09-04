@@ -7,14 +7,14 @@
 #include "devices/jandy_device_id.h"
 #include "devices/jandy_device_types.h"
 
-namespace std
+namespace AqualinkAutomate::Devices
 {
 
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Devices::JandyDeviceId& obj);
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Devices::JandyDeviceType& obj);
 
 }
-// namespace std
+// namespace AqualinkAutomate::Devices
 
 template<>
 struct std::formatter<AqualinkAutomate::Devices::JandyDeviceId>

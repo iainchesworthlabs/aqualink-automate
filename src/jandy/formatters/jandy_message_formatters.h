@@ -70,7 +70,7 @@ struct std::formatter<T> : std::formatter<AqualinkAutomate::Messages::JandyMessa
 {
 };
 
-namespace std
+namespace AqualinkAutomate::Messages
 {
 	std::ostream& operator<<(std::ostream& os, const AqualinkAutomate::Messages::JandyMessageIds& obj);
 
@@ -85,4 +85,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate::Messages

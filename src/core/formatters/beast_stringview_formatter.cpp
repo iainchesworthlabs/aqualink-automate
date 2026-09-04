@@ -1,7 +1,7 @@
 #include "formatters/beast_stringview_formatter.h"
 
 
-namespace std
+namespace AqualinkAutomate
 {
 
 	auto operator<<(std::ostream& os, const boost::beast::string_view& obj) -> std::ostream&
@@ -11,4 +11,4 @@ namespace std
 	}
 
 }
-// namespace std
+// namespace AqualinkAutomate

@@ -44,7 +44,7 @@ namespace AqualinkAutomate::Pentair::Devices
 		return m_GPM;
 	}
 
-	bool PentairVSPPumpDevice::IsRunning() const
+	bool PentairVSPPumpDevice::IsPumpRunning() const
 	{
 		return m_IsRunning;
 	}

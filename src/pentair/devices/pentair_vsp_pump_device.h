@@ -48,7 +48,10 @@ namespace AqualinkAutomate::Pentair::Devices
 		TimestampedRPM ReportedRPM() const;
 		TimestampedWatts ReportedWatts() const;
 		TimestampedGPM ReportedGPM() const;
-		bool IsRunning() const;
+		// Named for the motor, not the watchdog: the Restartable capability this device
+		// also mixes in has its own IsRunning() meaning "the watchdog is live". Two
+		// unrelated questions, so they do not share a name.
+		bool IsPumpRunning() const;
 
 		// Emit a set-speed command (controller -> this pump).
 		void SetSpeed(uint16_t rpm) const;

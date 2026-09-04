@@ -1,6 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "formatters/orp_formatter.h"
+#include "support/unit_test_units_print.h"
 #include "kernel/orp.h"
 
 BOOST_AUTO_TEST_SUITE(ORPTestSuite)
