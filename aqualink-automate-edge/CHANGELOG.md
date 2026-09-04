@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.0-beta.1
+
+- **Lights now show up in MQTT and Home Assistant.** The separate colour-light controller (not the aux relay that switches it) publishes its own status sensor and mode, read-only — a light can't be actuated directly, so it no longer shows as a broken toggle either here or in the web UI.
+- **A spa spillover on AUX 3 is recognised again (and AUX 1 is no longer mistaken for a cleaner).** The panel's S1 option DIP-switch byte was being read as a single flag instead of bit-by-bit, so the spillover rewrite never fired on any panel, while a spillover-only panel had its AUX 1 wrongly rewritten instead.
+- **Shutting down can no longer abort the process on a failed diagnostic log.** A handful of destructors logged their own teardown unguarded; an out-of-memory or formatting failure there would abort instead of exiting cleanly.
+
 ## 0.15.0-beta.1
 
 - **Force an auxiliary present or absent, overriding live detection.** The Settings page's Device Names card gains an "Other aux slots" tab, grouped by power centre, so you can manually correct a relay that never replies on the wire or undo a misdetected phantom — no equipment-cache editing required.
