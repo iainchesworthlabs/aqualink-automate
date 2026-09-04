@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [Unreleased]
+
+### Fixed
+
+- **Shutting down can no longer abort the process on a failed diagnostic log.** The destructors of the network serial port, the serial recorder, the iAQ and OneTouch device drivers, and the per-device message slots wrote a formatted "tearing down" log line (and ran their own teardown) without any guard. C++ terminates the whole process if an exception leaves a destructor, so an out-of-memory or formatting failure during the final log message at shutdown — or during a device being dropped and recreated on the bus — would abort instead of exiting cleanly. Those teardowns now swallow such failures, matching the other guarded destructors in the app. The serial recorder also drops its relaxed-ordering atomics in favour of the sequentially-consistent defaults.
+
 ## [0.15.0-beta.1] - 2026-09-03
 
 ### Added
