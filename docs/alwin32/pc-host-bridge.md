@@ -107,7 +107,7 @@ response format string is the record's bound `[rec+0x0c]`). Full recovered list:
 | keyword | response template | cite |
 |---------|-------------------|------|
 | `MODEL` | `MODEL = %d` | `!0x4296c0` |
-| `OPTIONS` | `OPTIONS = %d` | `!0x4296d0` |
+| `OPTIONS` | `OPTIONS = %d` (a bit-mask — see [OPTIONS bit map](#141-options-bit-map)) | `!0x4296d0` |
 | `OPMODE` | `OPMODE = %s` (AUTO/SERVICE/TIMEOUT/UNKNOWN) | `!0x4296f0`, enums `!0x42960c…0x429624` |
 | `UNITS` | `UNITS = %c` | `!0x429700` |
 | `POOLSP` / `POOLSP2` | `POOLSP = %u %c` / `POOLSP2 = %u %c` | `!0x429710`, `!0x429720` |
@@ -127,6 +127,46 @@ response format string is the record's bound `[rec+0x0c]`). Full recovered list:
 | `SALT` | `SALT = %d PPM` | `!0x429820` |
 | `HICHLOR` | `HICHLOR = %d` | `!0x429830` |
 | `AUX%d` / `AUXX` | `AUX%d = %d`, `AUXX = %d`, dimmer: `AUX%d = 1 %d%%`, `AUXX = 1 %d%%` | `!0x42952c…0x429554` |
+
+#### 1.4.1 `OPTIONS` bit map `[MANUAL-CONFIRMED for bits 0-4 and 7; bit 6 CAPTURE-GATED]`
+
+`OPTIONS` reports a single **bit-mask byte**, not an ordinal: it is the Power Center's
+**S1 option DIP-switch bank**, one bit per switch, **LSB first** (bit 0 == S1 DIP #1).
+The switch functions are from the Jandy AquaLink RS installation manual **P/N 6840**,
+§4.1 "DIP Switch Functions" plus the S1 tables in §4.2 / §4.3:
+
+| bit | mask | S1 DIP | function when ON | `SerialAdapter_SCS_Options` field |
+|:---:|:----:|:------:|------------------|-----------------------------------|
+| 0 | `0x01` | #1 | AUX 1 controls the pool cleaner | `HasCleaner` |
+| 1 | `0x02` | #2 | AUX 2 controls filter-pump low speed (2-speed pump) | `TwoSpeedPump` |
+| 2 | `0x04` | #3 | AUX 3 controls spa spillover | `HasSpillover` |
+| 3 | `0x08` | #4 | heater cool-down disabled | `HeaterCoolDownDisabled` |
+| 4 | `0x10` | #5 | factory calibration ("factory use only") | `ServiceCalibrationMode` |
+| 5 | `0x20` | #6 | spare AUX activates with filter pump in spa mode / (dual equipment) pool and spa share one heater | `SpareAuxOnWithFilterPumpAndSpa` |
+| 6 | `0x40` | #7 | manual lists "not used" / (dual equipment) air sensor becomes solar sensor | `CommonHeaterForSpaAndPool` |
+| 7 | `0x80` | #8 | heat pump instead of gas heater (5-minute post-setpoint delay, not 3) | `ExtraDelayForHeatPump` |
+
+Only bits 0 and 2 are consumed today: `SerialAdapterDevice::Slot_SerialAdapter_DevStatus`
+rewrites the AUX 1 poll to the `CLEANR` pump query and the AUX 3 poll to `SPILLOVER`,
+because a panel with those options set **errors** when asked about that relay by raw
+device id.
+
+> **Caveats.**
+> * **Bit 6.** Manual 6840 documents S1 **#6** as carrying *both* the spare-AUX and the
+>   shared-pool/spa-heater meanings (which one applies depends on system type), and lists
+>   S1 **#7** as "not used" / air-sensor-becomes-solar-sensor. The app's
+>   `CommonHeaterForSpaAndPool` field therefore sits at bit 6 without manual backing; the
+>   decode keeps a straight positional bit image rather than guessing.
+> * **Alternative hypothesis.** [`ctrlpnl-simio.md`](ctrlpnl-simio.md) recovers the Alwin32
+>   simulator's *internal* S1 byte with a **different** assignment (`0x01`=No Cool,
+>   `0x02`=Calibrate, `0x04`=CL JVA Asn, `0x08`=Heat Delay, `0x10`=Cleaner, `0x20`=Heat Pump,
+>   `0x80`=Spillover). That byte is PowerCenter-internal shared memory which the same doc
+>   states does **not** appear on the RS-485 wire, and its own notes warn the simulator's UI
+>   layout does not mirror the physical switch order — so the manual's DIP numbering is used
+>   for the wire value. **Confirm against a live capture from a panel with a known S1
+>   configuration.**
+> * AqualinkD does **not** decode these bits at all (`source/serialadapter.c` logs `OPTIONS`
+>   only as a raw value), so it is not a cross-check here.
 
 **Adapter status / diagnostics:**
 
