@@ -64,6 +64,12 @@ namespace AqualinkAutomate::Messages
 		Unknown = 0xFF
 	};
 
+	// Decoded form of the OPTIONS byte -- the Power Center's S1 option DIP-switch bank,
+	// one bit per switch, LSB first (bit 0 == S1 DIP #1 ... bit 7 == S1 DIP #8). Declaration
+	// order IS the bit order; see the make_options lambda in DeserializeContents for the
+	// per-bit provenance (AquaLink RS manual 6840 §4.1) and the capture-gated caveats.
+	// Never build this by casting the raw byte -- that is a parenthesised aggregate
+	// initialisation which lands the whole byte in HasCleaner and zeroes the rest.
 	struct SerialAdapter_SCS_Options
 	{
 		bool HasCleaner : 1;

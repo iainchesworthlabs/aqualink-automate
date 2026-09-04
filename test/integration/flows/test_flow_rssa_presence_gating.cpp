@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -53,7 +54,9 @@ using namespace AqualinkAutomate::Messages;
 //       instance stops transmitting (a subsequent poll writes nothing) -- never
 //       two transmitters on the same bus address;
 //   (d) the CAPTURE-GATED writes (two-step setpoint, aux toggle) round-trip to
-//       the exact AqualinkD-derived wire bytes.
+//       the exact AqualinkD-derived wire bytes;
+//   (e) the OPTIONS DIP-switch bit-mask rewrites the AUX1/AUX3 poll-rotation
+//       entries to the CLEANR / SPILLOVER pump queries.
 //
 // DevStatus frames are built with destination 0x48 so they match the device's
 // id-filtered slots, consistent with the existing RSSA read/decode path.
@@ -399,6 +402,101 @@ BOOST_AUTO_TEST_CASE(Write_AuxToggleOff_EmitsSetDevFrame)
 	ClearWire();
 	ReplaySerialAdapterStatus();
 	BOOST_CHECK(Wire() == ExpectedAckWireBytes(0x80, 0x16));
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// (e) OPTIONS-DRIVEN POLL-ROTATION REWRITES.
+//
+// The OPTIONS byte is the Power Center's S1 option DIP-switch BIT-MASK. When
+// S1 #1 is set, AUX 1 is wired as the cleaner and asking about it by raw relay
+// id errors, so the rotation entry must become the CLEANR pump query; likewise
+// S1 #3 makes AUX 3 the spa spillover, which must become the SPILLOVER query
+// (Slot_SerialAdapter_DevStatus).
+//
+// REGRESSION: the options byte used to be decoded as
+//     m_Options = static_cast<SerialAdapter_SCS_Options>(message_bytes[6]);
+// -- a parenthesised aggregate initialisation of a struct of eight bool
+// bit-fields, so the WHOLE byte became HasCleaner and the other seven flags
+// were value-initialised to false. HasCleaner therefore read as (byte != 0),
+// which made the SPILLOVER rewrite dead code for every possible byte AND
+// falsely rewrote the AUX 1 poll for any non-zero options byte.
+//=============================================================================
+
+namespace
+{
+	// Rotation length is 3 SCS + 12 STC + every JandyAuxillaryIds enumerator, so this
+	// many polls sweeps it more than twice over.
+	constexpr int FULL_ROTATION_SWEEP_POLLS = 60;
+
+	constexpr uint8_t RSSA_SCS_OPTIONS = 0x01;
+	constexpr uint8_t CMD_TYPE_QUERY = 0x05;
+	constexpr uint8_t PUMP_CMD_CLEANR = 0x10;
+	constexpr uint8_t PUMP_CMD_SPILLOVER = 0x0F;
+	constexpr uint8_t AUX1_RAW_DEVICE_ID = 0x15;   // Aux_1 (0x01) + SERIALADAPTER_AUX_ID_OFFSET
+	constexpr uint8_t AUX3_RAW_DEVICE_ID = 0x17;   // Aux_3 (0x03) + SERIALADAPTER_AUX_ID_OFFSET
+
+	bool WireContains(const std::vector<uint8_t>& wire, const std::vector<uint8_t>& frame)
+	{
+		return wire.end() != std::search(wire.begin(), wire.end(), frame.begin(), frame.end());
+	}
+}
+
+BOOST_FIXTURE_TEST_SUITE(TestSuite_Integration_Flow_RssaOptionsPollRewrite, RssaPresenceFixture)
+
+BOOST_AUTO_TEST_CASE(Options_CleanerAndSpillover_RewriteBothAuxPolls)
+{
+	data_hub->PresenceGatingDisabled = true;
+
+	// 0x05 = bit 0 (S1 #1, cleaner) | bit 2 (S1 #3, spillover).
+	ReplayDevStatus(RSSA_SCS_OPTIONS, 0x00, 0x05, 0x00);
+
+	ClearWire();
+	for (int i = 0; i < FULL_ROTATION_SWEEP_POLLS; ++i) { ReplaySerialAdapterStatus(); }
+
+	// Both rewrites fire...
+	BOOST_CHECK(WireContains(Wire(), ExpectedAckWireBytes(PUMP_CMD_CLEANR, CMD_TYPE_QUERY)));
+	BOOST_CHECK(WireContains(Wire(), ExpectedAckWireBytes(PUMP_CMD_SPILLOVER, CMD_TYPE_QUERY)));
+
+	// ...and neither relay is ever asked about by raw device id again.
+	BOOST_CHECK(!WireContains(Wire(), ExpectedAckWireBytes(0x00, AUX1_RAW_DEVICE_ID)));
+	BOOST_CHECK(!WireContains(Wire(), ExpectedAckWireBytes(0x00, AUX3_RAW_DEVICE_ID)));
+}
+
+BOOST_AUTO_TEST_CASE(Options_SpilloverOnly_RewritesAux3AndLeavesAux1Alone)
+{
+	// The case the whole-byte cast got exactly backwards: 0x04 is spillover-only, but the
+	// old decode reported HasCleaner=true / HasSpillover=false, so it rewrote the AUX 1
+	// poll it should have left alone and skipped the AUX 3 rewrite it should have made.
+	data_hub->PresenceGatingDisabled = true;
+
+	ReplayDevStatus(RSSA_SCS_OPTIONS, 0x00, 0x04, 0x00);
+
+	ClearWire();
+	for (int i = 0; i < FULL_ROTATION_SWEEP_POLLS; ++i) { ReplaySerialAdapterStatus(); }
+
+	BOOST_CHECK(WireContains(Wire(), ExpectedAckWireBytes(PUMP_CMD_SPILLOVER, CMD_TYPE_QUERY)));
+	BOOST_CHECK(!WireContains(Wire(), ExpectedAckWireBytes(0x00, AUX3_RAW_DEVICE_ID)));
+
+	BOOST_CHECK(!WireContains(Wire(), ExpectedAckWireBytes(PUMP_CMD_CLEANR, CMD_TYPE_QUERY)));
+	BOOST_CHECK(WireContains(Wire(), ExpectedAckWireBytes(0x00, AUX1_RAW_DEVICE_ID)));
+}
+
+BOOST_AUTO_TEST_CASE(Options_NoOptionBitsSet_LeavesBothAuxPollsRaw)
+{
+	data_hub->PresenceGatingDisabled = true;
+
+	ReplayDevStatus(RSSA_SCS_OPTIONS, 0x00, 0x00, 0x00);
+
+	ClearWire();
+	for (int i = 0; i < FULL_ROTATION_SWEEP_POLLS; ++i) { ReplaySerialAdapterStatus(); }
+
+	BOOST_CHECK(WireContains(Wire(), ExpectedAckWireBytes(0x00, AUX1_RAW_DEVICE_ID)));
+	BOOST_CHECK(WireContains(Wire(), ExpectedAckWireBytes(0x00, AUX3_RAW_DEVICE_ID)));
+
+	BOOST_CHECK(!WireContains(Wire(), ExpectedAckWireBytes(PUMP_CMD_CLEANR, CMD_TYPE_QUERY)));
+	BOOST_CHECK(!WireContains(Wire(), ExpectedAckWireBytes(PUMP_CMD_SPILLOVER, CMD_TYPE_QUERY)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
