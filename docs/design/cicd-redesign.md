@@ -11,6 +11,16 @@
 > `::error::` + `exit 1` (it FAILS the job, it does not merely warn), the concurrency group and
 > its line numbers were stale, and the CTest LABELS line citations were off. Those three points
 > have been corrected below and re-anchored to durable test names where line numbers were brittle.
+>
+> **SUPERSEDED 2026-09-05 (Phase 4 only):** Phase 4 below proposed folding
+> `automated-codescanning.yml`'s scanners into `ci.yml` as required per-PR gates, then deleting
+> the file. The actual direction taken went the opposite way: the heaviest scanners (CodeQL,
+> SonarCloud, MSVC analysis) were pulled further OUT of the PR path, not folded closer in —
+> `automated-codescanning.yml` now runs nightly against `main`/`develop` (branch-matrixed) and
+> never on PRs at all, driven by cross-repo contention on the shared self-hosted "big" runner
+> pool, not by the compile-count-reduction argument Phase 4 was built on. Phase 4's rationale
+> and MUST-FIX items below are kept for the historical record but are **no longer live
+> direction** — see [ci-cd.md](../ci-cd.md#automated-codescanningyml) for the current design.
 
 ## Status banner — what has shipped
 
@@ -24,7 +34,7 @@ implemented)**.
 | **1** | OS/triplet-keyed vcpkg binary cache (per-job prefix dropped) | **DONE** — `.github/actions/setup-vcpkg-cache/action.yml:45-52` |
 | **2** | Reusable `_build.yml` (`workflow_call`); `ci.yml`/`release.yml` call it | **DONE** — `.github/workflows/_build.yml` exists |
 | **3** | Assembly-only Docker (pre-built install tree; `!docker/context/` carve-out) | **IN PROGRESS** — `docker-verify` still compiles from source |
-| **4** | Consumers stop compiling; fold scanners; delete `automated-codescanning.yml` | **IN PROGRESS** — see "Reality vs. plan" below |
+| **4** | Consumers stop compiling; fold scanners; delete `automated-codescanning.yml` | **SUPERSEDED 2026-09-05** — the opposite direction shipped instead (scanners moved to a nightly-only `automated-codescanning.yml`, not folded into `ci.yml`); see the banner above and "Reality vs. plan" below |
 | **5** | Versioning hardening (blocking `version-check`, concurrency guard, tag-after-success) | **IN PROGRESS** — partial; see below |
 | **6** | Auto-tag-on-merge (optional) | **IN PROGRESS** |
 
