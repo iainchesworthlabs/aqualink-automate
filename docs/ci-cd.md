@@ -15,7 +15,7 @@ The table below is the complete inventory of everything under `.github/` — the
 | `.github/workflows/publish-repos.yml` | Reusable workflow (`workflow_call`) + dispatch | Publish the GPG-signed APT/DNF package repos to `gh-pages`. Called by `release.yml` after the release is created; dispatchable to (re)publish a tag. |
 | `.github/workflows/auto-tag.yml` | Workflow | Opt-in (repo variable `AUTO_TAG_ENABLED`): advances the prerelease counter tag on a code push to `main`, firing `release.yml`. Off by default — tags are pushed by hand. |
 | `.github/workflows/suggest-version.yml` | Workflow | Advisory next-version suggestion on the `develop` → `main` release PR (sticky comment). Never creates a tag. |
-| `.github/workflows/automated-codescanning.yml` | Workflow | CodeQL (C/C++ and JavaScript/TypeScript), SonarCloud, and MSVC static analysis on PRs and a weekly cron. |
+| `.github/workflows/automated-codescanning.yml` | Workflow | CodeQL (C/C++ and JavaScript/TypeScript), SonarCloud, and MSVC static analysis, nightly against `main` and `develop` (not on PRs). |
 | `.github/workflows/cleanup-branch-caches.yml` | Workflow | Delete a PR's branch caches when it closes. |
 | `.github/workflows/trivy.yml` | Workflow | Trivy scan of the runtime container image (OS packages + Node deps) → Security tab. |
 | `.github/workflows/osv-scanner.yml` | Workflow | OSV-Scanner CVE check of declared dependencies, incl. the vcpkg C++ manifest → Security tab. |
@@ -219,36 +219,40 @@ Publishes the GPG-signed **APT** (reprepro) and **DNF** (createrepo_c) package r
 
 ## automated-codescanning.yml
 
-Code scanning is slow (each scanner does a full compile), so it runs only where code is genuinely new.
+Code scanning is slow (each scanner does a full compile) and was previously the heaviest thing on the PR critical path, so it does not run on PRs at all: it runs **nightly**, matrixed over `main` and `develop`, on the org's shared self-hosted fleet (also used by other repos — see [ci-self-hosted-runners.md](ci-self-hosted-runners.md)). `ci.yml`'s build/test/e2e matrix remains the per-PR correctness gate; this workflow is detection, not a merge gate.
 
 ### Triggers
 
 ```yaml
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["develop", "main"]
   schedule:
-    - cron: '42 21 * * 2'   # weekly, Tuesday 21:42 UTC
+    - cron: '7 4 * * *'   # nightly, 04:07 UTC
   workflow_dispatch:
 ```
 
-Scanning happens on PRs into `develop` or `main`, once per merge to `main`, on the weekly cron, or on demand. The `push: [main]` trigger exists to keep the **default-branch security baseline** current: SARIF uploaded from a `pull_request` run is recorded against the throwaway `refs/pull/N/merge` ref and never updates `main`'s baseline in the Security tab, so without it the baseline would depend solely on the weekly cron. (The old `push: [main, feature/**, bug/**]` trigger that re-scanned every feature push remains gone — the push run fires once per promotion merge.)
+04:07 UTC is deliberately off the top of the hour (dodges cron-minute congestion) and offset from the `ac3forge` repo's 02:00-04:00 UTC nightly window on the same shared self-hosted fleet. A nightly run against `main` on its own ref also keeps the **default-branch security baseline** current (the Security tab / CodeQL "tool status"): the old dedicated `push: [main]` trigger existed only for that — a `pull_request` SARIF upload is recorded against the throwaway `refs/pull/N/merge` ref and never updates `main`'s baseline — and is redundant now that a nightly scan touches `refs/heads/main` directly every night.
 
-Both triggers carry a docs `paths-ignore` (`docs/**`, `**/*.md`, `mkdocs.yml`, `docs.yml`, `LICENSE`): docs-only changes touch no compiled code, and since none of these jobs is a required status check, a path-filtered (non-running) workflow does not block the PR — unlike `ci.yml`, which must use a gate job (`changes`) for the same purpose.
+None of these jobs is a required status check on `develop` or `main` (verified via `gh api .../branches/<branch>/protection`), so removing them from `pull_request`/`push` stranded no PR.
+
+### Branch matrix
+
+Every job below carries a `strategy.matrix.branch: ['main', 'develop']` axis instead of reacting to whatever ref triggered the workflow. This matters because `schedule` (and `workflow_dispatch`) always report `github.sha`/`github.ref` as the **default branch's** tip, regardless of what a job actually checks out — so each job:
+
+1. Checks out `ref: ${{ matrix.branch }}` explicitly.
+2. Captures the real commit via a `Resolve checked-out SHA` step (`git rev-parse HEAD`) immediately after checkout.
+3. Passes that branch and SHA explicitly to whatever uploads results — `ref`/`sha` on `codeql-action/upload-sarif` and `codeql-action/analyze`, `-Dsonar.branch.name=${{ matrix.branch }}` on the SonarCloud scan — instead of relying on the (always-wrong-for-`develop`) ambient `GITHUB_REF`.
+
+Artifacts shared between jobs in the same run (`e2e-coverage-xml`, plus the debug `sarif-results`/`sarif-file` artifacts) are suffixed `-${{ matrix.branch }}` so the two branch legs don't collide on upload.
 
 ### Jobs
 
 | Job | Runs on | Scanner |
 |-----|---------|---------|
-| `CodeScanning_CodeQL` | Linux (**`big`**) | CodeQL (`c-cpp`). Runs its own full build, filters the SARIF to `src/**`, and uploads to the Security tab. Routed to `linux_runner_big`: CodeQL instrumentation plus a full C++ build has twice been killed mid-build on a GitHub-hosted runner (at 108 min and at 2h33m). |
+| `CodeScanning_CodeQL` | Linux (**`big`**) | CodeQL (`c-cpp`). Runs its own full build, filters the SARIF to `src/**`, and uploads to the Security tab. Routed to `linux_runner_big`: CodeQL instrumentation plus a full C++ build has twice been killed mid-build on a GitHub-hosted runner (at 108 min and at 2h33m). The fleet has only **one** big Linux runner, so the `main` and `develop` legs of this job serialize (~170-240 min combined) — a second big Linux runner would remove that; see [ci-self-hosted-runners.md](ci-self-hosted-runners.md). |
 | `CodeScanning_CodeQL_JS` | Linux (GitHub-hosted) | CodeQL (`javascript-typescript`, `build-mode: none`) for the Alpine.js web UI (`assets/web/scripts`, `sw.js`) and the TypeScript Matter sidecar (`matter-bridge/src`). No compile, so it runs on `ubuntu-latest` (not the self-hosted C++ fleet); `.github/codeql/codeql-config-js.yml` scopes it to first-party source (vendored/minified libraries and `i18n/` data excluded). |
-| `CodeScanning_E2ECoverage` | Linux | Builds a gcov-instrumented `aqualink-automate` (`config-linux-gcc-coverage`), drives the full Playwright mode sweep against it (see below), and `gcovr`s the `.gcda` into a SonarQube coverage report (`coverage-e2e.xml`) uploaded as the `e2e-coverage-xml` artifact. |
-| `CodeScanning_SonarCloud` | Linux (**GitHub-hosted, pinned**) | SonarCloud via build-wrapper over a coverage build (`config-linux-gcc-coverage`, `-DUSE_SONARQUBE=ON`). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with **both** (`sonar.coverageReportPaths` comma-separated; Sonar merges line coverage). |
-| `CodeScanning_MSVCCodeAnalysis` | Windows (**`big`**) | MSVC code analysis (`NativeRecommendedRules.ruleset`) over the `config-windows-msvc` build; uploads SARIF. Routed to `windows_runner_big`: at ~140 min it is the longest job in CI (so it sets the critical path) and it filled the shared 16 GB `D:`. |
-
-Each job has the same skip condition: it does not run for a `develop` -> `main` promotion PR, because that code was already scanned when it entered `develop`. Re-scanning the promotion is pure duplication.
+| `CodeScanning_E2ECoverage` | Linux | Builds a gcov-instrumented `aqualink-automate` (`config-linux-gcc-coverage`), drives the full Playwright mode sweep against it (see below), and `gcovr`s the `.gcda` into a SonarQube coverage report (`coverage-e2e.xml`) uploaded as the `e2e-coverage-xml-<branch>` artifact. |
+| `CodeScanning_SonarCloud` | Linux (**GitHub-hosted, pinned**) | SonarCloud via build-wrapper over a coverage build (`config-linux-gcc-coverage`, `-DUSE_SONARQUBE=ON`). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with **both** (`sonar.coverageReportPaths` comma-separated; Sonar merges line coverage). Tracks `main` and `develop` as separate long-lived branches in the SonarCloud UI (free on this public repo). |
+| `CodeScanning_MSVCCodeAnalysis` | Windows (**`big`**) | MSVC code analysis (`NativeRecommendedRules.ruleset`) over the `config-windows-msvc` build; uploads SARIF. Routed to `windows_runner_big`: at ~140 min per branch it is the longest job in CI. The fleet has **two** big Windows runners, so the `main` and `develop` legs run in parallel rather than serializing. A side effect of no longer competing for this pool per-PR: PR-time `ci.yml` Windows MSVC builds (which already route to `windows_runner_big`, see [_build.yml](#_buildyml)) now have the whole pair to themselves during working hours. |
 
 **Coverage = unit + e2e.** The SonarCloud new-code coverage gate reflects what *both* test layers exercise. The unit/integration binary's coverage alone misses every line only the running app reaches (HTTP routes, WebSocket, MQTT, bootstrap), which read as uncovered and depressed the gate. `CodeScanning_E2ECoverage` instruments the app, drives the Playwright suite against it (the app exits cleanly on Playwright's `SIGTERM` — see `gracefulShutdown` in `playwright.config.ts` — so gcov flushes `.gcda`), and emits a second report. `CodeScanning_SonarCloud` `needs:` it and merges the two; if the e2e job fails, the scan still runs with unit-only coverage (it never drops the whole gate).
 
@@ -276,7 +280,7 @@ Three lightweight workflows cover the supply-chain surfaces the compile-heavy `a
 
 Division of labour with the existing tooling: **CodeQL / SonarCloud / MSVC** scan first-party source; **Dependabot** *updates* the Actions + npm manifests (and raises its own vulnerability alerts for them); **OSV-Scanner** closes the vcpkg gap Dependabot cannot see; **Trivy** covers the image layers no source or manifest scanner reaches. The vcpkg-built C++ libraries inside the image carry no package metadata for Trivy to match, so OSV-Scanner (reading the manifest) is what covers them — the two do not overlap.
 
-The two PR-facing workflows (`trivy.yml`, `osv-scanner.yml`) share the code scanners' promotion-PR skip and fork-PR gating. `scorecard.yml` does not run on `pull_request` at all (its checks are repository-level and need a token a fork PR lacks). The weekly crons are staggered (22:17 / 22:27 / 22:37 UTC) so they do not all contend at once.
+The two PR-facing workflows (`trivy.yml`, `osv-scanner.yml`) still run on `pull_request` (unlike `automated-codescanning.yml`, which moved to nightly-only — see above) and carry their own promotion-PR skip and fork-PR gating, the same pattern `automated-codescanning.yml` used before that move. `scorecard.yml` does not run on `pull_request` at all (its checks are repository-level and need a token a fork PR lacks). The weekly crons are staggered (22:17 / 22:27 / 22:37 UTC) so they do not all contend at once.
 
 ### Scorecard hardening applied
 
@@ -356,12 +360,16 @@ runner exists in the current fleet to check against).
 
 `check-runners` emits **four** label arrays, not two. `linux_runner` / `windows_runner` are
 the ordinary shared-fleet outputs. `linux_runner_big` / `windows_runner_big` additionally
-require the `big` label — the two oversized runners (8 vCPU / 32 GB Linux, 8 vCPU / 24 GB
-Windows, 48 GB data disks) in the repo-scoped `Labs CI Big Runners` group, provisioned
-because the heavy legs OOM-killed and filled the disks on the shared shape. Only
-`CodeScanning_CodeQL (c-cpp)` and `CodeScanning_MSVCCodeAnalysis` use them; the big pair is
-one machine per OS, so anything pointed at it serialises, and routing *every* heavy leg
-there measures out slower than leaving them parallel on GitHub-hosted.
+require the `big` label — the oversized runners (8 vCPU / 32 GB, 48 GB data disks) in the
+org-scoped `Labs CI Big Runners` group, provisioned because the heavy legs OOM-killed and
+filled the disks on the shared shape. Only `CodeScanning_CodeQL (c-cpp)` and
+`CodeScanning_MSVCCodeAnalysis` use them; routing *every* heavy leg there measures out
+slower than leaving them parallel on GitHub-hosted. The Linux side is currently a single
+machine, so anything that lands two jobs on it (e.g. `automated-codescanning.yml`'s
+`main`/`develop` branch matrix on `CodeScanning_CodeQL`) serialises; the Windows side
+currently has **two** machines, so the equivalent MSVC branch matrix runs in parallel. This
+is fleet state, not a fixed property of the label — re-check
+`gh api orgs/<org>/actions/runners` before relying on either count.
 
 Full design, the fork-PR gating, the two-part live check (repo-level, then optional
 org-level via `ORG_RUNNERS_TOKEN`), the `big` routing arithmetic and its two known sharp
