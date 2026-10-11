@@ -481,7 +481,7 @@ jobs:
       # trees (x64 + arm64) for the multi-arch Docker image. Per-arch artifact name.
       - name: Upload Linux install tree
         if: inputs.upload_installtree && runner.os == 'Linux' && (inputs.do_package || matrix.configure_preset == 'config-linux-gcc')
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.installtree_name }}
           if-no-files-found: error
@@ -540,7 +540,7 @@ jobs:
 
       - name: Upload packages
         if: inputs.do_package
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages-${{ matrix.configure_preset }}
           if-no-files-found: error
