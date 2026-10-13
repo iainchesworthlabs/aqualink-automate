@@ -284,6 +284,34 @@ namespace AqualinkAutomate::Devices
 		{
 			device->AuxillaryTraits.Set(ChlorinatorLastGeneratingTrait{}, clamped_percentage);
 		}
+
+		// Is the panel commanding something the dashboard's configured target does not explain? The
+		// wire value is NOT written into the setpoint (this app cannot always tell which body the
+		// panel is serving); it is only a prompt to go and read the configured value from the menu.
+		{
+			using namespace std::chrono_literals;
+
+			ChlorinatorSetpointStaleDetector::Observation observation;
+			if (!msg.IsBoostMode() && !msg.IsServiceMode())
+			{
+				observation.WirePercent = clamped_percentage;
+			}
+			observation.ConfiguredSetpoint = m_DataHub->ChlorinatorConfiguredSetpoint(*device);
+			observation.PoolSetpoint = device->AuxillaryTraits.TryGet(ChlorinatorPoolSetpointTrait{});
+			observation.SpaSetpoint = device->AuxillaryTraits.TryGet(ChlorinatorSpaSetpointTrait{});
+			observation.CommandRecent = m_DataHub->ChlorinatorSetpointCommandWithin(60s);
+
+			if (m_StaleSetpointDetector.Observe(observation, std::chrono::steady_clock::now()))
+			{
+				LogInfo(Channel::Devices, std::format(
+					"AquariteDevice: panel is commanding {}% but the configured target is {} (Pool {}, Spa {}); requesting an immediate Set AquaPure re-scrape",
+					clamped_percentage,
+					observation.ConfiguredSetpoint.has_value() ? std::format("{}%", observation.ConfiguredSetpoint.value()) : std::string{ "unknown" },
+					observation.PoolSetpoint.has_value() ? std::format("{}%", observation.PoolSetpoint.value()) : std::string{ "unknown" },
+					observation.SpaSetpoint.has_value() ? std::format("{}%", observation.SpaSetpoint.value()) : std::string{ "unknown" }));
+				m_DataHub->RequestChlorinatorSetpointRefresh();
+			}
+		}
 	}
 
 	AquariteDevice::PPM AquariteDevice::MedianFilteredSalt(PPM raw_sample)
