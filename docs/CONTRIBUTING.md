@@ -255,6 +255,7 @@ Rules — CI enforces the structural ones:
 - Plural keys carry CLDR category suffixes (`.one`, `.other`); translate each form per your language's plural rules, and do not add or remove suffixes.
 - Leave technical tokens untranslated: product names (AquaLink, Home Assistant, MQTT, Matter), protocol terms (RS-485, WebSocket), wire enum values quoted inside error text, and the built-in `Guest` group name where it names that group.
 - Match the file's existing tone and terminology — each catalog keeps a consistent register (e.g. German uses Sie-form; French uses the typographic apostrophe).
+- English (`en.js`) is the source text and is written in British English ("colour", "centre", "licence", "organise"); see [docs/i18n.md](i18n.md#key-conventions).
 
 Verify before pushing:
 
@@ -268,7 +269,7 @@ The checker confirms every language carries exactly the English key set and that
 
 1. Copy `assets/web/i18n/en.js` to `assets/web/i18n/<code>.js` (lower-case BCP-47 language code), change the registration line's locale code, and translate the values following the rules above.
 2. Register the locale in `SUPPORTED_LOCALES` in `assets/web/scripts/i18n.js` with its own-language name (endonym — deliberately shown untranslated so users can always find their own language) and its text direction (`ltr`/`rtl`). Pin `numberLocale` if the bare code's default numbering system is wrong or inconsistent across engines (see the `ar` entry).
-3. If the language uses a script the shipped fonts do not cover, add font coverage per "Fonts and scripts" in [docs/i18n.md](i18n.md): a `unicode-range`-sliced vendored Noto subset (the Arabic/Hebrew pattern) or a `html[lang='xx']` system-font stack (the Japanese/Chinese pattern), plus an e2e font-load assertion if vendored.
+3. If the language uses a script the shipped fonts do not cover, add font coverage per "Fonts and scripts" in [docs/i18n.md](i18n.md): a `unicode-range`-sliced vendored Noto subset (the Arabic/Hebrew pattern) or a `html[lang='xx']` system-font stack (the Japanese/Chinese pattern), plus an e2e font-load assertion if vendored. A vendored font also needs its notice in `assets/web/scripts/config/third-party-notices.js` (the About → Licences list); the e2e suite fails without it.
 4. Run the checker (above) and the Playwright i18n suite (`npx playwright test e2e/i18n.spec.ts` — see [docs/i18n.md](i18n.md) for the harness prerequisites). The key-parity and zero-missing-key tests pick the new locale up automatically from the registry.
 5. Open a pull request typed `feat(webui)`. Nothing else needs wiring: the build packages `assets/web` recursively, the language picker and the About page render from the registry, and the service worker caches the catalog on first use.
 

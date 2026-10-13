@@ -10,6 +10,14 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
 
 ## [Unreleased]
 
+### Added
+
+- **The About page now states the licence and copyright, and lists everything the web UI includes from other projects.** About shows the application's licence (GNU General Public License v3.0, naming `LICENSE.txt`, with a link to the source code) and its copyright line, and a new **Licences** section lists the bundled fonts (Bricolage Grotesque, Hanken Grotesk, Noto Sans Arabic, Noto Sans Hebrew), the vendored scripts (Alpine.js, Chart.js, chartjs-adapter-date-fns with the date-fns it bundles, QRCode.js) and the Feather icon paths, each with its version, copyright line and licence, and the full SIL Open Font License and MIT texts one click away. The list is rendered from a single data file, `assets/web/scripts/config/third-party-notices.js`, and an e2e test fails if a vendored file or declared font family has no entry. The new strings are machine-drafted in the eight non-English catalogues. See [docs/usage-and-api.md](docs/usage-and-api.md#about-licence-and-third-party-notices).
+
+### Changed
+
+- **The English source text uses British spelling throughout.** "Power centers", "catalogs", "Deserialize" and "Utilization" (Serial Port and Bandwidth) are now "Power centres", "catalogues", "Deserialise" and "Utilisation", matching the "colour" and "centre" already used elsewhere in the catalogue. The other catalogues are unchanged. See [docs/i18n.md](docs/i18n.md#key-conventions).
+
 ### Fixed
 
 - **The chlorinator target sliders no longer freeze for up to 45 seconds after pressing Set.** 0.17.0-beta.1 held every control on the tile, sliders included, until the panel's change was seen on the wire. With the filter pump off or the cell idle the wire reads 0 whatever was requested, so that confirmation never came and both rows stayed unresponsive for the full timeout. Dragging a slider sends nothing, so the sliders now stay adjustable throughout (they are held only while a request is actually in flight); **Set** and **Boost** are still held while the panel applies a change, since a second set mid-change is refused. When the wire cannot confirm a set (cell idle, or the other body), the hold now ends after about 25 s - one menu walk - instead of 45 s, and a command request that never answers is abandoned after 15 s rather than leaving the controls held indefinitely.

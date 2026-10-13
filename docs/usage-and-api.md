@@ -80,6 +80,18 @@ Right-to-left languages (Arabic, Hebrew, Yiddish) mirror the layout automaticall
 
 Translations live in plain-text catalogs and are easy to contribute — see [Contributing translations](CONTRIBUTING.md#contributing-translations) for the workflow and [docs/i18n.md](i18n.md) for the mechanics.
 
+### About, licence and third-party notices
+
+The **About** page shows the build (version, commit, homepage), the licence the application is released under — the GNU General Public License v3.0, naming `LICENSE.txt` and linking to the source code — and its copyright line, followed by the equipment's reported firmware and the languages the UI ships in:
+
+![The licence and copyright rows on the About page — the GNU General Public License v3.0 with a link to the source code, and the copyright line](assets/webui-about-licence-line.png)
+
+Below those, a **Licences** section lists everything the web UI includes from other projects: the bundled fonts (Bricolage Grotesque, Hanken Grotesk, Noto Sans Arabic and Noto Sans Hebrew, under the SIL Open Font License 1.1), the vendored scripts (Alpine.js, Chart.js, chartjs-adapter-date-fns with the date-fns it bundles, and QRCode.js, all MIT) and the Feather icon paths (MIT). Each entry carries its version, copyright line and a link to its licence, and the full licence texts expand in place:
+
+![The About page's Licences card — every bundled font, script and icon set with its copyright line and licence, and the SIL Open Font License text expanded](assets/webui-about-licences.png)
+
+The list is rendered from one data file, `assets/web/scripts/config/third-party-notices.js`, so a notice is written once. When you vendor a new library or font, add its entry there in the same change; `e2e/about-licences.spec.ts` fails if a file under `assets/web/vendor/` or a font family declared in `fonts.css` has no entry.
+
 ### Responsive layout
 
 The UI is a single responsive web app — there is no separate mobile build or native app. The same page reflows across three viewport bands, and the navigation adapts to match:
