@@ -24,15 +24,31 @@ on:
       - "README.md"
       - "scripts/zensical-prune-excluded.py"
       - ".github/workflows/docs.yml"
+  # Build-only on pull requests (the publish step below is skipped for them). `--strict`
+  # used to run for the first time at the develop -> main promotion, so a broken cross-link
+  # reached the release PR before anything could reject it. Building here fails the PR that
+  # introduced it instead.
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "docs/**"
+      - "overrides/**"
+      - "mkdocs.yml"
+      - "README.md"
+      - "scripts/zensical-prune-excluded.py"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 # Serialise docs publishes so two runs can't race the gh-pages push. A separate
 # group from publish-repos means a docs build and a package publish can still run
 # at the same time (they touch different subtrees); on the rare simultaneous push
 # the loser is retried by re-running the workflow.
+#
+# Pull-request builds get their own per-PR group (and cancel a superseded run) so they
+# never queue behind, or block, a publish.
 concurrency:
-  group: publish-docs
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('docs-pr-{0}', github.event.pull_request.number) || 'publish-docs' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Deny-all at the top level; the build-and-deploy job re-grants contents: write to
 # push the rendered site to gh-pages. Scorecard TokenPermissions flags top-level
@@ -53,8 +69,13 @@ jobs:
         with:
           python-version: "3.x"
 
+      # Pinned: an unpinned install let a new Zensical release change behaviour between the
+      # PR that last touched the docs and the promotion that published them (0.0.60 built
+      # `exclude_docs` pages and never saw a link into them; 0.0.70 omits them, so such a
+      # link is now a strict-mode error). Bump deliberately: change the pin, then run
+      # `zensical build --strict` locally.
       - name: Install Zensical
-        run: pip install --disable-pip-version-check zensical
+        run: pip install --disable-pip-version-check "zensical==0.0.70"
 
       # --strict turns broken internal links/anchors and other warnings into
       # errors, so a bad cross-link fails the build instead of shipping a
@@ -71,7 +92,9 @@ jobs:
       - name: Prune docs excluded from the published site
         run: python scripts/zensical-prune-excluded.py
 
+      # Skipped on pull requests: those only need to prove the site still builds.
       - name: Publish to GitHub Pages (root)
+        if: github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
