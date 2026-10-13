@@ -2,7 +2,7 @@
 # Stage: base (shared tooling for dev, ci, and runtime builds)
 # ==============================================================================
 
-FROM ubuntu:26.04@sha256:da6fc2be547864451aa253836dd926da33623312df4a9a243e35dc877c378a78 AS base
+FROM ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7 AS base
 
 ARG GCC_VERSION=15
 ARG LLVM_VERSION=21
@@ -191,7 +191,7 @@ RUN npm run build \
 #   - runtime-assembled : app from a prebuilt install tree staged into the context
 #                         (no recompile; used by release.yml docker-publish)
 
-FROM ubuntu:26.04@sha256:da6fc2be547864451aa253836dd926da33623312df4a9a243e35dc877c378a78 AS runtime-base
+FROM ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7 AS runtime-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
