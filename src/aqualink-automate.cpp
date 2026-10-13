@@ -348,6 +348,7 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 
 				log_runtime_config.GeneralNativeFacility = log_settings.Facility;
 				log_runtime_config.Format = log_settings.Format;
+				log_runtime_config.FileFormat = log_settings.FileFormat;
 				log_runtime_config.LogFilePath = log_settings.LogFile;
 				log_runtime_config.LogFileMaxBytes = log_settings.LogFileMaxBytes;
 				log_runtime_config.LogFileMaxFiles = log_settings.LogFileMaxFiles;

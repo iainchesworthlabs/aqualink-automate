@@ -59,6 +59,11 @@ namespace AqualinkAutomate::Options::LogSinks
 		// Wire format for the console + file sinks.
 		AqualinkAutomate::Logging::LogFormat Format{ AqualinkAutomate::Logging::LogFormat::Text };
 
+		// Wire format for the file sink alone. Unset => the file sink follows Format, so
+		// existing configurations are unchanged; set it to keep a readable text console
+		// while the file carries timestamped JSON-lines.
+		std::optional<AqualinkAutomate::Logging::LogFormat> FileFormat;
+
 		// File sink target + rotation bounds. LogFile unset => no file sink.
 		std::optional<std::filesystem::path> LogFile;
 		std::uintmax_t LogFileMaxBytes{ 10ULL * 1024ULL * 1024ULL };
@@ -72,6 +77,7 @@ namespace AqualinkAutomate::Options::LogSinks
 		AppOptionPtr OPTION_LOGSINKS{ make_appoption("log-sinks", "Which log sinks to use: 'auto' (environment-derived) or a comma-separated list of 'console','native','file','journald' ('journald' is Linux/systemd only; elsewhere it falls back to console with priority prefixes)", boost::program_options::value<std::string>()->default_value("auto")) };
 		AppOptionPtr OPTION_LOGFACILITY{ make_appoption("log-syslog-facility", "POSIX syslog facility for the general native sink: daemon, user, local0-local7", boost::program_options::value<AqualinkAutomate::Logging::Sinks::SyslogFacility>()->default_value(AqualinkAutomate::Logging::Sinks::SyslogFacility::Daemon, "daemon")) };
 		AppOptionPtr OPTION_LOGFORMAT{ make_appoption("log-format", "Log record format for the console and file sinks: 'text' or 'json'", boost::program_options::value<std::string>()->default_value("text")) };
+		AppOptionPtr OPTION_LOGFILEFORMAT{ make_appoption("log-file-format", "Log record format for the file sink only: 'text' or 'json' (default: same as --log-format)", boost::program_options::value<std::string>()) };
 		AppOptionPtr OPTION_LOGFILE{ make_appoption("log-file", "Write logs to this file (enables the file sink; rotated + size-bounded)", boost::program_options::value<std::string>()) };
 		AppOptionPtr OPTION_LOGFILEMAXSIZE{ make_appoption("log-file-max-size", "Rotate the log file when it would exceed this many bytes", boost::program_options::value<std::uintmax_t>()->default_value(10ULL * 1024ULL * 1024ULL)) };
 		AppOptionPtr OPTION_LOGFILEMAXFILES{ make_appoption("log-file-max-files", "Keep at most this many rotated log files", boost::program_options::value<std::uint32_t>()->default_value(5)) };
@@ -81,6 +87,7 @@ namespace AqualinkAutomate::Options::LogSinks
 			OPTION_LOGSINKS,
 			OPTION_LOGFACILITY,
 			OPTION_LOGFORMAT,
+			OPTION_LOGFILEFORMAT,
 			OPTION_LOGFILE,
 			OPTION_LOGFILEMAXSIZE,
 			OPTION_LOGFILEMAXFILES

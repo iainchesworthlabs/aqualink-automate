@@ -369,6 +369,7 @@ systemd the console additionally carries sd-daemon `<N>` priority prefixes so
 | `--log-sinks` | string | `auto` | `auto` (environment-derived) or a comma-separated list of `console`, `native`, `file`, `journald`. `native` adds the OS-native operational sink (syslog on POSIX, the Windows Event Log); `file` requires `--log-file`; `journald` is the structured native journal sink on Linux when libsystemd is present at runtime (elsewhere it falls back to console with priority prefixes). Under `auto`: `--log-file` implies the file sink, and under systemd (stderr is the journal) with libsystemd available, `journald` is used automatically. |
 | `--log-syslog-facility` | enum | `daemon` | POSIX syslog facility for the general `native` sink: `daemon`, `user`, `local0`–`local7` (case-insensitive). Ignored on Windows. The audit sink always uses `authpriv` regardless. |
 | `--log-format` | enum | `text` | Record format for the **console and file** sinks: `text` (human) or `json` (one JSON object per line, for container / SIEM pipelines). The native/syslog sink is always message-only. |
+| `--log-file-format` | enum | *(follows `--log-format`)* | Record format for the **file** sink only: `text` or `json`. Unset, the file uses `--log-format`, so existing setups are unchanged. Set it to `json` to keep a readable text console while the file carries one timestamped (`ts`) JSON object per line — the text format has no wall-clock time, only a sequence number. Invalid values fail validation at startup. |
 | `--log-file` | path | *(unset)* | Write logs to this file (enables the file sink). Rotated and size-bounded; on shutdown the active file is rotated into the kept set. |
 | `--log-file-max-size` | bytes | `10485760` (10 MiB) | Rotate the log file when it would exceed this many bytes. |
 | `--log-file-max-files` | count | `5` | Keep at most this many rotated log files (oldest deleted). |
@@ -376,8 +377,11 @@ systemd the console additionally carries sd-daemon `<N>` priority prefixes so
 Examples: `--log-sinks console,native --log-syslog-facility local0` (console plus
 a syslog `local0` operational sink); `--log-file /var/log/aqualink/app.log
 --log-format json` (console **and** a rotating JSON file, since `auto` adds the
-file sink when a path is given); `--log-sinks console --log-format json` (JSON to
-the console only, ideal behind a container log driver).
+file sink when a path is given); `--log-file /var/log/aqualink/app.log
+--log-file-format json` (readable text console **plus** a timestamped JSON file —
+what the Home Assistant add-on's `log_to_file` option does);
+`--log-sinks console --log-format json` (JSON to the console only, ideal behind a
+container log driver).
 
 **Platform-native sinks.** On Linux, when `libsystemd.so.0` is present (it is on any
 systemd host), `journald` delivers records to the journal with structured fields
