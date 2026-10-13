@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.17.0-beta.1
+
+- **New diagnostics options: "Also write a log file" and "Log channel levels".** The Log tab only keeps a short window and its lines have no clock time. Turn on `log_to_file` to also get a rotating, timestamped JSON log (about 50 MB at most) in the add-on's config folder under `logs/` — browsable with Samba or the File editor and kept across restarts. `log_channels` raises just the areas you name (for example `devices=debug,navigation=debug`) instead of turning the whole add-on to debug, which floods the Log tab.
+- **The dashboard's chlorinator target no longer goes stale.** After you (or the panel, or iAqualink) changed the chlorinator output, an open dashboard kept showing the old value and wouldn't let you set it back ("still 75%"), even though the change had gone through. The dashboard now updates as soon as the chlorinator changes, holds the controls while the panel applies a change (10-20 seconds), and shows "still being applied" right next to the button instead of only in a toast.
+- **The filter pump now shows its real status.** In the add-on the pump showed no status at all (and read as off) while the panel listed it as running, because the restored equipment cache lost the pump's role and the status was silently dropped. The pump is now recognised, and an existing cache heals itself on the first start.
+- **The salt reading no longer flips between 2900 and 4000 ppm.** A cell near its low-salt threshold produced short bursts of a different reading that made the salt value (and its graph and history) strobe; the value now only changes for a sustained shift.
+- **Quieter Info log.** Routine web connections are logged at Debug, so the Log tab is mostly operational events.
+
 ## 0.16.0-beta.1
 
 - **Lights now show up in MQTT and Home Assistant.** The separate colour-light controller (not the aux relay that switches it) publishes its own status sensor and mode, read-only — a light can't be actuated directly, so it no longer shows as a broken toggle either here or in the web UI.

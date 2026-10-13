@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [0.17.0-beta.1] - 2026-10-13
+
+### Added
+
+- **Home Assistant add-on diagnostics: `log_to_file` and `log_channels`.** The add-on's Log tab keeps a short window, its text lines carry no clock time, and the only verbosity control was a global `debug` that scrolls the per-frame serial/protocol channels past that window in seconds. `log_to_file` additionally writes a rotating, size-bounded (about 50 MiB) JSON-lines log with a timestamp on every record to the add-on's config folder (`logs/`, next to the captures), while the Log tab stays readable text. `log_channels` takes a comma-separated `channel=level` list (for example `devices=debug,navigation=debug`) and maps it onto the app's `--loglevel-<channel>` flags, so one area can be raised without turning everything to debug; an unknown or repeated entry is skipped with a warning rather than failing the start. See [docs/homeassistant-addon.md](docs/homeassistant-addon.md#debugging-a-live-add-on).
+- **`--log-file-format text|json`.** Sets the file sink's record format independently of `--log-format`; when unset the file follows `--log-format`, so existing configurations are unchanged. See [docs/configuration.md](docs/configuration.md).
+
+### Changed
+
+- **"Accepted new HTTP connection" is logged at Debug instead of Info.** Every poll, watchdog probe and UI refresh opens a connection, which made up roughly 80% of the Info lines in a live add-on and pushed operational records out of short log windows such as the Supervisor's tail.
+- **A change to the chlorinator now also triggers an on-change MQTT publish.** The chlorinator's state is checked once a second and again immediately after a successful set, so a change made at the panel or in iAqualink reaches Home Assistant promptly instead of at the next periodic publish.
+
+### Fixed
+
+- **The dashboard's chlorinator target no longer goes stale after a change, and Set no longer invites a second click mid-change.** The chlorinator's setpoints, output and health were only ever learned by the web UI from a REST fetch (page load, route change, or the WebSocket-down fallback) because `ChemistryUpdate` carried only pH, ORP and salt, and none of the writers of that state announced a change. After a set from this app, the panel or iAqualink, an open dashboard kept the old target and disabled **Set** for the value the panel no longer held ("still 75%, can't set 75"), even though the command had reached the chlorinator. `ChemistryUpdate` now also carries the chlorinator object when it changes (the same shape as `chemistry.chlorinator` in `GET /api/equipment`; `null` means it is gone). The control holds while the panel applies a set, which takes roughly 10-20 s of menu walking, confirms from the wire value or reports "Sent - awaiting panel" after a timeout, and shows a refusal reason such as "still being applied" inline beside the control instead of relying on a toast that is easy to miss. See [docs/usage-and-api.md](docs/usage-and-api.md).
+- **The filter pump no longer shows no status (and the app no longer reports it off) in the Home Assistant add-on while the panel lists it as running.** The add-on always enables the equipment cache, which persisted only a device's id, label, type and body, so a restored "Filter Pump" lacked its filter-circulation role. Lookups by that role found nothing, so both the OneTouch Equipment Status handler and the iAqualink main-status handler built a replacement pump, the device graph rejected it as a duplicate (same type and label), and they then updated an empty list - silently and permanently, across restarts. The restored pump is now adopted and the cache persists `pump_type`; an existing cache file heals on the first start. This also restores the chlorinator's "waiting for the filter pump" reason, which depends on knowing the pump state.
+- **The published salt reading no longer strobes between 2900 and 4000 ppm.** A borderline cell reports 2900 ppm / Low Salt for most frames with short 4000 ppm / OK bursts. On a 33-minute capture the published value flipped 62 times with the median-of-5 window (each flip a chemistry event to the UI, MQTT and history); a 31-frame window (about 13 s) left only the two genuine, sustained changes. The chlorinator health flag already had an asymmetric dwell and is unchanged.
+
 ## [0.16.0-beta.1] - 2026-09-04
 
 ### Added
