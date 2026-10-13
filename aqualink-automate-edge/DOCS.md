@@ -106,6 +106,8 @@ only if you want the app's own version (it is then persisted under `/data`):
 | Option | Description |
 |---|---|
 | `log_level` | `info` (default), `debug`, or `trace`. Logs appear in the add-on's **Log** tab. |
+| `log_to_file` | Off by default. Also writes a rotating, timestamped JSON log file to the add-on's config folder — see [Debugging a live add-on](#debugging-a-live-add-on). |
+| `log_channels` | Advanced, blank by default. Raise individual areas without turning everything to `debug`, e.g. `devices=debug,navigation=debug` — see [Debugging a live add-on](#debugging-a-live-add-on). |
 | `pool_configuration` | `auto` (default), or force `pool-only` / `spa-only` / `combo` / `dual`. |
 | `jandy_device_type` | Advanced: what the software emulates on the bus. `auto` (default) stands up the full default set — OneTouch + IAQ + Serial Adapter — and suits most panels. Choose a single type only to restrict emulation to that one device. |
 | `jandy_device_id` | Advanced: optional bus-address override for a single chosen type. Blank uses the type's default (OneTouch → 0x41); ignored when the type is `auto`. |
@@ -139,17 +141,49 @@ Captures are written to this add-on's own configuration folder, which you can br
 from Home Assistant:
 
 ```
-/app_configs/aqualink_automate/captures/
+/app_configs/<add-on slug>/captures/
 ```
 
-(`/addon_configs/aqualink_automate/captures/` on Home Assistant releases before
-Supervisor 2026.07.) It is reachable with the **Samba** or **File editor** add-ons,
-survives restarts and add-on updates, and needs no Terminal/SSH access.
+(`/addon_configs/<add-on slug>/captures/` on Home Assistant releases before
+Supervisor 2026.07.) The slug is shown on the add-on's **Info** page; for a custom
+repository it carries a repository prefix, for example
+`13e07eae_aqualink_automate_edge`. The folder is reachable with the **Samba** or
+**File editor** add-ons, survives restarts and add-on updates, and needs no
+Terminal/SSH access.
 
 You do not have to go looking for the file, though: the **Serial Recording** card
 lists the captures already saved and gives each one a **Download** button, so you can
 save a capture straight to the device you are browsing from. Very large captures
 (over 64 MiB) cannot be downloaded that way — copy those from the folder above.
+
+## Debugging a live add-on
+
+You do not need to stop the add-on or run anything on another machine. Use these in
+order — each step adds detail and costs a little more:
+
+1. **The Log tab** (or the add-on's *Log* download). Quiet by default: routine web
+   requests are only logged at `debug`.
+2. **Raise one area, live.** The web UI's **Diagnostics → Log Levels** card sets a
+   level per channel and applies it immediately, with no restart. It resets to your
+   configured levels when the add-on restarts. Keep the whole add-on at `info` and raise
+   only what you need — `devices` shows command handling (e.g. a chlorinator change),
+   `navigation` and `scraping` show the OneTouch/iAQ menu walking.
+3. **Make a level stick across restarts** with `log_channels`, e.g.
+   `devices=debug,navigation=debug`. Don't set `log_level: debug` for a long session: the
+   per-frame `serial`, `protocol` and `messages` channels scroll the Log tab's short
+   window in seconds.
+4. **Keep a long, timestamped log** with `log_to_file`. It writes
+   `logs/aqualink-automate.log` (JSON, one record per line, each with a `ts`) in the
+   same folder as the captures, rotated and bounded to about 50 MB. Unlike the Log tab,
+   it is not limited to a short window and survives restarts.
+5. **Record the wire.** For anything involving what the panel actually did, record the
+   RS-485 bus from **Diagnostics → Serial Recording** (above). Start it *before* you
+   trigger the behaviour, note the clock time you did so, and stop it afterwards. The
+   `.cap` file holds every byte exchanged regardless of log level, so it is the ground
+   truth when the logs and the equipment disagree.
+
+When reporting a problem, attach the capture and the relevant slice of the log file,
+and say what you did and at what time.
 
 ## Notes
 

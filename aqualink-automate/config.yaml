@@ -129,6 +129,8 @@ options:
   enable_auth: false
   auth_username: admin
   log_level: info
+  log_to_file: false
+  log_channels: ""
   enable_history: false
   enable_scheduler: false
   pool_configuration: auto
@@ -174,6 +176,15 @@ schema:
   auth_password: password?
   # Surfaced operationally; the HA add-on Log tab captures stdout.
   log_level: list(info|debug|trace)
+  # Diagnostics (both default off). `log_to_file` ADDS a rotating JSON-lines log with
+  # wall-clock timestamps under /config/logs (the app_config map — survives restarts and
+  # updates, browsable via Samba / File editor); the Log tab stays readable text.
+  # `log_channels` is a comma-separated `channel=level` list ("devices=debug") that
+  # raises single channels without turning the whole app to debug. Plain `str?` with an
+  # empty default (the same shape as jandy_device_id) so it always renders; run.sh
+  # validates it and skips bad entries rather than failing the start.
+  log_to_file: bool
+  log_channels: str?
   # Off by default — Home Assistant's Recorder/History and automations are the
   # expected sources. Toggle on to use the app's own (persisted under /data).
   enable_history: bool

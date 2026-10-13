@@ -215,11 +215,65 @@ if bashio::config.true 'enable_auth'; then
 fi
 
 # ── Log level ──────────────────────────────────────────────────────────────────
-# Sinks stay at the default console sink so the add-on Log tab captures stdout.
+# The console sink always stays on so the add-on Log tab captures stdout.
 case "$(bashio::config 'log_level')" in
     debug) args+=("--debug") ;;
     trace) args+=("--trace") ;;
 esac
+
+# ── Per-channel log levels (advanced; default none) ────────────────────────────
+# log_channels is a comma-separated list of `channel=level`, e.g.
+# "devices=debug,navigation=trace". It raises ONE channel without turning the whole app
+# to debug, which is what makes a long diagnostic session usable: at global debug the
+# per-frame serial/protocol channels scroll the Supervisor's short log window in
+# seconds. These are the app's own --loglevel-<channel> flags (docs/configuration.md).
+# A bad entry (unknown channel/level, or a repeat — the app rejects a repeated flag) is
+# skipped with a warning instead of failing the start: a typo in a debugging aid must
+# never take the pool controller offline.
+readonly KNOWN_LOG_CHANNELS=" certificates coroutines developer devices equipment exceptions main messages mqtt navigation options platform profiling protocol scraping serial signals web "
+readonly KNOWN_LOG_LEVELS=" trace debug info notify warning error fatal "
+if bashio::config.has_value 'log_channels'; then
+    seen_log_channels=" "
+    IFS=',' read -r -a log_channel_specs <<< "$(bashio::config 'log_channels')"
+    for spec in "${log_channel_specs[@]}"; do
+        spec="${spec//[[:space:]]/}"
+        spec="${spec,,}"
+        [ -n "${spec}" ] || continue
+        channel="${spec%%=*}"
+        level="${spec#*=}"
+        if [ "${channel}" = "${spec}" ] \
+            || [[ "${KNOWN_LOG_CHANNELS}" != *" ${channel} "* ]] \
+            || [[ "${KNOWN_LOG_LEVELS}" != *" ${level} "* ]]; then
+            bashio::log.warning "log_channels: ignoring '${spec}' — expected channel=level (channels:${KNOWN_LOG_CHANNELS}| levels:${KNOWN_LOG_LEVELS})."
+            continue
+        fi
+        if [[ "${seen_log_channels}" == *" ${channel} "* ]]; then
+            bashio::log.warning "log_channels: '${channel}' is listed more than once; ignoring '${spec}'."
+            continue
+        fi
+        seen_log_channels+="${channel} "
+        args+=("--loglevel-${channel}" "${level}")
+        bashio::log.info "Log channel '${channel}' set to '${level}'."
+    done
+fi
+
+# ── Persistent log file (opt-in; default OFF) ──────────────────────────────────
+# The Log tab keeps only a short window, and the app's text lines carry no clock time,
+# so a log can't be lined up with a serial capture or a Home Assistant history graph.
+# log_to_file ADDS a rotating, size-bounded JSON-lines file (a `ts` + severity +
+# channel + message per record) under the add-on's app_config map, next to the
+# captures: read-write, survives restarts and updates, browsable via Samba or the File
+# editor. The console keeps its readable text format — only the file is JSON
+# (--log-file-format). The app's rotation defaults bound it to roughly 50 MiB.
+if bashio::config.true 'log_to_file'; then
+    readonly LOG_DIR=/config/logs
+    if mkdir -p "${LOG_DIR}"; then
+        args+=("--log-file" "${LOG_DIR}/aqualink-automate.log" "--log-file-format" "json")
+        bashio::log.info "Writing a rotating JSON log to ${LOG_DIR}/aqualink-automate.log."
+    else
+        bashio::log.warning "Could not create ${LOG_DIR}; continuing without a log file."
+    fi
+fi
 
 bashio::log.info "Starting aqualink-automate..."
 exec /usr/local/bin/docker-entrypoint.sh "${args[@]}"
