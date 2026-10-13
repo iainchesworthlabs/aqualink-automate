@@ -15,6 +15,7 @@
         <link rel="canonical" href="https://iainchesworthlabs.github.io/aqualink-automate/ci-cd/">
       
       
+      
         <link rel="prev" href="../releasing/">
       
       
@@ -25,7 +26,7 @@
       
       
       <link rel="icon" href="../assets/brand/favicon.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="zensical-0.0.70">
     
     
       
@@ -33,10 +34,15 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      <link rel="stylesheet" href="../assets/stylesheets/classic/main.68ef4dbf.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/classic/palette.813d4b3f.min.css">
       
       
 
@@ -51,7 +57,7 @@
     
       <link rel="stylesheet" href="../stylesheets/aqualink.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
       
 
@@ -61,20 +67,7 @@
   <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
 
-  
-<meta property="og:type" content="website" />
-<meta property="og:title" content="CI/CD - Aqualink Automate" />
-<meta property="og:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="og:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/ci-cd.png" />
-<meta property="og:image:type" content="image/png" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://iainchesworthlabs.github.io/aqualink-automate/ci-cd/" />
-<meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="CI/CD - Aqualink Automate" />
-<meta property="twitter:description" content="Local control of Jandy/Zodiac (Fluidra) Aqualink RS and Pentair pool controllers over RS-485 — Web UI, HTTP API, MQTT, and a Matter bridge, with no cloud service required." />
-<meta property="twitter:image" content="https://iainchesworthlabs.github.io/aqualink-automate/assets/images/social/ci-cd.png" />
-</head>
+  </head>
   
   
     
@@ -89,14 +82,11 @@
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" for="__drawer"></label>
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
     <div data-md-component="skip">
-      
-        
-        <a href="#cicd-pipelines-and-self-hosted-runners" class="md-skip">
-          Skip to content
-        </a>
-      
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
     </div>
     <div data-md-component="announce">
       
@@ -109,12 +99,12 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Aqualink Automate" class="md-header__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+    <a href="./.." title="Aqualink Automate" class="md-header__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
       
-  <img src="../assets/brand/favicon.svg" alt="logo">
+  <img src="../assets/brand/favicon.svg" alt="Aqualink Automate">
 
     </a>
-    <label class="md-header__button md-icon" for="__drawer">
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
     </label>
@@ -141,7 +131,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
@@ -151,7 +141,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
@@ -168,64 +158,30 @@
     
       
       
-        <label class="md-header__button md-icon" for="__search">
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
         </label>
-        <div class="md-search" data-md-component="search" role="dialog">
-  <label class="md-search__overlay" for="__search"></label>
-  <div class="md-search__inner" role="search">
-    <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
-      <label class="md-search__icon md-icon" for="__search">
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
-      </label>
-      <nav class="md-search__options" aria-label="Search">
-        
-          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
-            
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
-          </a>
-        
-        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
-          
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
-      </nav>
-      
-        <div class="md-search__suggest" data-md-component="search-suggest"></div>
-      
-    </form>
-    <div class="md-search__output">
-      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="search-result">
-          <div class="md-search-result__meta">
-            Initializing search
-          </div>
-          <ol class="md-search-result__list" role="presentation"></ol>
-        </div>
-      </div>
-    </div>
-  </div>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
 </div>
       
     
-    
-      <div class="md-header__source">
+    <div class="md-header__source">
+      
         <a href="https://github.com/iainchesworthlabs/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
   </div>
   <div class="md-source__repository">
     iainchesworthlabs/aqualink-automate
   </div>
 </a>
-      </div>
-    
+      
+    </div>
   </nav>
   
     
@@ -240,11 +196,8 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="./.." class="md-tabs__link">
         
-  
-  
-    
   
   Home
 
@@ -259,13 +212,37 @@
   
   
     
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
     
       <li class="md-tabs__item">
         <a href="../INSTALL/" class="md-tabs__link">
           
-  
-  
-    
   
   User guide
 
@@ -283,13 +260,37 @@
   
   
     
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
     
       <li class="md-tabs__item md-tabs__item--active">
         <a href="../CONTRIBUTING/" class="md-tabs__link">
           
-  
-  
-    
   
   Development
 
@@ -305,13 +306,21 @@
   
   
     
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
     
       <li class="md-tabs__item">
         <a href="../auth-redesign/" class="md-tabs__link">
           
-  
-  
-    
   
   Design & protocol notes
 
@@ -349,9 +358,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Aqualink Automate" class="md-nav__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
+    <a href="./.." title="Aqualink Automate" class="md-nav__button md-logo" aria-label="Aqualink Automate" data-md-component="logo">
       
-  <img src="../assets/brand/favicon.svg" alt="logo">
+  <img src="../assets/brand/favicon.svg" alt="Aqualink Automate">
 
     </a>
     Aqualink Automate
@@ -361,7 +370,7 @@
       <a href="https://github.com/iainchesworthlabs/aqualink-automate" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
   </div>
   <div class="md-source__repository">
     iainchesworthlabs/aqualink-automate
@@ -378,15 +387,14 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="./.." class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Home
-  
+  Home
 
     
   </span>
@@ -452,8 +460,7 @@
   <span class="md-ellipsis">
     
   
-    User guide
-  
+  User guide
 
     
   </span>
@@ -463,19 +470,19 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2">
-            <span class="md-nav__icon md-icon"></span>
-            
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
   
-    User guide
-  
+  User guide
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
               
                 
+                  
   
   
   
@@ -488,8 +495,7 @@
   <span class="md-ellipsis">
     
   
-    Install
-  
+  Install
 
     
   </span>
@@ -500,10 +506,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -516,8 +522,7 @@
   <span class="md-ellipsis">
     
   
-    Configuration
-  
+  Configuration
 
     
   </span>
@@ -528,10 +533,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -544,8 +549,7 @@
   <span class="md-ellipsis">
     
   
-    Usage, HTTP API & WebSocket
-  
+  Usage, HTTP API & WebSocket
 
     
   </span>
@@ -556,10 +560,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -572,8 +576,7 @@
   <span class="md-ellipsis">
     
   
-    MQTT & Home Assistant
-  
+  MQTT & Home Assistant
 
     
   </span>
@@ -584,10 +587,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -600,8 +603,7 @@
   <span class="md-ellipsis">
     
   
-    Home Assistant add-on
-  
+  Home Assistant add-on
 
     
   </span>
@@ -612,10 +614,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -628,8 +630,7 @@
   <span class="md-ellipsis">
     
   
-    Home Assistant companion package
-  
+  Home Assistant companion package
 
     
   </span>
@@ -640,10 +641,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -656,8 +657,7 @@
   <span class="md-ellipsis">
     
   
-    Matter (smart home)
-  
+  Matter (smart home)
 
     
   </span>
@@ -668,10 +668,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -684,8 +684,7 @@
   <span class="md-ellipsis">
     
   
-    Raspberry Pi
-  
+  Raspberry Pi
 
     
   </span>
@@ -696,10 +695,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -712,8 +711,7 @@
   <span class="md-ellipsis">
     
   
-    RS-485 wiring
-  
+  RS-485 wiring
 
     
   </span>
@@ -724,10 +722,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -740,8 +738,7 @@
   <span class="md-ellipsis">
     
   
-    Server & hosting
-  
+  Server & hosting
 
     
   </span>
@@ -752,10 +749,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -768,8 +765,7 @@
   <span class="md-ellipsis">
     
   
-    Security
-  
+  Security
 
     
   </span>
@@ -780,10 +776,11 @@
     </li>
   
 
+                
               
-            
-          </ul>
-        </nav>
+            </ul>
+          </nav>
+        
       
     </li>
   
@@ -848,8 +845,7 @@
   <span class="md-ellipsis">
     
   
-    Development
-  
+  Development
 
     
   </span>
@@ -859,19 +855,19 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
   
-    Development
-  
+  Development
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
               
                 
+                  
   
   
   
@@ -884,8 +880,7 @@
   <span class="md-ellipsis">
     
   
-    Contributing
-  
+  Contributing
 
     
   </span>
@@ -896,10 +891,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -912,8 +907,7 @@
   <span class="md-ellipsis">
     
   
-    Internationalization (i18n)
-  
+  Internationalization (i18n)
 
     
   </span>
@@ -924,10 +918,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -940,8 +934,7 @@
   <span class="md-ellipsis">
     
   
-    Releasing
-  
+  Releasing
 
     
   </span>
@@ -952,10 +945,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
     
@@ -964,7 +957,9 @@
   
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+        <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
       
       
         
@@ -977,8 +972,7 @@
   <span class="md-ellipsis">
     
   
-    CI/CD
-  
+  CI/CD
 
     
   </span>
@@ -988,15 +982,14 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="./" class="md-nav__link md-nav__link--active">
+      <a href="././" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    CI/CD
-  
+  CI/CD
 
     
   </span>
@@ -1007,7 +1000,8 @@
       
         
 
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -1016,16 +1010,16 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      Table of contents
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
   <a href="#workflow-set" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Workflow set
-      
+      </span>
     </span>
   </a>
   
@@ -1034,9 +1028,9 @@
         <li class="md-nav__item">
   <a href="#ciyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         ci.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1046,9 +1040,9 @@
           <li class="md-nav__item">
   <a href="#triggers" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Triggers
-      
+      </span>
     </span>
   </a>
   
@@ -1057,9 +1051,9 @@
           <li class="md-nav__item">
   <a href="#jobs" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Jobs
-      
+      </span>
     </span>
   </a>
   
@@ -1073,9 +1067,9 @@
         <li class="md-nav__item">
   <a href="#_buildyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         _build.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1085,9 +1079,9 @@
           <li class="md-nav__item">
   <a href="#inputs" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Inputs
-      
+      </span>
     </span>
   </a>
   
@@ -1096,9 +1090,9 @@
           <li class="md-nav__item">
   <a href="#the-matrix" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         The matrix
-      
+      </span>
     </span>
   </a>
   
@@ -1107,9 +1101,9 @@
           <li class="md-nav__item">
   <a href="#test-scope" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Test scope
-      
+      </span>
     </span>
   </a>
   
@@ -1118,9 +1112,9 @@
           <li class="md-nav__item">
   <a href="#packaging-release-path-only" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Packaging (release path only)
-      
+      </span>
     </span>
   </a>
   
@@ -1129,9 +1123,9 @@
           <li class="md-nav__item">
   <a href="#version-stamping" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Version stamping
-      
+      </span>
     </span>
   </a>
   
@@ -1145,9 +1139,9 @@
         <li class="md-nav__item">
   <a href="#releaseyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         release.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1157,9 +1151,9 @@
           <li class="md-nav__item">
   <a href="#triggers_1" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Triggers
-      
+      </span>
     </span>
   </a>
   
@@ -1168,9 +1162,9 @@
           <li class="md-nav__item">
   <a href="#job-graph" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Job graph
-      
+      </span>
     </span>
   </a>
   
@@ -1179,9 +1173,9 @@
           <li class="md-nav__item">
   <a href="#resolve-version-guards" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         resolve-version guards
-      
+      </span>
     </span>
   </a>
   
@@ -1190,9 +1184,9 @@
           <li class="md-nav__item">
   <a href="#docker-publish" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         docker-publish
-      
+      </span>
     </span>
   </a>
   
@@ -1201,9 +1195,9 @@
           <li class="md-nav__item">
   <a href="#github-release" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         github-release
-      
+      </span>
     </span>
   </a>
   
@@ -1217,9 +1211,9 @@
         <li class="md-nav__item">
   <a href="#release-helpers-auto-tagyml-suggest-versionyml-publish-reposyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Release helpers (auto-tag.yml, suggest-version.yml, publish-repos.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -1229,9 +1223,9 @@
           <li class="md-nav__item">
   <a href="#suggest-versionyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         suggest-version.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1240,9 +1234,9 @@
           <li class="md-nav__item">
   <a href="#auto-tagyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         auto-tag.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1251,9 +1245,9 @@
           <li class="md-nav__item">
   <a href="#publish-reposyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         publish-repos.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1267,9 +1261,9 @@
         <li class="md-nav__item">
   <a href="#automated-codescanningyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         automated-codescanning.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1279,9 +1273,20 @@
           <li class="md-nav__item">
   <a href="#triggers_2" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Triggers
-      
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#branch-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Branch matrix
+      </span>
     </span>
   </a>
   
@@ -1290,9 +1295,9 @@
           <li class="md-nav__item">
   <a href="#jobs_1" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Jobs
-      
+      </span>
     </span>
   </a>
   
@@ -1306,9 +1311,9 @@
         <li class="md-nav__item">
   <a href="#supply-chain-scanning-trivyyml-osv-scanneryml-scorecardyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Supply-chain scanning (trivy.yml, osv-scanner.yml, scorecard.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -1318,9 +1323,9 @@
           <li class="md-nav__item">
   <a href="#scorecard-hardening-applied" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Scorecard hardening applied
-      
+      </span>
     </span>
   </a>
   
@@ -1334,9 +1339,9 @@
         <li class="md-nav__item">
   <a href="#fuzzing-fuzzingyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Fuzzing (fuzzing.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -1345,9 +1350,9 @@
         <li class="md-nav__item">
   <a href="#cleanup-branch-cachesyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         cleanup-branch-caches.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1356,9 +1361,9 @@
         <li class="md-nav__item">
   <a href="#dependabot-auto-merge-dependabot-auto-mergeyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Dependabot auto-merge (dependabot-auto-merge.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -1367,9 +1372,9 @@
         <li class="md-nav__item">
   <a href="#docs-site-docsyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Docs site (docs.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -1378,9 +1383,9 @@
         <li class="md-nav__item">
   <a href="#home-assistant-add-on-validation-homeassistant-addonyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Home Assistant add-on validation (homeassistant-addon.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -1389,9 +1394,9 @@
         <li class="md-nav__item">
   <a href="#home-assistant-companion-package-validation-ha-companionyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Home Assistant companion package validation (ha-companion.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -1400,9 +1405,9 @@
         <li class="md-nav__item">
   <a href="#self-hosted-runners" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Self-hosted runners
-      
+      </span>
     </span>
   </a>
   
@@ -1412,9 +1417,9 @@
           <li class="md-nav__item">
   <a href="#vcpkg-disk-hygiene" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         vcpkg disk hygiene
-      
+      </span>
     </span>
   </a>
   
@@ -1423,9 +1428,9 @@
           <li class="md-nav__item">
   <a href="#why-sonarcloud-is-pinned-to-github-hosted" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Why SonarCloud is pinned to GitHub-hosted
-      
+      </span>
     </span>
   </a>
   
@@ -1434,9 +1439,9 @@
           <li class="md-nav__item">
   <a href="#build-parallelism-on-the-shared-linux-fleet" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Build parallelism on the shared Linux fleet
-      
+      </span>
     </span>
   </a>
   
@@ -1445,9 +1450,9 @@
           <li class="md-nav__item">
   <a href="#repository-variables" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Repository variables
-      
+      </span>
     </span>
   </a>
   
@@ -1456,9 +1461,9 @@
           <li class="md-nav__item">
   <a href="#repository-secret" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Repository secret
-      
+      </span>
     </span>
   </a>
   
@@ -1467,9 +1472,9 @@
           <li class="md-nav__item">
   <a href="#provisioning" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Provisioning
-      
+      </span>
     </span>
   </a>
   
@@ -1483,9 +1488,9 @@
         <li class="md-nav__item">
   <a href="#caching" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Caching
-      
+      </span>
     </span>
   </a>
   
@@ -1495,9 +1500,9 @@
           <li class="md-nav__item">
   <a href="#vcpkg-binary-cache" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         vcpkg binary cache
-      
+      </span>
     </span>
   </a>
   
@@ -1506,9 +1511,9 @@
           <li class="md-nav__item">
   <a href="#compiler-cache-ccache" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Compiler cache (ccache)
-      
+      </span>
     </span>
   </a>
   
@@ -1517,9 +1522,9 @@
           <li class="md-nav__item">
   <a href="#setup-cpp-toolchain-behavior" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         setup-cpp-toolchain behavior
-      
+      </span>
     </span>
   </a>
   
@@ -1537,10 +1542,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1553,8 +1558,7 @@
   <span class="md-ellipsis">
     
   
-    Self-hosted CI runners
-  
+  Self-hosted CI runners
 
     
   </span>
@@ -1565,10 +1569,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1581,8 +1585,7 @@
   <span class="md-ellipsis">
     
   
-    Git worktrees
-  
+  Git worktrees
 
     
   </span>
@@ -1593,10 +1596,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1609,8 +1612,7 @@
   <span class="md-ellipsis">
     
   
-    Record / replay
-  
+  Record / replay
 
     
   </span>
@@ -1621,10 +1623,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1637,8 +1639,7 @@
   <span class="md-ellipsis">
     
   
-    Profiling
-  
+  Profiling
 
     
   </span>
@@ -1649,10 +1650,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1665,8 +1666,7 @@
   <span class="md-ellipsis">
     
   
-    Logging sinks
-  
+  Logging sinks
 
     
   </span>
@@ -1677,10 +1677,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1693,8 +1693,7 @@
   <span class="md-ellipsis">
     
   
-    Platform isolation
-  
+  Platform isolation
 
     
   </span>
@@ -1705,10 +1704,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1721,8 +1720,7 @@
   <span class="md-ellipsis">
     
   
-    Fuzzing
-  
+  Fuzzing
 
     
   </span>
@@ -1733,10 +1731,11 @@
     </li>
   
 
+                
               
-            
-          </ul>
-        </nav>
+            </ul>
+          </nav>
+        
       
     </li>
   
@@ -1780,8 +1779,7 @@
   <span class="md-ellipsis">
     
   
-    Design & protocol notes
-  
+  Design & protocol notes
 
     
   </span>
@@ -1791,19 +1789,19 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
   
-    Design & protocol notes
-  
+  Design & protocol notes
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
               
                 
+                  
   
   
   
@@ -1816,8 +1814,7 @@
   <span class="md-ellipsis">
     
   
-    Auth system design
-  
+  Auth system design
 
     
   </span>
@@ -1828,10 +1825,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1844,8 +1841,7 @@
   <span class="md-ellipsis">
     
   
-    Schedules design
-  
+  Schedules design
 
     
   </span>
@@ -1856,10 +1852,10 @@
     </li>
   
 
-              
-            
+                
               
                 
+                  
   
   
   
@@ -1872,8 +1868,7 @@
   <span class="md-ellipsis">
     
   
-    iAQ schedule protocol
-  
+  iAQ schedule protocol
 
     
   </span>
@@ -1884,10 +1879,11 @@
     </li>
   
 
+                
               
-            
-          </ul>
-        </nav>
+            </ul>
+          </nav>
+        
       
     </li>
   
@@ -1903,10 +1899,12 @@
               
               <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
+                  
                   <div class="md-sidebar__inner">
                     
 
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -1915,16 +1913,16 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      Table of contents
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
   <a href="#workflow-set" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Workflow set
-      
+      </span>
     </span>
   </a>
   
@@ -1933,9 +1931,9 @@
         <li class="md-nav__item">
   <a href="#ciyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         ci.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1945,9 +1943,9 @@
           <li class="md-nav__item">
   <a href="#triggers" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Triggers
-      
+      </span>
     </span>
   </a>
   
@@ -1956,9 +1954,9 @@
           <li class="md-nav__item">
   <a href="#jobs" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Jobs
-      
+      </span>
     </span>
   </a>
   
@@ -1972,9 +1970,9 @@
         <li class="md-nav__item">
   <a href="#_buildyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         _build.yml
-      
+      </span>
     </span>
   </a>
   
@@ -1984,9 +1982,9 @@
           <li class="md-nav__item">
   <a href="#inputs" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Inputs
-      
+      </span>
     </span>
   </a>
   
@@ -1995,9 +1993,9 @@
           <li class="md-nav__item">
   <a href="#the-matrix" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         The matrix
-      
+      </span>
     </span>
   </a>
   
@@ -2006,9 +2004,9 @@
           <li class="md-nav__item">
   <a href="#test-scope" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Test scope
-      
+      </span>
     </span>
   </a>
   
@@ -2017,9 +2015,9 @@
           <li class="md-nav__item">
   <a href="#packaging-release-path-only" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Packaging (release path only)
-      
+      </span>
     </span>
   </a>
   
@@ -2028,9 +2026,9 @@
           <li class="md-nav__item">
   <a href="#version-stamping" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Version stamping
-      
+      </span>
     </span>
   </a>
   
@@ -2044,9 +2042,9 @@
         <li class="md-nav__item">
   <a href="#releaseyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         release.yml
-      
+      </span>
     </span>
   </a>
   
@@ -2056,9 +2054,9 @@
           <li class="md-nav__item">
   <a href="#triggers_1" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Triggers
-      
+      </span>
     </span>
   </a>
   
@@ -2067,9 +2065,9 @@
           <li class="md-nav__item">
   <a href="#job-graph" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Job graph
-      
+      </span>
     </span>
   </a>
   
@@ -2078,9 +2076,9 @@
           <li class="md-nav__item">
   <a href="#resolve-version-guards" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         resolve-version guards
-      
+      </span>
     </span>
   </a>
   
@@ -2089,9 +2087,9 @@
           <li class="md-nav__item">
   <a href="#docker-publish" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         docker-publish
-      
+      </span>
     </span>
   </a>
   
@@ -2100,9 +2098,9 @@
           <li class="md-nav__item">
   <a href="#github-release" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         github-release
-      
+      </span>
     </span>
   </a>
   
@@ -2116,9 +2114,9 @@
         <li class="md-nav__item">
   <a href="#release-helpers-auto-tagyml-suggest-versionyml-publish-reposyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Release helpers (auto-tag.yml, suggest-version.yml, publish-repos.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -2128,9 +2126,9 @@
           <li class="md-nav__item">
   <a href="#suggest-versionyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         suggest-version.yml
-      
+      </span>
     </span>
   </a>
   
@@ -2139,9 +2137,9 @@
           <li class="md-nav__item">
   <a href="#auto-tagyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         auto-tag.yml
-      
+      </span>
     </span>
   </a>
   
@@ -2150,9 +2148,9 @@
           <li class="md-nav__item">
   <a href="#publish-reposyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         publish-repos.yml
-      
+      </span>
     </span>
   </a>
   
@@ -2166,9 +2164,9 @@
         <li class="md-nav__item">
   <a href="#automated-codescanningyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         automated-codescanning.yml
-      
+      </span>
     </span>
   </a>
   
@@ -2178,9 +2176,20 @@
           <li class="md-nav__item">
   <a href="#triggers_2" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Triggers
-      
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#branch-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Branch matrix
+      </span>
     </span>
   </a>
   
@@ -2189,9 +2198,9 @@
           <li class="md-nav__item">
   <a href="#jobs_1" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Jobs
-      
+      </span>
     </span>
   </a>
   
@@ -2205,9 +2214,9 @@
         <li class="md-nav__item">
   <a href="#supply-chain-scanning-trivyyml-osv-scanneryml-scorecardyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Supply-chain scanning (trivy.yml, osv-scanner.yml, scorecard.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -2217,9 +2226,9 @@
           <li class="md-nav__item">
   <a href="#scorecard-hardening-applied" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Scorecard hardening applied
-      
+      </span>
     </span>
   </a>
   
@@ -2233,9 +2242,9 @@
         <li class="md-nav__item">
   <a href="#fuzzing-fuzzingyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Fuzzing (fuzzing.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -2244,9 +2253,9 @@
         <li class="md-nav__item">
   <a href="#cleanup-branch-cachesyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         cleanup-branch-caches.yml
-      
+      </span>
     </span>
   </a>
   
@@ -2255,9 +2264,9 @@
         <li class="md-nav__item">
   <a href="#dependabot-auto-merge-dependabot-auto-mergeyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Dependabot auto-merge (dependabot-auto-merge.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -2266,9 +2275,9 @@
         <li class="md-nav__item">
   <a href="#docs-site-docsyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Docs site (docs.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -2277,9 +2286,9 @@
         <li class="md-nav__item">
   <a href="#home-assistant-add-on-validation-homeassistant-addonyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Home Assistant add-on validation (homeassistant-addon.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -2288,9 +2297,9 @@
         <li class="md-nav__item">
   <a href="#home-assistant-companion-package-validation-ha-companionyml" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Home Assistant companion package validation (ha-companion.yml)
-      
+      </span>
     </span>
   </a>
   
@@ -2299,9 +2308,9 @@
         <li class="md-nav__item">
   <a href="#self-hosted-runners" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Self-hosted runners
-      
+      </span>
     </span>
   </a>
   
@@ -2311,9 +2320,9 @@
           <li class="md-nav__item">
   <a href="#vcpkg-disk-hygiene" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         vcpkg disk hygiene
-      
+      </span>
     </span>
   </a>
   
@@ -2322,9 +2331,9 @@
           <li class="md-nav__item">
   <a href="#why-sonarcloud-is-pinned-to-github-hosted" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Why SonarCloud is pinned to GitHub-hosted
-      
+      </span>
     </span>
   </a>
   
@@ -2333,9 +2342,9 @@
           <li class="md-nav__item">
   <a href="#build-parallelism-on-the-shared-linux-fleet" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Build parallelism on the shared Linux fleet
-      
+      </span>
     </span>
   </a>
   
@@ -2344,9 +2353,9 @@
           <li class="md-nav__item">
   <a href="#repository-variables" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Repository variables
-      
+      </span>
     </span>
   </a>
   
@@ -2355,9 +2364,9 @@
           <li class="md-nav__item">
   <a href="#repository-secret" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Repository secret
-      
+      </span>
     </span>
   </a>
   
@@ -2366,9 +2375,9 @@
           <li class="md-nav__item">
   <a href="#provisioning" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Provisioning
-      
+      </span>
     </span>
   </a>
   
@@ -2382,9 +2391,9 @@
         <li class="md-nav__item">
   <a href="#caching" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Caching
-      
+      </span>
     </span>
   </a>
   
@@ -2394,9 +2403,9 @@
           <li class="md-nav__item">
   <a href="#vcpkg-binary-cache" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         vcpkg binary cache
-      
+      </span>
     </span>
   </a>
   
@@ -2405,9 +2414,9 @@
           <li class="md-nav__item">
   <a href="#compiler-cache-ccache" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         Compiler cache (ccache)
-      
+      </span>
     </span>
   </a>
   
@@ -2416,9 +2425,9 @@
           <li class="md-nav__item">
   <a href="#setup-cpp-toolchain-behavior" class="md-nav__link">
     <span class="md-ellipsis">
-      
+      <span class="md-typeset">
         setup-cpp-toolchain behavior
-      
+      </span>
     </span>
   </a>
   
@@ -2441,11 +2450,12 @@
             <div class="md-content" data-md-component="content">
               
               <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
                 
   
   
+  
                   
-
 
   
     <a href="https://github.com/iainchesworthlabs/aqualink-automate/edit/main/docs/ci-cd.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
@@ -2507,7 +2517,7 @@
 <tr>
 <td><code>.github/workflows/automated-codescanning.yml</code></td>
 <td>Workflow</td>
-<td>CodeQL (C/C++ and JavaScript/TypeScript), SonarCloud, and MSVC static analysis on PRs and a weekly cron.</td>
+<td>CodeQL (C/C++ and JavaScript/TypeScript), SonarCloud, and MSVC static analysis, nightly against <code>main</code> and <code>develop</code> (not on PRs).</td>
 </tr>
 <tr>
 <td><code>.github/workflows/cleanup-branch-caches.yml</code></td>
@@ -2542,7 +2552,7 @@
 <tr>
 <td><code>.github/workflows/docs.yml</code></td>
 <td>Workflow</td>
-<td>Build the MkDocs site (<code>mkdocs build --strict</code>) and publish it to the root of <code>gh-pages</code> on docs-affecting pushes to <code>main</code>.</td>
+<td>Build the docs site (<code>zensical build --strict</code>) on docs-affecting pull requests (build-only) and on pushes to <code>main</code>, which also publish it to the root of <code>gh-pages</code>.</td>
 </tr>
 <tr>
 <td><code>.github/workflows/homeassistant-addon.yml</code></td>
@@ -2646,7 +2656,7 @@
 <tr>
 <td><code>docker-verify</code></td>
 <td>Linux</td>
-<td>Builds the <code>ci</code> and <code>runtime</code> Docker targets, smoke-tests the runtime image with <code>--version</code>, asserts the Matter sidecar is bundled, and asserts the HA companion package (<code>blueprints/</code>, <code>packages/</code>, <code>dashboards/</code>, <code>entity-manifest.json</code> under <code>share/aqualink-automate/web/homeassistant/</code>) is present and non-empty — a regression guard for the class of bug where a stale <code>.dockerignore</code> rule silently dropped that content from the image (see <a href="../design/ha-companion-package/">ha-companion-package.md</a>).</td>
+<td>Builds the <code>ci</code> and <code>runtime</code> Docker targets, smoke-tests the runtime image with <code>--version</code>, asserts the Matter sidecar is bundled, and asserts the HA companion package (<code>blueprints/</code>, <code>packages/</code>, <code>dashboards/</code>, <code>entity-manifest.json</code> under <code>share/aqualink-automate/web/homeassistant/</code>) is present and non-empty — a regression guard for the class of bug where a stale <code>.dockerignore</code> rule silently dropped that content from the image (see <a href="https://github.com/iainchesworthlabs/aqualink-automate/blob/main/docs/design/ha-companion-package.md">docs/design/ha-companion-package.md</a>).</td>
 </tr>
 <tr>
 <td><code>ci-status</code></td>
@@ -2894,19 +2904,23 @@
 <p>Publishes the GPG-signed <strong>APT</strong> (reprepro) and <strong>DNF</strong> (createrepo_c) package repositories to the <code>gh-pages</code> branch, so users can <code>apt install</code> / <code>dnf install</code> and receive upgrades. It is a reusable workflow invoked by <code>release.yml</code>'s <code>publish-repos</code> job right after the GitHub release is created — a <code>release: published</code> trigger would never fire, because GitHub suppresses events for actions performed with the default <code>GITHUB_TOKEN</code> — and it is also dispatchable with a <code>tag</code> input to (re)publish an existing release. It downloads the release's <code>.deb</code>/<code>.rpm</code> assets, signs each <code>.rpm</code> in place (<code>rpm --addsign</code>; the DNF repo advertises <code>gpgcheck=1</code>, a per-package check), builds both repos, signs the repo metadata, and publishes with <code>keep_files: true</code> so previously published versions accumulate. <strong>It no-ops until the <code>REPO_GPG_PRIVATE_KEY</code> secret is configured</strong> — the one-time setup and operator walkthrough live in <a href="../releasing/">releasing.md</a>.</p>
 <p><code>docs.yml</code> shares the <code>gh-pages</code> branch with this workflow: the rendered docs site owns the root <code>index.html</code> and page tree, the package machinery owns <code>apt/</code>, <code>rpm/</code>, <code>key.gpg</code>, and the <code>install-*.sh</code> scripts. The filename sets are disjoint and both publish with <code>keep_files: true</code>, so neither clobbers the other (see <a href="#docs-site-docsyml">Docs site</a>).</p>
 <h2 id="automated-codescanningyml">automated-codescanning.yml<a class="headerlink" href="#automated-codescanningyml" title="Permanent link">&para;</a></h2>
-<p>Code scanning is slow (each scanner does a full compile), so it runs only where code is genuinely new.</p>
+<p>Code scanning is slow (each scanner does a full compile) and was previously the heaviest thing on the PR critical path, so it does not run on PRs at all: it runs <strong>nightly</strong>, matrixed over <code>main</code> and <code>develop</code>, on the org's shared self-hosted fleet (also used by other repos — see <a href="../ci-self-hosted-runners/">ci-self-hosted-runners.md</a>). <code>ci.yml</code>'s build/test/e2e matrix remains the per-PR correctness gate; this workflow is detection, not a merge gate.</p>
 <h3 id="triggers_2">Triggers<a class="headerlink" href="#triggers_2" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">on</span><span class="p">:</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">push</span><span class="p">:</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"main"</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">pull_request</span><span class="p">:</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"develop"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"main"</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">schedule</span><span class="p">:</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">cron</span><span class="p">:</span><span class="w"> </span><span class="s">'42</span><span class="nv"> </span><span class="s">21</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">2'</span><span class="w">   </span><span class="c1"># weekly, Tuesday 21:42 UTC</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">workflow_dispatch</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">schedule</span><span class="p">:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">cron</span><span class="p">:</span><span class="w"> </span><span class="s">'7</span><span class="nv"> </span><span class="s">4</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*'</span><span class="w">   </span><span class="c1"># nightly, 04:07 UTC</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">workflow_dispatch</span><span class="p">:</span>
 </code></pre></div>
-<p>Scanning happens on PRs into <code>develop</code> or <code>main</code>, once per merge to <code>main</code>, on the weekly cron, or on demand. The <code>push: [main]</code> trigger exists to keep the <strong>default-branch security baseline</strong> current: SARIF uploaded from a <code>pull_request</code> run is recorded against the throwaway <code>refs/pull/N/merge</code> ref and never updates <code>main</code>'s baseline in the Security tab, so without it the baseline would depend solely on the weekly cron. (The old <code>push: [main, feature/**, bug/**]</code> trigger that re-scanned every feature push remains gone — the push run fires once per promotion merge.)</p>
-<p>Both triggers carry a docs <code>paths-ignore</code> (<code>docs/**</code>, <code>**/*.md</code>, <code>mkdocs.yml</code>, <code>docs.yml</code>, <code>LICENSE</code>): docs-only changes touch no compiled code, and since none of these jobs is a required status check, a path-filtered (non-running) workflow does not block the PR — unlike <code>ci.yml</code>, which must use a gate job (<code>changes</code>) for the same purpose.</p>
+<p>04:07 UTC is deliberately off the top of the hour (dodges cron-minute congestion) and offset from the <code>ac3forge</code> repo's 02:00-04:00 UTC nightly window on the same shared self-hosted fleet. A nightly run against <code>main</code> on its own ref also keeps the <strong>default-branch security baseline</strong> current (the Security tab / CodeQL "tool status"): the old dedicated <code>push: [main]</code> trigger existed only for that — a <code>pull_request</code> SARIF upload is recorded against the throwaway <code>refs/pull/N/merge</code> ref and never updates <code>main</code>'s baseline — and is redundant now that a nightly scan touches <code>refs/heads/main</code> directly every night.</p>
+<p>None of these jobs is a required status check on <code>develop</code> or <code>main</code> (verified via <code>gh api .../branches/&lt;branch&gt;/protection</code>), so removing them from <code>pull_request</code>/<code>push</code> stranded no PR.</p>
+<h3 id="branch-matrix">Branch matrix<a class="headerlink" href="#branch-matrix" title="Permanent link">&para;</a></h3>
+<p>Every job below carries a <code>strategy.matrix.branch: ['main', 'develop']</code> axis instead of reacting to whatever ref triggered the workflow. This matters because <code>schedule</code> (and <code>workflow_dispatch</code>) always report <code>github.sha</code>/<code>github.ref</code> as the <strong>default branch's</strong> tip, regardless of what a job actually checks out — so each job:</p>
+<ol>
+<li>Checks out <code>ref: ${{ matrix.branch }}</code> explicitly.</li>
+<li>Captures the real commit via a <code>Resolve checked-out SHA</code> step (<code>git rev-parse HEAD</code>) immediately after checkout.</li>
+<li>Passes that branch and SHA explicitly to whatever uploads results — <code>ref</code>/<code>sha</code> on <code>codeql-action/upload-sarif</code> and <code>codeql-action/analyze</code>, <code>-Dsonar.branch.name=${{ matrix.branch }}</code> on the SonarCloud scan — instead of relying on the (always-wrong-for-<code>develop</code>) ambient <code>GITHUB_REF</code>.</li>
+</ol>
+<p>Artifacts shared between jobs in the same run (<code>e2e-coverage-xml</code>, plus the debug <code>sarif-results</code>/<code>sarif-file</code> artifacts) are suffixed <code>-${{ matrix.branch }}</code> so the two branch legs don't collide on upload.</p>
 <h3 id="jobs_1">Jobs<a class="headerlink" href="#jobs_1" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2920,7 +2934,7 @@
 <tr>
 <td><code>CodeScanning_CodeQL</code></td>
 <td>Linux (<strong><code>big</code></strong>)</td>
-<td>CodeQL (<code>c-cpp</code>). Runs its own full build, filters the SARIF to <code>src/**</code>, and uploads to the Security tab. Routed to <code>linux_runner_big</code>: CodeQL instrumentation plus a full C++ build has twice been killed mid-build on a GitHub-hosted runner (at 108 min and at 2h33m).</td>
+<td>CodeQL (<code>c-cpp</code>). Runs its own full build, filters the SARIF to <code>src/**</code>, and uploads to the Security tab. Routed to <code>linux_runner_big</code>: CodeQL instrumentation plus a full C++ build has twice been killed mid-build on a GitHub-hosted runner (at 108 min and at 2h33m). The fleet has only <strong>one</strong> big Linux runner, so the <code>main</code> and <code>develop</code> legs of this job serialize (~170-240 min combined) — a second big Linux runner would remove that; see <a href="../ci-self-hosted-runners/">ci-self-hosted-runners.md</a>.</td>
 </tr>
 <tr>
 <td><code>CodeScanning_CodeQL_JS</code></td>
@@ -2930,21 +2944,20 @@
 <tr>
 <td><code>CodeScanning_E2ECoverage</code></td>
 <td>Linux</td>
-<td>Builds a gcov-instrumented <code>aqualink-automate</code> (<code>config-linux-gcc-coverage</code>), drives the full Playwright mode sweep against it (see below), and <code>gcovr</code>s the <code>.gcda</code> into a SonarQube coverage report (<code>coverage-e2e.xml</code>) uploaded as the <code>e2e-coverage-xml</code> artifact.</td>
+<td>Builds a gcov-instrumented <code>aqualink-automate</code> (<code>config-linux-gcc-coverage</code>), drives the full Playwright mode sweep against it (see below), and <code>gcovr</code>s the <code>.gcda</code> into a SonarQube coverage report (<code>coverage-e2e.xml</code>) uploaded as the <code>e2e-coverage-xml-&lt;branch&gt;</code> artifact.</td>
 </tr>
 <tr>
 <td><code>CodeScanning_SonarCloud</code></td>
 <td>Linux (<strong>GitHub-hosted, pinned</strong>)</td>
-<td>SonarCloud via build-wrapper over a coverage build (<code>config-linux-gcc-coverage</code>, <code>-DUSE_SONARQUBE=ON</code>). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with <strong>both</strong> (<code>sonar.coverageReportPaths</code> comma-separated; Sonar merges line coverage).</td>
+<td>SonarCloud via build-wrapper over a coverage build (<code>config-linux-gcc-coverage</code>, <code>-DUSE_SONARQUBE=ON</code>). Runs its own full compile, produces the unit/integration coverage report, downloads the e2e report, and scans with <strong>both</strong> (<code>sonar.coverageReportPaths</code> comma-separated; Sonar merges line coverage). Tracks <code>main</code> and <code>develop</code> as separate long-lived branches in the SonarCloud UI (free on this public repo).</td>
 </tr>
 <tr>
 <td><code>CodeScanning_MSVCCodeAnalysis</code></td>
 <td>Windows (<strong><code>big</code></strong>)</td>
-<td>MSVC code analysis (<code>NativeRecommendedRules.ruleset</code>) over the <code>config-windows-msvc</code> build; uploads SARIF. Routed to <code>windows_runner_big</code>: at ~140 min it is the longest job in CI (so it sets the critical path) and it filled the shared 16 GB <code>D:</code>.</td>
+<td>MSVC code analysis (<code>NativeRecommendedRules.ruleset</code>) over the <code>config-windows-msvc</code> build; uploads SARIF. Routed to <code>windows_runner_big</code>: at ~140 min per branch it is the longest job in CI. The fleet has <strong>two</strong> big Windows runners, so the <code>main</code> and <code>develop</code> legs run in parallel rather than serializing. A side effect of no longer competing for this pool per-PR: PR-time <code>ci.yml</code> Windows MSVC builds (which already route to <code>windows_runner_big</code>, see <a href="#_buildyml">_build.yml</a>) now have the whole pair to themselves during working hours.</td>
 </tr>
 </tbody>
 </table>
-<p>Each job has the same skip condition: it does not run for a <code>develop</code> -&gt; <code>main</code> promotion PR, because that code was already scanned when it entered <code>develop</code>. Re-scanning the promotion is pure duplication.</p>
 <p><strong>Coverage = unit + e2e.</strong> The SonarCloud new-code coverage gate reflects what <em>both</em> test layers exercise. The unit/integration binary's coverage alone misses every line only the running app reaches (HTTP routes, WebSocket, MQTT, bootstrap), which read as uncovered and depressed the gate. <code>CodeScanning_E2ECoverage</code> instruments the app, drives the Playwright suite against it (the app exits cleanly on Playwright's <code>SIGTERM</code> — see <code>gracefulShutdown</code> in <code>playwright.config.ts</code> — so gcov flushes <code>.gcda</code>), and emits a second report. <code>CodeScanning_SonarCloud</code> <code>needs:</code> it and merges the two; if the e2e job fails, the scan still runs with unit-only coverage (it never drops the whole gate).</p>
 <p><strong>The coverage mode sweep.</strong> The job runs the six <code>e2e-ui</code> modes from <a href="#ciyml">ci.yml</a> plus seven more that exist to reach code the default modes cannot. Every mode step is <code>continue-on-error</code> — this job harvests coverage, it is not a functional gate (<code>e2e-ui</code> is), so a spec flake must not discard coverage already written:</p>
 <table>
@@ -3026,7 +3039,7 @@
 </tbody>
 </table>
 <p>Division of labour with the existing tooling: <strong>CodeQL / SonarCloud / MSVC</strong> scan first-party source; <strong>Dependabot</strong> <em>updates</em> the Actions + npm manifests (and raises its own vulnerability alerts for them); <strong>OSV-Scanner</strong> closes the vcpkg gap Dependabot cannot see; <strong>Trivy</strong> covers the image layers no source or manifest scanner reaches. The vcpkg-built C++ libraries inside the image carry no package metadata for Trivy to match, so OSV-Scanner (reading the manifest) is what covers them — the two do not overlap.</p>
-<p>The two PR-facing workflows (<code>trivy.yml</code>, <code>osv-scanner.yml</code>) share the code scanners' promotion-PR skip and fork-PR gating. <code>scorecard.yml</code> does not run on <code>pull_request</code> at all (its checks are repository-level and need a token a fork PR lacks). The weekly crons are staggered (22:17 / 22:27 / 22:37 UTC) so they do not all contend at once.</p>
+<p>The two PR-facing workflows (<code>trivy.yml</code>, <code>osv-scanner.yml</code>) still run on <code>pull_request</code> (unlike <code>automated-codescanning.yml</code>, which moved to nightly-only — see above) and carry their own promotion-PR skip and fork-PR gating, the same pattern <code>automated-codescanning.yml</code> used before that move. <code>scorecard.yml</code> does not run on <code>pull_request</code> at all (its checks are repository-level and need a token a fork PR lacks). The weekly crons are staggered (22:17 / 22:27 / 22:37 UTC) so they do not all contend at once.</p>
 <h3 id="scorecard-hardening-applied">Scorecard hardening applied<a class="headerlink" href="#scorecard-hardening-applied" title="Permanent link">&para;</a></h3>
 <p>Two Scorecard checks are satisfied structurally rather than per-finding:</p>
 <ul>
@@ -3055,12 +3068,13 @@
 <li>Requires the repository setting <strong>Allow auto-merge</strong> (Settings &gt; General &gt; Pull Requests), which is enabled on this repo.</li>
 </ul>
 <h2 id="docs-site-docsyml">Docs site (docs.yml)<a class="headerlink" href="#docs-site-docsyml" title="Permanent link">&para;</a></h2>
-<p>The documentation site (MkDocs Material — the published subset is selected by the <code>nav</code> + <code>exclude_docs</code> in <code>mkdocs.yml</code>) is built from the in-repo Markdown and published to the <strong>root</strong> of the <code>gh-pages</code> branch, so the docs home is the GitHub Pages landing page.</p>
+<p>The documentation site is built with <strong>Zensical</strong> — the Rust-core successor to MkDocs + Material (which entered maintenance mode ahead of its 2026-11-05 EOL); Zensical reads the same <code>mkdocs.yml</code>, including the <code>nav</code> that selects the published subset. It is built from the in-repo Markdown and published to the <strong>root</strong> of the <code>gh-pages</code> branch, so the docs home is the GitHub Pages landing page.</p>
 <ul>
-<li><strong>Triggers:</strong> push to <code>main</code> touching <code>docs/**</code>, <code>overrides/**</code>, <code>mkdocs.yml</code>, <code>README.md</code>, or the workflow itself; plus <code>workflow_dispatch</code>.</li>
-<li><strong>Build:</strong> <code>pip install "mkdocs-material[imaging]&gt;=9.7"</code> (a floor, no upper cap) plus the Cairo imaging libraries for the social-cards plugin, then <code>mkdocs build --strict</code> — broken internal links and other warnings <strong>fail the build</strong> instead of shipping a broken page.</li>
-<li><strong>Linking to files outside <code>docs/</code>.</strong> <code>--strict</code> resolves every relative link against the <em>documentation</em> tree, not the repository. A link like <code>../docker-compose.yml</code> resolves on GitHub but 404s on the published site, so MkDocs rejects it — use an absolute <code>https://github.com/iainchesworthlabs/aqualink-automate/blob/main/…</code> URL for repo files, and likewise for docs deliberately held back by <code>exclude_docs</code> (<code>design/</code>, <code>refactoring/</code>, <code>i18n-scoping.md</code>). Note the asymmetry: an unresolvable link to a <em>file</em> is a build-failing <code>WARNING</code>, but a link to a <em>directory</em> or to an excluded page is only logged at <code>INFO</code> — it ships broken and silent. Read the whole build log, not just the failures.</li>
-<li><strong>The MkDocs 2.0 banner is not an error.</strong> Recent Material releases print a red "Warning from the Material for MkDocs team" block about the upstream MkDocs 2.0 rewrite. It is advocacy written to stderr, is not a MkDocs warning, and does <strong>not</strong> count toward <code>--strict</code>; the "Aborted with N warnings" tally counts only the <code>WARNING -</code> lines. MkDocs 2.0 also cannot arrive unannounced — <code>mkdocs-material</code> itself pins <code>mkdocs&lt;2,&gt;=1.6</code>.</li>
+<li><strong>Triggers:</strong> push to <code>main</code>, <strong>and pull requests into <code>develop</code>/<code>main</code></strong>, touching <code>docs/**</code>, <code>overrides/**</code>, <code>mkdocs.yml</code>, <code>scripts/zensical-prune-excluded.py</code>, <code>README.md</code>, or the workflow itself; plus <code>workflow_dispatch</code>. A pull request runs the strict build only — the <strong>Publish</strong> step is skipped for it — so a broken cross-link fails the PR that introduced it. (Until this was added, <code>--strict</code> first ran at the <code>develop</code> → <code>main</code> promotion, which is how a bad link reached a release PR before anything could reject it.)</li>
+<li><strong>Build:</strong> <code>pip install "zensical==&lt;pinned&gt;"</code> (pinned in the workflow — an unpinned install let a Zensical release change link-resolution behaviour between the PR that last touched the docs and the promotion that published them; bump it deliberately and run <code>zensical build --strict</code> locally), then <code>zensical build --strict</code> — broken internal links/anchors and other warnings <strong>fail the build</strong> instead of shipping a broken page. <code>theme.variant: classic</code> in <code>mkdocs.yml</code> keeps the Material appearance the brand skin (<code>overrides/</code>, <code>docs/stylesheets/aqualink.css</code>) is built for; Zensical's own default is a different, newer theme.</li>
+<li><strong><code>exclude_docs</code> and Zensical.</strong> As of 0.0.60 Zensical did not honour <code>exclude_docs</code>: it built every page under <code>docs_dir</code>, so <code>design/</code>, <code>refactoring/</code>, <code>alwin32/</code> and the other entries in <code>mkdocs.yml</code>'s <code>exclude_docs</code> block were built as real, unlinked pages, and the <strong>Prune docs excluded from the published site</strong> step (<code>scripts/zensical-prune-excluded.py</code>) deleted them from <code>site/</code> afterwards. <strong>As of 0.0.70 (the pinned version) Zensical honours <code>exclude_docs</code> natively</strong>, so the prune step reports <code>Pruned 0/N</code> and is a defensive no-op; it can be dropped (with the script and its <code>paths</code> entry) once the pin is known to stay on a version with native support.</li>
+<li><strong>Linking to files outside <code>docs/</code>, or into excluded content.</strong> <code>--strict</code> resolves every relative link against the <em>documentation</em> tree, not the repository. A link into content held back by <code>exclude_docs</code> (for example <code>design/ha-companion-package.md</code>) fails the build with <code>page does not exist</code>, because the excluded page is not part of the build — this is exactly what failed the first publish after the Zensical migration (#216). A link to a repository file outside <code>docs/</code> (such as <code>../docker-compose.yml</code>) likewise cannot resolve on the published site even though it resolves on GitHub. Use an absolute <code>https://github.com/iainchesworthlabs/aqualink-automate/blob/main/…</code> URL for both. With the strict build now running on pull requests, the PR fails instead of the release.</li>
+<li><strong>No social-preview cards.</strong> The old <code>social</code> plugin (Open-Graph/Twitter card generation) isn't supported by Zensical yet; it was dropped along with the MkDocs Material dependency rather than kept as dead config. Revisit if Zensical adds native support.</li>
 <li><strong>Publish:</strong> <code>peaceiris/actions-gh-pages</code> with <code>keep_files: true</code>, preserving the APT/DNF package tree that <code>publish-repos.yml</code> owns on the same branch (<code>apt/</code>, <code>rpm/</code>, <code>key.gpg</code>, <code>install-*.sh</code>); the filename sets are disjoint, so neither workflow deletes the other's files. Its <code>publish-docs</code> concurrency group is separate from <code>publish-repos</code>, so a docs build and a package publish can run at the same time.</li>
 </ul>
 <h2 id="home-assistant-add-on-validation-homeassistant-addonyml">Home Assistant add-on validation (homeassistant-addon.yml)<a class="headerlink" href="#home-assistant-add-on-validation-homeassistant-addonyml" title="Permanent link">&para;</a></h2>
@@ -3092,12 +3106,16 @@ row of <code>_build.yml</code> stays on the static <code>RUNNER_LINUX_ARM</code>
 runner exists in the current fleet to check against).</p>
 <p><code>check-runners</code> emits <strong>four</strong> label arrays, not two. <code>linux_runner</code> / <code>windows_runner</code> are
 the ordinary shared-fleet outputs. <code>linux_runner_big</code> / <code>windows_runner_big</code> additionally
-require the <code>big</code> label — the two oversized runners (8 vCPU / 32 GB Linux, 8 vCPU / 24 GB
-Windows, 48 GB data disks) in the repo-scoped <code>Labs CI Big Runners</code> group, provisioned
-because the heavy legs OOM-killed and filled the disks on the shared shape. Only
-<code>CodeScanning_CodeQL (c-cpp)</code> and <code>CodeScanning_MSVCCodeAnalysis</code> use them; the big pair is
-one machine per OS, so anything pointed at it serialises, and routing <em>every</em> heavy leg
-there measures out slower than leaving them parallel on GitHub-hosted.</p>
+require the <code>big</code> label — the oversized runners (8 vCPU / 32 GB, 48 GB data disks) in the
+org-scoped <code>Labs CI Big Runners</code> group, provisioned because the heavy legs OOM-killed and
+filled the disks on the shared shape. Only <code>CodeScanning_CodeQL (c-cpp)</code> and
+<code>CodeScanning_MSVCCodeAnalysis</code> use them; routing <em>every</em> heavy leg there measures out
+slower than leaving them parallel on GitHub-hosted. The Linux side is currently a single
+machine, so anything that lands two jobs on it (e.g. <code>automated-codescanning.yml</code>'s
+<code>main</code>/<code>develop</code> branch matrix on <code>CodeScanning_CodeQL</code>) serialises; the Windows side
+currently has <strong>two</strong> machines, so the equivalent MSVC branch matrix runs in parallel. This
+is fleet state, not a fixed property of the label — re-check
+<code>gh api orgs/&lt;org&gt;/actions/runners</code> before relying on either count.</p>
 <p>Full design, the fork-PR gating, the two-part live check (repo-level, then optional
 org-level via <code>ORG_RUNNERS_TOKEN</code>), the <code>big</code> routing arithmetic and its two known sharp
 edges are documented in
@@ -3344,6 +3362,8 @@ across every repo in the org — not in this repo's <code>cicd/</code>.</p>
 
 
 
+
+
                 
 
               </article>
@@ -3411,8 +3431,8 @@ across every repo in the org — not in this repo's <code>cicd/</code>.</p>
   
   
     Made with
-    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
-      Material for MkDocs
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
     </a>
   
 </div>
@@ -3422,20 +3442,25 @@ across every repo in the org — not in this repo's <code>cicd/</code>.</p>
 </footer>
       
     </div>
-    <div class="md-dialog" data-md-component="dialog">
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+      
+<div class="md-progress" data-md-component="progress" role="progressbar" aria-label="Loading"></div>
     
     
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "navigation.indexes", "toc.follow", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight", "search.share"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.instant","navigation.instant.progress","navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.top","navigation.tracking","navigation.footer","navigation.indexes","toc.follow","content.code.copy","content.code.annotate","content.tabs.link","content.action.edit","search.suggest","search.highlight","search.share"],"redirect":null,"search":"../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.a2388154.min.js"></script>
       
     
   </body>
