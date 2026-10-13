@@ -87,6 +87,8 @@
         'cmd.blocked': 'Blockiert',
         'cmd.failed': 'Fehlgeschlagen',
         'cmd.set_ok': 'Gesetzt ✓',
+        'cmd.applying': 'Wird angewendet…',
+        'cmd.sent': 'Gesendet — warte auf die Steuerung',
 
         // ---- Navigation -------------------------------------------------------
         'nav.dashboard': 'Dashboard',

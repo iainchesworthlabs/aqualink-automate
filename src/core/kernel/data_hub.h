@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <boost/signals2.hpp>
+#include <nlohmann/json.hpp>
 
 #include "interfaces/ihub.h"
 #include "kernel/body_of_water.h"
@@ -297,6 +298,15 @@ namespace AqualinkAutomate::Kernel
 		[[deprecated("Use FilterPumps() instead; that returns a collection of pumps as there might be more than one")]]
 		std::optional<std::shared_ptr<Kernel::AuxillaryDevice>> FilterPump();
 
+		// FilterPumps() keys on PumpTypeTrait, but a device that came from the equipment cache
+		// (which persisted only id/label/type/body) or from a path that only knows its label is a
+		// Pump named "Filter Pump" with NO PumpTypeTrait. FilterPumps() cannot see it, so the
+		// status handlers conclude "no pump", build a replacement, and DevicesGraph::Add rejects
+		// it as equal (same type + label) -- leaving the pump's status unset forever. This marks
+		// such a device as the filter circulation pump so it is found and updated instead.
+		// Idempotent; returns how many devices were adopted.
+		std::size_t AdoptUntypedFilterPumps();
+
 		// Is any discovered filter pump running? nullopt when none has been discovered yet, so a
 		// caller can tell "no pump running" from "we do not know about a pump".
 		std::optional<bool> AnyFilterPumpRunning() const;
@@ -313,6 +323,24 @@ namespace AqualinkAutomate::Kernel
 		// Why the cell is (or is not) producing right now -- "0%" alone cannot distinguish a
 		// chlorinator that is switched off from one that is simply waiting for the filter pump.
 		ChlorinatorGeneratingReason ResolveChlorinatorGeneratingReason(const AuxillaryDevice& chlorinator) const;
+
+		// The chlorinator as clients see it (generating %, health, configured pool/spa/headline
+		// setpoints, reason). A JSON null when no chlorinator has been discovered. The ONE
+		// builder behind the REST payload and the pushed event, so they cannot disagree.
+		nlohmann::json ChlorinatorSnapshot() const;
+
+		// The chlorinator's state lives in per-device traits that many writers set directly (the
+		// AquaRite wire path, the menu scrape, the command write-through), none of which
+		// announces a change. This is the single change-guarded publish point: it snapshots the
+		// state and, only when that differs from what clients were last told, emits one
+		// chemistry event carrying it -- so the web UI (WebSocket) and MQTT/Home Assistant
+		// (which re-publishes on any config event) see it without a REST re-fetch. Cheap enough
+		// to call every second. Returns true when an event was emitted.
+		bool PublishChlorinatorStateIfChanged();
+
+	private:
+		// What the last chlorinator event told clients; nullopt until the first observation.
+		std::optional<nlohmann::json> m_LastPublishedChlorinator;
 
 	//---------------------------------------------------------------------
 	// CONFIG-UPDATE EVENT EMITTERS

@@ -450,6 +450,7 @@ registered in the `src/aqualink-automate.cpp` pipeline):
 |---|---|---|---|
 | `log-sinks` | `auto` or CSV of `console`, `native`, `file` | `auto` | `file` requires `log-file` (dependency check in `Validate()`) |
 | `log-format` | `text`, `json` | `text` | applies to console and file sinks |
+| `log-file-format` | `text`, `json` | *(follows `log-format`)* | file sink only; added so a container can keep a readable text console and a timestamped JSON file (`RuntimeConfig::FileFormat`) |
 | `log-file` | path | *(unset)* | enables the file sink; implies `file` membership when `log-sinks=auto` |
 | `log-file-max-size` | bytes | 10 MiB | rotation threshold |
 | `log-file-max-files` | count | 5 | collector bound |

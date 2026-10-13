@@ -81,6 +81,12 @@ namespace AqualinkAutomate::EquipmentCache
 			{
 				d["hardware_id"] = std::string{ *(device->AuxillaryTraits[Traits::HardwareLabelTrait{}]) };
 			}
+			// The pump's role (filter circulation vs. other). Without it a restored pump is
+			// invisible to DataHub::FilterPumps() and its status can never be applied.
+			if (device->AuxillaryTraits.Has(Traits::PumpTypeTrait{}))
+			{
+				d["pump_type"] = std::string{ magic_enum::enum_name(*(device->AuxillaryTraits[Traits::PumpTypeTrait{}])) };
+			}
 
 			devices.push_back(std::move(d));
 		}
@@ -170,6 +176,13 @@ namespace AqualinkAutomate::EquipmentCache
 		{
 			device->AuxillaryTraits.Set(Traits::HardwareLabelTrait{}, d["hardware_id"].get<std::string>());
 		}
+		if (d.contains("pump_type") && d["pump_type"].is_string())
+		{
+			if (auto pump_type = magic_enum::enum_cast<Kernel::PumpTypes>(d["pump_type"].get<std::string>()); pump_type.has_value())
+			{
+				device->AuxillaryTraits.Set(Traits::PumpTypeTrait{}, pump_type.value());
+			}
+		}
 
 		m_DataHub->Devices.Add(std::move(device));
 		return true;
@@ -188,6 +201,10 @@ namespace AqualinkAutomate::EquipmentCache
 		{
 			if (RestoreDeviceFromSnapshot(d)) { ++restored; }
 		}
+
+		// A cache written before pump_type was persisted restores a Pump named "Filter Pump" with
+		// no PumpTypeTrait; give it its role now so the status handlers can find it.
+		m_DataHub->AdoptUntypedFilterPumps();
 
 		LogInfo(Channel::Main, std::format("Equipment cache restored {} device(s)", restored));
 	}

@@ -13,6 +13,14 @@
  * healthy but not producing because the filter pump is not running.
  */
 function chlorinatorControl() {
+    // The server answers as soon as a set is QUEUED; the panel then walks its menus before the
+    // new value is on the wire (measured ~11 s for a 5% step and ~17 s for a 15% change).
+    // CONFIRM: how long to wait for the wire to show the requested value before saying "sent"
+    // rather than "applied". UNVERIFIABLE: the body the panel is NOT currently commanding cannot
+    // be seen on the wire at all, so just hold the controls for roughly one walk.
+    const CONFIRM_TIMEOUT_MS = 45000;
+    const UNVERIFIABLE_WINDOW_MS = 25000;
+
     // Instantaneous reported output (the "SWG Output" gauge); 0 while the cell is idle.
     function actualNum() {
         const v = Alpine.store('pool').swgGeneratingPercent;
@@ -35,8 +43,22 @@ function chlorinatorControl() {
         touched: { pool: false, spa: false },
         boost: false,
         busy: false,
-        feedback: '',    // '' | 'applied' | 'rejected'
+        feedback: '',    // '' | 'applied' | 'rejected' | 'sent'
+        // Why the last command was refused, shown inline beside the control. A toast alone is
+        // easy to miss (it can sit behind other fixed UI), and "still being applied" is
+        // exactly the message a user needs to see at the moment they click Set again.
+        reason: '',
+        // body -> { requested, startedAt } while a queued set has not yet been seen on the wire.
+        pending: { pool: null, spa: null },
         _timer: null,
+        _pendTimer: null,
+        _reasonTimer: null,
+
+        get isPending() { return this.pending.pool !== null || this.pending.spa !== null; },
+
+        // Controls are held while a request is in flight OR the panel is still applying one: the
+        // panel takes one goal at a time, so a second click mid-walk is a guaranteed 409.
+        get locked() { return this.busy || this.isPending; },
 
         get present() {
             return Alpine.store('pool').chlorinatorPresent === true;
@@ -118,6 +140,8 @@ function chlorinatorControl() {
 
         destroy() {
             if (this._timer) { clearInterval(this._timer); this._timer = null; }
+            if (this._pendTimer) { clearInterval(this._pendTimer); this._pendTimer = null; }
+            if (this._reasonTimer) { clearTimeout(this._reasonTimer); this._reasonTimer = null; }
         },
 
         _seed() {
@@ -130,7 +154,63 @@ function chlorinatorControl() {
         },
 
         async setPercent(body) {
-            await this._post({ percentage: Number(this.targets[body]), body: body });
+            const requested = Number(this.targets[body]);
+            if (await this._post({ percentage: requested, body: body })) {
+                this._beginPending(body, requested);
+            }
+        },
+
+        _beginPending(body, requested) {
+            this.pending[body] = { requested: requested, startedAt: Date.now() };
+            this.feedback = '';
+            this.reason = '';
+            if (!this._pendTimer) {
+                this._pendTimer = setInterval(() => this._tickPending(), 1000);
+            }
+        },
+
+        _tickPending() {
+            // The wire (generating %) carries the setpoint of the body the panel is currently
+            // commanding, so only THAT body's change can be confirmed from it.
+            const commanded = Alpine.store('pool').spaModeActive ? 'spa' : 'pool';
+            const wire = actualNum();
+
+            for (const body of ['pool', 'spa']) {
+                const p = this.pending[body];
+                if (!p) { continue; }
+
+                const confirmable = (body === commanded);
+                const elapsed = Date.now() - p.startedAt;
+
+                if (confirmable && wire === p.requested) {
+                    this._endPending(body, 'applied');
+                } else if (elapsed >= (confirmable ? CONFIRM_TIMEOUT_MS : UNVERIFIABLE_WINDOW_MS)) {
+                    this._endPending(body, 'sent');
+                }
+            }
+        },
+
+        _endPending(body, outcome) {
+            this.pending[body] = null;
+            this.feedback = outcome;
+            setTimeout(() => { if (this.feedback === outcome) { this.feedback = ''; } }, outcome === 'applied' ? 2500 : 6000);
+
+            if (outcome === 'sent') {
+                // Not seen on the wire in time: re-read the server's view rather than leave the
+                // screen on whatever the last push said.
+                Alpine.store('pool')._fetchEquipment();
+            }
+
+            if (!this.isPending && this._pendTimer) {
+                clearInterval(this._pendTimer);
+                this._pendTimer = null;
+            }
+        },
+
+        _showReason(reason) {
+            this.reason = reason;
+            if (this._reasonTimer) { clearTimeout(this._reasonTimer); }
+            this._reasonTimer = setTimeout(() => { this.reason = ''; this._reasonTimer = null; }, 8000);
         },
 
         async toggleBoost() {
@@ -154,8 +234,13 @@ function chlorinatorControl() {
                     body: JSON.stringify(payload),
                 });
                 const ok = resp.ok;
-                this.feedback = ok ? 'applied' : 'rejected';
-                setTimeout(() => { this.feedback = ''; }, 2500);
+                // A percentage set reports through the pending/confirm flow rather than an
+                // instant "Set ✓" (the server has only QUEUED it); a boost toggle has no wire
+                // confirmation, so it keeps the immediate badge.
+                const isSet = (payload.percentage !== undefined);
+                const posted = ok ? (isSet ? '' : 'applied') : 'rejected';
+                this.feedback = posted;
+                setTimeout(() => { if (this.feedback === posted) { this.feedback = ''; } }, 2500);
                 if (!ok) {
                     // A rejected command is an expected operational outcome (e.g. a previous
                     // chlorinator command is still being applied — HTTP 409), not a UI fault —
@@ -164,12 +249,14 @@ function chlorinatorControl() {
                     const reason = await this._readErrorReason(resp);
                     console.warn(`Chlorinator command rejected (HTTP ${resp.status}):`, reason);
                     Alpine.store('toast').show(window.AquaI18n.t('toast.chlorinator_failed_reason', { reason }), 'error');
+                    this._showReason(reason);
                 }
                 return ok;
             } catch (e) {
                 this.feedback = 'rejected';
                 setTimeout(() => { this.feedback = ''; }, 2500);
                 Alpine.store('toast').show(window.AquaI18n.t('toast.chlorinator_failed_conn'), 'error');
+                this._showReason(window.AquaI18n.t('toast.chlorinator_failed_conn'));
                 return false;
             } finally {
                 this.busy = false;

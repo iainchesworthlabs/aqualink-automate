@@ -63,7 +63,11 @@ namespace AqualinkAutomate::Devices
 		}
 		else
 		{
-			if (0 == m_DataHub->FilterPumps().size())
+			// A pump restored from the equipment cache is a Pump named "Filter Pump" with NO
+			// PumpTypeTrait, so FilterPumps() cannot see it. Adopt it BEFORE concluding there is
+			// none: otherwise the replacement built below is rejected by the device graph as a
+			// duplicate (same type + label) and the status is silently never written.
+			if (0 == m_DataHub->FilterPumps().size() && 0 == m_DataHub->AdoptUntypedFilterPumps())
 			{
 				// No primary filter pump...add it
 				auto ptr = std::make_shared<Kernel::AuxillaryDevice>();

@@ -85,6 +85,8 @@
         'cmd.blocked': '已阻止',
         'cmd.failed': '失败',
         'cmd.set_ok': '已设置 ✓',
+        'cmd.applying': '正在应用…',
+        'cmd.sent': '已发送 — 等待控制面板',
 
         // ---- Navigation -------------------------------------------------------
         'nav.dashboard': '仪表盘',

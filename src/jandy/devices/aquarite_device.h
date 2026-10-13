@@ -90,7 +90,13 @@ namespace AqualinkAutomate::Devices
 		// roughly 2-3 frames/sec.  The raw Reported* getters above stay
 		// unsmoothed; the following state smooths only what is published so the
 		// salt graph and the chlorinator-health indicator stop strobing.
-		inline static constexpr std::size_t SALT_MEDIAN_WINDOW{ 5 };
+		// 31 frames (~13 s at the observed 2-3 frames/s). Sized from a 33-minute live capture of a
+		// borderline cell (2900 ppm / Low Salt ~63% of frames, with 4000 ppm / OK bursts of 1-10
+		// frames): a median of 5 still let the PUBLISHED salt flip 62 times in that window --
+		// each flip a chemistry event to the UI, MQTT and history -- because any 3-frame burst
+		// wins the vote. A median of 31 needs 16 agreeing frames (~6-7 s) to change the value,
+		// which left only the 2 genuine, sustained state changes (a 10-minute OK stretch).
+		inline static constexpr std::size_t SALT_MEDIAN_WINDOW{ 31 };
 		inline static constexpr uint32_t HEALTH_RAISE_FRAMES{ 2 };    // ~1 s: surface a warning/fault quickly
 		inline static constexpr uint32_t HEALTH_CLEAR_FRAMES{ 15 };   // ~6 s: clear slowly (sticky)
 

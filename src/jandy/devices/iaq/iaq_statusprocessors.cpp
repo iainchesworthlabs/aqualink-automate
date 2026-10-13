@@ -133,6 +133,15 @@ namespace AqualinkAutomate::Devices
 			// (the Add invalidates the first snapshot).  Previously FilterPumps() ran a
 			// full device-graph scan twice per MainStatus even when a pump already existed.
 			auto filter_pumps = m_DataHub->FilterPumps();
+
+			// A cache-restored "Filter Pump" has no PumpTypeTrait, so it is invisible above;
+			// adopt it rather than building a duplicate the device graph would reject (which
+			// left this loop with nothing to update, so pump on/off was never applied).
+			if (filter_pumps.empty() && m_DataHub->AdoptUntypedFilterPumps() > 0)
+			{
+				filter_pumps = m_DataHub->FilterPumps();
+			}
+
 			if (filter_pumps.empty())
 			{
 				auto ptr = std::make_shared<Kernel::AuxillaryDevice>();

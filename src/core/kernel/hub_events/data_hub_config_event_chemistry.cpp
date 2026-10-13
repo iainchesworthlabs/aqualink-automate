@@ -32,6 +32,16 @@ namespace AqualinkAutomate::Kernel
 		return m_SaltLevel;
 	}
 
+	std::optional<nlohmann::json> DataHub_ConfigEvent_Chemistry::Chlorinator() const
+	{
+		return m_Chlorinator;
+	}
+
+	void DataHub_ConfigEvent_Chemistry::Chlorinator(const nlohmann::json& chlorinator)
+	{
+		m_Chlorinator = chlorinator;
+	}
+
 	void DataHub_ConfigEvent_Chemistry::ORP(const Kernel::ORP& orp)
 	{
 		m_ORP = orp;
@@ -69,6 +79,12 @@ namespace AqualinkAutomate::Kernel
 		{
 			auto salt_level = m_SaltLevel.value();
 			j["salt_level"] = static_cast<uint16_t>(salt_level.value());
+		}
+
+		if (m_Chlorinator.has_value())
+		{
+			// May legitimately be null (chlorinator removed); emit it so a client can clear it.
+			j["chlorinator"] = m_Chlorinator.value();
 		}
 
 		return j;

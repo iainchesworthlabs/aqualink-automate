@@ -17,85 +17,13 @@ namespace AqualinkAutomate::HTTP
 
 	namespace
 	{
-		// Build the chlorinator sub-object of the chemistry payload from the
-		// DataHub chlorinator AuxillaryDevice traits.  Returns a JSON null when
-		// no chlorinator (SWG) has been discovered so the UI can render the SWG
-		// fields as placeholders rather than fabricating zeroes.
+		// The chlorinator sub-object of the chemistry payload. Built by the DataHub so the
+		// REST response and the pushed WebSocket/MQTT event share ONE definition and can never
+		// disagree. A JSON null when no chlorinator (SWG) has been discovered, so the UI renders
+		// the SWG fields as placeholders rather than fabricated zeroes.
 		nlohmann::json BuildChlorinatorJson(const std::shared_ptr<Kernel::DataHub>& data_hub)
 		{
-			using namespace Kernel::AuxillaryTraitsTypes;
-
-			auto chlorinators = data_hub->Chlorinators();
-			if (chlorinators.empty())
-			{
-				return nlohmann::json{};
-			}
-
-			const auto& device = chlorinators.front();
-			nlohmann::json chlorinator;
-
-			chlorinator["generating_percent"] = device->AuxillaryTraits.Has(GeneratingPercentageTrait{})
-				? nlohmann::json(static_cast<uint8_t>(*(device->AuxillaryTraits[GeneratingPercentageTrait{}])))
-				: nlohmann::json{};
-
-			chlorinator["duty_cycle"] = device->AuxillaryTraits.Has(DutyCycleTrait{})
-				? nlohmann::json(static_cast<uint8_t>(*(device->AuxillaryTraits[DutyCycleTrait{}])))
-				: nlohmann::json{};
-
-			chlorinator["status"] = device->AuxillaryTraits.Has(ChlorinatorStatusTrait{})
-				? nlohmann::json(std::string{ magic_enum::enum_name(*(device->AuxillaryTraits[ChlorinatorStatusTrait{}])) })
-				: nlohmann::json(std::string{ magic_enum::enum_name(Kernel::ChlorinatorStatuses::Unknown) });
-
-			chlorinator["health"] = device->AuxillaryTraits.Has(ChlorinatorHealthTrait{})
-				? nlohmann::json(std::string{ magic_enum::enum_name(*(device->AuxillaryTraits[ChlorinatorHealthTrait{}])) })
-				: nlohmann::json(std::string{ magic_enum::enum_name(Kernel::ChlorinatorHealth::Unknown) });
-
-			// Every health flag currently active simultaneously (the wire status byte is a
-			// true bitfield, so e.g. low salt and high current can both be set at once).
-			// "health" above remains the single worst-of-the-set value for backward
-			// compatibility; this carries the full set. Falls back to ["Unknown"] to mirror
-			// "health"'s own Unknown fallback when the trait is absent.
-			{
-				nlohmann::json health_flags = nlohmann::json::array();
-				if (device->AuxillaryTraits.Has(ChlorinatorHealthFlagsTrait{}))
-				{
-					for (const auto flag : *(device->AuxillaryTraits[ChlorinatorHealthFlagsTrait{}]))
-					{
-						health_flags.push_back(std::string{ magic_enum::enum_name(flag) });
-					}
-				}
-				else
-				{
-					health_flags.push_back(std::string{ magic_enum::enum_name(Kernel::ChlorinatorHealth::Unknown) });
-				}
-				chlorinator["health_flags"] = std::move(health_flags);
-			}
-
-			// Configured Pool / Spa output setpoints (scraped from the Set AquaPure menu),
-			// distinct from generating_percent (the instantaneous output, 0 while idle).
-			const auto pool_setpoint = device->AuxillaryTraits.Has(ChlorinatorPoolSetpointTrait{})
-				? std::optional<uint8_t>(static_cast<uint8_t>(*(device->AuxillaryTraits[ChlorinatorPoolSetpointTrait{}])))
-				: std::nullopt;
-			const auto spa_setpoint = device->AuxillaryTraits.Has(ChlorinatorSpaSetpointTrait{})
-				? std::optional<uint8_t>(static_cast<uint8_t>(*(device->AuxillaryTraits[ChlorinatorSpaSetpointTrait{}])))
-				: std::nullopt;
-
-			chlorinator["pool_setpoint_percent"] = pool_setpoint.has_value() ? nlohmann::json(pool_setpoint.value()) : nlohmann::json{};
-			chlorinator["spa_setpoint_percent"] = spa_setpoint.has_value() ? nlohmann::json(spa_setpoint.value()) : nlohmann::json{};
-
-			// Headline target = the configured setpoint of whichever body is currently active
-			// (spa vs pool), falling back to the other body's value, then to the passive
-			// last-known generating %, so the dashboard always shows a meaningful target.
-			const auto resolved_setpoint = data_hub->ChlorinatorResolvedSetpoint(*device);
-			chlorinator["setpoint_percent"] = resolved_setpoint.has_value() ? nlohmann::json(resolved_setpoint.value()) : nlohmann::json{};
-
-			// WHY the cell is (or is not) producing. generating_percent alone is ambiguous: 0%
-			// reads as "off or broken" even when the chlorinator is configured, healthy and
-			// simply waiting for the filter pump. Derived server-side so the web UI, MQTT and
-			// Home Assistant all tell the same story.
-			chlorinator["generating_reason"] = std::string{ magic_enum::enum_name(data_hub->ResolveChlorinatorGeneratingReason(*device)) };
-
-			return chlorinator;
+			return data_hub->ChlorinatorSnapshot();
 		}
 	}
 	// namespace

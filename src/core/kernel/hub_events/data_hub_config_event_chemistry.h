@@ -26,12 +26,19 @@ namespace AqualinkAutomate::Kernel
 		void pH(const Kernel::pH& pH);
 		void SaltLevel(const Units::ppm_quantity& salt_level_in_ppm);
 
+		// The salt-water generator's state (the same object the REST chemistry payload carries
+		// under "chlorinator"). Present only on an event that is reporting a chlorinator change;
+		// a JSON null is a real value meaning "the chlorinator is gone", distinct from "absent".
+		std::optional<nlohmann::json> Chlorinator() const;
+		void Chlorinator(const nlohmann::json& chlorinator);
+
 		nlohmann::json ToJSON() const override;
 
 	private:
 		std::optional<Kernel::ORP> m_ORP{ std::nullopt };
 		std::optional<Kernel::pH> m_pH{ std::nullopt };
 		std::optional<Units::ppm_quantity> m_SaltLevel{ std::nullopt };
+		std::optional<nlohmann::json> m_Chlorinator{ std::nullopt };
 	};
 
 }

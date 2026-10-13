@@ -36,6 +36,48 @@ namespace
 
 BOOST_FIXTURE_TEST_SUITE(TestSuite_EquipmentCache, Test::HubLocatorInjector)
 
+BOOST_AUTO_TEST_CASE(SnapshotApply_FilterPump_RoundTripsPumpType)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+	EquipmentCache::EquipmentCacheService source(io, *this, settings);
+
+	// A discovered filter pump carries its role as PumpTypeTrait; the cache must keep it, or the
+	// restored pump is invisible to DataHub::FilterPumps() and its status can never be applied
+	// (the Home Assistant add-on always runs with the cache enabled).
+	auto pump = MakeDevice("Filter Pump", Traits::AuxillaryTypes::Pump);
+	pump->AuxillaryTraits.Set(Traits::PumpTypeTrait{}, Kernel::PumpTypes::FilterCirculation);
+	Find<Kernel::DataHub>()->Devices.Add(pump);
+
+	const auto snapshot = source.Snapshot();
+	BOOST_REQUIRE_EQUAL(snapshot["devices"].size(), 1u);
+	BOOST_CHECK_EQUAL(snapshot["devices"][0]["pump_type"], "FilterCirculation");
+
+	Test::HubLocatorInjector fresh;
+	EquipmentCache::EquipmentCacheService dest(io, fresh, settings);
+	dest.ApplySnapshot(snapshot);
+
+	BOOST_CHECK_EQUAL(fresh.Find<Kernel::DataHub>()->FilterPumps().size(), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(SnapshotApply_LegacyCacheWithoutPumpType_StillFindsTheFilterPump)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+
+	// A cache file written before pump_type was persisted: type + label only.
+	nlohmann::json legacy;
+	legacy["devices"] = nlohmann::json::array();
+	legacy["devices"].push_back({ { "label", "Filter Pump" }, { "type", "Pump" } });
+
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+	service.ApplySnapshot(legacy);
+
+	auto hub = Find<Kernel::DataHub>();
+	BOOST_CHECK_EQUAL(hub->Pumps().size(), 1u);
+	BOOST_CHECK_EQUAL(hub->FilterPumps().size(), 1u);
+}
+
 BOOST_AUTO_TEST_CASE(SnapshotApply_RoundTripsConfigAndDevicesWithStableUuid)
 {
 	boost::asio::io_context io;

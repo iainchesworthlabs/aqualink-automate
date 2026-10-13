@@ -747,7 +747,10 @@ namespace AqualinkAutomate::HTTP
 			}
 		}
 
-		LogInfo(Channel::Web, "Accepted new HTTP connection");
+		// Debug, not Info: every poll, watchdog probe and UI refresh opens a connection,
+		// which at Info drowned the log (~80% of lines in a live add-on) and pushed the
+		// operational records out of short log windows such as the Supervisor's tail.
+		LogDebug(Channel::Web, "Accepted new HTTP connection");
 #if defined(TRACY_ENABLE) || defined(VTUNE_SUPPORT_ENABLED) || defined(UProf_SUPPORT_ENABLED)
 		Factory::ProfilerFactory::Instance().Get()->Message("New HTTP connection accepted");
 #endif
