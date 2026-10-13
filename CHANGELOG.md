@@ -13,9 +13,6 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
 ### Added
 
 - **The chlorinator's last known Pool/Spa targets survive a restart, and say so.** The configured targets can only be read by scraping a menu page, so after every restart the dashboard showed "not reported yet" until the startup crawl had walked there (minutes, and longer when the OneTouch emulator was slow to be recognised). The equipment cache now keeps them and restores them on start, marked as last known: the dashboard shows "Last known targets - waiting for the panel to confirm" (and "last known" beside the Detailed view's target), because the panel may have been changed since the app last ran. A target turns live per body as it is re-read from the panel or set from this app. The chlorinator object gains `setpoints_cached` (REST `chemistry.chlorinator` and the pushed `ChemistryUpdate`); see [docs/usage-and-api.md](docs/usage-and-api.md).
-
-### Added
-
 - **The About page now states the licence and copyright, and lists everything the web UI includes from other projects.** About shows the application's licence (GNU General Public License v3.0, naming `LICENSE.txt`, with a link to the source code) and its copyright line, and a new **Licences** section lists the bundled fonts (Bricolage Grotesque, Hanken Grotesk, Noto Sans Arabic, Noto Sans Hebrew), the vendored scripts (Alpine.js, Chart.js, chartjs-adapter-date-fns with the date-fns it bundles, QRCode.js) and the Feather icon paths, each with its version, copyright line and licence, and the full SIL Open Font License and MIT texts one click away. The list is rendered from a single data file, `assets/web/scripts/config/third-party-notices.js`, and an e2e test fails if a vendored file or declared font family has no entry. The new strings are machine-drafted in the eight non-English catalogues. See [docs/usage-and-api.md](docs/usage-and-api.md#about-licence-and-third-party-notices).
 
 ### Changed
