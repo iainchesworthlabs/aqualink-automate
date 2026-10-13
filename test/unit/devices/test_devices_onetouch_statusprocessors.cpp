@@ -214,6 +214,33 @@ BOOST_AUTO_TEST_CASE(FilterPump_MatchingLine_CreatesPumpAndReportsRunning)
 	BOOST_CHECK(pump_status.value() == Kernel::PumpStatuses::Running);
 }
 
+BOOST_AUTO_TEST_CASE(FilterPump_CacheRestoredUntypedDevice_IsAdoptedAndReportsRunning)
+{
+	// Reproduces the Home Assistant add-on's state after an equipment-cache restore: a Pump
+	// labelled "Filter Pump" carrying only type + label (the cache persists nothing else), so it
+	// has no PumpTypeTrait and DataHub::FilterPumps() cannot see it. The processor used to
+	// conclude "no pump", build a replacement, have the device graph reject it as a duplicate
+	// (same type + label), and then update an empty list -- so the pump's status was never set
+	// ("pump disabled" while the panel listed it as running).
+	auto restored = std::make_shared<Kernel::AuxillaryDevice>();
+	restored->AuxillaryTraits.Set(ATT::AuxillaryTypeTrait{}, ATT::AuxillaryTypes::Pump);
+	restored->AuxillaryTraits.Set(ATT::LabelTrait{}, std::string{ "Filter Pump" });
+	data_hub->Devices.Add(restored);
+	BOOST_REQUIRE(data_hub->FilterPumps().empty());
+
+	ShowEquipmentStatus({ "Filter Pump     " });
+
+	// Exactly one pump device -- the restored one, now adopted -- and its status was applied.
+	BOOST_CHECK_EQUAL(data_hub->Pumps().size(), 1u);
+	auto pumps = data_hub->FilterPumps();
+	BOOST_REQUIRE_EQUAL(pumps.size(), 1u);
+	BOOST_CHECK(pumps.front().get() == restored.get());
+
+	auto pump_status = restored->AuxillaryTraits.TryGet(ATT::PumpStatusTrait{});
+	BOOST_REQUIRE(pump_status.has_value());
+	BOOST_CHECK(pump_status.value() == Kernel::PumpStatuses::Running);
+}
+
 BOOST_AUTO_TEST_CASE(FilterPump_HintMatchesButRegexDoesNot_CreatesNothing)
 {
 	// "Fi..." passes the hint filter; the full-line regex rejects it.

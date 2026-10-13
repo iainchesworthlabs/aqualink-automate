@@ -6,6 +6,8 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
+#include "kernel/auxillary_devices/auxillary_device.h"
+#include "kernel/auxillary_traits/auxillary_traits_types.h"
 #include "kernel/data_hub.h"
 #include "kernel/hub_events/data_hub_config_event.h"
 #include "kernel/hub_events/data_hub_config_event_chemistry.h"
@@ -387,6 +389,59 @@ BOOST_AUTO_TEST_CASE(TemperatureEvent_CurrentTemperaturesSerialise)
 	// The setpoint fields were never populated -> their ToJSON guards stay false.
 	BOOST_CHECK(!j.contains("pool_setpoint"));
 	BOOST_CHECK(!j.contains("spa_setpoint"));
+}
+
+namespace
+{
+	std::shared_ptr<AuxillaryDevice> AddPump(DataHub& hub, const std::string& label, bool typed_as_filter)
+	{
+		using namespace AuxillaryTraitsTypes;
+
+		auto pump = std::make_shared<AuxillaryDevice>();
+		pump->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Pump);
+		pump->AuxillaryTraits.Set(LabelTrait{}, label);
+		if (typed_as_filter)
+		{
+			pump->AuxillaryTraits.Set(PumpTypeTrait{}, PumpTypes::FilterCirculation);
+		}
+		hub.Devices.Add(pump);
+		return pump;
+	}
+}
+
+BOOST_AUTO_TEST_CASE(FilterPump_UntypedFilterPumpDevice_IsInvisibleUntilAdopted)
+{
+	DataHub hub;
+	auto pump = AddPump(hub, "Filter Pump", /*typed_as_filter*/ false);
+
+	// This is the state an equipment-cache restore leaves: present, but not findable as a filter pump.
+	BOOST_CHECK(hub.FilterPumps().empty());
+
+	BOOST_CHECK_EQUAL(hub.AdoptUntypedFilterPumps(), static_cast<std::size_t>(1));
+	BOOST_REQUIRE_EQUAL(hub.FilterPumps().size(), static_cast<std::size_t>(1));
+	BOOST_CHECK(hub.FilterPumps().front().get() == pump.get());
+
+	// Idempotent: nothing left to adopt.
+	BOOST_CHECK_EQUAL(hub.AdoptUntypedFilterPumps(), static_cast<std::size_t>(0));
+	BOOST_CHECK_EQUAL(hub.FilterPumps().size(), static_cast<std::size_t>(1));
+}
+
+BOOST_AUTO_TEST_CASE(FilterPump_Adoption_LeavesOtherPumpsAndNonPumpsAlone)
+{
+	using namespace AuxillaryTraitsTypes;
+
+	DataHub hub;
+	AddPump(hub, "Spa Pump", /*typed_as_filter*/ false);             // a different pump: not ours to classify
+	AddPump(hub, "Filter Pump", /*typed_as_filter*/ true);           // already typed: nothing to do
+
+	auto aux = std::make_shared<AuxillaryDevice>();                  // right label, wrong kind of device
+	aux->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Auxillary);
+	aux->AuxillaryTraits.Set(LabelTrait{}, std::string{ "Filter Pump" });
+	hub.Devices.Add(aux);
+
+	BOOST_CHECK_EQUAL(hub.AdoptUntypedFilterPumps(), static_cast<std::size_t>(0));
+	BOOST_CHECK_EQUAL(hub.FilterPumps().size(), static_cast<std::size_t>(1));   // only the already-typed one
+	BOOST_CHECK(!aux->AuxillaryTraits.Has(PumpTypeTrait{}));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

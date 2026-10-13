@@ -297,6 +297,15 @@ namespace AqualinkAutomate::Kernel
 		[[deprecated("Use FilterPumps() instead; that returns a collection of pumps as there might be more than one")]]
 		std::optional<std::shared_ptr<Kernel::AuxillaryDevice>> FilterPump();
 
+		// FilterPumps() keys on PumpTypeTrait, but a device that came from the equipment cache
+		// (which persisted only id/label/type/body) or from a path that only knows its label is a
+		// Pump named "Filter Pump" with NO PumpTypeTrait. FilterPumps() cannot see it, so the
+		// status handlers conclude "no pump", build a replacement, and DevicesGraph::Add rejects
+		// it as equal (same type + label) -- leaving the pump's status unset forever. This marks
+		// such a device as the filter circulation pump so it is found and updated instead.
+		// Idempotent; returns how many devices were adopted.
+		std::size_t AdoptUntypedFilterPumps();
+
 		// Is any discovered filter pump running? nullopt when none has been discovered yet, so a
 		// caller can tell "no pump running" from "we do not know about a pump".
 		std::optional<bool> AnyFilterPumpRunning() const;

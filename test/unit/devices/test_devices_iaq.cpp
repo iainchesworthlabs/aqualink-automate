@@ -567,6 +567,42 @@ BOOST_AUTO_TEST_CASE(MainStatus_CreatesFilterPump_TrackingPumpStatus)
 	BOOST_CHECK(status_off.value() == Kernel::PumpStatuses::Off);
 }
 
+BOOST_AUTO_TEST_CASE(MainStatus_CacheRestoredUntypedFilterPump_IsAdoptedAndTracksStatus)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(IAQ_DEVICE_ID));
+	IAQDevice device(device_id, harness.HubLocatorRef(), /*is_emulated=*/false);
+
+	// What an equipment-cache restore leaves behind: a Pump labelled "Filter Pump" with only
+	// type + label, so no PumpTypeTrait and FilterPumps() is blind to it. The handler used to
+	// try to ADD a replacement, have the device graph reject it as equal (same type + label),
+	// and then update an empty list -- pump on/off from the panel was never applied.
+	auto restored = std::make_shared<Kernel::AuxillaryDevice>();
+	restored->AuxillaryTraits.Set(IaqTraits::AuxillaryTypeTrait{}, IaqTraits::AuxillaryTypes::Pump);
+	restored->AuxillaryTraits.Set(IaqTraits::LabelTrait{}, std::string{ "Filter Pump" });
+	harness.DataHub()->Devices.Add(restored);
+	BOOST_REQUIRE(harness.DataHub()->FilterPumps().empty());
+
+	ReplayMainStatus(harness, MakeMainStatusPayload_CurrentFormat());   // pump ON
+
+	BOOST_CHECK_EQUAL(harness.DataHub()->Pumps().size(), 1u);
+	auto pumps = harness.DataHub()->FilterPumps();
+	BOOST_REQUIRE_EQUAL(pumps.size(), 1u);
+	BOOST_CHECK(pumps.front().get() == restored.get());
+
+	auto status_on = restored->AuxillaryTraits.TryGet(IaqTraits::PumpStatusTrait{});
+	BOOST_REQUIRE(status_on.has_value());
+	BOOST_CHECK(status_on.value() == Kernel::PumpStatuses::Running);
+
+	auto payload_off = MakeMainStatusPayload_CurrentFormat();
+	payload_off[4] = 0x00;   // pump OFF
+	ReplayMainStatus(harness, payload_off);
+
+	auto status_off = restored->AuxillaryTraits.TryGet(IaqTraits::PumpStatusTrait{});
+	BOOST_REQUIRE(status_off.has_value());
+	BOOST_CHECK(status_off.value() == Kernel::PumpStatuses::Off);
+}
+
 BOOST_AUTO_TEST_CASE(MainStatus_CreatesHeaters_WithDecodedStatus)
 {
 	Test::MockReplayHarness harness;

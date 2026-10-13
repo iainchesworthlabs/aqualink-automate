@@ -9,6 +9,8 @@
 #include "profiling/factories/profiling_unit_factory.h"
 #include "utility/case_insensitive_comparision.h"
 
+#include <algorithm>
+#include <cctype>
 #include <source_location>
 
 namespace AqualinkAutomate::Kernel
@@ -687,6 +689,36 @@ namespace AqualinkAutomate::Kernel
 			return std::nullopt;
 		}
 		return pumps.front();
+	}
+
+	std::size_t DataHub::AdoptUntypedFilterPumps()
+	{
+		using namespace AuxillaryTraitsTypes;
+
+		const auto equals_ignoring_case = [](const std::string& lhs, const std::string& rhs)
+		{
+			return std::ranges::equal(lhs, rhs, [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
+		};
+
+		std::size_t adopted{ 0 };
+
+		for (const auto& pump : Pumps())
+		{
+			if (pump->AuxillaryTraits.Has(PumpTypeTrait{}))
+			{
+				continue;
+			}
+
+			if (auto label = pump->AuxillaryTraits.TryGet(LabelTrait{}); label.has_value() && equals_ignoring_case(label.value(), LabelTrait::COMMON_LABEL_FILTER_PUMP))
+			{
+				pump->AuxillaryTraits.Set(PumpTypeTrait{}, PumpTypes::FilterCirculation);
+				++adopted;
+
+				LogInfo(Channel::Equipment, "DataHub: adopted an untyped 'Filter Pump' device as the filter circulation pump");
+			}
+		}
+
+		return adopted;
 	}
 
 	std::optional<bool> DataHub::AnyFilterPumpRunning() const
