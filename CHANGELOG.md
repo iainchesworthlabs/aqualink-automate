@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
+## [Unreleased]
+
+### Fixed
+
+- **The chlorinator target sliders no longer freeze for up to 45 seconds after pressing Set.** 0.17.0-beta.1 held every control on the tile, sliders included, until the panel's change was seen on the wire. With the filter pump off or the cell idle the wire reads 0 whatever was requested, so that confirmation never came and both rows stayed unresponsive for the full timeout. Dragging a slider sends nothing, so the sliders now stay adjustable throughout (they are held only while a request is actually in flight); **Set** and **Boost** are still held while the panel applies a change, since a second set mid-change is refused. When the wire cannot confirm a set (cell idle, or the other body), the hold now ends after about 25 s - one menu walk - instead of 45 s, and a command request that never answers is abandoned after 15 s rather than leaving the controls held indefinitely.
+
 ## [0.17.0-beta.1] - 2026-10-13
 
 ### Added

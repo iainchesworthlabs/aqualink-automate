@@ -72,6 +72,45 @@ test('chlorinator output control: API validates, and the slider renders when pre
   }
 });
 
+test('chlorinator target sliders stay adjustable while a set is being applied', async ({ page }) => {
+  // The command endpoint answers as soon as a set is QUEUED; the panel then walks its menus for
+  // 10-20 s before the value is on the wire. That window is what is under test, so stub a
+  // successful queue rather than depend on the replay fixture having a commandable controller.
+  await page.route('**/api/equipment/chlorinator', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ percentage: { status: 'success', value: 25, body: 'Pool' } }),
+    }),
+  );
+
+  await page.goto('/');
+  const card = page.locator('.swg-card');
+  const slider = card.locator('.swg-slider').first();
+  await expect(slider).toBeVisible({ timeout: 15_000 });
+
+  // Move the pool target to a value it is not at (both are multiples of the slider's step),
+  // then submit it.
+  const current = Number(await slider.inputValue());
+  const first = current === 25 ? 30 : 25;
+  await slider.fill(String(first));
+  const setBtn = card.locator('.swg-set-btn').first();
+  await expect(setBtn).toBeEnabled();
+  await setBtn.click();
+
+  // The submit controls are held while the panel applies it (a second Set mid-walk is a
+  // guaranteed 409)...
+  await expect(card.locator('.cmd-pending')).toBeVisible();
+  await expect(setBtn).toBeDisabled();
+  await expect(card.getByRole('button', { name: 'Boost' })).toBeDisabled();
+
+  // ...but the SLIDERS are not: dragging one sends nothing, and freezing it for the whole
+  // walk is what made the target look unchangeable.
+  await expect(slider).toBeEnabled();
+  await slider.fill(String(first + 5));
+  await expect(slider).toHaveValue(String(first + 5));
+});
+
 test('equipment controls render as switches for controllable devices only', async ({ page, request }) => {
   const buttons = (await (await request.get('/api/equipment/buttons')).json()).buttons;
   const controllable = buttons.filter((b: any) => b.controllable && !isHeater(b));
