@@ -351,6 +351,7 @@ Returns the full equipment state. The top-level keys are `temperatures`, `chemis
       "pool_setpoint_percent": 45,
       "spa_setpoint_percent": 50,
       "setpoint_percent": 45,
+      "setpoints_cached": false,
       "status": "Generating",
       "health": "Ok",
       "health_flags": ["Ok"]
@@ -390,6 +391,7 @@ Field notes (these are deliberate, not bugs):
 - `generating_percent` is the **instantaneous** output and is `0` whenever the cell is idle — which alone cannot distinguish a chlorinator that is switched off from one that is configured and healthy but has no flow. `generating_reason` says which it is: `Generating`, `Off` (setpoint is 0%), `PumpOff` (configured, but no filter pump is running), `NoFlow` (a pump is running but the cell reports no flow), `Fault` (the cell is in a warning/error state), `Idle` (configured and not generating, no nameable reason), or `Unknown` (nothing reported yet). It is derived server-side so the web UI, MQTT and Home Assistant agree.
 - The cell's wire status byte is a true bitfield, so more than one health condition can be active at once (e.g. a low-salt warning together with a high-current warning). `health` is the single worst-of-the-set flag (electrical/hardware flags outrank chemistry flags, which outrank routine-maintenance flags) — kept for backward compatibility with consumers that only expect one value. `health_flags` is the full array of every currently-active flag; it always contains at least `health` itself.
 - `setpoint_percent` is the **configured target** for the currently active body (resolving to `pool_setpoint_percent` or `spa_setpoint_percent`, falling back to the last-known generating %); it is what the dashboard's Target slider seeds from.
+- `setpoints_cached` is `true` while a reported `pool_setpoint_percent` / `spa_setpoint_percent` is still the value remembered from the last run — restored from the equipment cache (`--equipment-cache-file`, always on in the Home Assistant add-on) — and has not yet been confirmed by reading the panel's Set AquaPure page or by a command from this app. The panel may have been changed in the meantime (at the panel, in iAqualink), so clients should present such a target as "last known". It turns `false` per body as each is re-read or re-set, and is `false` on an installation without the cache.
 - `validation` is an object once the startup scrape completes, or `null` before then. The spelling `expected_auxillary_count` (and the nested `expected_auxillaries` / `discovered_auxillaries`) is the exact field name in the payload.
 - A temperature is either a `{ "celsius": ..., "fahrenheit": ... }` object or `null`.
 
@@ -654,7 +656,7 @@ These are the fields the UI consumes from each frame's `payload`:
 | Event type | Payload fields |
 |---|---|
 | `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` — each a raw dual-unit object `{celsius, fahrenheit}` (same shape as REST `/api/equipment`; display formatting is the frontend's job, see `docs/i18n.md`) |
-| `ChemistryUpdate` | `ph`, `orp`, `salt_level`; and `chlorinator` — the same object as `chemistry.chlorinator` in REST `/api/equipment` (`generating_percent`, `duty_cycle`, `status`, `health`, `health_flags`, `pool_setpoint_percent`, `spa_setpoint_percent`, `setpoint_percent`, `generating_reason`). It is present only on an event that reports a chlorinator change (the state is checked once a second and again immediately after a successful `POST /api/equipment/chlorinator`), and may be `null`, meaning the chlorinator is no longer present. A client must key on the field's *presence*, not its truthiness |
+| `ChemistryUpdate` | `ph`, `orp`, `salt_level`; and `chlorinator` — the same object as `chemistry.chlorinator` in REST `/api/equipment` (`generating_percent`, `duty_cycle`, `status`, `health`, `health_flags`, `pool_setpoint_percent`, `spa_setpoint_percent`, `setpoint_percent`, `setpoints_cached`, `generating_reason`). It is present only on an event that reports a chlorinator change (the state is checked once a second and again immediately after a successful `POST /api/equipment/chlorinator`), and may be `null`, meaning the chlorinator is no longer present. A client must key on the field's *presence*, not its truthiness |
 | `ButtonStateChange` | `button_id`, `status`, `label` (optional) |
 | `SystemStateUpdate` | `state`, `pool_configuration`, `equipment_mode` |
 | `SystemStatusChange` | `status_type`, `source_name`, `source_type` |

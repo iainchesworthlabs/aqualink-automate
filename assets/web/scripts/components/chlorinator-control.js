@@ -70,6 +70,12 @@ function chlorinatorControl() {
             return Alpine.store('pool').chlorinatorPresent === true;
         },
 
+        // The targets shown are what the server remembered from the last run and the panel has
+        // not yet confirmed them (it may have been changed since, at the panel or in iAqualink).
+        get setpointsCached() {
+            return Alpine.store('pool').swgSetpointsCached === true;
+        },
+
         // Actual (reported) output.
         get actual() { const n = actualNum(); return n == null ? 0 : n; },
         get actualLabel() { const n = actualNum(); return n == null ? '--' : (window.AquaI18n.formatNumber(n) + '%'); },

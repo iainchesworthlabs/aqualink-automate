@@ -122,3 +122,32 @@ test('equipment controls render as switches for controllable devices only', asyn
   // The legacy icon-tile control is gone.
   await expect(page.locator('.eq-button')).toHaveCount(0);
 });
+
+test('chlorinator targets restored from the cache are labelled "last known" until confirmed', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.swg-card .swg-slider').first()).toBeVisible({ timeout: 15_000 });
+
+  const note = page.locator('.swg-card .swg-cached-note');
+  await expect(note).toBeHidden();   // live targets carry no note
+
+  // Make every chlorinator payload (REST fetch AND pushed event) report cached targets, which is
+  // what the server says for a value restored from its equipment cache and not yet re-read.
+  await page.evaluate(async () => {
+    const pool = (window as any).Alpine.store('pool');
+    (window as any).__applyChlorinator = pool._applyChlorinator;
+    pool._applyChlorinator = function (swg: any) {
+      return (window as any).__applyChlorinator.call(this, swg == null ? swg : { ...swg, setpoints_cached: true });
+    };
+    await pool._fetchEquipment();
+  });
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('Last known targets');
+
+  // Once the panel confirms them the note goes away again.
+  await page.evaluate(async () => {
+    const pool = (window as any).Alpine.store('pool');
+    pool._applyChlorinator = (window as any).__applyChlorinator;
+    await pool._fetchEquipment();
+  });
+  await expect(note).toBeHidden();
+});

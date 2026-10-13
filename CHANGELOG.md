@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 See [docs/releasing.md](docs/releasing.md) for how releases and version numbers are cut.
 
-## [Unreleased]
+## [0.17.0-beta.2] - 2026-10-13
+
+### Added
+
+- **The chlorinator's last known Pool/Spa targets survive a restart, and say so.** The configured targets can only be read by scraping a menu page, so after every restart the dashboard showed "not reported yet" until the startup crawl had walked there (minutes, and longer when the OneTouch emulator was slow to be recognised). The equipment cache now keeps them and restores them on start, marked as last known: the dashboard shows "Last known targets - waiting for the panel to confirm" (and "last known" beside the Detailed view's target), because the panel may have been changed since the app last ran. A target turns live per body as it is re-read from the panel or set from this app. The chlorinator object gains `setpoints_cached` (REST `chemistry.chlorinator` and the pushed `ChemistryUpdate`); see [docs/usage-and-api.md](docs/usage-and-api.md).
 
 ### Added
 
@@ -21,6 +25,7 @@ See [docs/releasing.md](docs/releasing.md) for how releases and version numbers 
 ### Fixed
 
 - **The chlorinator target sliders no longer freeze for up to 45 seconds after pressing Set.** 0.17.0-beta.1 held every control on the tile, sliders included, until the panel's change was seen on the wire. With the filter pump off or the cell idle the wire reads 0 whatever was requested, so that confirmation never came and both rows stayed unresponsive for the full timeout. Dragging a slider sends nothing, so the sliders now stay adjustable throughout (they are held only while a request is actually in flight); **Set** and **Boost** are still held while the panel applies a change, since a second set mid-change is refused. When the wire cannot confirm a set (cell idle, or the other body), the hold now ends after about 25 s - one menu walk - instead of 45 s, and a command request that never answers is abandoned after 15 s rather than leaving the controls held indefinitely.
+- **A chlorinator target changed at the panel or in iAqualink now reaches the dashboard in seconds, not up to five minutes.** The configured Pool/Spa % can only be read by visiting the Set AquaPure menu page, so a change made outside the app stayed invisible until the next periodic re-scrape (default 300 s), and the dashboard - and the comparison **Set** is enabled by - showed a target the panel no longer held. The live output frame the panel sends about every 0.4 s does carry what it is currently commanding, so when that disagrees with the target the app is showing for about two seconds running (and the app did not just set it itself) a re-scrape is now requested immediately. It is one request per distinct disagreement and at most one a minute, and it still waits for the menu to be free, so it never interrupts a change in progress. The wire value is used only as the signal to go and look; the scrape stays the single source of the configured target. The previously undocumented `--chlorinator-setpoint-refresh-interval` is now in [docs/configuration.md](docs/configuration.md).
 
 ## [0.17.0-beta.1] - 2026-10-13
 

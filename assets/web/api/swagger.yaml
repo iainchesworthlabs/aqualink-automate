@@ -3524,6 +3524,15 @@ components:
                     (resolves to pool_setpoint_percent or spa_setpoint_percent; falls back to the last-known
                     generating percentage when no menu scrape is available). Null when no setpoint is known.
                   example: 45
+                setpoints_cached:
+                  type: boolean
+                  description: >-
+                    True while a reported pool_setpoint_percent / spa_setpoint_percent is still the value
+                    remembered from the last run (restored from the equipment cache) and has not yet been
+                    confirmed by reading the panel or by a command from this app. The panel may have been
+                    changed in the meantime, so a client should present the target as "last known".
+                    False once both reported targets are live.
+                  example: false
                 status:
                   type: string
                   description: Chlorinator operating status

@@ -1828,6 +1828,9 @@ html.dark .gauge-card { border-color: var(--border); }
    warning colour so a genuine problem still stands out. */
 .swg-reason { font: 500 11.5px/1.35 var(--font-ui); color: var(--warn); margin-top: 4px; }
 .swg-reason.is-idle { color: var(--text-faint); }
+/* The shown targets are remembered, not yet confirmed by the panel. Muted: informational. */
+.swg-cached-note { font: 500 11.5px/1.35 var(--font-ui); color: var(--text-faint); margin-top: 6px; }
+.kv-note { color: var(--text-faint); font-weight: 500; }
 /* Secondary flags list under the primary badge, shown only when the cell's status byte
    reports more than one active flag at once. */
 .swg-health-flags { display: block; font: 500 11px/1.35 var(--font-ui); color: var(--text-faint); margin-top: 2px; }

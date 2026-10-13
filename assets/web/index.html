@@ -1356,6 +1356,7 @@
                             </template>
                         </div>
                     </template>
+                    <div class="swg-cached-note" x-show="setpointsCached" x-cloak x-text="$t('dash.targets_cached')"></div>
                     <div class="swg-actions">
                         <template x-if="$store.auth.can('equipment.control.chlorinator')">
                             <div class="swg-actions-inner">
@@ -1433,6 +1434,7 @@
                                     :disabled="locked || !changed(body)" x-text="$t('dash.set')"></button>
                         </div>
                     </template>
+                    <div class="swg-cached-note" x-show="setpointsCached && $store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('dash.targets_cached')"></div>
                 </div>
             </div>
             </template>
@@ -1609,7 +1611,7 @@
                         <template x-if="$store.pool.chlorinatorPresent">
                             <div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_output')"></span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($n($store.pool.swgGeneratingPercent) + ' %')"></span></div>
-                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v" x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($n($store.pool.swgSetpointPercent) + ' %')"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v"><span x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($n($store.pool.swgSetpointPercent) + ' %')"></span> <small class="kv-note" x-show="$store.pool.swgSetpointsCached" x-cloak x-text="$t('detail.last_known')"></small></span></div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_health')"></span><span class="kv-v" x-text="$store.pool.chlorinatorHealthLabel || $store.pool.chlorinatorHealth"></span></div>
                             </div>
                         </template>

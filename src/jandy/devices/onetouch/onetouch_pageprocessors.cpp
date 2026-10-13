@@ -547,11 +547,13 @@ namespace AqualinkAutomate::Devices
 		if (pool_pct.has_value())
 		{
 			device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, pool_pct.value());
+			m_DataHub->ConfirmChlorinatorSetpoint(Kernel::BodyOfWaterIds::Pool);
 			LogDebug(Channel::Devices, [this, &pool_pct]() { return std::format("OneTouch ({}): scraped configured Pool chlorinator setpoint -> {}%", DeviceId(), pool_pct.value()); });
 		}
 		if (spa_pct.has_value())
 		{
 			device->AuxillaryTraits.Set(ChlorinatorSpaSetpointTrait{}, spa_pct.value());
+			m_DataHub->ConfirmChlorinatorSetpoint(Kernel::BodyOfWaterIds::Spa);
 			LogDebug(Channel::Devices, [this, &spa_pct]() { return std::format("OneTouch ({}): scraped configured Spa chlorinator setpoint -> {}%", DeviceId(), spa_pct.value()); });
 		}
 	}

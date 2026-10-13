@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0-beta.2
+
+- **The chlorinator target sliders work again right after you press Set.** The previous release froze both Pool and Spa sliders (and could leave them frozen for 45 seconds) while the panel applied a change, which looked like the target could no longer be changed. The sliders now stay usable; **Set** and **Boost** still wait for the panel, and give up sooner when the panel can't confirm (for example with the pump off).
+- **A target changed at the panel or in iAqualink now shows up within seconds.** Before, the dashboard could keep showing the old target for up to five minutes until the next background check. The add-on now notices when the panel is running a different output than the target it shows and re-reads it straight away.
+- **After a restart the dashboard remembers the last targets.** Instead of "target is not reported yet" until the add-on has re-read the panel, it shows the last known Pool and Spa targets, marked "Last known targets - waiting for the panel to confirm", and replaces them as soon as the panel confirms.
+
 ## 0.17.0-beta.1
 
 - **New diagnostics options: "Also write a log file" and "Log channel levels".** The Log tab only keeps a short window and its lines have no clock time. Turn on `log_to_file` to also get a rotating, timestamped JSON log (about 50 MB at most) in the add-on's config folder under `logs/` — browsable with Samba or the File editor and kept across restarts. `log_channels` raises just the areas you name (for example `devices=debug,navigation=debug`) instead of turning the whole add-on to debug, which floods the Log tab.

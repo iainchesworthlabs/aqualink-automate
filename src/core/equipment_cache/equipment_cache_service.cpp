@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -86,6 +87,17 @@ namespace AqualinkAutomate::EquipmentCache
 			if (device->AuxillaryTraits.Has(Traits::PumpTypeTrait{}))
 			{
 				d["pump_type"] = std::string{ magic_enum::enum_name(*(device->AuxillaryTraits[Traits::PumpTypeTrait{}])) };
+			}
+			// A chlorinator's configured Pool/Spa targets. They can only be read by scraping a menu
+			// page, so keep the last known values: a restart then has something to show (flagged as
+			// cached, see DataHub::MarkChlorinatorSetpointCached) instead of "not reported yet".
+			if (device->AuxillaryTraits.Has(Traits::ChlorinatorPoolSetpointTrait{}))
+			{
+				d["pool_setpoint_percent"] = static_cast<std::uint32_t>(*(device->AuxillaryTraits[Traits::ChlorinatorPoolSetpointTrait{}]));
+			}
+			if (device->AuxillaryTraits.Has(Traits::ChlorinatorSpaSetpointTrait{}))
+			{
+				d["spa_setpoint_percent"] = static_cast<std::uint32_t>(*(device->AuxillaryTraits[Traits::ChlorinatorSpaSetpointTrait{}]));
 			}
 
 			devices.push_back(std::move(d));
@@ -184,7 +196,26 @@ namespace AqualinkAutomate::EquipmentCache
 			}
 		}
 
+		// Last-known chlorinator targets. Flag them as cached: they are what the panel held when
+		// the app last ran, and stay "unconfirmed" until a live scrape or a command replaces them.
+		const auto restore_setpoint = [&device](const nlohmann::json& source, const char* key, auto trait) -> bool
+		{
+			if (!source.contains(key) || !source[key].is_number_integer()) { return false; }
+
+			const auto value = source[key].get<std::int64_t>();
+			if (value < 0 || value > 100) { return false; }
+
+			device->AuxillaryTraits.Set(trait, static_cast<std::uint8_t>(value));
+			return true;
+		};
+		const bool pool_restored = restore_setpoint(d, "pool_setpoint_percent", Traits::ChlorinatorPoolSetpointTrait{});
+		const bool spa_restored = restore_setpoint(d, "spa_setpoint_percent", Traits::ChlorinatorSpaSetpointTrait{});
+
 		m_DataHub->Devices.Add(std::move(device));
+
+		if (pool_restored) { m_DataHub->MarkChlorinatorSetpointCached(Kernel::BodyOfWaterIds::Pool); }
+		if (spa_restored) { m_DataHub->MarkChlorinatorSetpointCached(Kernel::BodyOfWaterIds::Spa); }
+
 		return true;
 	}
 
@@ -306,6 +337,17 @@ namespace AqualinkAutomate::EquipmentCache
 			if (device->AuxillaryTraits.Has(Traits::HardwareLabelTrait{}))
 			{
 				part += std::string{ *(device->AuxillaryTraits[Traits::HardwareLabelTrait{}]) };
+			}
+			// A changed chlorinator target must reach the file too, not just a changed device set.
+			part += '/';
+			if (device->AuxillaryTraits.Has(Traits::ChlorinatorPoolSetpointTrait{}))
+			{
+				part += std::to_string(static_cast<unsigned>(*(device->AuxillaryTraits[Traits::ChlorinatorPoolSetpointTrait{}])));
+			}
+			part += '/';
+			if (device->AuxillaryTraits.Has(Traits::ChlorinatorSpaSetpointTrait{}))
+			{
+				part += std::to_string(static_cast<unsigned>(*(device->AuxillaryTraits[Traits::ChlorinatorSpaSetpointTrait{}])));
 			}
 			device_parts.push_back(std::move(part));
 		}
