@@ -82,7 +82,26 @@ configuration:
     name: Log level
     description: >-
       Logging verbosity. Output appears in this add-on's Log tab. Use "debug" or
-      "trace" only when diagnosing an issue.
+      "trace" only when diagnosing an issue. To raise just one area without flooding
+      the log, leave this at "info" and use "Log channel levels" below.
+  log_to_file:
+    name: Also write a log file
+    description: >-
+      Off by default. When on, also writes a rotating JSON log file (about 50 MB at
+      most, with a timestamp on every line) to the add-on's config folder under
+      logs/, in addition to the Log tab. It survives restarts and updates, and you can
+      open it with the Samba or File editor add-ons. Use it when the Log tab's short
+      window is not enough to diagnose a problem.
+  log_channels:
+    name: Log channel levels (advanced)
+    description: >-
+      Optional. Raise the logging of individual areas without turning the whole add-on
+      to debug: a comma-separated list of channel=level, for example
+      "devices=debug,navigation=debug". Channels: certificates, coroutines, developer,
+      devices, equipment, exceptions, main, messages, mqtt, navigation, options,
+      platform, profiling, protocol, scraping, serial, signals, web. Levels: trace,
+      debug, info, notify, warning, error, fatal. Unknown entries are skipped with a
+      warning in the Log tab.
   enable_history:
     name: Enable app history
     description: >-

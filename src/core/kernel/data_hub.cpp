@@ -9,6 +9,9 @@
 #include "profiling/factories/profiling_unit_factory.h"
 #include "utility/case_insensitive_comparision.h"
 
+#include <algorithm>
+#include <cctype>
+#include <magic_enum/magic_enum.hpp>
 #include <source_location>
 
 namespace AqualinkAutomate::Kernel
@@ -689,6 +692,36 @@ namespace AqualinkAutomate::Kernel
 		return pumps.front();
 	}
 
+	std::size_t DataHub::AdoptUntypedFilterPumps()
+	{
+		using namespace AuxillaryTraitsTypes;
+
+		const auto equals_ignoring_case = [](const std::string& lhs, const std::string& rhs)
+		{
+			return std::ranges::equal(lhs, rhs, [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
+		};
+
+		std::size_t adopted{ 0 };
+
+		for (const auto& pump : Pumps())
+		{
+			if (pump->AuxillaryTraits.Has(PumpTypeTrait{}))
+			{
+				continue;
+			}
+
+			if (auto label = pump->AuxillaryTraits.TryGet(LabelTrait{}); label.has_value() && equals_ignoring_case(label.value(), LabelTrait::COMMON_LABEL_FILTER_PUMP))
+			{
+				pump->AuxillaryTraits.Set(PumpTypeTrait{}, PumpTypes::FilterCirculation);
+				++adopted;
+
+				LogInfo(Channel::Equipment, "DataHub: adopted an untyped 'Filter Pump' device as the filter circulation pump");
+			}
+		}
+
+		return adopted;
+	}
+
 	std::optional<bool> DataHub::AnyFilterPumpRunning() const
 	{
 		const auto pumps = FilterPumps();
@@ -765,6 +798,106 @@ namespace AqualinkAutomate::Kernel
 		context.FilterPumpRunning = AnyFilterPumpRunning();
 
 		return ResolveGeneratingReason(context);
+	}
+
+	nlohmann::json DataHub::ChlorinatorSnapshot() const
+	{
+		using namespace AuxillaryTraitsTypes;
+
+		const auto chlorinators = Chlorinators();
+		if (chlorinators.empty())
+		{
+			return nlohmann::json{};
+		}
+
+		const auto& device = chlorinators.front();
+		nlohmann::json chlorinator;
+
+		chlorinator["generating_percent"] = device->AuxillaryTraits.Has(GeneratingPercentageTrait{})
+			? nlohmann::json(static_cast<uint8_t>(*(device->AuxillaryTraits[GeneratingPercentageTrait{}])))
+			: nlohmann::json{};
+
+		chlorinator["duty_cycle"] = device->AuxillaryTraits.Has(DutyCycleTrait{})
+			? nlohmann::json(static_cast<uint8_t>(*(device->AuxillaryTraits[DutyCycleTrait{}])))
+			: nlohmann::json{};
+
+		chlorinator["status"] = device->AuxillaryTraits.Has(ChlorinatorStatusTrait{})
+			? nlohmann::json(std::string{ magic_enum::enum_name(*(device->AuxillaryTraits[ChlorinatorStatusTrait{}])) })
+			: nlohmann::json(std::string{ magic_enum::enum_name(ChlorinatorStatuses::Unknown) });
+
+		chlorinator["health"] = device->AuxillaryTraits.Has(ChlorinatorHealthTrait{})
+			? nlohmann::json(std::string{ magic_enum::enum_name(*(device->AuxillaryTraits[ChlorinatorHealthTrait{}])) })
+			: nlohmann::json(std::string{ magic_enum::enum_name(ChlorinatorHealth::Unknown) });
+
+		// Every health flag currently active simultaneously (the wire status byte is a true
+		// bitfield, so e.g. low salt and high current can both be set at once). "health" above
+		// remains the single worst-of-the-set value for backward compatibility; this carries the
+		// full set. Falls back to ["Unknown"] to mirror "health"'s own Unknown fallback.
+		{
+			nlohmann::json health_flags = nlohmann::json::array();
+			if (device->AuxillaryTraits.Has(ChlorinatorHealthFlagsTrait{}))
+			{
+				for (const auto flag : *(device->AuxillaryTraits[ChlorinatorHealthFlagsTrait{}]))
+				{
+					health_flags.push_back(std::string{ magic_enum::enum_name(flag) });
+				}
+			}
+			else
+			{
+				health_flags.push_back(std::string{ magic_enum::enum_name(ChlorinatorHealth::Unknown) });
+			}
+			chlorinator["health_flags"] = std::move(health_flags);
+		}
+
+		// Configured Pool / Spa output setpoints (scraped from the Set AquaPure menu, or written
+		// through by a command), distinct from generating_percent (the instantaneous output).
+		const auto pool_setpoint = device->AuxillaryTraits.Has(ChlorinatorPoolSetpointTrait{})
+			? std::optional<uint8_t>(static_cast<uint8_t>(*(device->AuxillaryTraits[ChlorinatorPoolSetpointTrait{}])))
+			: std::nullopt;
+		const auto spa_setpoint = device->AuxillaryTraits.Has(ChlorinatorSpaSetpointTrait{})
+			? std::optional<uint8_t>(static_cast<uint8_t>(*(device->AuxillaryTraits[ChlorinatorSpaSetpointTrait{}])))
+			: std::nullopt;
+
+		chlorinator["pool_setpoint_percent"] = pool_setpoint.has_value() ? nlohmann::json(pool_setpoint.value()) : nlohmann::json{};
+		chlorinator["spa_setpoint_percent"] = spa_setpoint.has_value() ? nlohmann::json(spa_setpoint.value()) : nlohmann::json{};
+
+		// Headline target = the configured setpoint of whichever body is currently active,
+		// falling back to the other body's value, then to the passive last-known generating %.
+		const auto resolved_setpoint = ChlorinatorResolvedSetpoint(*device);
+		chlorinator["setpoint_percent"] = resolved_setpoint.has_value() ? nlohmann::json(resolved_setpoint.value()) : nlohmann::json{};
+
+		// WHY the cell is (or is not) producing; derived once here so the web UI, MQTT and Home
+		// Assistant all tell the same story.
+		chlorinator["generating_reason"] = std::string{ magic_enum::enum_name(ResolveChlorinatorGeneratingReason(*device)) };
+
+		return chlorinator;
+	}
+
+	bool DataHub::PublishChlorinatorStateIfChanged()
+	{
+		auto snapshot = ChlorinatorSnapshot();
+
+		if (m_LastPublishedChlorinator.has_value() && (*m_LastPublishedChlorinator == snapshot))
+		{
+			return false;
+		}
+
+		// First observation with no chlorinator discovered: there is nothing to tell clients
+		// (they already render the absence), so record the baseline without emitting.
+		const bool first_and_absent = !m_LastPublishedChlorinator.has_value() && snapshot.is_null();
+		m_LastPublishedChlorinator = snapshot;
+
+		if (first_and_absent)
+		{
+			return false;
+		}
+
+		EmitChemistryEvent([&snapshot](DataHub_ConfigEvent_Chemistry& update_event)
+			{
+				update_event.Chlorinator(snapshot);
+			});
+
+		return true;
 	}
 
 	void DataHub::SetSpaSwitchAssignment(uint8_t switch_number, uint8_t button_number, std::string_view function)

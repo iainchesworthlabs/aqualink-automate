@@ -107,7 +107,7 @@ response format string is the record's bound `[rec+0x0c]`). Full recovered list:
 | keyword | response template | cite |
 |---------|-------------------|------|
 | `MODEL` | `MODEL = %d` | `!0x4296c0` |
-| `OPTIONS` | `OPTIONS = %d` (a bit-mask — see [OPTIONS bit map](#141-options-bit-map)) | `!0x4296d0` |
+| `OPTIONS` | `OPTIONS = %d` (a bit-mask — see [OPTIONS bit map](#141-options-bit-map-manual-confirmed-for-bits-0-4-and-7-bit-6-capture-gated)) | `!0x4296d0` |
 | `OPMODE` | `OPMODE = %s` (AUTO/SERVICE/TIMEOUT/UNKNOWN) | `!0x4296f0`, enums `!0x42960c…0x429624` |
 | `UNITS` | `UNITS = %c` | `!0x429700` |
 | `POOLSP` / `POOLSP2` | `POOLSP = %u %c` / `POOLSP2 = %u %c` | `!0x429710`, `!0x429720` |

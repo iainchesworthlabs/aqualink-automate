@@ -1898,6 +1898,11 @@ html.dark .gauge-card { border-color: var(--border); }
 .cmd-applied  { background: oklch(0.78 0.12 162 / .18); color: var(--good); }
 .cmd-rejected { background: oklch(0.68 0.16 25 / .18);  color: var(--bad); }
 .cmd-timedout { background: oklch(0.83 0.11 82 / .18);  color: var(--warn); }
+/* A command the server accepted that the panel has not yet been seen to apply (the menu walk
+   takes ~10-20 s). Neutral, not a warning: nothing is wrong yet. */
+.cmd-pending  { background: var(--surface-2);           color: var(--text-dim); }
+/* The refusal reason ("still being applied...") is a sentence, not a one-word state. */
+.cmd-reason   { white-space: normal; max-width: 22em; line-height: 1.3; }
 .cmd-blocked  { background: var(--surface-3); color: var(--text-dim); }
 .cmd-spinner { border-color: var(--accent); border-right-color: transparent; }
 

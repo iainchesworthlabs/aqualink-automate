@@ -33,11 +33,17 @@ using namespace AqualinkAutomate;
 namespace
 {
 	// Pump the cooperative io_context in short slices until `pred` holds or the
-	// iteration budget is exhausted (see test_mqtt_client.cpp).
+	// iteration budget is exhausted (see test_mqtt_client.cpp). The budget is
+	// generous because a GitHub-hosted fallback runner (e.g. a Dependabot PR,
+	// which cannot reach the self-hosted fleet) has far less headroom than the
+	// self-hosted big runner these were tuned against - see
+	// Test_Reconnect_ZeroBackoff_RetriesAfterRefusedHandshake below, which drives
+	// several real refused-connect round trips and was observed missing a ~2s
+	// budget under hosted-runner load despite the client behaving correctly.
 	template <class Pred>
 	bool RunUntil(boost::asio::io_context& ioc, Pred pred)
 	{
-		for (int i = 0; i < 400; ++i)   // ~400 * 5ms = up to ~2s
+		for (int i = 0; i < 2000; ++i)   // ~2000 * 5ms = up to ~10s
 		{
 			if (pred()) { return true; }
 			ioc.run_for(std::chrono::milliseconds(5));

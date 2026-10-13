@@ -348,6 +348,7 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 
 				log_runtime_config.GeneralNativeFacility = log_settings.Facility;
 				log_runtime_config.Format = log_settings.Format;
+				log_runtime_config.FileFormat = log_settings.FileFormat;
 				log_runtime_config.LogFilePath = log_settings.LogFile;
 				log_runtime_config.LogFileMaxBytes = log_settings.LogFileMaxBytes;
 				log_runtime_config.LogFileMaxFiles = log_settings.LogFileMaxFiles;
@@ -1244,6 +1245,14 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 		// at the fixed processing period so playback runs at the bus's natural rate.
 		const auto frame_period = replay_paced ? replay_frame_period : std::chrono::microseconds(1000);
 
+		// The chlorinator's state is written straight into per-device traits by several paths
+		// (AquaRite wire frames, the menu scrape, command write-through), none of which announces
+		// a change. Sweep it once a second and push one event when it actually differs, so the web
+		// UI and MQTT/Home Assistant learn of it without a REST re-fetch (change-guarded: an
+		// unchanged state emits nothing).
+		constexpr auto chlorinator_push_period = std::chrono::seconds(1);
+		auto next_chlorinator_push = clock::now();
+
 		bool shutdown = false;
 		boost::asio::signal_set shutdown_signals(io_context, SIGINT, SIGTERM);
 		shutdown_signals.async_wait([&shutdown](const boost::system::error_code&, int signum)
@@ -1310,6 +1319,14 @@ static int RunApplication(int argc, char* argv[], const Application::AppHostHook
 			{
 				auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("main -> watchdogs", std::source_location::current());
 				Devices::Capabilities::Restartable::PollAll();
+			}
+
+			// Publish any chlorinator change to WebSocket/MQTT clients (at most once a second).
+			if (frame_start >= next_chlorinator_push)
+			{
+				auto zone = Factory::ProfilingUnitFactory::Instance().CreateZone("main -> chlorinator_push", std::source_location::current());
+				data_hub->PublishChlorinatorStateIfChanged();
+				next_chlorinator_push = frame_start + chlorinator_push_period;
 			}
 
 			// The HTTP/WS/MQTT Poll() calls queue fresh async work (notably

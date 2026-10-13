@@ -86,7 +86,7 @@ void Reconfigure(const RuntimeConfig& config)
 			.Path = *config.LogFilePath,
 			.MaxFileBytes = config.LogFileMaxBytes,
 			.MaxFiles = config.LogFileMaxFiles,
-			.Format = config.Format }));
+			.Format = config.FileFormat.value_or(config.Format) }));
 	}
 }
 

@@ -203,8 +203,8 @@ jobs:
       # QEMU lets buildx assemble the linux/arm64 image on the x64 runner. The
       # runtime-assembled stage only unpacks a prebuilt tarball (no compilation), so
       # the emulated work is trivial.
-      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       # The Dockerfile's base images (ubuntu:26.04, node:24-bookworm-slim) are
       # pulled from Docker Hub. Anonymous pulls share the runner's egress IP and
@@ -249,7 +249,7 @@ jobs:
       # build-packages in the glibc-2.36 container) into the build context so the
       # runtime-assembled stage copies each straight in — NO vcpkg/source recompile.
       - name: Download Linux install trees (amd64 + arm64)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: installtree-linux-gcc*
           path: docker/context-dl
@@ -327,7 +327,7 @@ jobs:
 
       # SBOM of the published multi-arch image (scans the image by digest → SPDX).
       - name: Generate image SBOM (SPDX)
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           image: ghcr.io/${{ github.repository }}@${{ steps.digest.outputs.digest }}
           format: spdx-json
@@ -410,8 +410,8 @@ jobs:
 
       # QEMU lets buildx assemble the linux/arm64 wrapper on the x64 runner. The layer
       # is just apt (jq) + a bashio tarball + run.sh, so the emulated work is light.
-      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
@@ -518,7 +518,7 @@ jobs:
       # actions/download-artifact has no Node 24 release yet, so it stays on v4
       # (bumping would not clear the Node 20 warning and risks breaking changes).
       - name: Download all package artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: release-artifacts
           pattern: packages-*
@@ -600,7 +600,7 @@ jobs:
       # docker-publish is the authoritative one for the container; this covers the
       # loose downloads.)
       - name: Generate release SBOM (SPDX)
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           path: release-artifacts
           format: spdx-json

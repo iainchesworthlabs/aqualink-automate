@@ -1,4 +1,4 @@
-# .gitignore for Aqualink Automate (C++23 / CMake / vcpkg, with Node + MkDocs tooling)
+# .gitignore for Aqualink Automate (C++23 / CMake / vcpkg, with Node + Zensical docs tooling)
 # Keep this file lean and project-relevant. Group by concern; comment non-obvious rules.
 
 # ── Build output ────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ playwright-report/
 playwright/.cache/
 blob-report/
 
-# ── MkDocs build output (published to gh-pages by docs.yml) ──────────────────
+# ── Zensical build output (published to gh-pages by docs.yml) ────────────────
 /site/
 
 # ── Python (seed-corpus / helper scripts) ───────────────────────────────────

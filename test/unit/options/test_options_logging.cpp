@@ -166,6 +166,37 @@ BOOST_AUTO_TEST_CASE(Format_InvalidValueFailsValidation)
 	BOOST_CHECK(!processor.Process(vm).has_value());
 }
 
+BOOST_AUTO_TEST_CASE(FileFormat_UnsetByDefault_SoFileFollowsLogFormat)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program", "--log-format", "json" });
+
+	auto result = processor.Process(vm);
+	BOOST_REQUIRE(result.has_value());
+	BOOST_CHECK(result->Format == Logging::LogFormat::Json);
+	// No --log-file-format: the override stays unset so the file sink inherits Format.
+	BOOST_CHECK(!result->FileFormat.has_value());
+}
+
+BOOST_AUTO_TEST_CASE(FileFormat_OverridesFileSinkIndependentlyOfConsoleFormat)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program", "--log-format", "text", "--log-file-format", " JSON " });
+
+	auto result = processor.Process(vm);
+	BOOST_REQUIRE(result.has_value());
+	BOOST_CHECK(result->Format == Logging::LogFormat::Text);
+	BOOST_REQUIRE(result->FileFormat.has_value());
+	BOOST_CHECK(*result->FileFormat == Logging::LogFormat::Json);
+}
+
+BOOST_AUTO_TEST_CASE(FileFormat_InvalidValueFailsValidation)
+{
+	Options::LogSinks::OptionsProcessor processor;
+	auto vm = ParseLoggingOptions(processor, { "program", "--log-file-format", "yaml" });
+	BOOST_CHECK(!processor.Process(vm).has_value());
+}
+
 BOOST_AUTO_TEST_CASE(LogFile_SetsPathAndRotationBounds)
 {
 	Options::LogSinks::OptionsProcessor processor;

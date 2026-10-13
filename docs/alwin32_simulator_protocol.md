@@ -14,7 +14,7 @@ capture guess — where it overlaps existing project notes it **confirms** them;
 inferences are flagged.
 
 **Per-device deep-dives (full byte-level detail + RVA citations) live in [`docs/alwin32/`](alwin32/):**
-[chlorinator](#5-device-catalogue) is worked inline below; pumps
+[chlorinator](#device-catalogue-one-line-summary-see-linked-files-for-byte-layouts) is worked inline below; pumps
 ([epump.md](alwin32/epump.md), [iflo.md](alwin32/iflo.md)), heaters
 ([heaters.md](alwin32/heaters.md), [aquatemp-wtrmatic.md](alwin32/aquatemp-wtrmatic.md)),
 accessories ([lpc4-remaux.md](alwin32/lpc4-remaux.md), [panels.md](alwin32/panels.md)), and

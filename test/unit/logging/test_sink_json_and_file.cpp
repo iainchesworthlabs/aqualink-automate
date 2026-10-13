@@ -17,6 +17,7 @@
 #include "logging/logging.h"
 #include "logging/logging_channels.h"
 #include "logging/logging_formatter.h"
+#include "logging/logging_initialise.h"
 #include "logging/logging_severity_filter.h"
 #include "logging/logging_severity_levels.h"
 #include "logging/sinks/sink_console.h"
@@ -214,6 +215,80 @@ BOOST_FIXTURE_TEST_CASE(File_JsonFormat_ProducesParseableLines, TempDirFixture, 
 	const auto entry = nlohmann::json::parse(line);
 	BOOST_TEST(entry.value("message", "") == "json to file");
 	BOOST_TEST(entry.value("channel", "") == "Web");
+}
+
+//-----------------------------------------------------------------------------
+// Reconfigure: the file sink's format is independent of the console's
+//-----------------------------------------------------------------------------
+
+namespace
+{
+	// First non-empty line of whichever file under `dir` holds content (closing the
+	// sink rotates the active file to a rotated name, so the active name is unreliable).
+	std::string FirstLogLine(const fs::path& dir)
+	{
+		for (const auto& file : fs::directory_iterator(dir))
+		{
+			std::ifstream stream(file.path());
+			std::string first;
+			std::getline(stream, first);
+			if (!first.empty())
+			{
+				return first;
+			}
+		}
+		return {};
+	}
+
+	RuntimeConfig FileOnlyConfig(const fs::path& log_path, LogFormat console_format)
+	{
+		RuntimeConfig config;
+		config.Selection.Console = false;
+		config.Selection.Native = false;
+		config.Selection.Journald = false;
+		config.Selection.File = true;
+		config.Format = console_format;
+		config.LogFilePath = log_path;
+		return config;
+	}
+}
+
+BOOST_FIXTURE_TEST_CASE(Reconfigure_FileFormatOverride_WritesJsonWhileFormatIsText, TempDirFixture, *boost::unit_test::label("unit"))
+{
+	auto config = FileOnlyConfig(Dir / "app.log", LogFormat::Text);
+	config.FileFormat = LogFormat::Json;
+	Reconfigure(config);
+
+	LogInfo(Channel::Devices, "json despite a text console format");
+	SinkRegistry::FlushAll();
+	SinkRegistry::RemoveAll();
+
+	const auto line = FirstLogLine(Dir);
+	BOOST_REQUIRE(!line.empty());
+
+	// The override makes the file JSON-lines with a wall-clock timestamp -- the field the
+	// text format lacks and the reason an operator needs this option.
+	const auto entry = nlohmann::json::parse(line);
+	BOOST_TEST(entry.value("message", "") == "json despite a text console format");
+	BOOST_TEST(entry.value("channel", "") == "Devices");
+	BOOST_TEST(entry.contains("ts"));
+}
+
+BOOST_FIXTURE_TEST_CASE(Reconfigure_NoFileFormat_FileFollowsFormat, TempDirFixture, *boost::unit_test::label("unit"))
+{
+	auto config = FileOnlyConfig(Dir / "app.log", LogFormat::Text);
+	Reconfigure(config);
+
+	LogInfo(Channel::Devices, "plain text record");
+	SinkRegistry::FlushAll();
+	SinkRegistry::RemoveAll();
+
+	const auto line = FirstLogLine(Dir);
+	BOOST_REQUIRE(!line.empty());
+
+	// Unset FileFormat preserves existing behaviour: the file is text, not JSON.
+	BOOST_TEST(!line.starts_with('{'));
+	BOOST_TEST(line.find("plain text record") != std::string::npos);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

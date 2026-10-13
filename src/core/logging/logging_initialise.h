@@ -31,6 +31,9 @@ namespace AqualinkAutomate::Logging
 		LogFormat Format = LogFormat::Text;
 
 		// File sink: only installed when Selection.File is set and a path is present.
+		// FileFormat overrides Format for the file sink alone (e.g. a readable text console
+		// alongside a timestamped JSON-lines file); unset => the file follows Format.
+		std::optional<LogFormat> FileFormat;
 		std::optional<std::filesystem::path> LogFilePath;
 		std::uintmax_t LogFileMaxBytes = 10ULL * 1024ULL * 1024ULL;
 		std::size_t LogFileMaxFiles = 5;

@@ -86,6 +86,8 @@
         'cmd.blocked': 'ブロック',
         'cmd.failed': '失敗',
         'cmd.set_ok': '設定 ✓',
+        'cmd.applying': '適用中…',
+        'cmd.sent': '送信済み — パネルの応答待ち',
 
         // ---- Navigation -------------------------------------------------------
         'nav.dashboard': 'ダッシュボード',

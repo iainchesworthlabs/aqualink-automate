@@ -76,7 +76,10 @@ The options form maps directly onto the application's settings (full reference:
   (persisted under `/data`). UI preferences and an equipment cache are always persisted
   under `/data`.
 - **Logging** — `log_level` (`info` / `debug` / `trace`); output appears in the add-on's
-  **Log** tab (the app logs to stdout).
+  **Log** tab (the app logs to stdout). Two opt-in diagnostics options sit beside it:
+  `log_channels` raises individual channels (`devices=debug,navigation=debug`) without
+  flooding the log, and `log_to_file` adds a rotating timestamped JSON log file. See
+  [Debugging a live add-on](#debugging-a-live-add-on).
 - **Home Assistant companion package** — `install_companion_package` (off by default)
   copies the add-on's bundled [companion blueprints](homeassistant-companion.md) straight
   into Home Assistant's `blueprints/` folder on every start, so they appear under
@@ -99,10 +102,12 @@ workflow that most needs the file afterwards — so `run.sh` pins it:
 ```
 
 `/config` in the container is the add-on's **`app_config`** map, so captures land on
-the host at `/app_configs/aqualink_automate/captures` (`/addon_configs/…` before
-Supervisor 2026.07). That path is read-write, survives restarts and add-on updates,
-and is browsable with the **Samba** or **File editor** add-ons — no Terminal & SSH,
-no Protection-mode toggle, no `docker cp`.
+the host at `/app_configs/<slug>/captures` (`/addon_configs/…` before Supervisor
+2026.07), where `<slug>` is the add-on's slug from its **Info** page — for a custom
+repository it carries a repository prefix, e.g. `13e07eae_aqualink_automate_edge`.
+That path is read-write, survives restarts and add-on updates, and is browsable with
+the **Samba** or **File editor** add-ons — no Terminal & SSH, no Protection-mode
+toggle, no `docker cp`.
 
 `app_config` is used rather than `share` on purpose: it is already mapped (adding a
 `share` map would ask the user for a broader, cross-add-on permission this feature
@@ -114,6 +119,40 @@ The Diagnostics page also lists the captures already on the server and offers a
 nor shell. Captures over 64 MiB are refused by the download route (the response is
 buffered) — copy those from the share instead. Full detail:
 [Serial record / replay](RECORD_REPLAY.md).
+
+## Debugging a live add-on
+
+The add-on is a container, so there is no shell to attach to and no second copy to run
+beside it — but nothing here requires stopping it either. The tools below are ordered
+by cost; each is configured from the add-on, none needs a rebuild.
+
+| Need | Use | Persists across restart? |
+|---|---|---|
+| A quick look at what it is doing | The add-on **Log** tab. Routine web requests are logged only at `debug`, so `info` is mostly operational events. | Window only |
+| More detail from one area, right now | **Diagnostics → Log Levels** in the web UI (`POST /api/diagnostics/logging`): per-channel, applied live, no restart. | No — in memory only |
+| The same, but surviving a restart | `log_channels`, e.g. `devices=debug,navigation=debug` → the app's `--loglevel-<channel>` flags. Applied after `log_level`, so a channel entry wins over the global level. | Yes |
+| A long, timestamped history | `log_to_file` → `--log-file /config/logs/aqualink-automate.log --log-file-format json`. Rotating and size-bounded (the app defaults, ~50 MiB); the Log tab keeps its readable text format. | Yes |
+| What actually crossed the RS-485 bus | **Diagnostics → Serial Recording** → a `.cap` under `/config/captures` (above), replayable offline with `--dev-mode --replay-filename` ([Record / replay](RECORD_REPLAY.md)). | Yes |
+
+Two practical points:
+
+- **Prefer `log_channels` to `log_level: debug`.** At global `debug` the per-frame
+  `serial`, `protocol` and `messages` channels roll the Log tab's short window in
+  seconds, which hides the lines you came for. The `.cap` capture records the bytes
+  regardless of log level, so the log only needs the *decisions* (`devices`,
+  `navigation`, `scraping`).
+- **Text log lines carry no wall-clock time** — only a per-process sequence number —
+  so correlating a log line with a capture or a Home Assistant history graph needs the
+  file log (`log_to_file`), whose JSON records carry a `ts`.
+
+**Reproducing a field problem on a development machine.** Record a capture in the
+add-on, download it from the Serial Recording card, and replay it through a local build
+(`--dev-mode --replay-filename <file>.cap`); the replay drives the same decode and
+command paths without touching the pool. Attaching a debugger to the *live* add-on is
+not supported. If you do need to step through code against the real panel and your
+adapter is a network serial server (`rfc2217` / `rawtcp`), stop the add-on and point a
+local build at the same `host:port` — never run both at once, since two emulations
+would contend for the same bus addresses.
 
 ## Notes
 

@@ -1,6 +1,7 @@
 #include <cctype>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -26,6 +27,21 @@ namespace
 			out.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(token[i]))));
 		}
 		return out;
+	}
+
+	// Maps a (case/whitespace-insensitive) format token to a LogFormat; nullopt if unknown.
+	std::optional<AqualinkAutomate::Logging::LogFormat> ParseLogFormat(std::string_view token)
+	{
+		const auto normalised = NormaliseToken(token);
+		if (normalised == "text")
+		{
+			return AqualinkAutomate::Logging::LogFormat::Text;
+		}
+		if (normalised == "json")
+		{
+			return AqualinkAutomate::Logging::LogFormat::Json;
+		}
+		return std::nullopt;
 	}
 
 	// Applies a single normalised sink token to the settings flags.
@@ -105,19 +121,24 @@ namespace AqualinkAutomate::Options::LogSinks
 		// Format carries a default (text). text | json.
 		if (OPTION_LOGFORMAT->IsPresent(vm))
 		{
-			const auto format = NormaliseToken(OPTION_LOGFORMAT->As<std::string>(vm));
-			if (format == "text")
-			{
-				settings.Format = AqualinkAutomate::Logging::LogFormat::Text;
-			}
-			else if (format == "json")
-			{
-				settings.Format = AqualinkAutomate::Logging::LogFormat::Json;
-			}
-			else
+			const auto format = ParseLogFormat(OPTION_LOGFORMAT->As<std::string>(vm));
+			if (!format.has_value())
 			{
 				return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
 			}
+			settings.Format = *format;
+		}
+
+		// File-sink format override: no default, so absence leaves FileFormat unset and the
+		// file follows --log-format. text | json.
+		if (OPTION_LOGFILEFORMAT->IsPresent(vm))
+		{
+			const auto file_format = ParseLogFormat(OPTION_LOGFILEFORMAT->As<std::string>(vm));
+			if (!file_format.has_value())
+			{
+				return std::unexpected(ErrorCodes::Options_ErrorCodes::OptionsValidationFailed);
+			}
+			settings.FileFormat = file_format;
 		}
 
 		// File sink target + rotation bounds (max-size / max-files carry defaults).

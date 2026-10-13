@@ -14,7 +14,10 @@
 {% endblock %}
 
 {% block content %}
-  {% if page.is_homepage %}
+  {# page.is_homepage covers Material; Zensical's classic variant leaves it
+     falsy, so fall back to comparing against nav.homepage (present under
+     both engines). #}
+  {% if page.is_homepage or (nav.homepage and page.url == nav.homepage.url) %}
     <div class="aa-hero">
       <div class="aa-hero__inner">
         <div class="aa-hero__text">

@@ -590,11 +590,14 @@ namespace
 	// Pump the cooperative io_context in short slices until `pred` holds or the
 	// (generous) iteration budget is exhausted. The client + broker keep a recv
 	// pending at all times, so the context never runs out of work; each slice
-	// blocks briefly, then we re-check the predicate.
+	// blocks briefly, then we re-check the predicate. The budget is generous
+	// because a GitHub-hosted fallback runner (e.g. a Dependabot PR, which
+	// cannot reach the self-hosted fleet) has far less headroom than the
+	// self-hosted big runner this was tuned against.
 	template <class Pred>
 	bool RunUntil(boost::asio::io_context& ioc, Pred pred)
 	{
-		for (int i = 0; i < 400; ++i)   // ~400 * 5ms = up to ~2s
+		for (int i = 0; i < 2000; ++i)   // ~2000 * 5ms = up to ~10s
 		{
 			if (pred()) { return true; }
 			ioc.run_for(std::chrono::milliseconds(5));

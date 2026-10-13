@@ -1,4 +1,5 @@
-# Build the documentation site (MkDocs Material) from the in-repo Markdown and
+# Build the documentation site (Zensical, the Rust-core successor to MkDocs +
+# Material that reads this same mkdocs.yml) from the in-repo Markdown and
 # publish it to the ROOT of the `gh-pages` branch — the docs home IS the Pages
 # landing page (no /docs/ segment).
 #
@@ -21,6 +22,7 @@ on:
       - "overrides/**"
       - "mkdocs.yml"
       - "README.md"
+      - "scripts/zensical-prune-excluded.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -51,35 +53,23 @@ jobs:
         with:
           python-version: "3.x"
 
-      # Cairo + friends back the social-cards plugin's image rendering.
-      - name: Install imaging libraries (social cards)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcairo2-dev libfreetype6-dev libffi-dev libjpeg-dev libpng-dev libz-dev
+      - name: Install Zensical
+        run: pip install --disable-pip-version-check zensical
 
-      - name: Install MkDocs Material
-        # Floor only (>=9.7) so the GitHub-compatible slugify and theme features
-        # this site relies on are present; no upper cap, so future Material majors
-        # are adopted as they ship. The [imaging] extra pulls cairosvg + pillow for
-        # the social-cards plugin.
-        #
-        # The red "Warning from the Material for MkDocs team" banner about MkDocs
-        # 2.0 that this step prints is ADVOCACY, not a build problem: it is written
-        # to stderr, is not a MkDocs warning, and does NOT count toward --strict.
-        # ("Aborted with N warnings" counts only the `WARNING -` lines.) Nor can
-        # MkDocs 2.0 land here by surprise — mkdocs-material itself pins
-        # `mkdocs<2,>=1.6`, so pip will never resolve the 2.0 line while that cap
-        # holds. Deliberately NOT adding our own `mkdocs<2` pin: it is redundant
-        # today and would hard-conflict the resolver if Material ever does move.
-        # If this build breaks on a MkDocs major, revisit here — the site depends
-        # on both the plugin system (`plugins:`) and theme overrides
-        # (`custom_dir: overrides`), which that line removes.
-        run: pip install --disable-pip-version-check "mkdocs-material[imaging]>=9.7"
-
-      # --strict turns broken internal links and other warnings into errors, so a
-      # bad cross-link fails the build instead of shipping a broken page.
+      # --strict turns broken internal links/anchors and other warnings into
+      # errors, so a bad cross-link fails the build instead of shipping a
+      # broken page. `theme.variant: classic` in mkdocs.yml keeps the Material
+      # appearance our skin (overrides/, docs/stylesheets/aqualink.css) is
+      # built for — Zensical's own default look is a different, newer theme.
       - name: Build site
-        run: mkdocs build --strict
+        run: zensical build --strict
+
+      # Zensical does not support mkdocs.yml's `exclude_docs` (as of 0.0.60):
+      # it builds every page under docs_dir regardless. This mirrors that same
+      # exclusion list as a post-build step so design/refactoring/RE notes
+      # don't end up published. Drop once Zensical gains native support.
+      - name: Prune docs excluded from the published site
+        run: python scripts/zensical-prune-excluded.py
 
       - name: Publish to GitHub Pages (root)
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4

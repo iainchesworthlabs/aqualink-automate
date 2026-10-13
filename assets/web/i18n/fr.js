@@ -87,6 +87,8 @@
         'cmd.blocked': 'Bloqué',
         'cmd.failed': 'Échec',
         'cmd.set_ok': 'Réglé ✓',
+        'cmd.applying': 'Application…',
+        'cmd.sent': 'Envoyé — en attente du panneau',
 
         // ---- Navigation -------------------------------------------------------
         'nav.dashboard': 'Tableau de bord',

@@ -172,7 +172,7 @@ jobs:
           gpg --batch --yes --detach-sign --armor "$OUT/rpm/repodata/repomd.xml"
 
           # ---- Shared: public key + install scripts ---------------------------
-          # The Pages landing page (index.html) is the MkDocs docs home, published
+          # The Pages landing page (index.html) is the docs home, published
           # to the root by docs.yml — do NOT write index.html here or a release
           # would clobber the docs home with the old package landing.
           cp public-key.asc "$OUT/key.gpg"

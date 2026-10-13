@@ -18,22 +18,19 @@ docs_dir: docs
 site_dir: site
 
 plugins:
-  # `search` is a default plugin, but declaring `plugins:` replaces the defaults,
-  # so it must be listed explicitly.
+  # Zensical has its own built-in search implementation and ignores this
+  # entry, but it's declared for anyone still building with real MkDocs +
+  # Material, where `search` is a default plugin that a `plugins:` list
+  # replaces unless it's listed explicitly.
   - search
-  # Auto-generated Open Graph / Twitter preview cards, styled in the brand's dark
-  # palette + Hanken Grotesk. Gated to CI (`enabled: !ENV [CI, false]`) because
-  # the imaging backend needs Cairo — local `mkdocs serve/build` skips it, CI
-  # (.github/workflows/docs.yml installs mkdocs-material[imaging] + Cairo) runs it.
-  - social:
-      enabled: !ENV [CI, false]
-      cards_layout_options:
-        background_color: "#0f172a"
-        color: "#e6edf5"
-        font_family: Hanken Grotesk
 
 theme:
   name: material
+  # Zensical (docs/ci-cd.md), the Rust-core successor to MkDocs + Material
+  # that builds this same config, defaults to its own "modern" look; classic
+  # keeps this site on the Material appearance the skin below is built for.
+  # Real MkDocs + Material ignores this key.
+  variant: classic
   # Brand skin lives in overrides/ (templates) + docs/stylesheets/aqualink.css
   # (palette + self-hosted fonts). Mirrors the web-UI design (assets/web).
   custom_dir: overrides
@@ -108,6 +105,12 @@ markdown_extensions:
 # Links FROM a published page TO anything excluded here (or to a repo file outside
 # docs/) must be absolute https://github.com/... URLs: MkDocs only logs those at
 # INFO, so they ship broken and silent rather than failing --strict.
+#
+# Zensical does not honour exclude_docs (as of 0.0.60) — it builds every page
+# regardless. scripts/zensical-prune-excluded.py re-applies this same list as a
+# post-build step (reading it straight out of this file, so it can't drift);
+# docs.yml runs it after `zensical build`. Drop that script once Zensical adds
+# native support.
 exclude_docs: |
   alwin32/
   design/
