@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <set>
 
 #include <boost/test/unit_test.hpp>
@@ -13,6 +14,7 @@
 #include "kernel/auxillary_devices/chlorinator_boost_mode.h"
 #include "kernel/auxillary_devices/chlorinator_status.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
+#include "kernel/hub_events/data_hub_config_event_chemistry.h"
 
 #include "support/unit_test_hublocatorinjector.h"
 #include "support/unit_test_mockreplayharness.h"
@@ -452,6 +454,50 @@ BOOST_AUTO_TEST_CASE(SustainedRecovery_ClearsLowSaltAndSaltTracks)
 
 	BOOST_CHECK_EQUAL(HealthOf(harness), Kernel::ChlorinatorHealth::Ok);
 	BOOST_CHECK_CLOSE(harness.DataHub()->SaltLevel().value(), 4000.0, 0.0001);
+}
+
+BOOST_AUTO_TEST_CASE(RepeatedShortOkBursts_DoNotFlipPublishedSalt)
+{
+	Test::MockReplayHarness harness;
+
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// Count every published salt VALUE CHANGE (a chemistry event carrying a salt level that
+	// differs from the previous one). Each is a UI/MQTT/history update, so a strobing value
+	// is user-visible even when the health flag is held steady.
+	std::size_t salt_changes = 0;
+	std::optional<double> previous_salt;
+	auto connection = harness.DataHub()->ConfigUpdateSignal.connect(
+		[&](const std::shared_ptr<Kernel::DataHub_ConfigEvent>& event)
+		{
+			if (auto chem = std::dynamic_pointer_cast<Kernel::DataHub_ConfigEvent_Chemistry>(event))
+			{
+				if (auto salt = chem->SaltLevel(); salt.has_value())
+				{
+					if (previous_salt.has_value() && (previous_salt.value() != salt->value()))
+					{
+						++salt_changes;
+					}
+					previous_salt = salt->value();
+				}
+			}
+		});
+
+	// The live signature: a dominant 2900 ppm / Low Salt state interleaved with 3-5 frame
+	// 4000 ppm / OK bursts -- long enough that a median of 5 flips to 4000 on every burst.
+	std::vector<std::vector<uint8_t>> frames;
+	for (int cycle = 0; cycle < 6; ++cycle)
+	{
+		AppendFrames(frames, 14, SALT_BYTE_LOW, STATUS_LOWSALT);
+		AppendFrames(frames, 4,  SALT_BYTE_OK,  STATUS_ON);
+	}
+	harness.Replay(frames);
+	connection.disconnect();
+
+	BOOST_REQUIRE(previous_salt.has_value());
+	BOOST_CHECK_CLOSE(previous_salt.value(), 2900.0, 0.0001);
+	BOOST_CHECK_EQUAL(salt_changes, static_cast<std::size_t>(0));
 }
 
 BOOST_AUTO_TEST_CASE(WarningRaisesQuickly)
