@@ -1347,7 +1347,7 @@
                             <span class="swg-target-label" x-text="bodyLabel(body)"></span>
                             <input type="range" min="0" max="100" step="5" class="swg-slider"
                                    :value="target(body)" @input="setTarget(body, $event.target.value)"
-                                   :disabled="locked || !$store.auth.can('equipment.control.chlorinator')"
+                                   :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
                                    :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
                             <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
                             <template x-if="$store.auth.can('equipment.control.chlorinator')">
@@ -1427,7 +1427,7 @@
                             <span class="swg-target-label" x-text="bodyLabel(body)"></span>
                             <input type="range" min="0" max="100" step="5" class="swg-slider"
                                    :value="target(body)" @input="setTarget(body, $event.target.value)"
-                                   :disabled="locked"
+                                   :disabled="busy"
                                    :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
                             <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
                             <button class="swg-set-btn" @click="setPercent(body)"
