@@ -42,7 +42,7 @@ Home Assistant auto-discovery is a separate opt-in on top of MQTT (`--home-assis
 | `--mqtt-prefix` | | string | `aqualink` | Base topic prefix prepended to every published and subscribed subtopic. |
 | `--mqtt-status-interval` | | uint32 | `5` | Seconds between system, pool, and device status publishes. |
 | `--mqtt-stats-interval` | | uint32 | `10` | Seconds between statistics publishes. |
-| `--mqtt-on-change` | | bool | `true` | Publish immediately on data changes (250 ms debounce) in addition to the periodic interval. |
+| `--mqtt-on-change` | | bool | `true` | Publish immediately on data changes (250 ms debounce) in addition to the periodic interval. Chlorinator setpoint / output / health changes count (checked once a second), so a change made at the panel or in iAqualink reaches Home Assistant promptly rather than at the next periodic publish. |
 | `--home-assistant` | | bool | `false` | Enable Home Assistant MQTT discovery. Requires `--mqtt`. |
 | `--ha-discovery-prefix` | | string | `homeassistant` | Discovery topic prefix Home Assistant listens on. |
 | `--ha-device-id` | | string | derived | Home Assistant device identifier. Requires `--home-assistant`. Defaults to `aqualink_<slug(prefix)>`. |

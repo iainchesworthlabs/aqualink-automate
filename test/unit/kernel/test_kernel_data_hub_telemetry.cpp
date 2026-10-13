@@ -6,6 +6,8 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include "kernel/auxillary_devices/auxillary_device.h"
 #include "kernel/auxillary_traits/auxillary_traits_types.h"
 #include "kernel/data_hub.h"
@@ -391,6 +393,51 @@ BOOST_AUTO_TEST_CASE(TemperatureEvent_CurrentTemperaturesSerialise)
 	BOOST_CHECK(!j.contains("spa_setpoint"));
 }
 
+//=============================================================================
+// Chlorinator state push.
+//
+// The chlorinator's setpoints / output / health are written straight into per-device traits
+// (wire frames, the menu scrape, the command write-through) and none of those announces a
+// change, so an open web UI kept showing the previous target until it re-fetched over REST
+// ("still 75%, can't set it back to 75"). PublishChlorinatorStateIfChanged is the single,
+// change-guarded point that tells WebSocket/MQTT clients.
+//=============================================================================
+
+namespace
+{
+	std::shared_ptr<AuxillaryDevice> AddChlorinator(DataHub& hub)
+	{
+		using namespace AuxillaryTraitsTypes;
+
+		auto device = std::make_shared<AuxillaryDevice>();
+		device->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Chlorinator);
+		device->AuxillaryTraits.Set(LabelTrait{}, std::string{ "AquaPure" });
+		hub.Devices.Add(device);
+		return device;
+	}
+
+	// The chlorinator payload of every chemistry event published while `actions` runs.
+	std::vector<nlohmann::json> ChlorinatorPayloadsDuring(DataHub& hub, const std::function<void()>& actions)
+	{
+		std::vector<nlohmann::json> payloads;
+		auto connection = hub.ConfigUpdateSignal.connect(
+			[&payloads](const std::shared_ptr<DataHub_ConfigEvent>& ev)
+			{
+				if (auto chem = std::dynamic_pointer_cast<DataHub_ConfigEvent_Chemistry>(ev))
+				{
+					if (auto chlorinator = chem->Chlorinator(); chlorinator.has_value())
+					{
+						payloads.push_back(chlorinator.value());
+					}
+				}
+			});
+
+		actions();
+		connection.disconnect();
+		return payloads;
+	}
+}
+
 namespace
 {
 	std::shared_ptr<AuxillaryDevice> AddPump(DataHub& hub, const std::string& label, bool typed_as_filter)
@@ -442,6 +489,92 @@ BOOST_AUTO_TEST_CASE(FilterPump_Adoption_LeavesOtherPumpsAndNonPumpsAlone)
 	BOOST_CHECK_EQUAL(hub.AdoptUntypedFilterPumps(), static_cast<std::size_t>(0));
 	BOOST_CHECK_EQUAL(hub.FilterPumps().size(), static_cast<std::size_t>(1));   // only the already-typed one
 	BOOST_CHECK(!aux->AuxillaryTraits.Has(PumpTypeTrait{}));
+}
+
+BOOST_AUTO_TEST_CASE(Chlorinator_NoneDiscovered_PublishIsSilent)
+{
+	DataHub hub;
+
+	const auto payloads = ChlorinatorPayloadsDuring(hub, [&hub]()
+		{
+			// Absent chlorinator on first observation: clients already render the absence.
+			BOOST_CHECK(!hub.PublishChlorinatorStateIfChanged());
+			BOOST_CHECK(!hub.PublishChlorinatorStateIfChanged());
+		});
+
+	BOOST_CHECK(payloads.empty());
+	BOOST_CHECK(hub.ChlorinatorSnapshot().is_null());
+}
+
+BOOST_AUTO_TEST_CASE(Chlorinator_PublishesOncePerDistinctState)
+{
+	using namespace AuxillaryTraitsTypes;
+
+	DataHub hub;
+	auto device = AddChlorinator(hub);
+
+	const auto payloads = ChlorinatorPayloadsDuring(hub, [&]()
+		{
+			device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(75));
+			BOOST_CHECK(hub.PublishChlorinatorStateIfChanged());      // first sight of the state
+
+			BOOST_CHECK(!hub.PublishChlorinatorStateIfChanged());     // unchanged -> silent
+			BOOST_CHECK(!hub.PublishChlorinatorStateIfChanged());
+
+			device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(80));
+			BOOST_CHECK(hub.PublishChlorinatorStateIfChanged());      // the target moved
+
+			BOOST_CHECK(!hub.PublishChlorinatorStateIfChanged());
+		});
+
+	BOOST_REQUIRE_EQUAL(payloads.size(), static_cast<std::size_t>(2));
+	BOOST_CHECK_EQUAL(payloads[0]["pool_setpoint_percent"].get<int>(), 75);
+	BOOST_CHECK_EQUAL(payloads[1]["pool_setpoint_percent"].get<int>(), 80);
+
+	// The pushed object is the SAME one the REST payload carries.
+	BOOST_CHECK(payloads.back() == hub.ChlorinatorSnapshot());
+}
+
+BOOST_AUTO_TEST_CASE(Chlorinator_SpaSetpointChange_IsPublishedToo)
+{
+	using namespace AuxillaryTraitsTypes;
+
+	DataHub hub;
+	auto device = AddChlorinator(hub);
+
+	const auto payloads = ChlorinatorPayloadsDuring(hub, [&]()
+		{
+			device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(65));
+			hub.PublishChlorinatorStateIfChanged();
+
+			// A change made at the panel / in iAqualink arrives via the scrape as a trait write.
+			device->AuxillaryTraits.Set(ChlorinatorSpaSetpointTrait{}, static_cast<uint8_t>(80));
+			BOOST_CHECK(hub.PublishChlorinatorStateIfChanged());
+		});
+
+	BOOST_REQUIRE_EQUAL(payloads.size(), static_cast<std::size_t>(2));
+	BOOST_CHECK_EQUAL(payloads[1]["pool_setpoint_percent"].get<int>(), 65);
+	BOOST_CHECK_EQUAL(payloads[1]["spa_setpoint_percent"].get<int>(), 80);
+}
+
+BOOST_AUTO_TEST_CASE(ChemistryEvent_CarriesChlorinatorOnlyWhenSet)
+{
+	DataHub_ConfigEvent_Chemistry salt_only;
+	salt_only.SaltLevel(3200.0 * Units::ppm);
+	BOOST_CHECK(!salt_only.ToJSON().contains("chlorinator"));
+
+	DataHub_ConfigEvent_Chemistry with_chlorinator;
+	with_chlorinator.Chlorinator(nlohmann::json{ { "setpoint_percent", 65 } });
+	const auto j = with_chlorinator.ToJSON();
+	BOOST_REQUIRE(j.contains("chlorinator"));
+	BOOST_CHECK_EQUAL(j["chlorinator"]["setpoint_percent"].get<int>(), 65);
+
+	// A chlorinator that has gone away is reported as an explicit null, not omitted.
+	DataHub_ConfigEvent_Chemistry gone;
+	gone.Chlorinator(nlohmann::json{});
+	const auto gone_json = gone.ToJSON();
+	BOOST_REQUIRE(gone_json.contains("chlorinator"));
+	BOOST_CHECK(gone_json["chlorinator"].is_null());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

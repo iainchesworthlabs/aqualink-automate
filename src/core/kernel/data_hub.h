@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <boost/signals2.hpp>
+#include <nlohmann/json.hpp>
 
 #include "interfaces/ihub.h"
 #include "kernel/body_of_water.h"
@@ -322,6 +323,24 @@ namespace AqualinkAutomate::Kernel
 		// Why the cell is (or is not) producing right now -- "0%" alone cannot distinguish a
 		// chlorinator that is switched off from one that is simply waiting for the filter pump.
 		ChlorinatorGeneratingReason ResolveChlorinatorGeneratingReason(const AuxillaryDevice& chlorinator) const;
+
+		// The chlorinator as clients see it (generating %, health, configured pool/spa/headline
+		// setpoints, reason). A JSON null when no chlorinator has been discovered. The ONE
+		// builder behind the REST payload and the pushed event, so they cannot disagree.
+		nlohmann::json ChlorinatorSnapshot() const;
+
+		// The chlorinator's state lives in per-device traits that many writers set directly (the
+		// AquaRite wire path, the menu scrape, the command write-through), none of which
+		// announces a change. This is the single change-guarded publish point: it snapshots the
+		// state and, only when that differs from what clients were last told, emits one
+		// chemistry event carrying it -- so the web UI (WebSocket) and MQTT/Home Assistant
+		// (which re-publishes on any config event) see it without a REST re-fetch. Cheap enough
+		// to call every second. Returns true when an event was emitted.
+		bool PublishChlorinatorStateIfChanged();
+
+	private:
+		// What the last chlorinator event told clients; nullopt until the first observation.
+		std::optional<nlohmann::json> m_LastPublishedChlorinator;
 
 	//---------------------------------------------------------------------
 	// CONFIG-UPDATE EVENT EMITTERS

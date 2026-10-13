@@ -13,7 +13,8 @@
  *
  * WebSocket payload mapping:
  *   TemperatureUpdate → { pool_temp, spa_temp, air_temp }  ({celsius, fahrenheit} objects, same shape as REST)
- *   ChemistryUpdate   → { ph, orp, salt_level }            (numeric values)
+ *   ChemistryUpdate   → { ph, orp, salt_level, chlorinator? } (numeric values; chlorinator is the
+ *                           same object as chemistry.chlorinator below, present when it changed)
  *   SystemStatusChange → serialised IStatus
  *   ButtonStateChange  → { button_id, status, label? }
  */
@@ -347,6 +348,30 @@ document.addEventListener('alpine:init', () => {
             return (s === 'off') ? 'off' : 'unknown';
         },
 
+        // Apply the chlorinator (SWG) sub-object. ONE path for both sources of it: the REST
+        // fetch (chemistry.chlorinator) and the pushed ChemistryUpdate event, which carries the
+        // same object. Without the push, the setpoints/output/health only refreshed on a page
+        // load or route change, so a target changed by this app, the panel or iAqualink stayed
+        // stale on screen (and Set was disabled for the value the panel no longer held).
+        // null means "no chlorinator discovered".
+        _applyChlorinator(swg) {
+            if (swg == null) {
+                this.chlorinatorPresent = false;
+                return;
+            }
+            this.chlorinatorPresent = true;
+            this.swgGeneratingPercent = (swg.generating_percent != null) ? swg.generating_percent : '--';
+            this.swgDutyCycle = (swg.duty_cycle != null) ? swg.duty_cycle : '--';
+            // Setpoints may legitimately be 0, so test against null only.
+            this.swgSetpointPercent = (swg.setpoint_percent != null) ? swg.setpoint_percent : '--';
+            this.swgPoolSetpoint = (swg.pool_setpoint_percent != null) ? swg.pool_setpoint_percent : '--';
+            this.swgSpaSetpoint = (swg.spa_setpoint_percent != null) ? swg.spa_setpoint_percent : '--';
+            this.chlorinatorStatus = swg.status || '--';
+            this.chlorinatorHealth = swg.health || '--';
+            this.chlorinatorHealthFlags = Array.isArray(swg.health_flags) ? swg.health_flags : [];
+            this.swgGeneratingReason = swg.generating_reason || '--';
+        },
+
         async _fetchEquipment() {
             try {
                 const resp = await fetch('/api/equipment');
@@ -384,22 +409,7 @@ document.addEventListener('alpine:init', () => {
                     if (data.chemistry.orp_mv != null && data.chemistry.orp_mv !== '' && data.chemistry.orp_mv !== 0) this.orp = data.chemistry.orp_mv;
                     if (data.chemistry.salt_ppm != null && data.chemistry.salt_ppm !== '' && data.chemistry.salt_ppm !== 0) this.saltPpm = data.chemistry.salt_ppm;
 
-                    const swg = data.chemistry.chlorinator;
-                    if (swg != null) {
-                        this.chlorinatorPresent = true;
-                        this.swgGeneratingPercent = (swg.generating_percent != null) ? swg.generating_percent : '--';
-                        this.swgDutyCycle = (swg.duty_cycle != null) ? swg.duty_cycle : '--';
-                        // Setpoints may legitimately be 0, so test against null only.
-                        this.swgSetpointPercent = (swg.setpoint_percent != null) ? swg.setpoint_percent : '--';
-                        this.swgPoolSetpoint = (swg.pool_setpoint_percent != null) ? swg.pool_setpoint_percent : '--';
-                        this.swgSpaSetpoint = (swg.spa_setpoint_percent != null) ? swg.spa_setpoint_percent : '--';
-                        this.chlorinatorStatus = swg.status || '--';
-                        this.chlorinatorHealth = swg.health || '--';
-                        this.chlorinatorHealthFlags = Array.isArray(swg.health_flags) ? swg.health_flags : [];
-                        this.swgGeneratingReason = swg.generating_reason || '--';
-                    } else {
-                        this.chlorinatorPresent = false;
-                    }
+                    this._applyChlorinator(data.chemistry.chlorinator);
                 }
 
                 // Equipment version — use generic fields array if available
@@ -508,6 +518,10 @@ document.addEventListener('alpine:init', () => {
                         if (msg.payload.ph != null && msg.payload.ph !== 0) { this.ph = msg.payload.ph; this._touch('ph'); }
                         if (msg.payload.orp != null && msg.payload.orp !== 0) { this.orp = msg.payload.orp; this._touch('orp'); }
                         if (msg.payload.salt_level != null && msg.payload.salt_level !== 0) { this.saltPpm = msg.payload.salt_level; this._touch('saltPpm'); }
+                        // The chlorinator object rides on the same event when it changed. Key
+                        // PRESENCE (not truthiness) is the signal: an explicit null means the
+                        // chlorinator is gone and must clear it.
+                        if (Object.prototype.hasOwnProperty.call(msg.payload, 'chlorinator')) { this._applyChlorinator(msg.payload.chlorinator); }
                     }
                     break;
 

@@ -91,6 +91,8 @@
         'cmd.blocked': 'Blocked',
         'cmd.failed': 'Failed',
         'cmd.set_ok': 'Set ✓',
+        'cmd.applying': 'Applying…',
+        'cmd.sent': 'Sent — awaiting panel',
 
         // ---- Navigation -------------------------------------------------------
         'nav.dashboard': 'Dashboard',

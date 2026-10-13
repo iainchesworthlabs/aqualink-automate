@@ -1347,12 +1347,12 @@
                             <span class="swg-target-label" x-text="bodyLabel(body)"></span>
                             <input type="range" min="0" max="100" step="5" class="swg-slider"
                                    :value="target(body)" @input="setTarget(body, $event.target.value)"
-                                   :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
+                                   :disabled="locked || !$store.auth.can('equipment.control.chlorinator')"
                                    :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
                             <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
                             <template x-if="$store.auth.can('equipment.control.chlorinator')">
                                 <button class="swg-set-btn" @click="setPercent(body)"
-                                        :disabled="busy || !changed(body)" x-text="$t('dash.set')"></button>
+                                        :disabled="locked || !changed(body)" x-text="$t('dash.set')"></button>
                             </template>
                         </div>
                     </template>
@@ -1360,9 +1360,12 @@
                         <template x-if="$store.auth.can('equipment.control.chlorinator')">
                             <div class="swg-actions-inner">
                                 <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
-                                        :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
+                                        :disabled="locked" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
                                 <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
                                 <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
+                                <span class="cmd-badge cmd-pending" x-show="isPending" x-cloak x-text="$t('cmd.applying')"></span>
+                                <span class="cmd-badge cmd-timedout" x-show="feedback === 'sent'" x-transition.opacity x-text="$t('cmd.sent')"></span>
+                                <span class="cmd-badge cmd-rejected cmd-reason" x-show="reason" x-cloak x-text="reason"></span>
                             </div>
                         </template>
                         <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
@@ -1407,9 +1410,12 @@
                             <template x-if="$store.auth.can('equipment.control.chlorinator')">
                                 <div class="swg-actions-inner">
                                     <button class="swg-boost-btn" :class="{ active: boost }" @click="toggleBoost()"
-                                            :disabled="busy" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
+                                            :disabled="locked" :aria-pressed="boost" x-text="$t('dash.boost')"></button>
                                     <span class="cmd-badge cmd-applied" x-show="feedback === 'applied'" x-transition.opacity x-text="$t('cmd.set_ok')"></span>
                                     <span class="cmd-badge cmd-rejected" x-show="feedback === 'rejected'" x-transition.opacity x-text="$t('cmd.failed')"></span>
+                                    <span class="cmd-badge cmd-pending" x-show="isPending" x-cloak x-text="$t('cmd.applying')"></span>
+                                    <span class="cmd-badge cmd-timedout" x-show="feedback === 'sent'" x-transition.opacity x-text="$t('cmd.sent')"></span>
+                                    <span class="cmd-badge cmd-rejected cmd-reason" x-show="reason" x-cloak x-text="reason"></span>
                                 </div>
                             </template>
                             <span class="swg-locked-note" x-show="!$store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('auth.locked_adjust')"></span>
@@ -1420,11 +1426,11 @@
                             <span class="swg-target-label" x-text="bodyLabel(body)"></span>
                             <input type="range" min="0" max="100" step="5" class="swg-slider"
                                    :value="target(body)" @input="setTarget(body, $event.target.value)"
-                                   :disabled="busy"
+                                   :disabled="locked"
                                    :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
                             <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
                             <button class="swg-set-btn" @click="setPercent(body)"
-                                    :disabled="busy || !changed(body)" x-text="$t('dash.set')"></button>
+                                    :disabled="locked || !changed(body)" x-text="$t('dash.set')"></button>
                         </div>
                     </template>
                 </div>

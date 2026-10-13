@@ -210,6 +210,11 @@ namespace AqualinkAutomate::Devices
 		}
 
 		LogDebug(Channel::Devices, std::format("CommandDispatcher: wrote chlorinator {} setpoint {}% through to cache", magic_enum::enum_name(body), percentage));
+
+		// A trait write announces nothing by itself, so an open dashboard (WebSocket) would keep
+		// showing the old target until its next REST fetch -- the "still 75%, can't set 75"
+		// symptom. Publish now (change-guarded), rather than waiting for the periodic sweep.
+		m_DataHub->PublishChlorinatorStateIfChanged();
 	}
 
 	CommandDispatcher::CommandResult CommandDispatcher::SetChlorinatorBoost(bool enable)

@@ -611,7 +611,7 @@ Every frame is a JSON object with two fields:
 
 `/ws/equipment` broadcasts:
 
-- `ChemistryUpdate`
+- `ChemistryUpdate` — pH / ORP / salt, and the whole chlorinator object whenever its setpoints, output or health change
 - `TemperatureUpdate`
 - `CirculationUpdate` — circulation/heater mode changes
 - `ButtonStateChange`
@@ -642,7 +642,7 @@ These are the fields the UI consumes from each frame's `payload`:
 | Event type | Payload fields |
 |---|---|
 | `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` — each a raw dual-unit object `{celsius, fahrenheit}` (same shape as REST `/api/equipment`; display formatting is the frontend's job, see `docs/i18n.md`) |
-| `ChemistryUpdate` | `ph`, `orp`, `salt_level` |
+| `ChemistryUpdate` | `ph`, `orp`, `salt_level`; and `chlorinator` — the same object as `chemistry.chlorinator` in REST `/api/equipment` (`generating_percent`, `duty_cycle`, `status`, `health`, `health_flags`, `pool_setpoint_percent`, `spa_setpoint_percent`, `setpoint_percent`, `generating_reason`). It is present only on an event that reports a chlorinator change (the state is checked once a second and again immediately after a successful `POST /api/equipment/chlorinator`), and may be `null`, meaning the chlorinator is no longer present. A client must key on the field's *presence*, not its truthiness |
 | `ButtonStateChange` | `button_id`, `status`, `label` (optional) |
 | `SystemStateUpdate` | `state`, `pool_configuration`, `equipment_mode` |
 | `SystemStatusChange` | `status_type`, `source_name`, `source_type` |
