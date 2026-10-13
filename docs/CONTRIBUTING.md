@@ -255,6 +255,7 @@ Rules — CI enforces the structural ones:
 - Plural keys carry CLDR category suffixes (`.one`, `.other`); translate each form per your language's plural rules, and do not add or remove suffixes.
 - Leave technical tokens untranslated: product names (AquaLink, Home Assistant, MQTT, Matter), protocol terms (RS-485, WebSocket), wire enum values quoted inside error text, and the built-in `Guest` group name where it names that group.
 - Match the file's existing tone and terminology — each catalog keeps a consistent register (e.g. German uses Sie-form; French uses the typographic apostrophe).
+- English (`en.js`) is the source text and is written in British English ("colour", "centre", "licence", "organise"); see [docs/i18n.md](i18n.md#key-conventions).
 
 Verify before pushing:
 
