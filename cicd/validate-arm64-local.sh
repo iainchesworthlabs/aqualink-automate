@@ -71,7 +71,7 @@ tar -C "$REPO" \
         cd /work
 
         echo "::: fetching pinned vcpkg ($VCPKG_SHA) :::"
-        git clone -q https://github.com/microsoft/vcpkg deps/vcpkg
+        git clone -q https://github.com/iainchesworthlabs/vcpkg deps/vcpkg
         git -C deps/vcpkg checkout -q "$VCPKG_SHA"
 
         export VCPKG_DEFAULT_BINARY_CACHE=/vcpkgcache
