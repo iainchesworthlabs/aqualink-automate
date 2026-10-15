@@ -241,7 +241,7 @@ Pool topology and the discovered-equipment cache. Lives in the `Equipment` setti
 | Option | Short | Type | Default | Description |
 | --- | --- | --- | --- | --- |
 | `--pool-configuration` | | enum | `auto` | Installation type. Accepted: `pool-only`, `spa-only`, `combo`, `dual`, `auto`. |
-| `--equipment-cache-file` | | string | none | JSON cache of discovered equipment for an instant dashboard on restart. Empty disables caching. |
+| `--equipment-cache-file` | | string | none | JSON cache of discovered equipment for an instant dashboard on restart. Empty disables caching. Besides the device list it keeps the chlorinator's last known Pool/Spa targets, which a restart restores flagged as "last known" (`setpoints_cached`) until the panel confirms them. |
 | `--temperature-staleness-threshold` | | uint | `600` | Age in seconds after which a reported temperature is flagged stale. |
 
 `--pool-configuration` maps to the internal body model:
@@ -296,6 +296,12 @@ Which Jandy/Zodiac devices the app emulates on the bus. Lives in the `Jandy` set
 | `--jandy-device-type` | | enum list | `onetouch iaq serialadapter` | Space-separated emulation types. Accepted: `rs_keypad`, `onetouch`, `iaq`, `pda`, `serialadapter`, `spasideremote`, `unknown` (case-insensitive). |
 | `--jandy-device-id` | | hex list | per-type (see below) | Space-separated hex device IDs (`0xNN`), one per `--jandy-device-type` in order. |
 | `--jandy-nav-password` | | string | `""` | 4-digit password for navigating password-protected Jandy menus. |
+| `--chlorinator-setpoint-refresh-interval` | | seconds | `300` | Seconds between Set AquaPure menu re-scrapes that refresh the configured chlorinator Pool/Spa %. `0` disables every proactive re-scrape, including the triggers described below. Only runs while OneTouch or IAQ emulation is active and the menu is free of any other goal. |
+
+The configured chlorinator Pool/Spa % can only be read by visiting the Set AquaPure menu page (the RS-485 protocol has no "get setpoint" query), so a target changed at the panel or in iAqualink is invisible until the page is next visited. Besides the interval above, a re-scrape is requested as soon as the menu is free when:
+
+- the chlorinator comes back online after a loss of comms; or
+- the output the panel is commanding (the live percent frame, about every 0.4 s) disagrees with the target the app is showing for several consecutive frames and the app did not just set it itself. This is requested once per distinct disagreement and at most once a minute, so a panel serving the spa while the app shows the pool does not turn into a menu walk every minute. The wire value is only the signal to go and look; the scrape remains the single source of the configured target.
 
 When `--jandy-device-type` is not given, the app emulates **OneTouch, IAQ, and SerialAdapter** (OneTouch for menu scraping, IAQ for status data, SerialAdapter for commands).
 

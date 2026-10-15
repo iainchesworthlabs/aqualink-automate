@@ -357,6 +357,19 @@ BOOST_AUTO_TEST_CASE(SetAquapure_ScrapesPoolAndSpaSetpoints)
 	BOOST_CHECK_EQUAL(spa.value(), static_cast<uint8_t>(50));
 }
 
+// Targets restored from the equipment cache are "last known"; reading the panel's real values
+// off the Set AquaPure page is what makes them live.
+BOOST_AUTO_TEST_CASE(SetAquapure_Scrape_ConfirmsCachedSetpoints)
+{
+	DataHub().MarkChlorinatorSetpointCached(Kernel::BodyOfWaterIds::Pool);
+	DataHub().MarkChlorinatorSetpointCached(Kernel::BodyOfWaterIds::Spa);
+	BOOST_REQUIRE(DataHub().ChlorinatorSetpointsCached());
+
+	LoadAndSignalTestPage(MakeSetAquapurePage("Set Pool to:  45%", "Set Spa to:   50%"));
+
+	BOOST_CHECK(!DataHub().ChlorinatorSetpointsCached());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // =============================================================================

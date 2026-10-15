@@ -384,6 +384,34 @@ BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_WritesThroughToCache)
 	BOOST_CHECK_EQUAL(pool.value(), static_cast<uint8_t>(45));
 }
 
+// A target restored from the equipment cache is "last known"; commanding a body replaces it with
+// the value the user chose, but leaves the OTHER body's cached target flagged.
+BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_ConfirmsOnlyThatBodysCachedSetpoint)
+{
+	{
+		auto chlorinator = std::make_shared<Kernel::AuxillaryDevice>();
+		chlorinator->AuxillaryTraits.Set(AuxillaryTypeTrait{}, AuxillaryTypes::Chlorinator);
+		chlorinator->AuxillaryTraits.Set(LabelTrait{}, std::string{ "AquaPure" });
+		chlorinator->AuxillaryTraits.Set(ChlorinatorStatusTrait{}, ChlorinatorStatuses::On);
+		chlorinator->AuxillaryTraits.Set(ChlorinatorSpaSetpointTrait{}, static_cast<uint8_t>(80));
+		data_hub->Devices.Add(std::move(chlorinator));
+	}
+	data_hub->MarkChlorinatorSetpointCached(Kernel::BodyOfWaterIds::Pool);
+	data_hub->MarkChlorinatorSetpointCached(Kernel::BodyOfWaterIds::Spa);
+	equipment_hub->AddDevice(MakeOneTouch(*this, 0x41, true));
+
+	auto result = dispatcher.SetChlorinatorPercentage(45, Kernel::BodyOfWaterIds::Pool);
+	BOOST_REQUIRE_EQUAL(static_cast<int>(result), static_cast<int>(ICommandDispatcher::CommandResult::Success));
+
+	// Pool is now the user's value; the spa 80% is still only what we remembered.
+	BOOST_CHECK(data_hub->ChlorinatorSetpointsCached());
+	const auto snapshot = data_hub->ChlorinatorSnapshot();
+	BOOST_CHECK(snapshot["setpoints_cached"].get<bool>());
+
+	data_hub->ConfirmChlorinatorSetpoint(Kernel::BodyOfWaterIds::Spa);
+	BOOST_CHECK(!data_hub->ChlorinatorSnapshot()["setpoints_cached"].get<bool>());
+}
+
 // A REJECTED set (no controller can actually act) must NOT write through a phantom setpoint.
 BOOST_AUTO_TEST_CASE(TestSetChlorinatorPercentage_RejectedDoesNotWriteThrough)
 {
