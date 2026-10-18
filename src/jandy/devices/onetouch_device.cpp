@@ -555,6 +555,15 @@ namespace AqualinkAutomate::Devices
 			return;
 		}
 
+		// A stale-setpoint request from the wire side (the panel is commanding something the
+		// configured target does not explain). Only the instance that can actually act on it
+		// consumes it: a passive OneTouch (the physical 0x40) must not swallow the request meant
+		// for the emulated 0x41. The latch is then subject to the same gates as any other trigger.
+		if (IsEmulationActive() && m_DataHub && m_DataHub->ConsumeChlorinatorSetpointRefreshRequest())
+		{
+			m_RefreshState.LatchStaleRequest();
+		}
+
 		// Not in progress: decide whether to start a refresh this tick. The decision struct
 		// applies all the gating (enabled / configured / actively emulating / menu free / startup
 		// finished / interval-or-recovery), so a passive or busy device never navigates.

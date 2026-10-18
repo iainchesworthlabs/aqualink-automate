@@ -12,6 +12,7 @@
 #include "devices/jandy_device.h"
 #include "devices/jandy_device_types.h"
 #include "devices/capabilities/restartable.h"
+#include "devices/chlorinator_setpoint_stale_detector.h"
 #include "kernel/auxillary_devices/chlorinator_status.h"
 #include "kernel/data_hub.h"
 #include "kernel/hub_locator.h"
@@ -108,6 +109,10 @@ namespace AqualinkAutomate::Devices
 		Kernel::ChlorinatorHealth m_HealthCandidate{ Kernel::ChlorinatorHealth::Ok };
 		uint32_t m_HealthCandidateCount{ 0 };
 		bool m_HealthInitialised{ false };
+
+		// Notices when the panel commands a % the dashboard's configured target does not explain
+		// (a change made at the panel or in iAqualink) and asks for an immediate menu re-scrape.
+		ChlorinatorSetpointStaleDetector m_StaleSetpointDetector;
 
 	private:
 		void Slot_Aquarite_GetId(const Messages::AquariteMessage_GetId& msg);

@@ -577,4 +577,116 @@ BOOST_AUTO_TEST_CASE(ChemistryEvent_CarriesChlorinatorOnlyWhenSet)
 	BOOST_CHECK(gone_json["chlorinator"].is_null());
 }
 
+BOOST_AUTO_TEST_CASE(ChlorinatorConfiguredSetpoint_HasNoPassiveFallback)
+{
+	using namespace AuxillaryTraitsTypes;
+
+	DataHub hub;
+	auto device = AddChlorinator(hub);
+
+	// Only the passive last-generating % is known (derived from the live 0x11 frame).
+	device->AuxillaryTraits.Set(ChlorinatorLastGeneratingTrait{}, static_cast<uint8_t>(60));
+
+	// The display value falls back to it, but the CONFIGURED value must not: comparing the wire
+	// against a value derived from the wire would always "agree".
+	BOOST_CHECK(!hub.ChlorinatorConfiguredSetpoint(*device).has_value());
+	BOOST_REQUIRE(hub.ChlorinatorResolvedSetpoint(*device).has_value());
+	BOOST_CHECK_EQUAL(hub.ChlorinatorResolvedSetpoint(*device).value(), static_cast<uint8_t>(60));
+
+	// Once a configured value exists it wins for both.
+	device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(75));
+	BOOST_REQUIRE(hub.ChlorinatorConfiguredSetpoint(*device).has_value());
+	BOOST_CHECK_EQUAL(hub.ChlorinatorConfiguredSetpoint(*device).value(), static_cast<uint8_t>(75));
+	BOOST_CHECK_EQUAL(hub.ChlorinatorResolvedSetpoint(*device).value(), static_cast<uint8_t>(75));
+}
+
+BOOST_AUTO_TEST_CASE(ChlorinatorSetpointRefreshRequest_IsOneShot)
+{
+	DataHub hub;
+
+	BOOST_CHECK(!hub.ConsumeChlorinatorSetpointRefreshRequest());
+
+	hub.RequestChlorinatorSetpointRefresh();
+	hub.RequestChlorinatorSetpointRefresh();   // idempotent: still one request
+	BOOST_CHECK(hub.ConsumeChlorinatorSetpointRefreshRequest());
+	BOOST_CHECK(!hub.ConsumeChlorinatorSetpointRefreshRequest());
+}
+
+BOOST_AUTO_TEST_CASE(ChlorinatorSetpointCommandWindow)
+{
+	using namespace std::chrono_literals;
+
+	DataHub hub;
+	BOOST_CHECK(!hub.ChlorinatorSetpointCommandWithin(60s));   // never commanded
+
+	hub.NoteChlorinatorSetpointCommand();
+	BOOST_CHECK(hub.ChlorinatorSetpointCommandWithin(60s));
+	BOOST_CHECK(!hub.ChlorinatorSetpointCommandWithin(0s));    // zero-length window
+}
+
+BOOST_AUTO_TEST_CASE(Chlorinator_RestoredSetpoints_AreFlaggedCachedUntilConfirmed)
+{
+	using namespace AuxillaryTraitsTypes;
+
+	DataHub hub;
+	auto device = AddChlorinator(hub);
+	device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(65));
+	device->AuxillaryTraits.Set(ChlorinatorSpaSetpointTrait{}, static_cast<uint8_t>(80));
+
+	// Nothing restored from the cache: both are live values.
+	BOOST_CHECK(!hub.ChlorinatorSetpointsCached());
+	BOOST_CHECK(!hub.ChlorinatorSnapshot()["setpoints_cached"].get<bool>());
+
+	hub.MarkChlorinatorSetpointCached(BodyOfWaterIds::Pool);
+	hub.MarkChlorinatorSetpointCached(BodyOfWaterIds::Spa);
+	BOOST_CHECK(hub.ChlorinatorSetpointsCached());
+	BOOST_CHECK(hub.ChlorinatorSnapshot()["setpoints_cached"].get<bool>());
+
+	// Confirming one body leaves the other flagged: the note must stay while ANY shown target is
+	// still unconfirmed.
+	hub.ConfirmChlorinatorSetpoint(BodyOfWaterIds::Pool);
+	BOOST_CHECK(hub.ChlorinatorSnapshot()["setpoints_cached"].get<bool>());
+
+	hub.ConfirmChlorinatorSetpoint(BodyOfWaterIds::Spa);
+	BOOST_CHECK(!hub.ChlorinatorSetpointsCached());
+	BOOST_CHECK(!hub.ChlorinatorSnapshot()["setpoints_cached"].get<bool>());
+}
+
+BOOST_AUTO_TEST_CASE(Chlorinator_CachedFlagWithoutAValue_IsNotReported)
+{
+	using namespace AuxillaryTraitsTypes;
+
+	DataHub hub;
+	auto device = AddChlorinator(hub);
+	device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(65));
+
+	// The spa target was never learned, so a stray spa flag must not light the "cached" note.
+	hub.MarkChlorinatorSetpointCached(BodyOfWaterIds::Spa);
+	BOOST_CHECK(!hub.ChlorinatorSnapshot()["setpoints_cached"].get<bool>());
+}
+
+BOOST_AUTO_TEST_CASE(Chlorinator_ConfirmingACachedSetpoint_IsPublishedEvenIfTheValueIsUnchanged)
+{
+	using namespace AuxillaryTraitsTypes;
+
+	DataHub hub;
+	auto device = AddChlorinator(hub);
+	device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(65));
+	hub.MarkChlorinatorSetpointCached(BodyOfWaterIds::Pool);
+
+	const auto payloads = ChlorinatorPayloadsDuring(hub, [&]()
+		{
+			BOOST_CHECK(hub.PublishChlorinatorStateIfChanged());     // first sight: cached
+
+			// The scrape reads the SAME 65%: the trait does not change, but the target is now live.
+			device->AuxillaryTraits.Set(ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(65));
+			hub.ConfirmChlorinatorSetpoint(BodyOfWaterIds::Pool);
+			BOOST_CHECK(hub.PublishChlorinatorStateIfChanged());
+		});
+
+	BOOST_REQUIRE_EQUAL(payloads.size(), static_cast<std::size_t>(2));
+	BOOST_CHECK(payloads[0]["setpoints_cached"].get<bool>());
+	BOOST_CHECK(!payloads[1]["setpoints_cached"].get<bool>());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
