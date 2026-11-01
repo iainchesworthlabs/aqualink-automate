@@ -118,6 +118,9 @@ document.addEventListener('alpine:init', () => {
         swgSetpointPercent: '--',
         swgPoolSetpoint: '--',
         swgSpaSetpoint: '--',
+        // True while a shown target is still the value remembered from the last run (restored
+        // from the server's equipment cache) rather than one read from the panel or just set.
+        swgSetpointsCached: false,
         chlorinatorStatus: '--',
         chlorinatorHealth: '--',
         // Every health flag active simultaneously (the wire status byte is a true
@@ -357,6 +360,7 @@ document.addEventListener('alpine:init', () => {
         _applyChlorinator(swg) {
             if (swg == null) {
                 this.chlorinatorPresent = false;
+                this.swgSetpointsCached = false;
                 return;
             }
             this.chlorinatorPresent = true;
@@ -366,6 +370,7 @@ document.addEventListener('alpine:init', () => {
             this.swgSetpointPercent = (swg.setpoint_percent != null) ? swg.setpoint_percent : '--';
             this.swgPoolSetpoint = (swg.pool_setpoint_percent != null) ? swg.pool_setpoint_percent : '--';
             this.swgSpaSetpoint = (swg.spa_setpoint_percent != null) ? swg.spa_setpoint_percent : '--';
+            this.swgSetpointsCached = (swg.setpoints_cached === true);
             this.chlorinatorStatus = swg.status || '--';
             this.chlorinatorHealth = swg.health || '--';
             this.chlorinatorHealthFlags = Array.isArray(swg.health_flags) ? swg.health_flags : [];

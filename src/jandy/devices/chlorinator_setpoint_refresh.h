@@ -18,7 +18,8 @@ namespace AqualinkAutomate::Devices
 	// the menu lives in the device (OneTouchDevice::SetpointRefresh_ProcessStep).
 	//
 	// Triggers: a periodic interval, an offline->online (comms-recovery) edge as a one-shot,
-	// and (implicitly) the very first eligible tick after startup once the timer is seeded.
+	// a stale-setpoint request (see ChlorinatorSetpointStaleDetector) as a one-shot, and
+	// (implicitly) the very first eligible tick after startup once the timer is seeded.
 	class ChlorinatorSetpointRefresh
 	{
 	public:
@@ -54,11 +55,21 @@ namespace AqualinkAutomate::Devices
 			m_StartupComplete = true;
 		}
 
-		// A refresh visit has just been kicked off: consume the one-shot recovery flag and seed
-		// the interval timer from now so the next periodic scrape is a full interval away.
+		// Something observed on the bus says the configured setpoint is probably out of date: ask
+		// for a scrape as soon as the normal gates allow (emulating, menu free, startup finished).
+		// One-shot, like the recovery edge, and NOT subject to the interval, so a panel-side change
+		// shows up in seconds rather than up to a full interval later.
+		constexpr void LatchStaleRequest()
+		{
+			m_StalePending = true;
+		}
+
+		// A refresh visit has just been kicked off: consume the one-shot flags and seed the
+		// interval timer from now so the next periodic scrape is a full interval away.
 		constexpr void NotifyScrapeStarted(TimePoint now)
 		{
 			m_RecoveryPending = false;
+			m_StalePending = false;
 			m_LastScrape = now;
 		}
 
@@ -91,7 +102,7 @@ namespace AqualinkAutomate::Devices
 				return Action::None;
 			}
 
-			if (const bool interval_elapsed = (now - m_LastScrape) >= m_Interval; m_RecoveryPending || interval_elapsed)
+			if (const bool interval_elapsed = (now - m_LastScrape) >= m_Interval; m_RecoveryPending || m_StalePending || interval_elapsed)
 			{
 				return Action::Scrape;
 			}
@@ -104,6 +115,7 @@ namespace AqualinkAutomate::Devices
 		constexpr std::chrono::seconds Interval() const { return m_Interval; }
 		constexpr bool StartupComplete() const { return m_StartupComplete; }
 		constexpr bool RecoveryPending() const { return m_RecoveryPending; }
+		constexpr bool StalePending() const { return m_StalePending; }
 
 	private:
 		bool m_Enabled{ false };
@@ -112,6 +124,7 @@ namespace AqualinkAutomate::Devices
 		bool m_PrevOnline{ false };
 		bool m_OnlineInitialised{ false };   // false until the first online sample establishes the baseline
 		bool m_RecoveryPending{ false };
+		bool m_StalePending{ false };
 		TimePoint m_LastScrape{};   // default = epoch -> first eligible tick scrapes unless seeded
 	};
 

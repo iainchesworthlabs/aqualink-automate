@@ -6,7 +6,7 @@ set -euo pipefail
 # We need to populate it ourselves since git submodule can't write into it.
 
 VCPKG_DIR="/src/deps/vcpkg"
-VCPKG_URL="https://github.com/microsoft/vcpkg.git"
+VCPKG_URL="https://github.com/iainchesworthlabs/vcpkg.git"
 
 # Ensure the dev user owns the vcpkg volume (Docker creates volumes as root).
 sudo chown dev:dev "$VCPKG_DIR"
