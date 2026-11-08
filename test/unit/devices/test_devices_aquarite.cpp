@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <vector>
 
 #include <boost/test/unit_test.hpp>
 
@@ -711,6 +712,139 @@ BOOST_AUTO_TEST_CASE(Status_FaultAndWarningCombined_FaultWinsPrimaryHealth)
 	BOOST_REQUIRE(flags.has_value());
 	const std::set<Kernel::ChlorinatorHealth> expected{ Kernel::ChlorinatorHealth::Warning_LowSalt, Kernel::ChlorinatorHealth::Error_CheckPCB };
 	BOOST_CHECK(flags.value() == expected);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+//=============================================================================
+// Stale configured-setpoint detection: the live 0x11 frame says what the panel is commanding;
+// when that is something the dashboard's configured target does not explain (a change made at
+// the panel or in iAqualink), the device must ask for an immediate Set AquaPure re-scrape.
+//=============================================================================
+
+namespace
+{
+	std::vector<uint8_t> PercentFrame(uint8_t percent)
+	{
+		return Test::MessageBuilder::CreateValidChecksummedMessage(AQUARITE_DEVICE_ID, CMD_AQUARITE_PERCENT, { percent });
+	}
+
+	void ReplayPercent(Test::MockReplayHarness& harness, uint8_t percent, int count)
+	{
+		for (int i = 0; i < count; ++i)
+		{
+			harness.Replay(PercentFrame(percent));
+		}
+	}
+
+	// What the Set AquaPure scrape establishes.
+	void SeedConfigured(Test::MockReplayHarness& harness, uint8_t pool, uint8_t spa)
+	{
+		auto chlorinators = harness.DataHub()->Chlorinators();
+		BOOST_REQUIRE_EQUAL(chlorinators.size(), 1u);
+		chlorinators.front()->AuxillaryTraits.Set(AuxillaryTraitsTypes::ChlorinatorPoolSetpointTrait{}, pool);
+		chlorinators.front()->AuxillaryTraits.Set(AuxillaryTraitsTypes::ChlorinatorSpaSetpointTrait{}, spa);
+	}
+}
+
+BOOST_AUTO_TEST_SUITE(AquariteDevice_StaleSetpoint_TestSuite)
+
+BOOST_AUTO_TEST_CASE(PanelCommandsSomethingElse_RequestsOneRefresh)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	ReplayPercent(harness, 65, 1);          // creates the chlorinator
+	SeedConfigured(harness, 65, 80);        // dashboard: Pool 65 / Spa 80
+	ReplayPercent(harness, 65, 10);
+	BOOST_CHECK(!harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+
+	// Someone changes the pool target to 70% at the panel.
+	ReplayPercent(harness, 70, 12);
+	BOOST_CHECK(harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+
+	// One request, not one per frame.
+	ReplayPercent(harness, 70, 12);
+	BOOST_CHECK(!harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+
+	// The dashboard's target is NOT overwritten from the wire: the scrape owns that value.
+	auto chlorinators = harness.DataHub()->Chlorinators();
+	auto pool = chlorinators.front()->AuxillaryTraits.TryGet(AuxillaryTraitsTypes::ChlorinatorPoolSetpointTrait{});
+	BOOST_REQUIRE(pool.has_value());
+	BOOST_CHECK_EQUAL(pool.value(), static_cast<uint8_t>(65));
+}
+
+BOOST_AUTO_TEST_CASE(WireMatchesConfigured_NeverRequests)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	ReplayPercent(harness, 65, 1);
+	SeedConfigured(harness, 65, 80);
+	ReplayPercent(harness, 65, 60);
+
+	BOOST_CHECK(!harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+}
+
+BOOST_AUTO_TEST_CASE(OwnRecentCommand_IsNotMistakenForStaleness)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	ReplayPercent(harness, 65, 1);
+	SeedConfigured(harness, 80, 80);              // the dispatcher already wrote 80% through
+	harness.DataHub()->NoteChlorinatorSetpointCommand();
+
+	ReplayPercent(harness, 65, 30);               // the panel has not applied it yet
+	BOOST_CHECK(!harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+}
+
+BOOST_AUTO_TEST_CASE(BoostAndServiceFrames_NeverRequest)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	ReplayPercent(harness, 65, 1);
+	SeedConfigured(harness, 65, 80);
+
+	ReplayPercent(harness, 101, 30);   // boost
+	ReplayPercent(harness, 255, 30);   // service mode
+	ReplayPercent(harness, 0, 30);     // idle
+	BOOST_CHECK(!harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+}
+
+BOOST_AUTO_TEST_CASE(ConfiguredTargetNeverScraped_Requests)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	// Only the wire has ever spoken: the "last generating" fallback equals the wire, so the
+	// detector must compare against the CONFIGURED value, which is unknown here.
+	ReplayPercent(harness, 60, 12);
+	BOOST_CHECK(harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+}
+
+BOOST_AUTO_TEST_CASE(PanelServingSpa_RequestsOnceThenStopsAsking)
+{
+	Test::MockReplayHarness harness;
+	auto device_id = std::make_shared<JandyDeviceType>(JandyDeviceId(AQUARITE_DEVICE_ID));
+	harness.AddDevice<AquariteDevice>(device_id);
+
+	ReplayPercent(harness, 65, 1);
+	SeedConfigured(harness, 65, 80);
+
+	// The panel is serving the spa (80%) while the app defaults to the pool body (65%).
+	ReplayPercent(harness, 80, 12);
+	BOOST_CHECK(harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
+
+	// The scrape would read the same 65/80, so there is nothing more to learn: no repeat.
+	ReplayPercent(harness, 80, 200);
+	BOOST_CHECK(!harness.DataHub()->ConsumeChlorinatorSetpointRefreshRequest());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

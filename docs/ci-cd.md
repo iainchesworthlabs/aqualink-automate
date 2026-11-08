@@ -606,6 +606,8 @@ Because OS maps 1:1 to the triplet in use, jobs that share a triplet — `build-
 
 Self-hosted runners use a persistent on-disk `~/.cache/vcpkg/archives` instead of the `actions/cache` restore, set up by the inline "Setup vcpkg cache (self-hosted)" steps.
 
+**The directory `actions/cache` saves and the one vcpkg reads must be the same.** `lukka/run-vcpkg` computes its own `<workspace>/<uuid>/vcpkg_cache` and exports it as `VCPKG_DEFAULT_BINARY_CACHE` when it finishes; left alone, every later step (the CMake configure that installs the packages) reads and writes there while `actions/cache` restores and saves `~/.cache/vcpkg/archives`. That is how the hosted Linux and macOS legs came to restore a ~200-byte cache and report `Restored 0 package(s)` on every run, rebuilding OpenSSL (4-6 min), libsodium and boost-log each time, while the self-hosted Windows leg (which does not use the action) restored 118 packages in 11 s. The action therefore passes `binaryCachePath` to run-vcpkg and fails the job if `VCPKG_DEFAULT_BINARY_CACHE` is ever not the cached directory. A healthy run logs `Restored N package(s) from <home>/.cache/vcpkg/archives` with N in the tens or hundreds.
+
 ### Compiler cache (ccache)
 
 ccache is used inside the Docker builds (the in-Dockerfile cache mounts a `docker buildx` retry reuses) and is pre-installed on the self-hosted runner images (5 GB, compression enabled — see `cicd/packer/README.md`). The host-side CMake build steps in `_build.yml` rely on the vcpkg binary cache rather than a separate Actions-cached ccache.

@@ -1347,7 +1347,7 @@
                             <span class="swg-target-label" x-text="bodyLabel(body)"></span>
                             <input type="range" min="0" max="100" step="5" class="swg-slider"
                                    :value="target(body)" @input="setTarget(body, $event.target.value)"
-                                   :disabled="locked || !$store.auth.can('equipment.control.chlorinator')"
+                                   :disabled="busy || !$store.auth.can('equipment.control.chlorinator')"
                                    :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
                             <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
                             <template x-if="$store.auth.can('equipment.control.chlorinator')">
@@ -1356,6 +1356,7 @@
                             </template>
                         </div>
                     </template>
+                    <div class="swg-cached-note" x-show="setpointsCached" x-cloak x-text="$t('dash.targets_cached')"></div>
                     <div class="swg-actions">
                         <template x-if="$store.auth.can('equipment.control.chlorinator')">
                             <div class="swg-actions-inner">
@@ -1426,13 +1427,14 @@
                             <span class="swg-target-label" x-text="bodyLabel(body)"></span>
                             <input type="range" min="0" max="100" step="5" class="swg-slider"
                                    :value="target(body)" @input="setTarget(body, $event.target.value)"
-                                   :disabled="locked"
+                                   :disabled="busy"
                                    :aria-label="$t('dash.target_body_aria', { body: bodyLabel(body) })">
                             <span class="swg-target-value" x-text="$n(target(body)) + '%'"></span>
                             <button class="swg-set-btn" @click="setPercent(body)"
                                     :disabled="locked || !changed(body)" x-text="$t('dash.set')"></button>
                         </div>
                     </template>
+                    <div class="swg-cached-note" x-show="setpointsCached && $store.auth.can('equipment.control.chlorinator')" x-cloak x-text="$t('dash.targets_cached')"></div>
                 </div>
             </div>
             </template>
@@ -1609,7 +1611,7 @@
                         <template x-if="$store.pool.chlorinatorPresent">
                             <div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_output')"></span><span class="kv-v" x-text="$store.pool.swgGeneratingPercent === '--' ? '--' : ($n($store.pool.swgGeneratingPercent) + ' %')"></span></div>
-                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v" x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($n($store.pool.swgSetpointPercent) + ' %')"></span></div>
+                                <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_target')"></span><span class="kv-v"><span x-text="$store.pool.swgSetpointPercent === '--' ? '--' : ($n($store.pool.swgSetpointPercent) + ' %')"></span> <small class="kv-note" x-show="$store.pool.swgSetpointsCached" x-cloak x-text="$t('detail.last_known')"></small></span></div>
                                 <div class="kv-row"><span class="kv-k" x-text="$t('detail.swg_health')"></span><span class="kv-v" x-text="$store.pool.chlorinatorHealthLabel || $store.pool.chlorinatorHealth"></span></div>
                             </div>
                         </template>
@@ -3048,6 +3050,15 @@
                             <a x-show="safeHomepage" :href="safeHomepage" x-text="safeHomepage" target="_blank" rel="noopener noreferrer"></a>
                             <span x-show="!safeHomepage" class="text-muted">--</span>
                         </dd>
+
+                        <dt x-text="$t('about.copyright')"></dt>
+                        <dd dir="ltr" x-text="appNotice.copyright"></dd>
+
+                        <dt x-text="$t('about.licence')"></dt>
+                        <dd class="about-licence-row">
+                            <span dir="ltr" x-text="appNotice.licence + ' (' + appNotice.licenceFile + ')'"></span>
+                            <a x-show="safeHomepage" :href="safeHomepage" target="_blank" rel="noopener noreferrer" x-text="$t('about.source_code')"></a>
+                        </dd>
                     </dl>
                 </div>
             </div>
@@ -3091,6 +3102,56 @@
                 </div>
             </div>
 
+            <!-- Third-party notices, rendered from scripts/config/third-party-notices.js
+                 (the one place they are written down). Names, copyright lines and
+                 licence texts are legal text and proper names — untranslated by
+                 design, hence data-i18n-exempt on the data-bearing elements. -->
+            <div class="section-title" x-text="$t('about.licences')"></div>
+            <div class="card mb-2">
+                <div class="card-body">
+                    <p class="text-muted" x-text="$t('about.licences_intro')"></p>
+
+                    <template x-for="group in noticeGroups" :key="group.kind">
+                        <div class="about-notice-group">
+                            <div class="about-notice-group-title" x-text="$t(group.labelKey)"></div>
+                            <ul class="about-notice-list">
+                                <template x-for="item in group.items" :key="item.name">
+                                    <li class="about-notice" data-i18n-exempt>
+                                        <div class="about-notice-head">
+                                            <span class="about-notice-name" x-text="item.name"></span>
+                                            <code x-show="item.version" x-text="item.version"></code>
+                                        </div>
+                                        <template x-for="line in item.copyright" :key="line">
+                                            <div class="about-notice-line" dir="ltr" x-text="line"></div>
+                                        </template>
+                                        <template x-for="line in item.notes" :key="line">
+                                            <div class="about-notice-line" dir="ltr" x-text="line"></div>
+                                        </template>
+                                        <div class="about-notice-meta" dir="ltr">
+                                            <a x-show="item.licenceUrl" :href="item.licenceUrl" target="_blank" rel="noopener noreferrer" x-text="item.licenceName"></a>
+                                            <span x-show="!item.licenceUrl" x-text="item.licenceName"></span>
+                                            <a x-show="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" x-text="item.url"></a>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+
+                    <template x-for="lic in noticeLicences" :key="lic.id">
+                        <div class="about-licence" x-data="{ open: false }">
+                            <button type="button" class="about-licence-toggle"
+                                    :aria-expanded="open ? 'true' : 'false'"
+                                    @click="open = !open">
+                                <span x-text="$t('about.licence_text', { name: lic.name })"></span>
+                                <svg class="about-licence-caret" :class="{ open: open }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <pre class="about-licence-text" dir="ltr" x-show="open" x-cloak x-text="lic.text"></pre>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
         </div>
 
     </main>
@@ -3124,6 +3185,7 @@
     <!-- UI constants: shared config consumed by the component/view scripts below
          (see scripts/config/ui-constants.js's own header comment). -->
     <script src="scripts/config/ui-constants.js"></script>
+    <script src="scripts/config/third-party-notices.js"></script>
     <!-- Component scripts -->
     <script src="scripts/components/pool-graphic.js"></script>
     <script src="scripts/components/chemistry-gauge.js"></script>

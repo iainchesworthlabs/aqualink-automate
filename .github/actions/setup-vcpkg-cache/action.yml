@@ -25,6 +25,12 @@ runs:
         BINARY_DIR="$HOME/.cache/vcpkg/archives"
         DOWNLOADS_DIR="$HOME/.cache/vcpkg/downloads"
         mkdir -p "$BINARY_DIR" "$DOWNLOADS_DIR"
+        # vcpkg rejects an MSYS-style path (/c/...) on Windows. The actions/cache
+        # steps below keep the bash-style ~ form.
+        if command -v cygpath >/dev/null 2>&1; then
+          BINARY_DIR="$(cygpath -w "$BINARY_DIR")"
+          DOWNLOADS_DIR="$(cygpath -w "$DOWNLOADS_DIR")"
+        fi
         echo "VCPKG_DEFAULT_BINARY_CACHE=$BINARY_DIR" >> "$GITHUB_ENV"
         echo "VCPKG_DOWNLOADS=$DOWNLOADS_DIR" >> "$GITHUB_ENV"
 
@@ -53,10 +59,38 @@ runs:
           vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.vcpkg-version.outputs.hash }}-
           vcpkg-${{ runner.os }}-${{ runner.arch }}-
 
+    # binaryCachePath is the whole fix for an empty binary cache on the hosted
+    # Linux and macOS legs. run-vcpkg computes its own directory
+    # (<workspace>/<uuid>/vcpkg_cache) and exports it as VCPKG_DEFAULT_BINARY_CACHE
+    # when it finishes, so every later step - the CMake configure that actually
+    # installs the packages - read and wrote THERE, while actions/cache above
+    # restored and saved ~/.cache/vcpkg/archives. The cache entries were ~200
+    # bytes and every run reported "Restored 0 package(s)", rebuilding OpenSSL
+    # (4-6 min), libsodium and boost-log each time. Handing run-vcpkg the
+    # directory actions/cache owns makes the two the same place.
     - name: Run vcpkg
       uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11.6
       with:
         vcpkgDirectory: ${{ github.workspace }}/deps/vcpkg
+        binaryCachePath: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
         doNotCache: true
       env:
         VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+
+    # run-vcpkg exports VCPKG_DEFAULT_BINARY_CACHE as a side effect, which is how
+    # this broke without anyone noticing: a cache that restores nothing is
+    # silent. Fail the job instead if the directory ever stops being the one
+    # actions/cache saves.
+    - name: Check vcpkg still reads the cached directory
+      shell: bash
+      run: |
+        expected="$HOME/.cache/vcpkg/archives"
+        actual="$VCPKG_DEFAULT_BINARY_CACHE"
+        if command -v cygpath >/dev/null 2>&1; then
+          actual="$(cygpath -u "$actual")"
+        fi
+        if [ "$actual" != "$expected" ]; then
+          echo "::error title=vcpkg binary cache is not the cached directory::VCPKG_DEFAULT_BINARY_CACHE is '$VCPKG_DEFAULT_BINARY_CACHE' but actions/cache saves '$expected', so packages are neither restored nor kept."
+          exit 1
+        fi
+        echo "vcpkg binary cache: $VCPKG_DEFAULT_BINARY_CACHE ($(find "$expected" -type f -name '*.zip' | wc -l) archive(s) restored)"
