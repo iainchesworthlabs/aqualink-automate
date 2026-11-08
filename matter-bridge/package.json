@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@matter/main": "^0.18.0",
-    "ws": "^8.22.0"
+    "ws": "^8.22.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
