@@ -32,7 +32,8 @@
  * installed (`npx playwright install chromium`).
  *
  * Shots: hero, mobile (phone + tablet dashboard), trends, schedules,
- * settings, about, rtl, auth (wizard + admin + account menu + login).
+ * settings, about (language card, licence/copyright rows, licences card), rtl,
+ * auth (wizard + admin + account menu + login).
  */
 const { chromium } = require('@playwright/test');
 const { spawn } = require('node:child_process');
@@ -313,6 +314,58 @@ async function captureAnonymous(browser) {
       const card = page.locator('.settings-card, .info-card, section, div')
         .filter({ has: page.getByText('Available languages') }).last();
       await card.screenshot(png('webui-about-languages.png'));
+    });
+
+    // The licence and copyright rows sit at the end of the Software-information
+    // card, below rows that churn with the build (version, commit, date). Crop to
+    // Homepage -> Licence, which are stable, so the picture does not change on
+    // every regeneration.
+    if (want('about')) await shot('webui-about-licence-line.png', async () => {
+      await page.locator('.nav-link', { hasText: 'About' }).click();
+      const grid = page.locator('.info-grid').first();
+      const first = grid.locator('dt', { hasText: /^Homepage$/ });
+      const last = grid.locator('dt', { hasText: /^Licence$/ }).locator('xpath=following-sibling::dd[1]');
+      await last.waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(750);                 // let /api/version fill the Homepage link
+      const [a, b, g, scroll] = await Promise.all([
+        first.boundingBox(), last.boundingBox(), grid.boundingBox(),
+        page.evaluate(() => ({ x: window.scrollX, y: window.scrollY })),
+      ]);
+      // Rows sit 8px apart, so the top pad must stay under that or the foot of
+      // the Commit Date row (which churns) shows at the crop's upper edge.
+      const pad = 14, padTop = 3, padBottom = 10;
+      await page.screenshot({
+        ...png('webui-about-licence-line.png'),
+        fullPage: true,
+        clip: {
+          x: g.x + scroll.x - pad,
+          y: a.y + scroll.y - padTop,
+          width: g.width + 2 * pad,
+          height: b.y + b.height - a.y + padTop + padBottom,
+        },
+      });
+    });
+
+    // Licences card: static content rendered from scripts/config/
+    // third-party-notices.js (so, like the language card, it does not churn
+    // with the build's git state). The OFL text is expanded so the picture
+    // shows a notice and the licence it sits under together.
+    if (want('about')) await shot('webui-about-licences.png', async () => {
+      await page.locator('.nav-link', { hasText: 'About' }).click();
+      const card = page.locator('.card').filter({ has: page.locator('.about-notice-group') });
+      await card.waitFor({ timeout: 10_000 });
+      await card.locator('.about-licence-toggle', { hasText: 'SIL Open Font License' }).click();
+      // The card is taller than the default viewport; an element shot of
+      // something taller than the viewport is stitched while scrolling, which
+      // drops the sticky top bar into the middle of the picture. A viewport
+      // that holds the whole card avoids the stitching.
+      await page.setViewportSize({ width: 1280, height: 2400 });
+      try {
+        await page.waitForTimeout(500);
+        await card.screenshot(png('webui-about-licences.png'));
+      } finally {
+        await page.setViewportSize({ width: 1280, height: 800 });
+      }
     });
 
     // RTL LAST: switching mirrors ui.locale into the server prefs, so nothing

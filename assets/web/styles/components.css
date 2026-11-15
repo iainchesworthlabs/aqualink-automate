@@ -1828,6 +1828,9 @@ html.dark .gauge-card { border-color: var(--border); }
    warning colour so a genuine problem still stands out. */
 .swg-reason { font: 500 11.5px/1.35 var(--font-ui); color: var(--warn); margin-top: 4px; }
 .swg-reason.is-idle { color: var(--text-faint); }
+/* The shown targets are remembered, not yet confirmed by the panel. Muted: informational. */
+.swg-cached-note { font: 500 11.5px/1.35 var(--font-ui); color: var(--text-faint); margin-top: 6px; }
+.kv-note { color: var(--text-faint); font-weight: 500; }
 /* Secondary flags list under the primary badge, shown only when the cell's status byte
    reports more than one active flag at once. */
 .swg-health-flags { display: block; font: 500 11px/1.35 var(--font-ui); color: var(--text-faint); margin-top: 2px; }
@@ -3010,6 +3013,56 @@ main input[type="range"] { accent-color: var(--accent); }
 .about-lang-active {
     font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--accent);
+}
+
+/* --- About → Licence line + third-party notices ------------------------- */
+/* Rendered from scripts/config/third-party-notices.js. Notices are legal text
+   and proper names, so they stay left-to-right (dir="ltr" in the markup) and
+   wrap anywhere rather than overflow on a phone. */
+.about-licence-row { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.about-notice-group + .about-notice-group { margin-top: 16px; }
+.about-notice-group-title {
+    margin: 0 0 8px;
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-dim);
+}
+.about-notice-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.about-notice {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-chip);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+.about-notice-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px;
+    color: var(--text);
+}
+.about-notice-name { font-weight: 600; }
+.about-notice-line { overflow-wrap: anywhere; }
+.about-notice-meta {
+    display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 4px;
+    overflow-wrap: anywhere;
+}
+.about-licence { margin-top: 12px; }
+.about-licence-toggle {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 8px 12px; text-align: start;
+    font: inherit; font-size: 0.9rem; font-weight: 600;
+    color: var(--accent); background: var(--accent-soft);
+    border: 1px solid var(--border); border-radius: var(--radius-chip);
+    cursor: pointer;
+}
+.about-licence-caret { flex: none; width: 18px; height: 18px; margin-inline-start: auto; transition: transform 0.18s ease; }
+.about-licence-caret.open { transform: rotate(180deg); }
+.about-licence-text {
+    margin: 8px 0 0; padding: 12px; max-height: 18rem; overflow: auto;
+    font-family: var(--font-mono, monospace); font-size: 0.75rem; line-height: 1.5;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-chip);
 }
 
 /* =====================================================================

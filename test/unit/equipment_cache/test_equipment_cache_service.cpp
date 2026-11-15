@@ -543,4 +543,94 @@ BOOST_AUTO_TEST_CASE(Snapshot_FreshHub_HasUnknownConfigAndNoDevices)
 	BOOST_CHECK(snapshot["devices"].empty());
 }
 
+// The configured Pool/Spa targets can only be read by scraping a menu page, so they are persisted;
+// a restart then restores them flagged as cached rather than showing "not reported yet".
+BOOST_AUTO_TEST_CASE(SnapshotApply_ChlorinatorTargets_RoundTripAndAreFlaggedCached)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+	EquipmentCache::EquipmentCacheService source(io, *this, settings);
+
+	auto chlorinator = MakeDevice("AquaPure", Traits::AuxillaryTypes::Chlorinator);
+	chlorinator->AuxillaryTraits.Set(Traits::ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(65));
+	chlorinator->AuxillaryTraits.Set(Traits::ChlorinatorSpaSetpointTrait{}, static_cast<uint8_t>(80));
+	Find<Kernel::DataHub>()->Devices.Add(chlorinator);
+
+	const auto snapshot = source.Snapshot();
+	BOOST_REQUIRE_EQUAL(snapshot["devices"].size(), 1u);
+	BOOST_CHECK_EQUAL(snapshot["devices"][0]["pool_setpoint_percent"].get<int>(), 65);
+	BOOST_CHECK_EQUAL(snapshot["devices"][0]["spa_setpoint_percent"].get<int>(), 80);
+
+	Test::HubLocatorInjector fresh;
+	EquipmentCache::EquipmentCacheService dest(io, fresh, settings);
+	dest.ApplySnapshot(snapshot);
+
+	auto hub = fresh.Find<Kernel::DataHub>();
+	auto chlorinators = hub->Chlorinators();
+	BOOST_REQUIRE_EQUAL(chlorinators.size(), 1u);
+
+	const auto pool = chlorinators.front()->AuxillaryTraits.TryGet(Traits::ChlorinatorPoolSetpointTrait{});
+	const auto spa = chlorinators.front()->AuxillaryTraits.TryGet(Traits::ChlorinatorSpaSetpointTrait{});
+	BOOST_REQUIRE(pool.has_value());
+	BOOST_REQUIRE(spa.has_value());
+	BOOST_CHECK_EQUAL(pool.value(), static_cast<uint8_t>(65));
+	BOOST_CHECK_EQUAL(spa.value(), static_cast<uint8_t>(80));
+
+	// What the dashboard / MQTT see: the values, marked as last-known rather than live.
+	BOOST_CHECK(hub->ChlorinatorSetpointsCached());
+	BOOST_CHECK(hub->ChlorinatorSnapshot()["setpoints_cached"].get<bool>());
+}
+
+BOOST_AUTO_TEST_CASE(SnapshotApply_CachedTarget_DoesNotOverrideALiveDiscoveredDevice)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+	EquipmentCache::EquipmentCacheService source(io, *this, settings);
+
+	auto original = MakeDevice("AquaPure", Traits::AuxillaryTypes::Chlorinator);
+	original->AuxillaryTraits.Set(Traits::ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(65));
+	Find<Kernel::DataHub>()->Devices.Add(original);
+	const auto snapshot = source.Snapshot();
+
+	// Live discovery already created this chlorinator (same stable id) with a fresher target.
+	Test::HubLocatorInjector fresh;
+	auto live = std::make_shared<Kernel::AuxillaryDevice>(original->Id());
+	live->AuxillaryTraits.Set(Traits::AuxillaryTypeTrait{}, Traits::AuxillaryTypes::Chlorinator);
+	live->AuxillaryTraits.Set(Traits::LabelTrait{}, std::string{ "AquaPure" });
+	live->AuxillaryTraits.Set(Traits::ChlorinatorPoolSetpointTrait{}, static_cast<uint8_t>(70));
+	fresh.Find<Kernel::DataHub>()->Devices.Add(live);
+
+	EquipmentCache::EquipmentCacheService dest(io, fresh, settings);
+	dest.ApplySnapshot(snapshot);
+
+	auto hub = fresh.Find<Kernel::DataHub>();
+	BOOST_CHECK(!hub->ChlorinatorSetpointsCached());
+	const auto pool = hub->Chlorinators().front()->AuxillaryTraits.TryGet(Traits::ChlorinatorPoolSetpointTrait{});
+	BOOST_REQUIRE(pool.has_value());
+	BOOST_CHECK_EQUAL(pool.value(), static_cast<uint8_t>(70));
+}
+
+BOOST_AUTO_TEST_CASE(SnapshotApply_OutOfRangeOrMalformedTarget_IsIgnored)
+{
+	boost::asio::io_context io;
+	Options::Equipment::EquipmentSettings settings;
+
+	nlohmann::json hostile;
+	hostile["devices"] = nlohmann::json::array();
+	hostile["devices"].push_back({
+		{ "label", "AquaPure" }, { "type", "Chlorinator" },
+		{ "pool_setpoint_percent", 250 },          // not a percentage
+		{ "spa_setpoint_percent", "eighty" } });   // not a number
+
+	EquipmentCache::EquipmentCacheService service(io, *this, settings);
+	service.ApplySnapshot(hostile);
+
+	auto hub = Find<Kernel::DataHub>();
+	auto chlorinators = hub->Chlorinators();
+	BOOST_REQUIRE_EQUAL(chlorinators.size(), 1u);
+	BOOST_CHECK(!chlorinators.front()->AuxillaryTraits.TryGet(Traits::ChlorinatorPoolSetpointTrait{}).has_value());
+	BOOST_CHECK(!chlorinators.front()->AuxillaryTraits.TryGet(Traits::ChlorinatorSpaSetpointTrait{}).has_value());
+	BOOST_CHECK(!hub->ChlorinatorSetpointsCached());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

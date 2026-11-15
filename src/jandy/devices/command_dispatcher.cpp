@@ -211,6 +211,14 @@ namespace AqualinkAutomate::Devices
 
 		LogDebug(Channel::Devices, std::format("CommandDispatcher: wrote chlorinator {} setpoint {}% through to cache", magic_enum::enum_name(body), percentage));
 
+		// Whatever this body showed before (a value restored from the equipment cache, say), it is
+		// now the value the user just chose rather than a "last known" one.
+		m_DataHub->ConfirmChlorinatorSetpoint(body);
+
+		// The panel has not applied this yet (10-20 s of menu walking): tell the stale-setpoint
+		// detector that a wire/configured difference right now is expected.
+		m_DataHub->NoteChlorinatorSetpointCommand();
+
 		// A trait write announces nothing by itself, so an open dashboard (WebSocket) would keep
 		// showing the old target until its next REST fetch -- the "still 75%, can't set 75"
 		// symptom. Publish now (change-guarded), rather than waiting for the periodic sweep.
