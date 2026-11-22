@@ -80,6 +80,18 @@ Right-to-left languages (Arabic, Hebrew, Yiddish) mirror the layout automaticall
 
 Translations live in plain-text catalogs and are easy to contribute — see [Contributing translations](CONTRIBUTING.md#contributing-translations) for the workflow and [docs/i18n.md](i18n.md) for the mechanics.
 
+### About, licence and third-party notices
+
+The **About** page shows the build (version, commit, homepage), the licence the application is released under — the GNU General Public License v3.0, naming `LICENSE.txt` and linking to the source code — and its copyright line, followed by the equipment's reported firmware and the languages the UI ships in:
+
+![The licence and copyright rows on the About page — the GNU General Public License v3.0 with a link to the source code, and the copyright line](assets/webui-about-licence-line.png)
+
+Below those, a **Licences** section lists everything the web UI includes from other projects: the bundled fonts (Bricolage Grotesque, Hanken Grotesk, Noto Sans Arabic and Noto Sans Hebrew, under the SIL Open Font License 1.1), the vendored scripts (Alpine.js, Chart.js, chartjs-adapter-date-fns with the date-fns it bundles, and QRCode.js, all MIT) and the Feather icon paths (MIT). Each entry carries its version, copyright line and a link to its licence, and the full licence texts expand in place:
+
+![The About page's Licences card — every bundled font, script and icon set with its copyright line and licence, and the SIL Open Font License text expanded](assets/webui-about-licences.png)
+
+The list is rendered from one data file, `assets/web/scripts/config/third-party-notices.js`, so a notice is written once. When you vendor a new library or font, add its entry there in the same change; `e2e/about-licences.spec.ts` fails if a file under `assets/web/vendor/` or a font family declared in `fonts.css` has no entry.
+
 ### Responsive layout
 
 The UI is a single responsive web app — there is no separate mobile build or native app. The same page reflows across three viewport bands, and the navigation adapts to match:
@@ -339,6 +351,7 @@ Returns the full equipment state. The top-level keys are `temperatures`, `chemis
       "pool_setpoint_percent": 45,
       "spa_setpoint_percent": 50,
       "setpoint_percent": 45,
+      "setpoints_cached": false,
       "status": "Generating",
       "health": "Ok",
       "health_flags": ["Ok"]
@@ -378,6 +391,7 @@ Field notes (these are deliberate, not bugs):
 - `generating_percent` is the **instantaneous** output and is `0` whenever the cell is idle — which alone cannot distinguish a chlorinator that is switched off from one that is configured and healthy but has no flow. `generating_reason` says which it is: `Generating`, `Off` (setpoint is 0%), `PumpOff` (configured, but no filter pump is running), `NoFlow` (a pump is running but the cell reports no flow), `Fault` (the cell is in a warning/error state), `Idle` (configured and not generating, no nameable reason), or `Unknown` (nothing reported yet). It is derived server-side so the web UI, MQTT and Home Assistant agree.
 - The cell's wire status byte is a true bitfield, so more than one health condition can be active at once (e.g. a low-salt warning together with a high-current warning). `health` is the single worst-of-the-set flag (electrical/hardware flags outrank chemistry flags, which outrank routine-maintenance flags) — kept for backward compatibility with consumers that only expect one value. `health_flags` is the full array of every currently-active flag; it always contains at least `health` itself.
 - `setpoint_percent` is the **configured target** for the currently active body (resolving to `pool_setpoint_percent` or `spa_setpoint_percent`, falling back to the last-known generating %); it is what the dashboard's Target slider seeds from.
+- `setpoints_cached` is `true` while a reported `pool_setpoint_percent` / `spa_setpoint_percent` is still the value remembered from the last run — restored from the equipment cache (`--equipment-cache-file`, always on in the Home Assistant add-on) — and has not yet been confirmed by reading the panel's Set AquaPure page or by a command from this app. The panel may have been changed in the meantime (at the panel, in iAqualink), so clients should present such a target as "last known". It turns `false` per body as each is re-read or re-set, and is `false` on an installation without the cache.
 - `validation` is an object once the startup scrape completes, or `null` before then. The spelling `expected_auxillary_count` (and the nested `expected_auxillaries` / `discovered_auxillaries`) is the exact field name in the payload.
 - A temperature is either a `{ "celsius": ..., "fahrenheit": ... }` object or `null`.
 
@@ -642,7 +656,7 @@ These are the fields the UI consumes from each frame's `payload`:
 | Event type | Payload fields |
 |---|---|
 | `TemperatureUpdate` | `pool_temp`, `spa_temp`, `air_temp`, `pool_setpoint`, `spa_setpoint` — each a raw dual-unit object `{celsius, fahrenheit}` (same shape as REST `/api/equipment`; display formatting is the frontend's job, see `docs/i18n.md`) |
-| `ChemistryUpdate` | `ph`, `orp`, `salt_level`; and `chlorinator` — the same object as `chemistry.chlorinator` in REST `/api/equipment` (`generating_percent`, `duty_cycle`, `status`, `health`, `health_flags`, `pool_setpoint_percent`, `spa_setpoint_percent`, `setpoint_percent`, `generating_reason`). It is present only on an event that reports a chlorinator change (the state is checked once a second and again immediately after a successful `POST /api/equipment/chlorinator`), and may be `null`, meaning the chlorinator is no longer present. A client must key on the field's *presence*, not its truthiness |
+| `ChemistryUpdate` | `ph`, `orp`, `salt_level`; and `chlorinator` — the same object as `chemistry.chlorinator` in REST `/api/equipment` (`generating_percent`, `duty_cycle`, `status`, `health`, `health_flags`, `pool_setpoint_percent`, `spa_setpoint_percent`, `setpoint_percent`, `setpoints_cached`, `generating_reason`). It is present only on an event that reports a chlorinator change (the state is checked once a second and again immediately after a successful `POST /api/equipment/chlorinator`), and may be `null`, meaning the chlorinator is no longer present. A client must key on the field's *presence*, not its truthiness |
 | `ButtonStateChange` | `button_id`, `status`, `label` (optional) |
 | `SystemStateUpdate` | `state`, `pool_configuration`, `equipment_mode` |
 | `SystemStatusChange` | `status_type`, `source_name`, `source_type` |

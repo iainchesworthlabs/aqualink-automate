@@ -320,6 +320,38 @@ namespace AqualinkAutomate::Kernel
 		// instantaneous output, which is 0 whenever the cell is idle.
 		std::optional<uint8_t> ChlorinatorResolvedSetpoint(const AuxillaryDevice& chlorinator) const;
 
+		// The configured (scraped or written-through) target for the currently active body, with
+		// NO fallback to the passive last-generating %. That fallback is derived from the live
+		// 0x11 frame, so using it to ask "does the wire agree with the setpoint?" is circular.
+		// nullopt until a scrape (or a command) has established a configured value.
+		std::optional<uint8_t> ChlorinatorConfiguredSetpoint(const AuxillaryDevice& chlorinator) const;
+
+		// ---- Stale-setpoint refresh hand-off ---------------------------------------------------
+		// The device that sees the 0x11 wire frames (AquariteDevice) notices the panel is
+		// commanding something the dashboard's configured target does not explain, and asks for
+		// an immediate Set AquaPure re-scrape; the OneTouch that can actually walk the menu
+		// consumes the request. One-shot, single-threaded cooperative model, so a plain flag.
+		void RequestChlorinatorSetpointRefresh();
+		bool ConsumeChlorinatorSetpointRefreshRequest();
+
+		// This app just queued a setpoint command: until the panel has applied it (a menu walk
+		// takes 10-20 s) a wire/configured difference is expected, not staleness.
+		void NoteChlorinatorSetpointCommand();
+		bool ChlorinatorSetpointCommandWithin(std::chrono::seconds window) const;
+
+		// ---- Cached ("last known") configured targets ------------------------------------------
+		// The configured Pool/Spa % can only be learned by scraping a menu page, so after a restart
+		// there is nothing truthful to show until the startup crawl has walked there. The equipment
+		// cache therefore persists the last known targets and restores them on start - but a
+		// restored value is only what the panel held when the app last ran, and it may have been
+		// changed since (at the panel, in iAqualink). Each body is flagged "cached" from the restore
+		// until a live scrape or an explicit command re-establishes it; the flag travels with the
+		// chlorinator snapshot (`setpoints_cached`) so every client can say so rather than present
+		// it as live.
+		void MarkChlorinatorSetpointCached(BodyOfWaterIds body);
+		void ConfirmChlorinatorSetpoint(BodyOfWaterIds body);
+		bool ChlorinatorSetpointsCached() const;
+
 		// Why the cell is (or is not) producing right now -- "0%" alone cannot distinguish a
 		// chlorinator that is switched off from one that is simply waiting for the filter pump.
 		ChlorinatorGeneratingReason ResolveChlorinatorGeneratingReason(const AuxillaryDevice& chlorinator) const;
@@ -341,6 +373,11 @@ namespace AqualinkAutomate::Kernel
 	private:
 		// What the last chlorinator event told clients; nullopt until the first observation.
 		std::optional<nlohmann::json> m_LastPublishedChlorinator;
+
+		bool m_ChlorinatorSetpointRefreshRequested{ false };
+		bool m_ChlorinatorPoolSetpointCached{ false };
+		bool m_ChlorinatorSpaSetpointCached{ false };
+		std::optional<std::chrono::steady_clock::time_point> m_LastChlorinatorSetpointCommand;
 
 	//---------------------------------------------------------------------
 	// CONFIG-UPDATE EVENT EMITTERS

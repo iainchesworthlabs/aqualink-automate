@@ -20,6 +20,9 @@ function chlorinatorControl() {
     // be seen on the wire at all, so just hold the controls for roughly one walk.
     const CONFIRM_TIMEOUT_MS = 45000;
     const UNVERIFIABLE_WINDOW_MS = 25000;
+    // The POST itself only queues the set, so it answers in well under a second; a request that
+    // has not answered after this long is dead, and must not leave `busy` (and the controls) held.
+    const POST_TIMEOUT_MS = 15000;
 
     // Instantaneous reported output (the "SWG Output" gauge); 0 while the cell is idle.
     function actualNum() {
@@ -56,12 +59,21 @@ function chlorinatorControl() {
 
         get isPending() { return this.pending.pool !== null || this.pending.spa !== null; },
 
-        // Controls are held while a request is in flight OR the panel is still applying one: the
-        // panel takes one goal at a time, so a second click mid-walk is a guaranteed 409.
+        // The SUBMIT controls (Set, Boost) are held while a request is in flight OR the panel is
+        // still applying one: the panel takes one goal at a time, so a second click mid-walk is a
+        // guaranteed 409. The target SLIDERS are deliberately not held by a pending set -- dragging
+        // one sends nothing, and freezing both rows for the whole menu walk (up to 45 s) read as
+        // "I can't change the target any more". They are held only while a request is in flight.
         get locked() { return this.busy || this.isPending; },
 
         get present() {
             return Alpine.store('pool').chlorinatorPresent === true;
+        },
+
+        // The targets shown are what the server remembered from the last run and the panel has
+        // not yet confirmed them (it may have been changed since, at the panel or in iAqualink).
+        get setpointsCached() {
+            return Alpine.store('pool').swgSetpointsCached === true;
         },
 
         // Actual (reported) output.
@@ -174,12 +186,17 @@ function chlorinatorControl() {
             // commanding, so only THAT body's change can be confirmed from it.
             const commanded = Alpine.store('pool').spaModeActive ? 'spa' : 'pool';
             const wire = actualNum();
+            // ...and only while the cell is actually producing: with the filter pump off (or the
+            // cell idle) the wire reads 0 whatever was requested, so it can neither confirm nor
+            // refute the set. Waiting the full confirm timeout for a confirmation that cannot
+            // come would hold the controls ~20 s longer than the menu walk needs.
+            const wireIsInformative = !this.reasonIsIdle;
 
             for (const body of ['pool', 'spa']) {
                 const p = this.pending[body];
                 if (!p) { continue; }
 
-                const confirmable = (body === commanded);
+                const confirmable = (body === commanded) && wireIsInformative;
                 const elapsed = Date.now() - p.startedAt;
 
                 if (confirmable && wire === p.requested) {
@@ -227,11 +244,14 @@ function chlorinatorControl() {
             if (this.busy) { return false; }
             this.busy = true;
             this.feedback = '';
+            const abort = new AbortController();
+            const abortTimer = setTimeout(() => abort.abort(), POST_TIMEOUT_MS);
             try {
                 const resp = await fetch('/api/equipment/chlorinator', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
+                    signal: abort.signal,
                 });
                 const ok = resp.ok;
                 // A percentage set reports through the pending/confirm flow rather than an
@@ -259,6 +279,7 @@ function chlorinatorControl() {
                 this._showReason(window.AquaI18n.t('toast.chlorinator_failed_conn'));
                 return false;
             } finally {
+                clearTimeout(abortTimer);
                 this.busy = false;
             }
         },

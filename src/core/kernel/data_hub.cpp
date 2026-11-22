@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <utility>
 #include <magic_enum/magic_enum.hpp>
 #include <source_location>
 
@@ -748,6 +749,25 @@ namespace AqualinkAutomate::Kernel
 	{
 		using namespace AuxillaryTraitsTypes;
 
+		// Configured value first; the passive last-generating % is only a display fallback for a
+		// chlorinator that has never had its setpoint scraped.
+		if (const auto configured = ChlorinatorConfiguredSetpoint(chlorinator); configured.has_value())
+		{
+			return configured;
+		}
+
+		if (auto value = chlorinator.AuxillaryTraits.TryGet(ChlorinatorLastGeneratingTrait{}); value.has_value())
+		{
+			return static_cast<uint8_t>(value.value());
+		}
+
+		return std::nullopt;
+	}
+
+	std::optional<uint8_t> DataHub::ChlorinatorConfiguredSetpoint(const AuxillaryDevice& chlorinator) const
+	{
+		using namespace AuxillaryTraitsTypes;
+
 		const auto trait_value = [&chlorinator](auto trait) -> std::optional<uint8_t>
 		{
 			if (auto value = chlorinator.AuxillaryTraits.TryGet(trait); value.has_value())
@@ -775,7 +795,57 @@ namespace AqualinkAutomate::Kernel
 		if (pool_setpoint.has_value()) { return pool_setpoint; }   // active body unknown -> prefer pool
 		if (spa_setpoint.has_value()) { return spa_setpoint; }
 
-		return trait_value(ChlorinatorLastGeneratingTrait{});       // passive fallback
+		return std::nullopt;
+	}
+
+	void DataHub::RequestChlorinatorSetpointRefresh()
+	{
+		m_ChlorinatorSetpointRefreshRequested = true;
+	}
+
+	bool DataHub::ConsumeChlorinatorSetpointRefreshRequest()
+	{
+		return std::exchange(m_ChlorinatorSetpointRefreshRequested, false);
+	}
+
+	void DataHub::NoteChlorinatorSetpointCommand()
+	{
+		m_LastChlorinatorSetpointCommand = std::chrono::steady_clock::now();
+	}
+
+	bool DataHub::ChlorinatorSetpointCommandWithin(std::chrono::seconds window) const
+	{
+		return m_LastChlorinatorSetpointCommand.has_value()
+			&& ((std::chrono::steady_clock::now() - m_LastChlorinatorSetpointCommand.value()) < window);
+	}
+
+	void DataHub::MarkChlorinatorSetpointCached(BodyOfWaterIds body)
+	{
+		if (BodyOfWaterIds::Pool == body)
+		{
+			m_ChlorinatorPoolSetpointCached = true;
+		}
+		else if (BodyOfWaterIds::Spa == body)
+		{
+			m_ChlorinatorSpaSetpointCached = true;
+		}
+	}
+
+	void DataHub::ConfirmChlorinatorSetpoint(BodyOfWaterIds body)
+	{
+		if (BodyOfWaterIds::Pool == body)
+		{
+			m_ChlorinatorPoolSetpointCached = false;
+		}
+		else if (BodyOfWaterIds::Spa == body)
+		{
+			m_ChlorinatorSpaSetpointCached = false;
+		}
+	}
+
+	bool DataHub::ChlorinatorSetpointsCached() const
+	{
+		return m_ChlorinatorPoolSetpointCached || m_ChlorinatorSpaSetpointCached;
 	}
 
 	ChlorinatorGeneratingReason DataHub::ResolveChlorinatorGeneratingReason(const AuxillaryDevice& chlorinator) const
@@ -860,6 +930,12 @@ namespace AqualinkAutomate::Kernel
 
 		chlorinator["pool_setpoint_percent"] = pool_setpoint.has_value() ? nlohmann::json(pool_setpoint.value()) : nlohmann::json{};
 		chlorinator["spa_setpoint_percent"] = spa_setpoint.has_value() ? nlohmann::json(spa_setpoint.value()) : nlohmann::json{};
+
+		// True while a shown setpoint is still the value restored from the equipment cache (what the
+		// panel held when the app last ran) rather than one read from the panel or just commanded.
+		chlorinator["setpoints_cached"] =
+			(pool_setpoint.has_value() && m_ChlorinatorPoolSetpointCached) ||
+			(spa_setpoint.has_value() && m_ChlorinatorSpaSetpointCached);
 
 		// Headline target = the configured setpoint of whichever body is currently active,
 		// falling back to the other body's value, then to the passive last-known generating %.
